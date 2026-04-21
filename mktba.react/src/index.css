@@ -1,0 +1,117 @@
+@import './styles/fonts.css';
+@import 'tailwindcss';
+@import './styles/theme.css';
+
+@layer base {
+  html {
+    font-size: var(--font-size);
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background:
+      radial-gradient(circle at top left, rgba(94, 165, 126, 0.08), transparent 28%),
+      linear-gradient(180deg, #fafaf8 0%, #f4f3ee 100%);
+    color: #1c1b18;
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(45, 106, 79, 0.18);
+  }
+}
+
+@layer components {
+  .article-markdown {
+    font-size: 14.5px;
+    line-height: 1.8;
+    color: var(--color-ink-default);
+  }
+
+  .article-markdown p {
+    margin: 0 0 12px;
+  }
+
+  .article-markdown p:last-child {
+    margin-bottom: 0;
+  }
+
+  .article-markdown h1,
+  .article-markdown h2,
+  .article-markdown h3,
+  .article-markdown h4,
+  .article-markdown h5,
+  .article-markdown h6 {
+    margin: 32px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border-soft);
+    color: var(--color-ink-strong);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .article-markdown ul,
+  .article-markdown ol {
+    margin: 0 0 12px;
+    padding-inline-start: 20px;
+  }
+
+  .article-markdown li {
+    margin-bottom: 6px;
+  }
+
+  .article-markdown blockquote {
+    margin: 0 0 12px;
+    border-inline-start: 3px solid var(--color-border-soft);
+    padding-inline: 12px;
+    color: var(--color-ink-muted);
+  }
+
+  .article-markdown pre {
+    margin: 0 0 12px;
+    overflow-x: auto;
+    border-radius: 12px;
+    background: #f4f3ee;
+    padding: 12px 14px;
+  }
+
+  .article-markdown code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.95em;
+  }
+
+  .article-markdown a {
+    color: var(--color-brand-forest);
+  }
+
+  .article-markdown a:hover {
+    text-decoration: underline;
+  }
+}
