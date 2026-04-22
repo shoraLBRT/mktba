@@ -4,6 +4,7 @@ import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
 import { cn } from '../../shared/lib/cn';
 import { Textarea } from '../../shared/ui/Textarea';
+import type { SchoolDto } from '../../shared/types/ApiTypes';
 import type { AlternativeDraft, EditorBlock } from './types';
 
 type EditorTarget = {
@@ -17,12 +18,14 @@ type DocumentBlockEditorProps = {
   total: number;
   disabled: boolean;
   activeTarget: EditorTarget | null;
+  availableSchools: SchoolDto[];
   blockRef: (blockId: string, node: HTMLElement | null) => void;
   editorRef: (targetKey: string, node: HTMLTextAreaElement | null) => void;
   onFocusTarget: (target: EditorTarget) => void;
   onChangePlain: (blockId: string, content: string) => void;
   onChangeVersion: (blockId: string, localId: string, content: string) => void;
   onSetDefault: (blockId: string, localId: string) => void;
+  onSetSchools: (blockId: string, localId: string, schoolIds: number[]) => void;
   onAddVersion: (blockId: string) => void;
   onRemoveVersion: (blockId: string, localId: string) => void;
   onDeleteBlock: (blockId: string) => void;
@@ -67,18 +70,59 @@ const AutoResizingTextarea = ({ textareaRef, className, value, ...props }: AutoR
   );
 };
 
+const SchoolChips = ({
+  availableSchools,
+  selectedSchoolIds,
+  disabled,
+  onToggle,
+}: {
+  availableSchools: SchoolDto[];
+  selectedSchoolIds: number[];
+  disabled: boolean;
+  onToggle: (schoolId: number) => void;
+}) => {
+  if (availableSchools.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1">
+      {availableSchools.map((school) => {
+        const isSelected = selectedSchoolIds.includes(school.id);
+        return (
+          <button
+            key={school.id}
+            type="button"
+            disabled={disabled}
+            onClick={() => onToggle(school.id)}
+            title={school.name}
+            className="rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-40"
+            style={{
+              backgroundColor: isSelected ? 'var(--color-brand-forest)' : 'white',
+              color: isSelected ? 'white' : 'var(--color-brand-forest)',
+              borderColor: isSelected ? 'var(--color-brand-forest)' : '#cfe3d6',
+            }}
+          >
+            {school.shortName}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
 export const DocumentBlockEditor = ({
   block,
   index,
   total,
   disabled,
   activeTarget,
+  availableSchools,
   blockRef,
   editorRef,
   onFocusTarget,
   onChangePlain,
   onChangeVersion,
   onSetDefault,
+  onSetSchools,
   onAddVersion,
   onRemoveVersion,
   onDeleteBlock,
@@ -159,6 +203,14 @@ export const DocumentBlockEditor = ({
               getDefaultVariant(block.variants);
             const selectedIndex = block.variants.findIndex((variant) => variant.localId === selectedVariant.localId);
 
+            const toggleSchool = (schoolId: number) => {
+              const current = selectedVariant.schoolIds;
+              const next = current.includes(schoolId)
+                ? current.filter((id) => id !== schoolId)
+                : [...current, schoolId];
+              onSetSchools(block.id, selectedVariant.localId, next);
+            };
+
             return (
               <>
                 <div className="mb-2 flex items-center justify-between gap-3">
@@ -204,6 +256,13 @@ export const DocumentBlockEditor = ({
                   onChange={(event) => onChangeVersion(block.id, selectedVariant.localId, event.target.value)}
                   className="min-h-[32px] border-0 bg-transparent px-0 py-1 text-[14px] leading-8 shadow-none focus:ring-0"
                   placeholder={formatMessage(t.versionTextPlaceholder, { index: selectedIndex + 1 })}
+                />
+
+                <SchoolChips
+                  availableSchools={availableSchools}
+                  selectedSchoolIds={selectedVariant.schoolIds}
+                  disabled={disabled}
+                  onToggle={toggleSchool}
                 />
               </>
             );

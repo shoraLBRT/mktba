@@ -378,6 +378,23 @@ export const importBlocksFromParagraphs = (paragraphs: ParagraphDto[]): EditorBl
   });
 };
 
+export const setOpinionSchools = (
+  blocks: EditorBlock[],
+  blockId: string,
+  localId: string,
+  schoolIds: number[],
+): EditorBlock[] =>
+  blocks.map((block) =>
+    block.id !== blockId || block.kind !== 'versioned'
+      ? block
+      : {
+          ...block,
+          variants: block.variants.map((variant) =>
+            variant.localId === localId ? { ...variant, schoolIds } : variant,
+          ),
+        },
+  );
+
 export const collectWholeArticleAiTargets = (
   blocks: EditorBlock[],
 ): Array<{ blockId: string; localId: string | null; content: string }> => {

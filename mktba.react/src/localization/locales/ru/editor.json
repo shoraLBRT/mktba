@@ -127,6 +127,14 @@
       "quoteSnippet": "Цитата",
       "linkSnippet": "ссылка",
       "lineCount": "Строк Markdown"
+    },
+    "customSchools": {
+      "title": "Кастомные школы",
+      "addButton": "Добавить школу",
+      "namePlaceholder": "Название",
+      "shortNamePlaceholder": "Сокращение",
+      "emptyState": "Нет кастомных школ",
+      "deleteTitle": "Удалить школу"
     }
   },
   "editArticlePage": {

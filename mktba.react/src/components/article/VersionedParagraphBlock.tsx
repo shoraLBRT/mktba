@@ -1,4 +1,4 @@
-import { GitBranch, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
@@ -8,6 +8,7 @@ type VersionedParagraphBlockProps = {
   activeIndex: number;
   total: number;
   mode: 'arrows' | 'numbers';
+  labels?: string[];
   onSelect: (index: number) => void;
   onMove: (direction: -1 | 1) => void;
   children: ReactNode;
@@ -18,6 +19,7 @@ export const VersionedParagraphBlock = ({
   activeIndex,
   total,
   mode,
+  labels,
   onSelect,
   onMove,
   children,
@@ -25,11 +27,13 @@ export const VersionedParagraphBlock = ({
   const locale = useLocale();
   const t = locale.versionedParagraph;
 
+  const getLabel = (index: number) => labels?.[index] ?? String(index + 1);
+
   return (
     <section className="my-4 rounded-2xl border border-[#d9ecdf] bg-[#f7fcf9] transition-colors duration-200">
       <div className="px-4 pt-3 pb-2">
         <div className="mb-2 flex items-center gap-1.5">
-          <GitBranch size={11} className="text-[var(--color-brand-forest)]" />
+          <BookOpen size={11} className="text-[var(--color-brand-forest)]" />
           <span className="text-[10.5px] font-semibold tracking-[0.03em] text-[var(--color-brand-forest)]">
             {formatMessage(t.label, { order })}
           </span>
@@ -51,7 +55,7 @@ export const VersionedParagraphBlock = ({
               <ChevronLeft size={14} />
             </button>
             <span className="min-w-12 text-center text-[11px] font-semibold text-[var(--color-ink-muted)]">
-              {activeIndex + 1} / {total}
+              {getLabel(activeIndex)}
             </span>
             <button
               type="button"
@@ -77,7 +81,7 @@ export const VersionedParagraphBlock = ({
                   borderColor: isActive ? 'var(--color-brand-forest)' : '#cfe3d6',
                 }}
               >
-                {index + 1}
+                {getLabel(index)}
               </button>
             );
           })

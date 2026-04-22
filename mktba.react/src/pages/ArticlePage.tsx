@@ -16,7 +16,8 @@ import {
   type ParagraphUiMode,
 } from '../constants/ArticleUiConstants';
 import { getNavigationTree } from '../services/Article/navigationService';
-import type { NavigationArticleDto } from '../shared/types/ApiTypes';
+import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
+import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -72,6 +73,24 @@ const ArticlePage: React.FC = () => {
     queryFn: getNavigationTree,
   });
 
+  const { data: systemSchools } = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
+    queryFn: getSystemSchools,
+  });
+
+  const { data: articleSchools } = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, articleId],
+    queryFn: () => getSchoolsByArticleId(articleId),
+    enabled: !isNaN(articleId) && articleId > 0,
+  });
+
+  const schoolMap = useMemo<Map<number, SchoolDto>>(() => {
+    const map = new Map<number, SchoolDto>();
+    for (const s of systemSchools ?? []) map.set(s.id, s);
+    for (const s of articleSchools ?? []) map.set(s.id, s);
+    return map;
+  }, [systemSchools, articleSchools]);
+
   const articlePath = useMemo(
     () => (navigationTree ? findArticlePathById(navigationTree, articleId) : []),
     [navigationTree, articleId],
@@ -96,18 +115,28 @@ const ArticlePage: React.FC = () => {
         const activeOpinion = paragraph.opinions[activeIndex] ?? paragraph.opinions[0];
         const title = extractHeadingTitle(activeOpinion?.content ?? '');
 
+        const labels = paragraph.opinions.map((opinion) => {
+          if (opinion.schoolIds.length === 0) {
+            return opinion.isDefault ? 'По умолч.' : '—';
+          }
+          return opinion.schoolIds
+            .map((id) => schoolMap.get(id)?.shortName ?? String(id))
+            .join('·');
+        });
+
         return {
           paragraphId: paragraph.id,
           order: paragraph.order,
           opinions: paragraph.opinions,
           activeIndex,
           activeOpinion,
+          labels,
           hasAlternatives: paragraph.opinions.length > 1,
           anchorId: title ? `section-${paragraph.order}` : `paragraph-${paragraph.order}`,
           title,
         };
       });
-  }, [articleContent, selectedAlternatives]);
+  }, [articleContent, selectedAlternatives, schoolMap]);
 
   const tocItems = useMemo<TocItem[]>(() => {
     const items: TocItem[] = [{ id: 'article-overview', label: locale.articlePage.overview }];
@@ -217,6 +246,7 @@ const ArticlePage: React.FC = () => {
                     activeIndex={paragraph.activeIndex}
                     total={paragraph.opinions.length}
                     mode={uiMode}
+                    labels={paragraph.labels}
                     onSelect={(index) => selectAlternative(paragraph.paragraphId, index, paragraph.opinions.length)}
                     onMove={(direction) => moveAlternative(paragraph.paragraphId, paragraph.activeIndex, direction, paragraph.opinions.length)}
                   >

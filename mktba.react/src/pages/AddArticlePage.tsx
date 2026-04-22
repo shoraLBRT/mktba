@@ -13,6 +13,7 @@ import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
 import { Textarea } from '../shared/ui/Textarea';
 import type { ArticleContentCreateDto, ArticleInfoboxDto, NavigationArticleDto } from '../shared/types/ApiTypes';
+import { getSystemSchools } from '../services/schoolService';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { DocumentBlockEditor } from './add-article/DocumentBlockEditor';
 import { EditorBottomToolbar, type FormatAction } from './add-article/EditorBottomToolbar';
@@ -25,6 +26,7 @@ import {
   buildDocumentPreviewMarkdown,
   buildParagraphCreateDtosFromBlocks,
   collectWholeArticleAiTargets,
+  setOpinionSchools,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
   createEmptyBlock,
@@ -130,6 +132,13 @@ const AddArticlePage: React.FC = () => {
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_AI_SETTINGS],
     queryFn: getAiProviderSettings,
   });
+
+  const systemSchoolsQuery = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
+    queryFn: getSystemSchools,
+  });
+
+  const availableSchools = systemSchoolsQuery.data ?? [];
 
   const navigationTreeQuery = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE],
@@ -482,10 +491,12 @@ const AddArticlePage: React.FC = () => {
                           editorRef={(key, node) => {
                             editorRefs.current[key] = node;
                           }}
+                          availableSchools={availableSchools}
                           onFocusTarget={setActiveTarget}
                           onChangePlain={(blockId, content) => setBlocks((current) => updatePlainBlockContent(current, blockId, content))}
                           onChangeVersion={(blockId, localId, content) => setBlocks((current) => updateVersionContent(current, blockId, localId, content))}
                           onSetDefault={(blockId, localId) => setBlocks((current) => setDefaultVersion(current, blockId, localId))}
+                          onSetSchools={(blockId, localId, schoolIds) => setBlocks((current) => setOpinionSchools(current, blockId, localId, schoolIds))}
                           onAddVersion={(blockId) => setBlocks((current) => addVersionToBlock(current, blockId))}
                           onRemoveVersion={(blockId, localId) => setBlocks((current) => removeVersionFromBlock(current, blockId, localId))}
                           onDeleteBlock={(blockId) => setBlocks((current) => (current.length > 1 ? deleteBlock(current, blockId) : current))}
