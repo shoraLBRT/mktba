@@ -23,7 +23,7 @@ import { EditorToolbar } from './add-article/EditorToolbar';
 import {
   addVersionToBlock,
   buildDocumentPreviewMarkdown,
-  buildParagraphDtosFromBlocks,
+  buildParagraphCreateDtosFromBlocks,
   collectWholeArticleAiTargets,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
@@ -327,7 +327,7 @@ const AddArticlePage: React.FC = () => {
     mutation.mutate({
       title: title.trim(),
       parentArticleId: parentArticleId ?? undefined,
-      paragraphs: buildParagraphDtosFromBlocks(blocks),
+      paragraphs: buildParagraphCreateDtosFromBlocks(blocks),
       infobox: buildInfoboxCreateDto(infobox),
       summary: summary.trim() || undefined,
       tags: tags.length > 0 ? tags : undefined,

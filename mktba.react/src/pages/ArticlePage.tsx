@@ -16,7 +16,7 @@ import {
   type ParagraphUiMode,
 } from '../constants/ArticleUiConstants';
 import { getNavigationTree } from '../services/Article/navigationService';
-import type { NavigationArticleDto, ParagraphDto } from '../shared/types/ApiTypes';
+import type { NavigationArticleDto } from '../shared/types/ApiTypes';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -87,40 +87,27 @@ const ArticlePage: React.FC = () => {
     [articlePath],
   );
 
-  const groupedParagraphs = useMemo(() => {
-    const grouped = new Map<number, ParagraphDto[]>();
-
-    articleContent?.paragraphs.forEach((paragraph) => {
-      const paragraphsAtOrder = grouped.get(paragraph.order) ?? [];
-      paragraphsAtOrder.push(paragraph);
-      grouped.set(paragraph.order, paragraphsAtOrder);
-    });
-
-    return Array.from(grouped.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([order, paragraphs]) => ({ order, paragraphs }));
-  }, [articleContent]);
-
-  const renderedParagraphs = useMemo(
-    () =>
-      groupedParagraphs.map(({ order, paragraphs }) => {
-        const defaultIndex = paragraphs.findIndex((paragraph) => paragraph.isDefault);
-        const activeIndex = selectedAlternatives[order] ?? (defaultIndex >= 0 ? defaultIndex : 0);
-        const activeParagraph = paragraphs[activeIndex] ?? paragraphs[0];
-        const title = extractHeadingTitle(activeParagraph.content);
+  const renderedParagraphs = useMemo(() => {
+    return [...(articleContent?.paragraphs ?? [])]
+      .sort((a, b) => a.order - b.order)
+      .map((paragraph) => {
+        const defaultIndex = paragraph.opinions.findIndex((o) => o.isDefault);
+        const activeIndex = selectedAlternatives[paragraph.id] ?? (defaultIndex >= 0 ? defaultIndex : 0);
+        const activeOpinion = paragraph.opinions[activeIndex] ?? paragraph.opinions[0];
+        const title = extractHeadingTitle(activeOpinion?.content ?? '');
 
         return {
-          order,
-          paragraphs,
+          paragraphId: paragraph.id,
+          order: paragraph.order,
+          opinions: paragraph.opinions,
           activeIndex,
-          activeParagraph,
-          hasAlternatives: paragraphs.length > 1,
-          anchorId: title ? `section-${order}` : `paragraph-${order}`,
+          activeOpinion,
+          hasAlternatives: paragraph.opinions.length > 1,
+          anchorId: title ? `section-${paragraph.order}` : `paragraph-${paragraph.order}`,
           title,
         };
-      }),
-    [groupedParagraphs, selectedAlternatives],
-  );
+      });
+  }, [articleContent, selectedAlternatives]);
 
   const tocItems = useMemo<TocItem[]>(() => {
     const items: TocItem[] = [{ id: 'article-overview', label: locale.articlePage.overview }];
@@ -139,14 +126,14 @@ const ArticlePage: React.FC = () => {
     return ((index % total) + total) % total;
   };
 
-  const selectAlternative = (order: number, index: number, total: number) => {
+  const selectAlternative = (paragraphId: number, index: number, total: number) => {
     const boundedIndex = Math.max(0, Math.min(index, total - 1));
-    setSelectedAlternatives((current) => ({ ...current, [order]: boundedIndex }));
+    setSelectedAlternatives((current) => ({ ...current, [paragraphId]: boundedIndex }));
   };
 
-  const moveAlternative = (order: number, currentIndex: number, direction: -1 | 1, total: number) => {
+  const moveAlternative = (paragraphId: number, currentIndex: number, direction: -1 | 1, total: number) => {
     const nextIndex = normalizeAlternativeIndex(currentIndex + direction, total);
-    setSelectedAlternatives((current) => ({ ...current, [order]: nextIndex }));
+    setSelectedAlternatives((current) => ({ ...current, [paragraphId]: nextIndex }));
   };
 
   if (isLoading) {
@@ -215,26 +202,26 @@ const ArticlePage: React.FC = () => {
             renderedParagraphs.map((paragraph) => {
               if (!paragraph.hasAlternatives) {
                 return (
-                  <section key={paragraph.order} id={paragraph.anchorId} className="scroll-mt-24 py-0.5">
+                  <section key={paragraph.paragraphId} id={paragraph.anchorId} className="scroll-mt-24 py-0.5">
                     <div className="article-markdown text-[14.5px] leading-8 text-[var(--color-ink-default)]">
-                      <MarkdownContent content={paragraph.activeParagraph.content} />
+                      <MarkdownContent content={paragraph.activeOpinion?.content ?? ''} />
                     </div>
                   </section>
                 );
               }
 
               return (
-                <div key={paragraph.order} id={paragraph.anchorId} className="scroll-mt-24">
+                <div key={paragraph.paragraphId} id={paragraph.anchorId} className="scroll-mt-24">
                   <VersionedParagraphBlock
                     order={paragraph.order}
                     activeIndex={paragraph.activeIndex}
-                    total={paragraph.paragraphs.length}
+                    total={paragraph.opinions.length}
                     mode={uiMode}
-                    onSelect={(index) => selectAlternative(paragraph.order, index, paragraph.paragraphs.length)}
-                    onMove={(direction) => moveAlternative(paragraph.order, paragraph.activeIndex, direction, paragraph.paragraphs.length)}
+                    onSelect={(index) => selectAlternative(paragraph.paragraphId, index, paragraph.opinions.length)}
+                    onMove={(direction) => moveAlternative(paragraph.paragraphId, paragraph.activeIndex, direction, paragraph.opinions.length)}
                   >
                     <div className="article-markdown">
-                      <MarkdownContent content={paragraph.activeParagraph.content} />
+                      <MarkdownContent content={paragraph.activeOpinion?.content ?? ''} />
                     </div>
                   </VersionedParagraphBlock>
                 </div>

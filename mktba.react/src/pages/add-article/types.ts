@@ -2,7 +2,8 @@ export type AlternativeDraft = {
   localId: string;
   content: string;
   isDefault: boolean;
-  paragraphId?: number;
+  opinionId?: number;
+  schoolIds: number[];
 };
 
 export type InfoboxFieldDraft = {
@@ -25,12 +26,14 @@ export type PlainEditorBlock = {
   kind: PlainBlockKind;
   content: string;
   paragraphId?: number;
+  opinionId?: number;
 };
 
 export type VersionedEditorBlock = {
   id: string;
   kind: 'versioned';
   variants: AlternativeDraft[];
+  paragraphId?: number;
 };
 
 export type EditorBlock = PlainEditorBlock | VersionedEditorBlock;
