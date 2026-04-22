@@ -35,6 +35,11 @@
     "enabled": "включено",
     "disabled": "выключено"
   },
+  "mazhabSelector": {
+    "title": "Мазхаб",
+    "placeholder": "Мазхаб",
+    "noPreference": "Без предпочтения"
+  },
   "sidebar": {
     "loadError": "Ошибка загрузки навигации"
   },

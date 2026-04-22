@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +18,7 @@ import {
 import { getNavigationTree } from '../services/Article/navigationService';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
+import { useMazhab } from '../context/MazhabContext';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -61,6 +62,7 @@ const ArticlePage: React.FC = () => {
   const articleId = parseInt(id || '0', 10);
   const [uiMode] = useState<ParagraphUiMode>(getInitialUiMode);
   const [selectedAlternatives, setSelectedAlternatives] = useState<Record<number, number>>({});
+  const { selectedSchoolId } = useMazhab();
 
   const { data: articleContent, isLoading, error } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, articleId],
@@ -83,6 +85,10 @@ const ArticlePage: React.FC = () => {
     queryFn: () => getSchoolsByArticleId(articleId),
     enabled: !isNaN(articleId) && articleId > 0,
   });
+
+  useEffect(() => {
+    setSelectedAlternatives({});
+  }, [selectedSchoolId]);
 
   const schoolMap = useMemo<Map<number, SchoolDto>>(() => {
     const map = new Map<number, SchoolDto>();
@@ -111,7 +117,12 @@ const ArticlePage: React.FC = () => {
       .sort((a, b) => a.order - b.order)
       .map((paragraph) => {
         const defaultIndex = paragraph.opinions.findIndex((o) => o.isDefault);
-        const activeIndex = selectedAlternatives[paragraph.id] ?? (defaultIndex >= 0 ? defaultIndex : 0);
+        let autoIndex = defaultIndex >= 0 ? defaultIndex : 0;
+        if (selectedSchoolId !== null) {
+          const mazhabIndex = paragraph.opinions.findIndex((o) => o.schoolIds.includes(selectedSchoolId));
+          if (mazhabIndex >= 0) autoIndex = mazhabIndex;
+        }
+        const activeIndex = selectedAlternatives[paragraph.id] ?? autoIndex;
         const activeOpinion = paragraph.opinions[activeIndex] ?? paragraph.opinions[0];
         const title = extractHeadingTitle(activeOpinion?.content ?? '');
 
@@ -136,7 +147,7 @@ const ArticlePage: React.FC = () => {
           title,
         };
       });
-  }, [articleContent, selectedAlternatives, schoolMap]);
+  }, [articleContent, selectedAlternatives, schoolMap, selectedSchoolId]);
 
   const tocItems = useMemo<TocItem[]>(() => {
     const items: TocItem[] = [{ id: 'article-overview', label: locale.articlePage.overview }];

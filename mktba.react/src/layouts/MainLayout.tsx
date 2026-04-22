@@ -15,6 +15,7 @@ import { useLocale } from '../localization/hooks';
 import { isAdminAuthenticated } from '../services/authService';
 import { clearStoredAdminToken } from '../services/authTokenStorage';
 import { Button } from '../shared/ui/Button';
+import { MazhabSelector } from '../components/mazhab/MazhabSelector';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -132,6 +133,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         />
         <main className="flex-1">{children}</main>
       </div>
+      <MazhabSelector />
     </div>
   );
 };

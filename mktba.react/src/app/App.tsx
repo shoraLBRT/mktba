@@ -10,6 +10,7 @@ import EditArticlePage from '../pages/EditArticlePage';
 import WelcomePage from '../pages/WelcomePage';
 import { isAdminAuthenticated } from '../services/authService';
 import { ADMIN_SESSION_EXPIRED_EVENT } from '../services/authTokenStorage';
+import { MazhabProvider } from '../context/MazhabContext';
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const AdminSessionExpirationHandler = () => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <MazhabProvider>
       <Router>
         <AdminSessionExpirationHandler />
         <MainLayout>
@@ -57,6 +59,7 @@ function App() {
           </Routes>
         </MainLayout>
       </Router>
+      </MazhabProvider>
     </QueryClientProvider>
   );
 }
