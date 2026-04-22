@@ -366,6 +366,15 @@ const EditArticlePage: React.FC = () => {
         return;
       case 'quote':
         withLinePrefix(() => '> ', editorText.markdown.quoteSnippet);
+        return;
+      case 'footnote': {
+        const n = (currentValue.match(/\[\^\d+\]/g) ?? []).length + 1;
+        const ref = `[^${n}]`;
+        const next = `${before}${ref}${after}\n[^${n}]: `;
+        updateTarget(next);
+        focus(key, before.length + ref.length, before.length + ref.length);
+        return;
+      }
     }
   };
 

@@ -305,6 +305,15 @@ const AddArticlePage: React.FC = () => {
         return;
       case 'quote':
         withLinePrefix(() => '> ', editorText.markdown.quoteSnippet);
+        return;
+      case 'footnote': {
+        const n = (currentValue.match(/\[\^\d+\]/g) ?? []).length + 1;
+        const ref = `[^${n}]`;
+        const nextValue = `${currentValue.slice(0, start)}${ref}${currentValue.slice(end)}\n[^${n}]: `;
+        const nextCursor = start + ref.length;
+        updateSelection(activeTarget, nextValue, nextCursor, nextCursor);
+        return;
+      }
     }
   };
 
