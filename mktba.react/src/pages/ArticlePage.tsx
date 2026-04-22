@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -19,6 +19,7 @@ import { getNavigationTree } from '../services/Article/navigationService';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
 import { useMazhab } from '../context/MazhabContext';
+import { useTrackEvent } from '../analytics/useTrackEvent';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -86,9 +87,23 @@ const ArticlePage: React.FC = () => {
     enabled: !isNaN(articleId) && articleId > 0,
   });
 
+  const track = useTrackEvent();
+  const fiveMinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     setSelectedAlternatives({});
   }, [selectedSchoolId]);
+
+  useEffect(() => {
+    if (!articleContent) return;
+    track('article_view', { articleId });
+    fiveMinTimerRef.current = setTimeout(() => {
+      track('article_time_5min', { articleId });
+    }, 5 * 60 * 1000);
+    return () => {
+      if (fiveMinTimerRef.current) clearTimeout(fiveMinTimerRef.current);
+    };
+  }, [articleId, articleContent, track]);
 
   const schoolMap = useMemo<Map<number, SchoolDto>>(() => {
     const map = new Map<number, SchoolDto>();
@@ -169,11 +184,13 @@ const ArticlePage: React.FC = () => {
   const selectAlternative = (paragraphId: number, index: number, total: number) => {
     const boundedIndex = Math.max(0, Math.min(index, total - 1));
     setSelectedAlternatives((current) => ({ ...current, [paragraphId]: boundedIndex }));
+    track('opinion_switch', { paragraphId, index: boundedIndex });
   };
 
   const moveAlternative = (paragraphId: number, currentIndex: number, direction: -1 | 1, total: number) => {
     const nextIndex = normalizeAlternativeIndex(currentIndex + direction, total);
     setSelectedAlternatives((current) => ({ ...current, [paragraphId]: nextIndex }));
+    track('opinion_switch', { paragraphId, index: nextIndex });
   };
 
   if (isLoading) {

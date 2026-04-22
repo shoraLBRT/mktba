@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import { trackGoal } from '../analytics/metrika';
 
 const STORAGE_KEY = 'mktba.mazhab';
 
@@ -29,6 +30,7 @@ export const MazhabProvider = ({ children }: { children: ReactNode }) => {
     } else {
       localStorage.setItem(STORAGE_KEY, String(id));
     }
+    trackGoal('mazhab_change', { schoolId: id });
   };
 
   return (

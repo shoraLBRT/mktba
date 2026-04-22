@@ -11,8 +11,14 @@ import WelcomePage from '../pages/WelcomePage';
 import { isAdminAuthenticated } from '../services/authService';
 import { ADMIN_SESSION_EXPIRED_EVENT } from '../services/authTokenStorage';
 import { MazhabProvider } from '../context/MazhabContext';
+import { CookieConsent } from '../components/CookieConsent';
+import { getConsent, initMetrika } from '../analytics/metrika';
 
 const queryClient = new QueryClient();
+
+if (getConsent() === true) {
+  initMetrika();
+}
 
 const AdminOnlyRoute = ({ children }: { children: ReactElement }) => {
   if (!isAdminAuthenticated()) {
@@ -46,6 +52,7 @@ function App() {
       <Router>
         <AdminSessionExpirationHandler />
         <MainLayout>
+          <CookieConsent />
           <Routes>
             <Route path="/" element={<WelcomePage />} />
             <Route path="/article/:id" element={<ArticlePage />} />
