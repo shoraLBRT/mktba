@@ -76,21 +76,21 @@
       "moveDown": "Переместить поле вниз",
       "removeField": "Удалить поле"
     },
-    "toggleToVersioned": "Преобразовать в версионный блок",
+    "toggleToVersioned": "Преобразовать в блок мнений",
     "toggleToParagraph": "Преобразовать в обычный параграф",
     "defaultVersion": "По умолчанию",
-    "versionTextPlaceholder": "Текст версии {index}...",
-    "versions": "Версии:",
-    "versionTitle": "Версия {index}",
-    "defaultVersionTitle": "Версия по умолчанию",
-    "addVersion": "Добавить версию",
+    "versionTextPlaceholder": "Текст мнения {index}...",
+    "versions": "Мазхабы:",
+    "versionTitle": "Мнение {index}",
+    "defaultVersionTitle": "Мнение по умолчанию",
+    "addVersion": "Добавить мнение",
     "sectionTitlePlaceholder": "Заголовок раздела...",
     "subsectionTitlePlaceholder": "Подзаголовок...",
     "paragraphPlaceholder": "Введите текст параграфа...",
     "blockKinds": {
       "heading2": "Heading H2",
       "heading3": "Heading H3",
-      "versioned": "Versioned block",
+      "versioned": "Блок мнений",
       "paragraph": "Paragraph"
     },
     "topToolbar": {
@@ -153,9 +153,9 @@
     "deleteBlockedByChildren": "У этой статьи есть дочерние статьи. Сначала удалите или переместите их, а затем удалите эту статью."
   },
   "versionedParagraph": {
-    "label": "Версионный блок: набор {order}",
-    "versions": "Версии:",
-    "previous": "Предыдущая версия",
-    "next": "Следующая версия"
+    "label": "Мнения мазхабов: блок {order}",
+    "versions": "Мазхабы:",
+    "previous": "Предыдущее мнение",
+    "next": "Следующее мнение"
   }
 }

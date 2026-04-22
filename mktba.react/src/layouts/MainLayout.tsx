@@ -62,6 +62,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </div>
 
         <div className="flex min-w-0 flex-1 items-stretch">
+          <div className="hidden items-center gap-0.5 border-r border-[var(--color-border-soft)] px-3 lg:flex">
+            <span className="rounded-lg px-3 py-1.5 text-[12px] font-semibold text-[var(--color-brand-forest)] bg-[var(--color-brand-forest-soft)]">
+              Lib
+            </span>
+            <button
+              type="button"
+              disabled
+              className="flex cursor-default items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-subtle)] opacity-60"
+            >
+              Blog
+              <span className="rounded bg-[var(--color-page-panel)] px-1 py-px text-[9px] font-bold uppercase tracking-wide text-[var(--color-ink-subtle)]">soon</span>
+            </button>
+            <button
+              type="button"
+              disabled
+              className="flex cursor-default items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-subtle)] opacity-60"
+            >
+              Q&A
+              <span className="rounded bg-[var(--color-page-panel)] px-1 py-px text-[9px] font-bold uppercase tracking-wide text-[var(--color-ink-subtle)]">soon</span>
+            </button>
+          </div>
+
           <div className="flex items-center border-r border-[var(--color-border-soft)] px-2 sm:px-3">
             <button
               type="button"

@@ -30,11 +30,11 @@ export const VersionedParagraphBlock = ({
   const getLabel = (index: number) => labels?.[index] ?? String(index + 1);
 
   return (
-    <section className="my-4 rounded-2xl border border-[#d9ecdf] bg-[#f7fcf9] transition-colors duration-200">
+    <section className="my-4 rounded-2xl border border-[var(--color-mazhab-border)] bg-[var(--color-mazhab-bg)] transition-colors duration-200">
       <div className="px-4 pt-3 pb-2">
         <div className="mb-2 flex items-center gap-1.5">
-          <BookOpen size={11} className="text-[var(--color-brand-forest)]" />
-          <span className="text-[10.5px] font-semibold tracking-[0.03em] text-[var(--color-brand-forest)]">
+          <BookOpen size={11} className="text-[var(--color-mazhab-accent)]" />
+          <span className="text-[10.5px] font-semibold tracking-[0.03em] text-[var(--color-mazhab-accent)]">
             {formatMessage(t.label, { order })}
           </span>
         </div>
@@ -49,7 +49,7 @@ export const VersionedParagraphBlock = ({
             <button
               type="button"
               onClick={() => onMove(-1)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#cfe3d6] bg-white text-[var(--color-brand-forest)] transition-colors hover:bg-[var(--color-brand-forest-soft)]"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--color-mazhab-border)] bg-white text-[var(--color-mazhab-accent)] transition-colors hover:bg-[var(--color-mazhab-accent-soft)]"
               aria-label={t.previous}
             >
               <ChevronLeft size={14} />
@@ -60,7 +60,7 @@ export const VersionedParagraphBlock = ({
             <button
               type="button"
               onClick={() => onMove(1)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#cfe3d6] bg-white text-[var(--color-brand-forest)] transition-colors hover:bg-[var(--color-brand-forest-soft)]"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--color-mazhab-border)] bg-white text-[var(--color-mazhab-accent)] transition-colors hover:bg-[var(--color-mazhab-accent-soft)]"
               aria-label={t.next}
             >
               <ChevronRight size={14} />
@@ -76,9 +76,9 @@ export const VersionedParagraphBlock = ({
                 onClick={() => onSelect(index)}
                 className="rounded border px-2 py-0.5 text-[11px] font-semibold transition-colors"
                 style={{
-                  backgroundColor: isActive ? 'var(--color-brand-forest)' : 'white',
-                  color: isActive ? 'white' : 'var(--color-brand-forest)',
-                  borderColor: isActive ? 'var(--color-brand-forest)' : '#cfe3d6',
+                  backgroundColor: isActive ? 'var(--color-mazhab-accent)' : 'white',
+                  color: isActive ? 'white' : 'var(--color-mazhab-accent)',
+                  borderColor: isActive ? 'var(--color-mazhab-accent)' : 'var(--color-mazhab-border)',
                 }}
               >
                 {getLabel(index)}
