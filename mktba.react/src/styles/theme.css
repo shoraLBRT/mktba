@@ -16,10 +16,6 @@
   --color-border-soft: #e2e1dc;
   --color-border-mute: #eeede8;
   --color-focus-ring: rgba(45, 106, 79, 0.2);
-  --color-mazhab-bg: #eff6fb;
-  --color-mazhab-border: #c4d9ee;
-  --color-mazhab-accent: #3b7ab8;
-  --color-mazhab-accent-soft: #dceeff;
   /* Mazhab palette. One hue per school; the token suffix is the school slug,
      so a palette is looked up straight from `School.slug`. Hues avoid the
      brand green as well as success/error readings. Every school keeps its

@@ -153,7 +153,12 @@
     "deleteBlockedByChildren": "У этой статьи есть дочерние статьи. Сначала удалите или переместите их, а затем удалите эту статью."
   },
   "versionedParagraph": {
-    "label": "Мнения мазхабов: блок {order}",
+    "label": "Мнение мазхаба: {school}",
+    "labelSeveral": "Мнение мазхабов: {schools}",
+    "labelConsensus": "Согласие всех мазхабов",
+    "labelCommon": "Общее мнение",
+    "tabConsensus": "Все",
+    "tabCommon": "Общее",
     "versions": "Мазхабы:",
     "previous": "Предыдущее мнение",
     "next": "Следующее мнение"
