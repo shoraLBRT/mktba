@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Bot, Check, ChevronLeft, ChevronRight, Copy, Database, FileText, GitBranch, HelpCircle, KeyRound, Settings2, Sparkles, Trash2, X } from 'lucide-react';
+import { Bot, Check, Copy, Database, FileText, HelpCircle, KeyRound, Sparkles, Trash2, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   checkAiConnection,
@@ -11,12 +11,6 @@ import {
   updateAiProviderSettings,
 } from '../services/adminService';
 import { generateInviteToken } from '../services/authService';
-import {
-  ARTICLE_UI_MODE_STORAGE_KEY,
-  DEFAULT_ARTICLE_UI_MODE,
-  isParagraphUiMode,
-  type ParagraphUiMode,
-} from '../constants/ArticleUiConstants';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { formatMessage } from '../localization';
 import { useLocale } from '../localization/hooks';
@@ -27,7 +21,7 @@ import { Input } from '../shared/ui/Input';
 import { Switch } from '../shared/ui/Switch';
 import { Textarea } from '../shared/ui/Textarea';
 
-type AdminSection = 'articles' | 'displayMode' | 'aiProvider' | 'adminAccess' | 'cleanup';
+type AdminSection = 'articles' | 'aiProvider' | 'adminAccess' | 'cleanup';
 type Notice = { tone: 'success' | 'warning' | 'error'; message: string };
 type AiSettingsState = {
   baseUrl: string;
@@ -43,11 +37,6 @@ const noticeClasses: Record<Notice['tone'], string> = {
   error: 'border-red-200 bg-red-50 text-red-800',
 };
 
-const getInitialUiMode = (): ParagraphUiMode => {
-  const savedMode = localStorage.getItem(ARTICLE_UI_MODE_STORAGE_KEY);
-  return isParagraphUiMode(savedMode) ? savedMode : DEFAULT_ARTICLE_UI_MODE;
-};
-
 const AdminPage: React.FC = () => {
   const locale = useLocale();
   const t = locale.adminPage;
@@ -55,12 +44,10 @@ const AdminPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState<AdminSection>('articles');
   const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
   const [cleanupConfirmation, setCleanupConfirmation] = useState('');
-  const [paragraphUiMode, setParagraphUiMode] = useState<ParagraphUiMode>(getInitialUiMode);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [aiCheckResult, setAiCheckResult] = useState<{ message: string; styledText: string } | null>(null);
   const [aiSettingsFormOverride, setAiSettingsFormOverride] = useState<AiSettingsState | null>(null);
-  const [previewAlternativeIndex, setPreviewAlternativeIndex] = useState(0);
   const [isDefaultPromptModalOpen, setIsDefaultPromptModalOpen] = useState(false);
 
   const confirmationPhrase = t.cleanupConfirmationPhrase;
@@ -152,12 +139,6 @@ const AdminPage: React.FC = () => {
     onError: (error) => showNotice('error', `${t.resetAiSettingsFailed}: ${(error as Error).message}`),
   });
 
-  const onParagraphUiModeChange = (value: ParagraphUiMode) => {
-    setParagraphUiMode(value);
-    localStorage.setItem(ARTICLE_UI_MODE_STORAGE_KEY, value);
-    showNotice('success', locale.articlePage.uiModeUpdated);
-  };
-
   const saveAiSettings = () => {
     if (!aiSettingsForm.baseUrl.trim()) {
       showNotice('warning', t.baseUrlRequired);
@@ -214,20 +195,12 @@ const AdminPage: React.FC = () => {
       : aiSettingsQuery.data.hasApiKey
         ? t.aiStatusReady
         : t.aiStatusNeedsKey;
-  const currentUiModeLabel = paragraphUiMode === 'arrows' ? t.uiModeArrows : t.uiModeNumbers;
-
   const navItems: { id: AdminSection; label: string; icon: React.ReactNode; description: string }[] = [
     {
       id: 'articles',
       label: t.articlesTab,
       icon: <Database size={18} />,
       description: 'View and manage articles',
-    },
-    {
-      id: 'displayMode',
-      label: t.uiTab,
-      icon: <Settings2 size={18} />,
-      description: 'Display settings',
     },
     {
       id: 'aiProvider',
@@ -382,127 +355,6 @@ const AdminPage: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </Card>
-            </div>
-          ) : null}
-
-          {/* Display Mode Section */}
-          {activeSection === 'displayMode' ? (
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink-strong)]">{t.uiTab}</h1>
-                <p className="mt-2 text-sm text-[var(--color-ink-muted)]">Choose how paragraph alternatives are displayed.</p>
-              </div>
-
-              {/* Preview Example - Styled like VersionedParagraphBlock */}
-              <section className="my-4 rounded-2xl border border-[#d9ecdf] bg-[#f7fcf9] transition-colors duration-200">
-                {/* Header with label */}
-                <div className="px-4 pt-3 pb-2">
-                  <div className="mb-2 flex items-center gap-1.5">
-                    <GitBranch size={11} className="text-[var(--color-brand-forest)]" />
-                    <span className="text-[10.5px] font-semibold tracking-[0.03em] text-[var(--color-brand-forest)]">
-                      Versioned block: set 1
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="text-[14.5px] leading-7 text-[var(--color-ink-strong)] px-4">
-                  <p>
-                    Wikipedia is a free online encyclopedia,{' '}
-                    {previewAlternativeIndex === 0 ? (
-                      <span className="font-medium text-[var(--color-brand-forest)]">
-                        created and edited by volunteers
-                      </span>
-                    ) : (
-                      <span className="font-medium text-[var(--color-brand-forest)]">
-                        created collaboratively by communities
-                      </span>
-                    )}
-                    , around the world.
-                  </p>
-                </div>
-
-                {/* Controls - Arrows Mode */}
-                {paragraphUiMode === 'arrows' ? (
-                  <div className="flex items-center justify-end gap-1.5 px-3 pb-3 pt-1">
-                    <span className="mr-1 text-[10px] text-[var(--color-ink-subtle)]">Versions:</span>
-                    <button
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#cfe3d6] bg-white text-[var(--color-brand-forest)] transition-colors hover:bg-[#eef7f2]"
-                      onClick={() => setPreviewAlternativeIndex((prev) => (prev === 0 ? 1 : 0))}
-                      title="Previous version"
-                    >
-                      <ChevronLeft size={14} />
-                    </button>
-                    <span className="min-w-12 text-center text-[11px] font-semibold text-[var(--color-ink-muted)]">
-                      {previewAlternativeIndex + 1} / 2
-                    </span>
-                    <button
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#cfe3d6] bg-white text-[var(--color-brand-forest)] transition-colors hover:bg-[#eef7f2]"
-                      onClick={() => setPreviewAlternativeIndex((prev) => (prev === 0 ? 1 : 0))}
-                      title="Next version"
-                    >
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-end gap-1.5 px-3 pb-3 pt-1">
-                    <span className="mr-1 text-[10px] text-[var(--color-ink-subtle)]">Versions:</span>
-                    {[0, 1].map((index) => (
-                      <button
-                        key={index}
-                        className="rounded border px-2 py-0.5 text-[11px] font-semibold transition-colors"
-                        style={{
-                          backgroundColor: previewAlternativeIndex === index ? 'var(--color-brand-forest)' : 'white',
-                          color: previewAlternativeIndex === index ? 'white' : 'var(--color-brand-forest)',
-                          borderColor: previewAlternativeIndex === index ? 'var(--color-brand-forest)' : '#cfe3d6',
-                        }}
-                        onClick={() => setPreviewAlternativeIndex(index)}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Mode Selection */}
-              <Card className="p-6">
-                <div className="mb-6 rounded-lg bg-[var(--color-surface-muted)] p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
-                    Active Mode
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-[var(--color-ink-strong)]">{currentUiModeLabel}</p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      id="mode-arrows"
-                      name="ui-mode"
-                      checked={paragraphUiMode === 'arrows'}
-                      onChange={() => onParagraphUiModeChange('arrows')}
-                      className="h-4 w-4 accent-[var(--color-brand-forest)]"
-                    />
-                    <label htmlFor="mode-arrows" className="flex-1 cursor-pointer text-sm font-medium text-[var(--color-ink-strong)]">
-                      {t.uiModeArrows} <span className="ml-2 text-xs text-[var(--color-ink-muted)]">Show alternatives with arrows</span>
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      id="mode-numbers"
-                      name="ui-mode"
-                      checked={paragraphUiMode === 'numbers'}
-                      onChange={() => onParagraphUiModeChange('numbers')}
-                      className="h-4 w-4 accent-[var(--color-brand-forest)]"
-                    />
-                    <label htmlFor="mode-numbers" className="flex-1 cursor-pointer text-sm font-medium text-[var(--color-ink-strong)]">
-                      {t.uiModeNumbers} <span className="ml-2 text-xs text-[var(--color-ink-muted)]">Show alternatives with numbers</span>
-                    </label>
-                  </div>
-                </div>
               </Card>
             </div>
           ) : null}

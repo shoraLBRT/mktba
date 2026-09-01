@@ -1,10 +1,42 @@
-// wikiweaver.react/src/types/ApiTypes.ts
+export interface OpinionDto {
+  id: number;
+  content: string;
+  isDefault: boolean;
+  schoolIds: number[];
+}
 
 export interface ParagraphDto {
   id: number;
-  content: string;
   order: number;
+  opinions: OpinionDto[];
+}
+
+export interface OpinionCreateDto {
+  content: string;
   isDefault: boolean;
+  schoolIds: number[];
+}
+
+export interface ParagraphCreateDto {
+  articleId: number;
+  order: number;
+  opinions: OpinionCreateDto[];
+}
+
+export interface ParagraphReadDto {
+  id: number;
+  articleId: number;
+  order: number;
+  opinions: OpinionDto[];
+}
+
+export interface SchoolDto {
+  id: number;
+  slug: string;
+  name: string;
+  shortName: string;
+  isSystem: boolean;
+  articleScopeId?: number;
 }
 
 export interface ArticleInfoboxFieldDto {
@@ -59,7 +91,7 @@ export interface ArticleContentDto {
 export interface ArticleContentCreateDto {
   title: string;
   parentArticleId?: number;
-  paragraphs: ParagraphDto[];
+  paragraphs: ParagraphCreateDto[];
   infobox?: ArticleInfoboxCreateDto;
   summary?: string;
   tags?: string[];
@@ -71,14 +103,6 @@ export interface ArticleReadDto {
   title: string;
   parentArticleId?: number;
   hasContent: boolean;
-}
-
-export interface ParagraphReadDto {
-  id: number;
-  content: string;
-  articleId: number;
-  order: number;
-  isDefault: boolean;
 }
 
 export interface AdminCleanupResultDto {

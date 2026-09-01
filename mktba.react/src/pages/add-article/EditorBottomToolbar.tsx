@@ -8,12 +8,13 @@ import {
   ListOrdered,
   Pilcrow,
   Quote,
+  Superscript,
 } from 'lucide-react';
 import { useLocale } from '../../localization/hooks';
 import { Button } from '../../shared/ui/Button';
 import type { PlainBlockKind } from './types';
 
-export type FormatAction = 'bold' | 'italic' | 'link' | 'bulletList' | 'orderedList' | 'quote';
+export type FormatAction = 'bold' | 'italic' | 'link' | 'bulletList' | 'orderedList' | 'quote' | 'footnote';
 
 type EditorBottomToolbarProps = {
   disabled: boolean;
@@ -63,6 +64,7 @@ export const EditorBottomToolbar = ({ disabled, onFormat, onAddBlock }: EditorBo
           <ToolbarIconButton icon={List} label={t.formatting.bulletList} onClick={() => onFormat('bulletList')} disabled={disabled} />
           <ToolbarIconButton icon={ListOrdered} label={t.formatting.orderedList} onClick={() => onFormat('orderedList')} disabled={disabled} />
           <ToolbarIconButton icon={Quote} label={t.formatting.quote} onClick={() => onFormat('quote')} disabled={disabled} />
+          <ToolbarIconButton icon={Superscript} label={t.formatting.footnote} onClick={() => onFormat('footnote')} disabled={disabled} />
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-[var(--color-border-soft)] bg-[rgba(255,255,255,0.94)] px-1.5 py-1 shadow-[0_18px_48px_rgba(28,27,24,0.08)] backdrop-blur-sm">

@@ -16,6 +16,10 @@
   --color-border-soft: #e2e1dc;
   --color-border-mute: #eeede8;
   --color-focus-ring: rgba(45, 106, 79, 0.2);
+  --color-mazhab-bg: #eff6fb;
+  --color-mazhab-border: #c4d9ee;
+  --color-mazhab-accent: #3b7ab8;
+  --color-mazhab-accent-soft: #dceeff;
   --shadow-soft: 0 20px 70px rgba(28, 27, 24, 0.08);
   --radius-card: 18px;
   --radius-pill: 999px;

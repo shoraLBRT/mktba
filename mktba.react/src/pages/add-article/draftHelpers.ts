@@ -1,10 +1,11 @@
-import type { ParagraphDto } from '../../shared/types/ApiTypes';
+import type { OpinionCreateDto, OpinionDto, ParagraphCreateDto, ParagraphDto } from '../../shared/types/ApiTypes';
 import type { AlternativeDraft, EditorBlock, PlainBlockKind } from './types';
 
 const createVariant = (isDefault: boolean): AlternativeDraft => ({
   localId: crypto.randomUUID(),
   content: '',
   isDefault,
+  schoolIds: [],
 });
 
 export const createEmptyBlock = (kind: PlainBlockKind | 'versioned'): EditorBlock => {
@@ -140,11 +141,14 @@ export const convertParagraphToVersioned = (blocks: EditorBlock[], blockId: stri
     return {
       id: block.id,
       kind: 'versioned',
+      paragraphId: block.paragraphId,
       variants: [
         {
           localId: crypto.randomUUID(),
           content: block.content,
           isDefault: true,
+          opinionId: block.opinionId,
+          schoolIds: [],
         },
       ],
     };
@@ -162,6 +166,8 @@ export const convertVersionedToParagraph = (blocks: EditorBlock[], blockId: stri
       id: block.id,
       kind: 'paragraph',
       content: defaultVariant?.content ?? '',
+      paragraphId: block.paragraphId,
+      opinionId: defaultVariant?.opinionId,
     };
   });
 
@@ -187,37 +193,74 @@ const toStoredMarkdown = (block: EditorBlock): string[] => {
   return [];
 };
 
-export const buildParagraphDtosFromBlocks = (blocks: EditorBlock[]): ParagraphDto[] => {
+export const buildParagraphCreateDtosFromBlocks = (blocks: EditorBlock[]): ParagraphCreateDto[] => {
+  const paragraphs: ParagraphCreateDto[] = [];
+
+  blocks.forEach((block, index) => {
+    const order = index + 1;
+
+    if (block.kind === 'versioned') {
+      const opinions: OpinionCreateDto[] = block.variants
+        .filter((variant) => variant.content.trim())
+        .map((variant) => ({
+          content: variant.content.trim(),
+          isDefault: variant.isDefault,
+          schoolIds: variant.schoolIds,
+        }));
+
+      if (opinions.length > 0) {
+        paragraphs.push({ articleId: 0, order, opinions });
+      }
+      return;
+    }
+
+    const [content] = toStoredMarkdown(block);
+    if (!content) return;
+
+    paragraphs.push({
+      articleId: 0,
+      order,
+      opinions: [{ content, isDefault: true, schoolIds: [] }],
+    });
+  });
+
+  return paragraphs;
+};
+
+export const buildParagraphUpdateDtosFromBlocks = (blocks: EditorBlock[]): ParagraphDto[] => {
   const paragraphs: ParagraphDto[] = [];
 
   blocks.forEach((block, index) => {
     const order = index + 1;
 
     if (block.kind === 'versioned') {
-      block.variants
+      const opinions: OpinionDto[] = block.variants
         .filter((variant) => variant.content.trim())
-        .forEach((variant) => {
-          paragraphs.push({
-            id: variant.paragraphId ?? 0,
-            content: variant.content.trim(),
-            order,
-            isDefault: variant.isDefault,
-          });
-        });
+        .map((variant) => ({
+          id: variant.opinionId ?? 0,
+          content: variant.content.trim(),
+          isDefault: variant.isDefault,
+          schoolIds: variant.schoolIds,
+        }));
 
+      if (opinions.length > 0) {
+        paragraphs.push({ id: block.paragraphId ?? 0, order, opinions });
+      }
       return;
     }
 
     const [content] = toStoredMarkdown(block);
-    if (!content) {
-      return;
-    }
+    if (!content) return;
 
     paragraphs.push({
       id: block.paragraphId ?? 0,
-      content,
       order,
-      isDefault: true,
+      opinions: [{
+        id: block.opinionId ?? 0,
+        content,
+        isDefault: true,
+        schoolIds: [],
+      }],
     });
   });
 
@@ -284,59 +327,73 @@ export const buildDocumentPreviewMarkdown = (blocks: EditorBlock[]): string =>
     .join('\n\n');
 
 export const importBlocksFromParagraphs = (paragraphs: ParagraphDto[]): EditorBlock[] => {
-  const groups = new Map<number, ParagraphDto[]>();
-  for (const p of paragraphs) {
-    const group = groups.get(p.order) ?? [];
-    group.push(p);
-    groups.set(p.order, group);
-  }
+  return [...paragraphs].sort((a, b) => a.order - b.order).map((paragraph) => {
+    const { id: paragraphId, opinions } = paragraph;
 
-  const sortedOrders = [...groups.keys()].sort((a, b) => a - b);
+    if (opinions.length === 1) {
+      const op = opinions[0];
+      const content = op.content;
 
-  return sortedOrders.map((order) => {
-    const group = groups.get(order)!;
-
-    if (group.length === 1) {
-      const p = group[0];
-
-      if (p.content.startsWith('### ')) {
+      if (content.startsWith('### ')) {
         return {
           id: crypto.randomUUID(),
           kind: 'heading3' as const,
-          content: p.content.replace(/^###\s+/, ''),
-          paragraphId: p.id,
+          content: content.replace(/^###\s+/, ''),
+          paragraphId,
+          opinionId: op.id,
         };
       }
 
-      if (p.content.startsWith('## ')) {
+      if (content.startsWith('## ')) {
         return {
           id: crypto.randomUUID(),
           kind: 'heading2' as const,
-          content: p.content.replace(/^##\s+/, ''),
-          paragraphId: p.id,
+          content: content.replace(/^##\s+/, ''),
+          paragraphId,
+          opinionId: op.id,
         };
       }
 
       return {
         id: crypto.randomUUID(),
         kind: 'paragraph' as const,
-        content: p.content,
-        paragraphId: p.id,
+        content,
+        paragraphId,
+        opinionId: op.id,
       };
     }
 
     return {
       id: crypto.randomUUID(),
       kind: 'versioned' as const,
-      variants: group.map((p) => ({
+      paragraphId,
+      variants: opinions.map((op) => ({
         localId: crypto.randomUUID(),
-        content: p.content,
-        isDefault: p.isDefault,
-        paragraphId: p.id,
+        content: op.content,
+        isDefault: op.isDefault,
+        opinionId: op.id,
+        schoolIds: op.schoolIds,
       })),
     };
   });
 };
+
+export const setOpinionSchools = (
+  blocks: EditorBlock[],
+  blockId: string,
+  localId: string,
+  schoolIds: number[],
+): EditorBlock[] =>
+  blocks.map((block) =>
+    block.id !== blockId || block.kind !== 'versioned'
+      ? block
+      : {
+          ...block,
+          variants: block.variants.map((variant) =>
+            variant.localId === localId ? { ...variant, schoolIds } : variant,
+          ),
+        },
+  );
 
 export const collectWholeArticleAiTargets = (
   blocks: EditorBlock[],

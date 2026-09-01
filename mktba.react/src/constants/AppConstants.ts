@@ -6,6 +6,8 @@ export const APP_CONSTANTS = {
     ADMIN_ARTICLES: 'adminArticles',
     ADMIN_PARAGRAPHS: 'adminParagraphs',
     ADMIN_AI_SETTINGS: 'adminAiSettings',
+    SYSTEM_SCHOOLS: 'systemSchools',
+    ARTICLE_SCHOOLS: 'articleSchools',
   },
   DIMENSIONS: {
     SIDEBAR_WIDTH: 250,

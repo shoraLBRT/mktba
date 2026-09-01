@@ -13,6 +13,7 @@ import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
 import { Textarea } from '../shared/ui/Textarea';
 import type { ArticleContentDto, ArticleInfoboxDto, NavigationArticleDto } from '../shared/types/ApiTypes';
+import { createCustomSchool, deleteCustomSchool, getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { DocumentBlockEditor } from './add-article/DocumentBlockEditor';
 import { EditorBottomToolbar, type FormatAction } from './add-article/EditorBottomToolbar';
@@ -23,8 +24,9 @@ import { EditorToolbar } from './add-article/EditorToolbar';
 import {
   addVersionToBlock,
   buildDocumentPreviewMarkdown,
-  buildParagraphDtosFromBlocks,
+  buildParagraphUpdateDtosFromBlocks,
   collectWholeArticleAiTargets,
+  setOpinionSchools,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
   createEmptyBlock,
@@ -150,6 +152,42 @@ const EditArticlePage: React.FC = () => {
   const aiSettingsQuery = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_AI_SETTINGS],
     queryFn: getAiProviderSettings,
+  });
+
+  const systemSchoolsQuery = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
+    queryFn: getSystemSchools,
+  });
+
+  const articleSchoolsQuery = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, numericId],
+    queryFn: () => getSchoolsByArticleId(numericId),
+    enabled: !Number.isNaN(numericId),
+  });
+
+  const availableSchools = [...(systemSchoolsQuery.data ?? []), ...(articleSchoolsQuery.data ?? [])];
+  const customSchools = (articleSchoolsQuery.data ?? []).filter((s) => !s.isSystem);
+
+  const addSchoolMutation = useMutation({
+    mutationFn: (payload: { name: string; shortName: string }) =>
+      createCustomSchool({
+        slug: `custom-${numericId}-${payload.name.toLowerCase().replace(/\s+/g, '-')}`,
+        name: payload.name,
+        shortName: payload.shortName,
+        articleScopeId: numericId,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, numericId] });
+    },
+    onError: (error) => setNotice({ tone: 'error', message: (error as Error).message }),
+  });
+
+  const deleteSchoolMutation = useMutation({
+    mutationFn: deleteCustomSchool,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, numericId] });
+    },
+    onError: (error) => setNotice({ tone: 'error', message: (error as Error).message }),
   });
 
   const navigationTreeQuery = useQuery({
@@ -328,6 +366,15 @@ const EditArticlePage: React.FC = () => {
         return;
       case 'quote':
         withLinePrefix(() => '> ', editorText.markdown.quoteSnippet);
+        return;
+      case 'footnote': {
+        const n = (currentValue.match(/\[\^\d+\]/g) ?? []).length + 1;
+        const ref = `[^${n}]`;
+        const next = `${before}${ref}${after}\n[^${n}]: `;
+        updateTarget(next);
+        focus(key, before.length + ref.length, before.length + ref.length);
+        return;
+      }
     }
   };
 
@@ -368,7 +415,7 @@ const EditArticlePage: React.FC = () => {
     mutation.mutate({
       id: numericId,
       title: title.trim(),
-      paragraphs: buildParagraphDtosFromBlocks(blocks),
+      paragraphs: buildParagraphUpdateDtosFromBlocks(blocks),
       infobox: infoboxDto,
       summary: summary.trim() || undefined,
       tags,
@@ -559,10 +606,12 @@ const EditArticlePage: React.FC = () => {
                           editorRef={(key, node) => {
                             editorRefs.current[key] = node;
                           }}
+                          availableSchools={availableSchools}
                           onFocusTarget={setActiveTarget}
                           onChangePlain={(blockId, content) => setBlocks((current) => updatePlainBlockContent(current, blockId, content))}
                           onChangeVersion={(blockId, localId, content) => setBlocks((current) => updateVersionContent(current, blockId, localId, content))}
                           onSetDefault={(blockId, localId) => setBlocks((current) => setDefaultVersion(current, blockId, localId))}
+                          onSetSchools={(blockId, localId, schoolIds) => setBlocks((current) => setOpinionSchools(current, blockId, localId, schoolIds))}
                           onAddVersion={(blockId) => setBlocks((current) => addVersionToBlock(current, blockId))}
                           onRemoveVersion={(blockId, localId) => setBlocks((current) => removeVersionFromBlock(current, blockId, localId))}
                           onDeleteBlock={(blockId) => setBlocks((current) => (current.length > 1 ? deleteBlock(current, blockId) : current))}
@@ -617,6 +666,9 @@ const EditArticlePage: React.FC = () => {
             />
           )}
           isLocked={isLocked}
+          customSchools={customSchools}
+          onAddCustomSchool={(name, shortName) => addSchoolMutation.mutate({ name, shortName })}
+          onDeleteCustomSchool={(id) => deleteSchoolMutation.mutate(id)}
           summary={summary}
           tags={tags}
           relatedLinks={relatedLinks}

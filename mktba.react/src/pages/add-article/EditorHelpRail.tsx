@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDown, ArrowUp, BarChart3, Check, ChevronDown, Clock3, FileText, FolderTree, Layers3, PenLine, Search, Tag, Trash2, Type } from 'lucide-react';
+import { ArrowDown, ArrowUp, BarChart3, Check, ChevronDown, Clock3, FileText, FolderTree, GraduationCap, Layers3, PenLine, Plus, Search, Tag, Trash2, Type } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
 import { Input } from '../../shared/ui/Input';
 import { Button } from '../../shared/ui/Button';
+import type { SchoolDto } from '../../shared/types/ApiTypes';
 import { parseTags, type RelatedLinkDraft } from './metadataHelpers';
 
 type ParentOption = {
@@ -41,6 +42,10 @@ type EditorHelpRailProps = {
   onAddRelatedLink?: (articleId: number, articleTitle: string) => void;
   onRemoveRelatedLink?: (draftId: string) => void;
   onMoveRelatedLink?: (draftId: string, direction: -1 | 1) => void;
+  // Custom schools
+  customSchools?: SchoolDto[];
+  onAddCustomSchool?: (name: string, shortName: string) => void;
+  onDeleteCustomSchool?: (id: number) => void;
 };
 
 const SUMMARY_MAX = 500;
@@ -77,6 +82,9 @@ export const EditorHelpRail = ({
   onAddRelatedLink,
   onRemoveRelatedLink,
   onMoveRelatedLink,
+  customSchools,
+  onAddCustomSchool,
+  onDeleteCustomSchool,
 }: EditorHelpRailProps) => {
   const locale = useLocale();
   const t = locale.addArticleEditor;
@@ -86,6 +94,9 @@ export const EditorHelpRail = ({
   const [relatedSearch, setRelatedSearch] = useState('');
   const [isRelatedDropdownOpen, setIsRelatedDropdownOpen] = useState(false);
   const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
+  const [newSchoolName, setNewSchoolName] = useState('');
+  const [newSchoolShortName, setNewSchoolShortName] = useState('');
+  const [isAddingSchool, setIsAddingSchool] = useState(false);
 
   const tagInputRef = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLTextAreaElement>(null);
@@ -139,6 +150,17 @@ export const EditorHelpRail = ({
   };
 
   const hasMetadata = onSummaryChange != null;
+  const hasCustomSchools = onAddCustomSchool != null;
+
+  const submitNewSchool = () => {
+    const name = newSchoolName.trim();
+    const shortName = newSchoolShortName.trim();
+    if (!name || !shortName) return;
+    onAddCustomSchool?.(name, shortName);
+    setNewSchoolName('');
+    setNewSchoolShortName('');
+    setIsAddingSchool(false);
+  };
 
   const relatedDropdown = isRelatedDropdownOpen && dropdownRect && (filteredArticleOptions.length > 0 || relatedSearch.trim())
     ? createPortal(
@@ -286,6 +308,86 @@ export const EditorHelpRail = ({
             </div>
           </div>
         </div>
+
+        {/* Custom schools */}
+        {hasCustomSchools && (
+          <div className="rounded-2xl border border-[var(--color-border-soft)] bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-[var(--color-border-soft)] px-4 py-3">
+              <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-subtle)]">
+                <GraduationCap size={11} />
+                {t.customSchools.title}
+              </p>
+              {!isAddingSchool && (
+                <button
+                  type="button"
+                  disabled={isLocked}
+                  onClick={() => setIsAddingSchool(true)}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-[var(--color-brand-forest)] transition-colors hover:bg-[var(--color-brand-forest-soft)] disabled:opacity-40"
+                >
+                  <Plus size={10} />
+                  {t.customSchools.addButton}
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-1 p-3">
+              {(customSchools ?? []).length === 0 && !isAddingSchool && (
+                <p className="text-[11px] text-[var(--color-ink-subtle)]">{t.customSchools.emptyState}</p>
+              )}
+
+              {(customSchools ?? []).map((school) => (
+                <div key={school.id} className="flex items-center gap-2">
+                  <span
+                    className="inline-flex items-center rounded-full border border-[#cfe3d6] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-brand-forest)]"
+                    title={school.name}
+                  >
+                    {school.shortName}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-ink-strong)]">{school.name}</span>
+                  <button
+                    type="button"
+                    disabled={isLocked}
+                    onClick={() => onDeleteCustomSchool?.(school.id)}
+                    className="shrink-0 rounded p-1 text-[var(--color-ink-subtle)] transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
+                    title={t.customSchools.deleteTitle}
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                </div>
+              ))}
+
+              {isAddingSchool && (
+                <div className="space-y-1.5 pt-1">
+                  <Input
+                    value={newSchoolName}
+                    onChange={(e) => setNewSchoolName(e.target.value)}
+                    placeholder={t.customSchools.namePlaceholder}
+                    disabled={isLocked}
+                    className="h-7 rounded-lg text-[12px]"
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === 'Enter') submitNewSchool(); if (e.key === 'Escape') setIsAddingSchool(false); }}
+                  />
+                  <Input
+                    value={newSchoolShortName}
+                    onChange={(e) => setNewSchoolShortName(e.target.value)}
+                    placeholder={t.customSchools.shortNamePlaceholder}
+                    disabled={isLocked}
+                    className="h-7 rounded-lg text-[12px]"
+                    onKeyDown={(e) => { if (e.key === 'Enter') submitNewSchool(); if (e.key === 'Escape') setIsAddingSchool(false); }}
+                  />
+                  <div className="flex gap-1.5">
+                    <Button variant="primary" onClick={submitNewSchool} disabled={isLocked || !newSchoolName.trim() || !newSchoolShortName.trim()} className="h-6 flex-1 rounded-lg px-2 text-[11px]">
+                      {t.customSchools.addButton}
+                    </Button>
+                    <Button variant="ghost" onClick={() => { setIsAddingSchool(false); setNewSchoolName(''); setNewSchoolShortName(''); }} className="h-6 rounded-lg px-2 text-[11px]">
+                      {locale.common.cancel}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Metadata: Summary + Tags + Related links */}
         {hasMetadata && (

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -16,7 +16,10 @@ import {
   type ParagraphUiMode,
 } from '../constants/ArticleUiConstants';
 import { getNavigationTree } from '../services/Article/navigationService';
-import type { NavigationArticleDto, ParagraphDto } from '../shared/types/ApiTypes';
+import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
+import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
+import { useMazhab } from '../context/MazhabContext';
+import { useTrackEvent } from '../analytics/useTrackEvent';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -60,6 +63,7 @@ const ArticlePage: React.FC = () => {
   const articleId = parseInt(id || '0', 10);
   const [uiMode] = useState<ParagraphUiMode>(getInitialUiMode);
   const [selectedAlternatives, setSelectedAlternatives] = useState<Record<number, number>>({});
+  const { selectedSchoolId } = useMazhab();
 
   const { data: articleContent, isLoading, error } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, articleId],
@@ -71,6 +75,42 @@ const ArticlePage: React.FC = () => {
     queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE],
     queryFn: getNavigationTree,
   });
+
+  const { data: systemSchools } = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
+    queryFn: getSystemSchools,
+  });
+
+  const { data: articleSchools } = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, articleId],
+    queryFn: () => getSchoolsByArticleId(articleId),
+    enabled: !isNaN(articleId) && articleId > 0,
+  });
+
+  const track = useTrackEvent();
+  const fiveMinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setSelectedAlternatives({});
+  }, [selectedSchoolId]);
+
+  useEffect(() => {
+    if (!articleContent) return;
+    track('article_view', { articleId });
+    fiveMinTimerRef.current = setTimeout(() => {
+      track('article_time_5min', { articleId });
+    }, 5 * 60 * 1000);
+    return () => {
+      if (fiveMinTimerRef.current) clearTimeout(fiveMinTimerRef.current);
+    };
+  }, [articleId, articleContent, track]);
+
+  const schoolMap = useMemo<Map<number, SchoolDto>>(() => {
+    const map = new Map<number, SchoolDto>();
+    for (const s of systemSchools ?? []) map.set(s.id, s);
+    for (const s of articleSchools ?? []) map.set(s.id, s);
+    return map;
+  }, [systemSchools, articleSchools]);
 
   const articlePath = useMemo(
     () => (navigationTree ? findArticlePathById(navigationTree, articleId) : []),
@@ -87,40 +127,42 @@ const ArticlePage: React.FC = () => {
     [articlePath],
   );
 
-  const groupedParagraphs = useMemo(() => {
-    const grouped = new Map<number, ParagraphDto[]>();
+  const renderedParagraphs = useMemo(() => {
+    return [...(articleContent?.paragraphs ?? [])]
+      .sort((a, b) => a.order - b.order)
+      .map((paragraph) => {
+        const defaultIndex = paragraph.opinions.findIndex((o) => o.isDefault);
+        let autoIndex = defaultIndex >= 0 ? defaultIndex : 0;
+        if (selectedSchoolId !== null) {
+          const mazhabIndex = paragraph.opinions.findIndex((o) => o.schoolIds.includes(selectedSchoolId));
+          if (mazhabIndex >= 0) autoIndex = mazhabIndex;
+        }
+        const activeIndex = selectedAlternatives[paragraph.id] ?? autoIndex;
+        const activeOpinion = paragraph.opinions[activeIndex] ?? paragraph.opinions[0];
+        const title = extractHeadingTitle(activeOpinion?.content ?? '');
 
-    articleContent?.paragraphs.forEach((paragraph) => {
-      const paragraphsAtOrder = grouped.get(paragraph.order) ?? [];
-      paragraphsAtOrder.push(paragraph);
-      grouped.set(paragraph.order, paragraphsAtOrder);
-    });
-
-    return Array.from(grouped.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([order, paragraphs]) => ({ order, paragraphs }));
-  }, [articleContent]);
-
-  const renderedParagraphs = useMemo(
-    () =>
-      groupedParagraphs.map(({ order, paragraphs }) => {
-        const defaultIndex = paragraphs.findIndex((paragraph) => paragraph.isDefault);
-        const activeIndex = selectedAlternatives[order] ?? (defaultIndex >= 0 ? defaultIndex : 0);
-        const activeParagraph = paragraphs[activeIndex] ?? paragraphs[0];
-        const title = extractHeadingTitle(activeParagraph.content);
+        const labels = paragraph.opinions.map((opinion) => {
+          if (opinion.schoolIds.length === 0) {
+            return opinion.isDefault ? 'По умолч.' : '—';
+          }
+          return opinion.schoolIds
+            .map((id) => schoolMap.get(id)?.shortName ?? String(id))
+            .join('·');
+        });
 
         return {
-          order,
-          paragraphs,
+          paragraphId: paragraph.id,
+          order: paragraph.order,
+          opinions: paragraph.opinions,
           activeIndex,
-          activeParagraph,
-          hasAlternatives: paragraphs.length > 1,
-          anchorId: title ? `section-${order}` : `paragraph-${order}`,
+          activeOpinion,
+          labels,
+          hasAlternatives: paragraph.opinions.length > 1,
+          anchorId: title ? `section-${paragraph.order}` : `paragraph-${paragraph.order}`,
           title,
         };
-      }),
-    [groupedParagraphs, selectedAlternatives],
-  );
+      });
+  }, [articleContent, selectedAlternatives, schoolMap, selectedSchoolId]);
 
   const tocItems = useMemo<TocItem[]>(() => {
     const items: TocItem[] = [{ id: 'article-overview', label: locale.articlePage.overview }];
@@ -139,14 +181,16 @@ const ArticlePage: React.FC = () => {
     return ((index % total) + total) % total;
   };
 
-  const selectAlternative = (order: number, index: number, total: number) => {
+  const selectAlternative = (paragraphId: number, index: number, total: number) => {
     const boundedIndex = Math.max(0, Math.min(index, total - 1));
-    setSelectedAlternatives((current) => ({ ...current, [order]: boundedIndex }));
+    setSelectedAlternatives((current) => ({ ...current, [paragraphId]: boundedIndex }));
+    track('opinion_switch', { paragraphId, index: boundedIndex });
   };
 
-  const moveAlternative = (order: number, currentIndex: number, direction: -1 | 1, total: number) => {
+  const moveAlternative = (paragraphId: number, currentIndex: number, direction: -1 | 1, total: number) => {
     const nextIndex = normalizeAlternativeIndex(currentIndex + direction, total);
-    setSelectedAlternatives((current) => ({ ...current, [order]: nextIndex }));
+    setSelectedAlternatives((current) => ({ ...current, [paragraphId]: nextIndex }));
+    track('opinion_switch', { paragraphId, index: nextIndex });
   };
 
   if (isLoading) {
@@ -215,26 +259,27 @@ const ArticlePage: React.FC = () => {
             renderedParagraphs.map((paragraph) => {
               if (!paragraph.hasAlternatives) {
                 return (
-                  <section key={paragraph.order} id={paragraph.anchorId} className="scroll-mt-24 py-0.5">
+                  <section key={paragraph.paragraphId} id={paragraph.anchorId} className="scroll-mt-24 py-0.5">
                     <div className="article-markdown text-[14.5px] leading-8 text-[var(--color-ink-default)]">
-                      <MarkdownContent content={paragraph.activeParagraph.content} />
+                      <MarkdownContent content={paragraph.activeOpinion?.content ?? ''} />
                     </div>
                   </section>
                 );
               }
 
               return (
-                <div key={paragraph.order} id={paragraph.anchorId} className="scroll-mt-24">
+                <div key={paragraph.paragraphId} id={paragraph.anchorId} className="scroll-mt-24">
                   <VersionedParagraphBlock
                     order={paragraph.order}
                     activeIndex={paragraph.activeIndex}
-                    total={paragraph.paragraphs.length}
+                    total={paragraph.opinions.length}
                     mode={uiMode}
-                    onSelect={(index) => selectAlternative(paragraph.order, index, paragraph.paragraphs.length)}
-                    onMove={(direction) => moveAlternative(paragraph.order, paragraph.activeIndex, direction, paragraph.paragraphs.length)}
+                    labels={paragraph.labels}
+                    onSelect={(index) => selectAlternative(paragraph.paragraphId, index, paragraph.opinions.length)}
+                    onMove={(direction) => moveAlternative(paragraph.paragraphId, paragraph.activeIndex, direction, paragraph.opinions.length)}
                   >
                     <div className="article-markdown">
-                      <MarkdownContent content={paragraph.activeParagraph.content} />
+                      <MarkdownContent content={paragraph.activeOpinion?.content ?? ''} />
                     </div>
                   </VersionedParagraphBlock>
                 </div>
