@@ -1,24 +1,13 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { trackGoal } from '../analytics/metrika';
-
-const STORAGE_KEY = 'mktba.mazhab';
+import { MazhabContext, MAZHAB_STORAGE_KEY } from './mazhabContext';
 
 const getInitialSchoolId = (): number | null => {
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = localStorage.getItem(MAZHAB_STORAGE_KEY);
   if (!saved) return null;
   const parsed = parseInt(saved, 10);
   return isNaN(parsed) ? null : parsed;
 };
-
-type MazhabContextValue = {
-  selectedSchoolId: number | null;
-  setSelectedSchoolId: (id: number | null) => void;
-};
-
-const MazhabContext = createContext<MazhabContextValue>({
-  selectedSchoolId: null,
-  setSelectedSchoolId: () => {},
-});
 
 export const MazhabProvider = ({ children }: { children: ReactNode }) => {
   const [selectedSchoolId, setSelectedSchoolIdState] = useState<number | null>(getInitialSchoolId);
@@ -26,9 +15,9 @@ export const MazhabProvider = ({ children }: { children: ReactNode }) => {
   const setSelectedSchoolId = (id: number | null) => {
     setSelectedSchoolIdState(id);
     if (id === null) {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(MAZHAB_STORAGE_KEY);
     } else {
-      localStorage.setItem(STORAGE_KEY, String(id));
+      localStorage.setItem(MAZHAB_STORAGE_KEY, String(id));
     }
     trackGoal('mazhab_change', { schoolId: id });
   };
@@ -39,5 +28,3 @@ export const MazhabProvider = ({ children }: { children: ReactNode }) => {
     </MazhabContext.Provider>
   );
 };
-
-export const useMazhab = () => useContext(MazhabContext);

@@ -20,7 +20,7 @@ import {
 import { getNavigationTree } from '../services/Article/navigationService';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
-import { useMazhab } from '../context/MazhabContext';
+import { useMazhab } from '../context/mazhabContext';
 import { useTrackEvent } from '../analytics/useTrackEvent';
 
 const findArticlePathById = (
