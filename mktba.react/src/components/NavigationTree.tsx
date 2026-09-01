@@ -32,7 +32,9 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
   const hasChildren = (article.children?.length ?? 0) > 0;
   const [expanded, setExpanded] = useState(true);
   const isActive = article.id === activeArticleId;
-  const isClickable = article.hasContent;
+  // An article without content is a stub: unreachable in the public tree, but the
+  // admin must be able to open its editor to fill it in (see docs/backlog.md, A1).
+  const isClickable = article.hasContent || showArticleEditActions;
 
   return (
     <div>
@@ -61,7 +63,11 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
         {isClickable ? (
           <Link
             to={showArticleEditActions ? `/admin/articles/${article.id}/edit` : `/article/${article.id}`}
-            className={`min-w-0 flex-1 truncate text-[12px] leading-5 ${isActive ? 'font-medium' : ''}`}
+            className={[
+              'min-w-0 flex-1 truncate text-[12px] leading-5',
+              isActive ? 'font-medium' : '',
+              article.hasContent ? '' : 'text-[var(--color-ink-muted)]',
+            ].join(' ')}
             onClick={onNavigate}
           >
             {article.title}
