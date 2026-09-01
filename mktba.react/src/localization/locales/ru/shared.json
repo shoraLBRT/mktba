@@ -51,6 +51,16 @@
   "navigationTree": {
     "editArticle": "Редактировать статью",
     "collapseSection": "Свернуть раздел",
-    "expandSection": "Развернуть раздел"
+    "expandSection": "Развернуть раздел",
+    "addChild": "Добавить подраздел"
+  },
+  "createNode": {
+    "newSection": "Новый раздел",
+    "rootSection": "Корневой раздел",
+    "childOf": "Подраздел внутри: {title}",
+    "titlePlaceholder": "Название раздела",
+    "submit": "Создать",
+    "submitting": "Создание…",
+    "error": "Не удалось создать раздел"
   }
 }

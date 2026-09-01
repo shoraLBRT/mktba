@@ -5,6 +5,7 @@ import type {
   AiProviderSettingsDto,
   AiStyleRequestDto,
   AiStyleResponseDto,
+  ArticleCreateDto,
   ArticleReadDto,
   ParagraphReadDto,
   UpdateAiProviderSettingsDto,
@@ -12,6 +13,11 @@ import type {
 
 export const getArticles = async (): Promise<ArticleReadDto[]> => {
   const response = await apiClient.get<ArticleReadDto[]>('/articles');
+  return response.data;
+};
+
+export const createArticle = async (dto: ArticleCreateDto): Promise<ArticleReadDto> => {
+  const response = await apiClient.post<ArticleReadDto>('/articles/', dto);
   return response.data;
 };
 

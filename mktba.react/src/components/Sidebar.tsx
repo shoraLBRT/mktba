@@ -1,13 +1,21 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Plus, Search } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
+import { createArticle } from '../services/adminService';
 import { getNavigationTree } from '../services/Article/navigationService';
+import { extractApiErrorMessage } from '../shared/api-client/apiError';
 import { Input } from '../shared/ui/Input';
 import type { NavigationArticleDto } from '../shared/types/ApiTypes';
+import CreateNodeModal from './CreateNodeModal';
 import NavigationTree from './NavigationTree';
+
+type CreateNodeTarget = {
+  parentId?: number;
+  parentTitle?: string;
+};
 
 const filterNavigationTree = (articles: NavigationArticleDto[], searchValue: string): NavigationArticleDto[] => {
   const normalizedSearch = searchValue.trim().toLowerCase();
@@ -56,6 +64,28 @@ const Sidebar: React.FC<SidebarProps> = ({
   const showArticleEditActions =
     location.pathname.startsWith('/admin') && location.pathname !== '/admin/login';
 
+  const queryClient = useQueryClient();
+  const [createTarget, setCreateTarget] = useState<CreateNodeTarget | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const openCreateModal = (target: CreateNodeTarget) => {
+    setCreateError(null);
+    setCreateTarget(target);
+  };
+
+  const createNodeMutation = useMutation({
+    mutationFn: (title: string) => createArticle({ title, parentArticleId: createTarget?.parentId }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE] });
+      void queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES] });
+      setCreateTarget(null);
+      setCreateError(null);
+    },
+    onError: (error) => {
+      setCreateError(`${locale.createNode.error}: ${extractApiErrorMessage(error)}`);
+    },
+  });
+
   const { data: navigationTree, isLoading, error } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE],
     queryFn: getNavigationTree,
@@ -95,6 +125,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             className="bg-white py-1.5 pl-8 text-[13px]"
           />
         </div>
+
+        {showArticleEditActions ? (
+          <button
+            type="button"
+            onClick={() => openCreateModal({})}
+            className="mt-2 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] text-[var(--color-ink-muted)] transition-colors hover:bg-[rgba(255,255,255,0.75)] hover:text-[var(--color-ink-default)]"
+          >
+            <Plus size={13} />
+            {locale.createNode.newSection}
+          </button>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
@@ -112,6 +153,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             navigationTree={filteredNavigationTree}
             showArticleEditActions={showArticleEditActions}
             onNavigate={onCloseMobile}
+            onAddChild={
+              showArticleEditActions
+                ? (parentId, parentTitle) => openCreateModal({ parentId, parentTitle })
+                : undefined
+            }
           />
         )}
       </div>
@@ -176,6 +222,19 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex h-[calc(100%-var(--layout-header-height))] flex-col">{expandedContent}</div>
         </aside>
       </div>
+
+      {createTarget ? (
+        <CreateNodeModal
+          parentTitle={createTarget.parentTitle}
+          isPending={createNodeMutation.isPending}
+          errorMessage={createError}
+          onConfirm={(title) => createNodeMutation.mutate(title)}
+          onClose={() => {
+            setCreateTarget(null);
+            setCreateError(null);
+          }}
+        />
+      ) : null}
     </>
   );
 };

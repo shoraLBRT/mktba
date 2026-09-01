@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocale } from '../localization/hooks';
 import type { NavigationArticleDto } from '../shared/types/ApiTypes';
@@ -8,6 +8,7 @@ interface NavigationTreeProps {
   navigationTree?: NavigationArticleDto[];
   showArticleEditActions?: boolean;
   onNavigate?: () => void;
+  onAddChild?: (parentId: number, parentTitle: string) => void;
 }
 
 type NavigationItemProps = {
@@ -16,6 +17,7 @@ type NavigationItemProps = {
   activeArticleId?: number;
   showArticleEditActions: boolean;
   onNavigate?: () => void;
+  onAddChild?: (parentId: number, parentTitle: string) => void;
 };
 
 const NavigationItem: React.FC<NavigationItemProps> = ({
@@ -24,6 +26,7 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
   activeArticleId,
   showArticleEditActions,
   onNavigate,
+  onAddChild,
 }) => {
   const locale = useLocale();
   const hasChildren = (article.children?.length ?? 0) > 0;
@@ -67,6 +70,21 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
           <span className="min-w-0 flex-1 truncate text-[12px] leading-5 text-[var(--color-ink-muted)]">{article.title}</span>
         )}
 
+        {onAddChild ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onAddChild(article.id, article.title);
+            }}
+            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[var(--color-ink-subtle)] opacity-0 transition-all hover:bg-white hover:text-[var(--color-ink-default)] focus:opacity-100 group-hover:opacity-100"
+            title={locale.navigationTree.addChild}
+            aria-label={locale.navigationTree.addChild}
+          >
+            <Plus size={11} />
+          </button>
+        ) : null}
       </div>
 
       {hasChildren && expanded ? (
@@ -79,6 +97,7 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
               activeArticleId={activeArticleId}
               showArticleEditActions={showArticleEditActions}
               onNavigate={onNavigate}
+              onAddChild={onAddChild}
             />
           ))}
         </div>
@@ -91,6 +110,7 @@ const NavigationTree: React.FC<NavigationTreeProps> = ({
   navigationTree,
   showArticleEditActions = false,
   onNavigate,
+  onAddChild,
 }) => {
   const location = useLocation();
 
@@ -114,6 +134,7 @@ const NavigationTree: React.FC<NavigationTreeProps> = ({
           activeArticleId={activeArticleId}
           showArticleEditActions={showArticleEditActions}
           onNavigate={onNavigate}
+          onAddChild={onAddChild}
         />
       ))}
     </div>

@@ -105,6 +105,11 @@ export interface ArticleReadDto {
   hasContent: boolean;
 }
 
+export interface ArticleCreateDto {
+  title: string;
+  parentArticleId?: number;
+}
+
 export interface AdminCleanupResultDto {
   deletedArticles: number;
   deletedParagraphs: number;
