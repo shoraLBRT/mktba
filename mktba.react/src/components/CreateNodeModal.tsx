@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { formatMessage } from '../localization';
 import { useLocale } from '../localization/hooks';
 import { Button } from '../shared/ui/Button';
@@ -22,7 +22,6 @@ const CreateNodeModal: React.FC<CreateNodeModalProps> = ({
 }) => {
   const locale = useLocale();
   const t = locale.createNode;
-  const formId = useId();
   const [title, setTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,36 +62,33 @@ const CreateNodeModal: React.FC<CreateNodeModalProps> = ({
           </p>
         </div>
 
-        <form id={formId} onSubmit={handleSubmit} className="px-5 py-4">
-          <Input
-            ref={inputRef}
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder={t.titlePlaceholder}
-            autoComplete="off"
-            disabled={isPending}
-          />
+        <form onSubmit={handleSubmit}>
+          <div className="px-5 py-4">
+            <Input
+              ref={inputRef}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder={t.titlePlaceholder}
+              autoComplete="off"
+              disabled={isPending}
+            />
 
-          {errorMessage ? (
-            <p role="alert" className="mb-0 mt-2 text-[12px] leading-5 text-red-600">
-              {errorMessage}
-            </p>
-          ) : null}
+            {errorMessage ? (
+              <p role="alert" className="mb-0 mt-2 text-[12px] leading-5 text-red-600">
+                {errorMessage}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex justify-end gap-2 border-t border-[var(--color-border-soft)] px-5 py-3">
+            <Button variant="secondary" onClick={onClose} disabled={isPending}>
+              {locale.common.cancel}
+            </Button>
+            <Button type="submit" variant="primary" disabled={!title.trim() || isPending}>
+              {isPending ? t.submitting : t.submit}
+            </Button>
+          </div>
         </form>
-
-        <div className="flex justify-end gap-2 border-t border-[var(--color-border-soft)] px-5 py-3">
-          <Button variant="secondary" onClick={onClose} disabled={isPending}>
-            {locale.common.cancel}
-          </Button>
-          <Button
-            type="submit"
-            form={formId}
-            variant="primary"
-            disabled={!title.trim() || isPending}
-          >
-            {isPending ? t.submitting : t.submit}
-          </Button>
-        </div>
       </Card>
     </div>
   );

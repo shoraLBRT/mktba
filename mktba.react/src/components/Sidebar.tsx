@@ -6,7 +6,7 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { createArticle } from '../services/adminService';
 import { getNavigationTree } from '../services/Article/navigationService';
-import { extractApiErrorMessage } from '../shared/api-client/apiError';
+import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import { Input } from '../shared/ui/Input';
 import type { NavigationArticleDto } from '../shared/types/ApiTypes';
 import CreateNodeModal from './CreateNodeModal';
@@ -82,7 +82,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       setCreateError(null);
     },
     onError: (error) => {
-      setCreateError(`${locale.createNode.error}: ${extractApiErrorMessage(error)}`);
+      // A transport failure carries no HTTP status and only an English axios message.
+      const isNetworkFailure = error instanceof ApiError && error.status === undefined;
+      setCreateError(
+        isNetworkFailure
+          ? locale.createNode.errorNetwork
+          : `${locale.createNode.error}: ${extractApiErrorMessage(error)}`,
+      );
     },
   });
 
