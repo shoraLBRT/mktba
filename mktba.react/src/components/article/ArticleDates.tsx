@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { useLocale } from '../../localization/hooks';
-import { authorHref } from '../../shared/author';
+import { authorHref } from '../../shared/slug';
 import { formatRussianDate } from '../../shared/lib/formatDate';
 import type { ArticleAuthorDto } from '../../shared/types/ApiTypes';
 

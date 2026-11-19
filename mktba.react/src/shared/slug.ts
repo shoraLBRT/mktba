@@ -51,3 +51,9 @@ export const isValidSlug = (slug: string): boolean =>
 
 /** The reader's URL of an article. */
 export const articleHref = (slug: string): string => `/article/${encodeURIComponent(slug)}`;
+
+/**
+ * The public page of the author whose profile slug is `slug`. It lives here, beside `articleHref`,
+ * so the article page links to authors without loading the author page's module (`author.ts`).
+ */
+export const authorHref = (slug: string): string => `/authors/${encodeURIComponent(slug)}`;

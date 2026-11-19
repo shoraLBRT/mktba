@@ -4,12 +4,12 @@
  */
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { SEO_DESCRIPTION_MAX_LENGTH } from './seo';
+import { authorHref } from './slug';
+
+export { authorHref };
 
 /** URL parameter with the page of the article list; page 1 has none. */
 export const AUTHOR_PAGE_PARAM = 'page';
-
-/** The public page of the author whose profile slug is `slug`. */
-export const authorHref = (slug: string): string => `/authors/${encodeURIComponent(slug)}`;
 
 /** A page of the author's article list; the first one is the author page itself. */
 export const authorPageHref = (slug: string, page: number): string =>
