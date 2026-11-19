@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectValidParents, findArticlePath } from './articleTree';
+import { collectValidParents, findAdjacentArticles, findArticlePath } from './articleTree';
 import type { NavigationArticleDto } from './types/ApiTypes';
 
 const node = (id: number, title: string, children: NavigationArticleDto[] = [], hasContent = true) =>
@@ -43,5 +43,48 @@ describe('findArticlePath', () => {
   it('given an article the tree does not hold or no tree yet, when looked up, then the path is empty', () => {
     expect(findArticlePath(tree, 99)).toEqual([]);
     expect(findArticlePath(undefined, 1)).toEqual([]);
+  });
+});
+
+describe('findAdjacentArticles', () => {
+  const ids = (articleId: number, source = tree) => {
+    const { previous, next } = findAdjacentArticles(source, articleId);
+    return [previous?.id ?? null, next?.id ?? null];
+  };
+
+  it('given an article with children, when looking, then the next one is its first child', () => {
+    expect(ids(2)).toEqual([1, 3]);
+  });
+
+  it('given the last article of a branch, when looking, then the next one follows the branch', () => {
+    expect(ids(3)).toEqual([2, 4]);
+    expect(ids(4)).toEqual([3, 5]);
+  });
+
+  it('given the first and the last article of the tree, when looking, then that side is empty', () => {
+    expect(ids(1)).toEqual([null, 2]);
+    expect(ids(5)).toEqual([4, null]);
+  });
+
+  it('given stubs next to the article, when looking, then they are stepped over', () => {
+    const withStubs = [
+      node(1, 'Намаз', [node(2, 'Условия', [node(3, 'Омовение')], false), node(4, 'Время')]),
+      node(5, 'Пост', [], false),
+    ];
+
+    expect(ids(1, withStubs)).toEqual([null, 3]);
+    expect(ids(3, withStubs)).toEqual([1, 4]);
+    expect(ids(4, withStubs)).toEqual([3, null]);
+  });
+
+  it('given a stub, when looking, then its neighbours are the nearest articles with content', () => {
+    const withStub = [node(1, 'Намаз'), node(2, 'Пост', [node(3, 'Сухур')], false), node(4, 'Закят')];
+
+    expect(ids(2, withStub)).toEqual([1, 3]);
+  });
+
+  it('given an article the tree does not hold or no tree, when looking, then both sides are empty', () => {
+    expect(ids(99)).toEqual([null, null]);
+    expect(findAdjacentArticles(undefined, 1)).toEqual({ previous: null, next: null });
   });
 });

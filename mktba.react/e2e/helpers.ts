@@ -42,7 +42,7 @@ export const publishArticle = async (request: APIRequestContext, title: string, 
   const headers = { Authorization: `Bearer ${accessToken}` };
   const created = paragraphs
     ? await request.post(`${API_URL}/articles/content`, { headers, data: { title, paragraphs, ...extra } })
-    : await request.post(`${API_URL}/articles`, { headers, data: { title } });
+    : await request.post(`${API_URL}/articles`, { headers, data: { title, ...extra } });
   expect(created.status()).toBe(201);
   const article = await created.json() as { id: number; slug: string };
   for (const status of ['InReview', 'Published']) {

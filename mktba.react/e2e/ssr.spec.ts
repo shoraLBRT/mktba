@@ -292,3 +292,53 @@ test('the server sends the home page with Organization and WebSite JSON-LD and n
   expect(nodes.map((node) => node['@type'])).toEqual(['Organization', 'WebSite']);
   expect(nodes[1]).not.toHaveProperty('potentialAction');
 });
+
+/** The inner HTML of one block of the article footer in raw HTML (R-08). */
+const footerBlock = (html: string, testId: string): string =>
+  new RegExp(`<nav[^>]*data-testid="${testId}"[^>]*>([^]*?)</nav>`).exec(html)?.[1] ?? '';
+
+const linkedSlugs = (blockHtml: string): string[] =>
+  [...blockHtml.matchAll(/href="\/article\/([^"]+)"/g)].map((match) => match[1]);
+
+test('the server sends the article footer: children, related and neighbours, without drafts and with stubs unlinked (R-08)', async ({ request }) => {
+  const stamp = Date.now();
+  const text = [{ order: 1, opinions: [{ content: 'Текст', isDefault: true, schoolIds: [] }] }];
+  const section = await publishArticle(request, `Раздел низа ${stamp}`, text);
+  const inSection = { parentArticleId: section.id };
+  const first = await publishArticle(request, `Первая низа ${stamp}`, text, inSection);
+  const stub = await publishArticle(request, `Заглушка низа ${stamp}`, null, inSection);
+  const draft = await request.post(`${API_URL}/articles/content`, {
+    headers: section.headers,
+    data: { title: `Черновик низа ${stamp}`, paragraphs: text, ...inSection },
+  });
+  expect(draft.status()).toBe(201);
+  const draftSlug = (await draft.json() as { slug: string }).slug;
+  const last = await publishArticle(request, `Последняя низа ${stamp}`, text, {
+    ...inSection,
+    relatedLinks: [{ relatedArticleId: first.id, order: 1 }],
+  });
+
+  const sectionHtml = await (await request.get(`/article/${section.slug}`)).text();
+  const firstHtml = await (await request.get(`/article/${first.slug}`)).text();
+  const lastHtml = await (await request.get(`/article/${last.slug}`)).text();
+  const stubHtml = await (await request.get(`/article/${stub.slug}`)).text();
+
+  const children = footerBlock(sectionHtml, 'article-children');
+  expect(children).toContain('<h2');
+  expect(linkedSlugs(children)).toEqual([first.slug, last.slug]);
+  expect(children).toContain(`Заглушка низа ${stamp}`);
+  expect(sectionHtml).not.toContain(draftSlug);
+  expect(sectionHtml).not.toContain(`Черновик низа ${stamp}`);
+
+  // Neighbours follow the tree and step over the stub and the draft.
+  expect(linkedSlugs(footerBlock(firstHtml, 'article-adjacent'))).toEqual([section.slug, last.slug]);
+  expect(footerBlock(firstHtml, 'article-adjacent')).toMatch(/rel="prev"[\s\S]*rel="next"/);
+  expect(linkedSlugs(footerBlock(lastHtml, 'article-adjacent')).at(0)).toBe(first.slug);
+  expect(linkedSlugs(footerBlock(stubHtml, 'article-adjacent')).slice(0, 2)).toEqual([first.slug, last.slug]);
+  expect(firstHtml).not.toContain('data-testid="article-children"');
+
+  expect(linkedSlugs(footerBlock(lastHtml, 'article-related'))).toEqual([first.slug]);
+  expect(firstHtml).not.toContain('data-testid="article-related"');
+  // The footer's headings are not part of the article's outline.
+  expect(lastHtml.match(/<h1[\s>]/g)).toHaveLength(1);
+});
