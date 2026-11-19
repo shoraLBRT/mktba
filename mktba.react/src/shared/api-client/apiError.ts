@@ -74,9 +74,12 @@ export const toApiError = (error: unknown): ApiError => {
   }
 
   if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
     const details = extractProblemDetails(error.response?.data);
-    const message = details.message ?? extractApiErrorMessage(error);
-    return new ApiError(message, error.response?.status, details.code, details.traceId);
+    // The rate limiter answers in English; the UI shows its own Russian text instead.
+    const message =
+      status === 429 ? locale.common.tooManyRequests : (details.message ?? extractApiErrorMessage(error));
+    return new ApiError(message, status, details.code, details.traceId);
   }
 
   return new ApiError(extractApiErrorMessage(error));

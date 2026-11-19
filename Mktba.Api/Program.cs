@@ -98,6 +98,7 @@ builder.Services.AddAuthorizationBuilder()
         policy.RequireRole("Admin");
     });
 
+builder.Services.AddMktbaRateLimiting(builder.Configuration);
 
 var app = builder.Build();
 
@@ -134,6 +135,8 @@ if (!app.Environment.IsDevelopment())
 app.UseCors("AllowMktbaReact");
 app.UseAuthentication();
 app.UseAuthorization();
+// After authentication: the AI policy partitions by user id.
+app.UseRateLimiter();
 
 app.MapArticleContentEndpoints();
 app.MapNavigationEndpoints();

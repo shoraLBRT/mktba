@@ -118,6 +118,9 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "429": {
+            "description": "Too Many Requests"
           }
         }
       }
@@ -140,6 +143,9 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "429": {
+            "description": "Too Many Requests"
           }
         }
       }
@@ -418,6 +424,9 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "429": {
+            "description": "Too Many Requests"
           }
         }
       }
@@ -450,6 +459,9 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "429": {
+            "description": "Too Many Requests"
           }
         }
       }
