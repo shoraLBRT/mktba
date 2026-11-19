@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { createArticle } from '../services/adminService';
-import { getNavigationTree } from '../services/Article/navigationService';
+import { useNavigationTree } from '../hooks/useNavigationTree';
+import { invalidateArticleQueries } from '../app/queryClient';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import { Input } from '../shared/ui/Input';
 import type { NavigationArticleDto } from '../shared/types/ApiTypes';
@@ -76,8 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const createNodeMutation = useMutation({
     mutationFn: (title: string) => createArticle({ title, parentArticleId: createTarget?.parentId }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE] });
-      void queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES] });
+      void invalidateArticleQueries(queryClient);
       setCreateTarget(null);
       setCreateError(null);
     },
@@ -92,10 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
   });
 
-  const { data: navigationTree, isLoading, error } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE],
-    queryFn: getNavigationTree,
-  });
+  const { data: navigationTree, isLoading, error } = useNavigationTree();
 
   const filteredNavigationTree = useMemo(() => {
     if (!navigationTree) {

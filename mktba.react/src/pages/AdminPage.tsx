@@ -11,6 +11,7 @@ import {
 } from '../services/adminService';
 import { generateInviteToken } from '../services/authService';
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import { invalidateArticleQueries } from '../app/queryClient';
 import { formatMessage } from '../localization';
 import { useLocale } from '../localization/hooks';
 import { cn } from '../shared/lib/cn';
@@ -75,10 +76,7 @@ const AdminPage: React.FC = () => {
   };
 
   const refreshContentQueries = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES] }),
-      queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE] }),
-    ]);
+    await invalidateArticleQueries(queryClient);
   };
 
   const cleanupMutation = useMutation({

@@ -6,7 +6,8 @@ import MarkdownContent from '../components/MarkdownContent';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { getArticleContentById, updateArticleContent } from '../services/Article/articleService';
-import { getNavigationTree } from '../services/Article/navigationService';
+import { useNavigationTree } from '../hooks/useNavigationTree';
+import { invalidateArticleQueries } from '../app/queryClient';
 import { deleteArticle, getAiProviderSettings, styleMarkdownWithAi } from '../services/adminService';
 import { Button } from '../shared/ui/Button';
 import { Card } from '../shared/ui/Card';
@@ -190,10 +191,7 @@ const EditArticlePage: React.FC = () => {
     onError: (error) => setNotice({ tone: 'error', message: (error as Error).message }),
   });
 
-  const navigationTreeQuery = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE],
-    queryFn: getNavigationTree,
-  });
+  const navigationTreeQuery = useNavigationTree();
 
   const articleOptions = useMemo(
     () => flattenNavigationTree(navigationTreeQuery.data ?? []),
@@ -225,7 +223,8 @@ const EditArticlePage: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: (payload: ArticleContentDto) => updateArticleContent(numericId, payload),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await invalidateArticleQueries(queryClient);
       showNotice('success', t.saved);
       navigate(`/article/${numericId}`);
     },
@@ -235,8 +234,7 @@ const EditArticlePage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: () => deleteArticle(numericId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE] });
-      queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT] });
+      void invalidateArticleQueries(queryClient);
       navigate('/');
     },
     onError: (error) => {

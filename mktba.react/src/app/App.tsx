@@ -1,5 +1,5 @@
 import { type ReactElement, useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 import ArticlePage from '../pages/ArticlePage';
@@ -13,8 +13,9 @@ import { ADMIN_SESSION_EXPIRED_EVENT } from '../services/authTokenStorage';
 import { MazhabProvider } from '../context/MazhabProvider';
 import { CookieConsent } from '../components/CookieConsent';
 import { getConsent, initMetrika } from '../analytics/metrika';
+import { createQueryClient } from './queryClient';
 
-const queryClient = new QueryClient();
+const queryClient = createQueryClient();
 
 if (getConsent() === true) {
   initMetrika();

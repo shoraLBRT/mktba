@@ -18,7 +18,7 @@ import {
   isParagraphUiMode,
   type ParagraphUiMode,
 } from '../constants/ArticleUiConstants';
-import { getNavigationTree } from '../services/Article/navigationService';
+import { useNavigationTree } from '../hooks/useNavigationTree';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
 import { useMazhab } from '../context/mazhabContext';
@@ -130,10 +130,7 @@ const ArticlePage: React.FC = () => {
     enabled: !isNaN(articleId) && articleId > 0,
   });
 
-  const { data: navigationTree } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE],
-    queryFn: getNavigationTree,
-  });
+  const { data: navigationTree } = useNavigationTree();
 
   const { data: systemSchools } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
