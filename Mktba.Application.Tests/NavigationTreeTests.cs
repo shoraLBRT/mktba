@@ -22,7 +22,7 @@ public class NavigationTreeTests : IDisposable
     [Fact]
     public async Task GetTreeAsync_EmptyDatabase_ReturnsEmptyList()
     {
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree.Should().BeEmpty();
     }
@@ -36,7 +36,7 @@ public class NavigationTreeTests : IDisposable
         );
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree.Should().HaveCount(2);
         tree.Should().AllSatisfy(node => node.Children.Should().BeEmpty());
@@ -48,7 +48,7 @@ public class NavigationTreeTests : IDisposable
         _context.Articles.Add(new Article { Title = "Намаз", Slug = "namaz" });
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree.Single().Slug.Should().Be("namaz");
     }
@@ -64,7 +64,7 @@ public class NavigationTreeTests : IDisposable
         _context.Articles.Add(child);
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree.Should().HaveCount(1);
         tree[0].Title.Should().Be("Parent");
@@ -84,7 +84,7 @@ public class NavigationTreeTests : IDisposable
         _context.Paragraphs.Add(paragraph);
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree[0].HasContent.Should().BeTrue();
     }
@@ -95,7 +95,7 @@ public class NavigationTreeTests : IDisposable
         _context.Articles.Add(new Article { Title = "Empty" });
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree[0].HasContent.Should().BeFalse();
     }
@@ -108,7 +108,7 @@ public class NavigationTreeTests : IDisposable
         _context.Articles.Add(article);
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree[0].HasContent.Should().BeTrue();
     }
@@ -119,7 +119,7 @@ public class NavigationTreeTests : IDisposable
         _context.Articles.Add(new Article { Title = "Subtitle only", InfoboxSubtitle = "Imam" });
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree[0].HasContent.Should().BeTrue();
     }
@@ -130,7 +130,7 @@ public class NavigationTreeTests : IDisposable
         _context.Articles.Add(new Article { Title = "Blank infobox", InfoboxTitle = "   " });
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree[0].HasContent.Should().BeFalse();
     }
@@ -152,7 +152,7 @@ public class NavigationTreeTests : IDisposable
         _context.Paragraphs.Add(paragraph);
         await _context.SaveChangesAsync();
 
-        var tree = await _service.GetTreeAsync();
+        var tree = await _service.GetTreeAsync(includeUnpublished: true);
 
         tree.Should().ContainSingle();
         tree[0].HasContent.Should().BeFalse();

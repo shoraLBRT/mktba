@@ -118,6 +118,11 @@ namespace Mktba.Infrastructure.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<string>("Summary")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");

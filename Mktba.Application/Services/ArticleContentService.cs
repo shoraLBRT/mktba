@@ -24,32 +24,38 @@ namespace Mktba.Application.Services
             _slugs = new ArticleSlugAssigner(articleRepo);
         }
 
-        public async Task<ArticleContentDto> GetContentByArticleIdAsync(int articleId)
+        /// <summary>
+        /// The article with its content. Without <paramref name="includeUnpublished"/> (anonymous
+        /// readers) a non-Published article counts as missing and related links to non-Published
+        /// articles are left out.
+        /// </summary>
+        /// <exception cref="NotFoundException">No such article, or it is not visible.</exception>
+        public async Task<ArticleContentDto> GetContentByArticleIdAsync(int articleId, bool includeUnpublished)
         {
             var article = await _articleRepo.GetByIdWithContentAsync(articleId);
-            if (article is null)
+            if (article is null || !ArticleVisibility.IsVisible(article.Status, includeUnpublished))
             {
                 throw new NotFoundException(AppErrors.ArticleNotFound);
             }
 
-            return BuildArticleContentDto(article);
+            return BuildArticleContentDto(article, includeUnpublished);
         }
 
         /// <summary>
         /// Looks an article up by slug, ignoring case. A current slug returns the content; an old
         /// slug returns the current one to redirect to.
         /// </summary>
-        /// <exception cref="NotFoundException">No article has or had this slug.</exception>
-        public async Task<ArticleSlugLookup> GetContentBySlugAsync(string requestedSlug)
+        /// <exception cref="NotFoundException">No visible article has or had this slug.</exception>
+        public async Task<ArticleSlugLookup> GetContentBySlugAsync(string requestedSlug, bool includeUnpublished)
         {
             var slug = requestedSlug.Trim().ToLowerInvariant();
             var articleId = await _articleRepo.FindIdBySlugAsync(slug);
             if (articleId is not null)
             {
-                return new ArticleSlugLookup(await GetContentByArticleIdAsync(articleId.Value), null);
+                return new ArticleSlugLookup(await GetContentByArticleIdAsync(articleId.Value, includeUnpublished), null);
             }
 
-            var currentSlug = await _articleRepo.FindRedirectTargetSlugAsync(slug);
+            var currentSlug = await _articleRepo.FindRedirectTargetSlugAsync(slug, publishedOnly: !includeUnpublished);
             return currentSlug is not null
                 ? new ArticleSlugLookup(null, currentSlug)
                 : throw new NotFoundException(AppErrors.ArticleNotFound);
@@ -163,7 +169,7 @@ namespace Mktba.Application.Services
                 var createdArticle = await _articleRepo.GetByIdWithContentAsync(article.Id)
                     ?? throw new NotFoundException(AppErrors.ArticleNotFound);
 
-                return BuildArticleContentDto(createdArticle);
+                return BuildArticleContentDto(createdArticle, includeUnpublished: true);
             }
             catch
             {
@@ -436,7 +442,7 @@ namespace Mktba.Application.Services
             return normalized.Count == 0 ? null : string.Join(",", normalized);
         }
 
-        private static ArticleContentDto BuildArticleContentDto(Article article)
+        private static ArticleContentDto BuildArticleContentDto(Article article, bool includeUnpublished)
         {
             var paragraphDtos = article.Paragraphs
                 .OrderBy(p => p.Order)
@@ -461,7 +467,7 @@ namespace Mktba.Application.Services
                 MapInfobox(article),
                 article.Summary,
                 ParseTags(article.Tags),
-                MapRelatedLinks(article),
+                MapRelatedLinks(article, includeUnpublished),
                 article.Slug);
         }
 
@@ -482,12 +488,15 @@ namespace Mktba.Application.Services
             return new ArticleInfoboxDto(article.InfoboxTitle, article.InfoboxSubtitle, fields);
         }
 
-        private static List<ArticleRelatedLinkDto>? MapRelatedLinks(Article article)
+        private static List<ArticleRelatedLinkDto>? MapRelatedLinks(Article article, bool includeUnpublished)
         {
-            if (article.RelatedLinks.Count == 0)
+            var links = article.RelatedLinks
+                .Where(link => ArticleVisibility.IsVisible(link.RelatedArticle.Status, includeUnpublished))
+                .ToList();
+            if (links.Count == 0)
                 return null;
 
-            return article.RelatedLinks
+            return links
                 .OrderBy(link => link.Order)
                 .Select(link => new ArticleRelatedLinkDto(
                     link.Id,

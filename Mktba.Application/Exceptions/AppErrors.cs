@@ -46,6 +46,10 @@ public static class AppErrors
         $"Slug must be 1-{Services.ArticleSlugRules.MaxLength} characters of a-z, 0-9 and single hyphens, and not digits only.",
         With(("maxLength", Services.ArticleSlugRules.MaxLength)));
 
+    public static AppError ArticleStatusTransitionInvalid(Domain.Entities.ArticleStatus from, Domain.Entities.ArticleStatus to) =>
+        new("article_status_transition_invalid", $"An article cannot move from {from} to {to}.",
+            With(("from", from.ToString()), ("to", to.ToString())));
+
     public static AppError ArticleSlugTaken(string slug) =>
         new("article_slug_taken", $"Slug '{slug}' is already used by another article.", With(("slug", slug)));
 

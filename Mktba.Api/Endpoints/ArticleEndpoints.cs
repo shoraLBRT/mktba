@@ -1,7 +1,9 @@
-﻿using Mktba.Api.Infrastructure;
+﻿using System.Security.Claims;
+using Mktba.Api.Infrastructure;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
 using Mktba.Application.Services;
+using Mktba.Domain.Entities;
 
 namespace Mktba.Api.Endpoints
 {
@@ -11,15 +13,15 @@ namespace Mktba.Api.Endpoints
         {
             var group = builder.MapGroup("/articles").WithTags("Articles");
 
-            group.MapGet("/", async (ArticleService service) =>
+            group.MapGet("/", async (ClaimsPrincipal user, ArticleService service) =>
             {
-                var articles = await service.GetAllAsync();
+                var articles = await service.GetAllAsync(user.CanSeeUnpublished());
                 return Results.Ok(articles);
             }).Produces<List<ArticleReadDto>>();
 
-            group.MapGet("/{id:int}", async (int id, ArticleService service) =>
+            group.MapGet("/{id:int}", async (int id, ClaimsPrincipal user, ArticleService service) =>
             {
-                var article = await service.GetByIdAsync(id);
+                var article = await service.GetByIdAsync(id, user.CanSeeUnpublished());
                 return article is not null
                     ? Results.Ok(article)
                     : ApiProblemResults.Problem(StatusCodes.Status404NotFound, AppErrors.ArticleNotFound);
@@ -36,6 +38,19 @@ namespace Mktba.Api.Endpoints
                 await service.UpdateAsync(id, updateDto);
                 return Results.NoContent();
             }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
+
+            group.MapPost("/{id:int}/status", async (int id, ArticleStatusChangeDto dto, ArticleService service) =>
+            {
+                var article = await service.ChangeStatusAsync(id, dto.Status);
+                return Results.Ok(article);
+            })
+            .WithSummary("Moves an article to another status.")
+            .WithDescription(
+                "Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, "
+                + "Archived → Draft. Any other move answers 400 article_status_transition_invalid.")
+            .Produces<ArticleReadDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
 
             group.MapDelete("/{id:int}", async (int id, ArticleService service) =>
             {

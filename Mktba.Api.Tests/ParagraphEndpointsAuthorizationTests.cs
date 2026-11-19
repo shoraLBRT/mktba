@@ -76,7 +76,7 @@ public sealed class ParagraphEndpointsAuthorizationTests : IClassFixture<MktbaAp
     }
 
     [Fact]
-    public async Task GivenAnonymousClient_WhenReadingArticleContent_ThenContentIsStillPublic()
+    public async Task GivenAnonymousClient_WhenReadingPublishedArticleContent_ThenContentIsStillPublic()
     {
         var client = _factory.CreateClient();
         var (articleId, _) = await SeedArticleWithParagraphAsync();
@@ -95,7 +95,7 @@ public sealed class ParagraphEndpointsAuthorizationTests : IClassFixture<MktbaAp
         var paragraph = new Paragraph
         {
             Order = 1,
-            Article = new Article { Title = "S-07 test article" },
+            Article = new Article { Title = "S-07 test article", Status = ArticleStatus.Published },
             Opinions = { new Opinion { Content = "Test opinion", IsDefault = true } },
         };
         dbContext.Paragraphs.Add(paragraph);

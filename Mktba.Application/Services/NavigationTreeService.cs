@@ -12,9 +12,15 @@ namespace Mktba.Application.Services
             _articleRepository = articleRepository;
         }
 
-        public async Task<List<NavigationArticleDto>> GetTreeAsync()
+        /// <summary>
+        /// Builds the article tree. Without <paramref name="includeUnpublished"/> (anonymous readers)
+        /// only Published articles are returned, and a Published article whose parent is not
+        /// Published is hidden together with its subtree. Editors get every article; an article
+        /// whose parent no longer exists becomes a root.
+        /// </summary>
+        public async Task<List<NavigationArticleDto>> GetTreeAsync(bool includeUnpublished)
         {
-            var rows = await _articleRepository.GetNavigationRowsAsync();
+            var rows = await _articleRepository.GetNavigationRowsAsync(publishedOnly: !includeUnpublished);
             var lookup = rows
                 .Select(row => new NavigationArticleDto
                 {
@@ -22,6 +28,7 @@ namespace Mktba.Application.Services
                     Title = row.Title,
                     Slug = row.Slug,
                     ParentArticleId = row.ParentArticleId,
+                    Status = row.Status,
                     HasContent = row.HasContent,
                     Children = new List<NavigationArticleDto>()
                 })
@@ -42,7 +49,7 @@ namespace Mktba.Application.Services
                     parent.Children ??= new List<NavigationArticleDto>();
                     parent.Children.Add(article);
                 }
-                else
+                else if (includeUnpublished)
                 {
                     roots.Add(article);
                 }
