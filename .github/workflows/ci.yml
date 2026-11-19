@@ -45,6 +45,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Size budget of the public article page's JavaScript; how to update it: scripts/check-bundle-size.mjs.
+      - run: npm run size
 
   # FE<->BE contract: the committed OpenAPI document and the TypeScript types generated from it
   # must match the API. A drift fails here; a contract change the frontend does not handle fails

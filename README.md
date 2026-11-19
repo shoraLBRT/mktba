@@ -152,6 +152,7 @@ Dev-сервер (`react-router dev`, Vite с серверным рендеро�
 
 ```bash
 npm run build      # tsc + react-router build → build/client (статика), build/server (SSR)
+npm run size       # после build: бюджет JS первой загрузки /article/:slug (gzip), как поднять — в scripts/check-bundle-size.mjs
 npm start          # react-router-serve, порт из PORT (по умолчанию 3000)
 ```
 
