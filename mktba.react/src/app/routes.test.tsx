@@ -201,6 +201,68 @@ describe('AppRoutes', () => {
   });
 });
 
+const headingLevels = () =>
+  [...document.body.querySelectorAll('h1, h2, h3, h4, h5, h6')].map((heading) => Number(heading.tagName[1]));
+
+const richArticle: ArticleContentDto = {
+  ...article('namaz'),
+  publishedAt: '2026-11-01T09:00:00Z',
+  updatedAt: '2026-11-19T10:00:00Z',
+  paragraphs: [
+    { id: 1, order: 1, opinions: [{ id: 11, content: '# Условия\n\n### Время', isDefault: true, schoolIds: [] }] },
+    {
+      id: 2,
+      order: 2,
+      opinions: [
+        { id: 21, content: '## Порядок\n\n![Схема](/scheme.png)', isDefault: true, schoolIds: [] },
+        { id: 22, content: '#### Иной порядок', isDefault: false, schoolIds: [] },
+      ],
+    },
+  ],
+};
+
+describe('Page semantics', () => {
+  it.each(['/', '/no/such/page'])('given %s, when rendered, then the page has exactly one h1 inside one main', async (path) => {
+    renderAt(path);
+
+    await screen.findByRole('heading', { level: 1 });
+    expect(document.body.querySelectorAll('h1')).toHaveLength(1);
+    expect(document.body.querySelectorAll('main')).toHaveLength(1);
+    expect(document.body.querySelector('main h1')).toBeTruthy();
+  });
+
+  it('given an article with markdown headings, when rendered, then it has one h1 and heading levels never skip', async () => {
+    vi.mocked(getArticleContentBySlug).mockResolvedValue(richArticle);
+
+    renderAt('/article/namaz');
+
+    await screen.findByRole('heading', { name: 'Намаз', level: 1 });
+    const levels = headingLevels();
+    expect(levels.filter((level) => level === 1)).toHaveLength(1);
+    expect(levels[0]).toBe(1);
+    levels.forEach((level, index) => {
+      if (index > 0) expect(level).toBeLessThanOrEqual(levels[index - 1] + 1);
+    });
+  });
+
+  it('given an article, when rendered, then landmarks, breadcrumbs, dates and image alt are marked up', async () => {
+    vi.mocked(getArticleContentBySlug).mockResolvedValue(richArticle);
+
+    renderAt('/article/namaz');
+
+    await screen.findByRole('heading', { name: 'Намаз', level: 1 });
+    expect(document.body.querySelectorAll('main')).toHaveLength(1);
+    expect(document.body.querySelector('main article h1')?.textContent).toBe('Намаз');
+    expect(screen.getByRole('banner')).toBeTruthy();
+    expect(screen.getAllByRole('navigation', { name: 'Статьи' }).length).toBeGreaterThan(0);
+    expect([...document.body.querySelectorAll('article time')].map((time) => time.getAttribute('datetime'))).toEqual([
+      '2026-11-01T09:00:00.000Z',
+      '2026-11-19T10:00:00.000Z',
+    ]);
+    expect(document.body.querySelector('article img')?.getAttribute('alt')).toBe('Схема');
+  });
+});
+
 const sectionLinks = () =>
   screen.getAllByRole('navigation', { name: 'Разделы админки' })[0]
     .querySelectorAll('a');

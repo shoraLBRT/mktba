@@ -24,7 +24,45 @@ function remarkGfmSyntax(this: { data(): object }) {
   (data.fromMarkdownExtensions ??= []).push(gfmFromMarkdown());
 }
 
-const remarkPlugins = [remarkGfmSyntax];
+/** The part of an mdast node the heading pass reads: headings carry `depth`, parents `children`. */
+type MarkdownNode = {
+  type: string;
+  depth?: number;
+  children?: MarkdownNode[];
+};
+
+const collectHeadings = (node: MarkdownNode, headings: MarkdownNode[]): MarkdownNode[] => {
+  if (node.type === 'heading') {
+    headings.push(node);
+  }
+  node.children?.forEach((child) => collectHeadings(child, headings));
+  return headings;
+};
+
+/**
+ * Markdown is always rendered under the page's own `h1`, so its headings start at `h2`: the
+ * shallowest heading in the content becomes `h2`, deeper ones keep their relative depth, and a
+ * heading never goes more than one level below the one before it (`#` then `###` renders
+ * `h2` then `h3`). Levels stop at `h6`.
+ */
+function remarkNestHeadings() {
+  return (tree: MarkdownNode) => {
+    const headings = collectHeadings(tree, []);
+    if (headings.length === 0) {
+      return;
+    }
+    const shallowest = Math.min(...headings.map((heading) => heading.depth ?? 1));
+    let previous = 1;
+    headings.forEach((heading) => {
+      const shifted = (heading.depth ?? 1) - shallowest + 2;
+      const depth = Math.min(shifted, previous + 1, 6);
+      heading.depth = depth;
+      previous = depth;
+    });
+  };
+}
+
+const remarkPlugins = [remarkGfmSyntax, remarkNestHeadings];
 
 const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => (
   <ReactMarkdown

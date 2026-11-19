@@ -21,15 +21,27 @@ describe('ArticleDates', () => {
   it('given publication and a later update, when rendered, then shows both lines', () => {
     renderDates('2026-11-01T09:00:00Z', '2026-11-19T10:00:00Z');
 
-    expect(screen.getByText(/^Опубликовано 1 ноября 2026/)).toBeTruthy();
-    expect(screen.getByText(/^Обновлено 19 ноября 2026/)).toBeTruthy();
+    const [published, updated] = screen.getByTestId('article-dates').children;
+    expect(published.textContent).toMatch(/^Опубликовано 1 ноября 2026/);
+    expect(updated.textContent).toMatch(/^Обновлено 19 ноября 2026/);
+  });
+
+  it('given both dates, when rendered, then each date is a time element with its ISO instant', () => {
+    renderDates('2026-11-01T09:00:00Z', '2026-11-19T10:00:00.1234567Z');
+
+    const times = [...screen.getByTestId('article-dates').querySelectorAll('time')];
+    expect(times.map((time) => time.getAttribute('datetime'))).toEqual([
+      '2026-11-01T09:00:00.000Z',
+      '2026-11-19T10:00:00.123Z',
+    ]);
+    expect(times[0].textContent).toMatch(/^1 ноября 2026/);
   });
 
   it('given an update on the publication day, when rendered, then shows only the publication date', () => {
     renderDates('2026-11-01T09:00:00Z', '2026-11-01T18:00:00Z');
 
     expect(screen.getByTestId('article-dates').textContent).toMatch(/^Опубликовано 1 ноября 2026/);
-    expect(screen.queryByText(/Обновлено/)).toBeNull();
+    expect(screen.getByTestId('article-dates').textContent).not.toMatch(/Обновлено/);
   });
 
   it('given no dates, when rendered, then renders nothing', () => {

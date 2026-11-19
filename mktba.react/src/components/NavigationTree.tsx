@@ -108,6 +108,7 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
         {isClickable ? (
           <Link
             to={opensEditor ? `/admin/articles/${article.id}/edit` : articleHref(article.slug)}
+            aria-current={isActive ? 'page' : undefined}
             className={[
               'min-w-0 flex-1 truncate text-[12px] leading-5',
               isActive ? 'font-medium' : '',

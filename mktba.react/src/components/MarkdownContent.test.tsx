@@ -33,6 +33,26 @@ describe('MarkdownContent', () => {
     expect(image?.getAttribute('alt')).toBe('map');
   });
 
+  it('starts headings below the page h1 so the article keeps a single h1', () => {
+    const { container } = render(<MarkdownContent content={'# Part\n\n## Detail\n\n# Next'} />);
+    const levels = [...container.querySelectorAll('h1, h2, h3, h4, h5, h6')].map((heading) => heading.tagName);
+
+    expect(levels).toEqual(['H2', 'H3', 'H2']);
+  });
+
+  it('lifts content that starts at a deep level and closes skipped levels', () => {
+    const { container } = render(<MarkdownContent content={'### Part\n\n###### Deep\n\n#### Child'} />);
+    const levels = [...container.querySelectorAll('h1, h2, h3, h4, h5, h6')].map((heading) => heading.tagName);
+
+    expect(levels).toEqual(['H2', 'H3', 'H3']);
+  });
+
+  it('keeps an empty alt only when the markdown image has no description', () => {
+    const { container } = render(<MarkdownContent content={'![](/divider.png)'} />);
+
+    expect(container.querySelector('img')?.getAttribute('alt')).toBe('');
+  });
+
   it('renders nothing for empty content', () => {
     const { container } = render(<MarkdownContent content="" />);
 

@@ -88,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+      <nav aria-label={locale.layout.navigation.treeLabel} className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <div className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--color-border-soft)] border-t-[var(--color-brand-forest)]" />
@@ -101,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         ) : (
           <NavigationTree navigationTree={filteredNavigationTree} onNavigate={onCloseMobile} />
         )}
-      </div>
+      </nav>
 
         <div className="border-t border-[var(--color-border-soft)] px-4 py-3">
           <p className="m-0 text-[11px] text-[var(--color-ink-subtle)]">
@@ -144,7 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         ) : expandedContent}
       </aside>
 
-      <div className={`fixed inset-0 z-50 lg:hidden ${mobileOpen ? '' : 'pointer-events-none'}`}>
+      <div inert={!mobileOpen} className={`fixed inset-0 z-50 lg:hidden ${mobileOpen ? '' : 'pointer-events-none'}`}>
         <button
           type="button"
           aria-label={locale.layout.navigation.mobileClose}
