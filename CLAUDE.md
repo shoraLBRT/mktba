@@ -13,10 +13,11 @@ UI — только на русском. Целевой домен — `mktba.ru
 ### Backend (run from repo root)
 ```bash
 docker compose up -d postgres
-dotnet restore
-dotnet build
-dotnet run --project Mktba.Api
+dotnet build Mktba.sln            # plain `dotnet build` fails with MSB1011 (docker-compose.dcproj)
+dotnet test Mktba.sln
+dotnet run --project Mktba.Api    # :5172, Development: connects to the compose `postgres` DB out of the box
 ```
+Machine-specific settings go in the gitignored `Mktba.Api/appsettings.local.json` (template: `appsettings.local.example.json`); it overrides `appsettings.{Environment}.json`, while user secrets and env vars override it.
 
 ### Frontend (run from `mktba.react/`)
 ```bash
@@ -26,6 +27,9 @@ npm run build     # tsc -b && vite build
 npm run lint      # eslint
 npm test          # vitest run (unit + Testing Library, jsdom)
 npm run preview   # preview production build
+npm test          # Vitest, once (as in CI)
+npm run test:e2e  # Playwright against a throwaway DB, see README
+npm run gen:api   # regenerate the OpenAPI contract after endpoint/DTO changes
 ```
 
 ## Architecture
@@ -50,22 +54,22 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 - `User` (ex-`AdminUser`) authenticates via JWT; `Role` currently always `Admin`; invite tokens bootstrap new admins.
 
 **API surface** (all in `Mktba.Api/Endpoints/`):
-- `/auth/*` — login, token refresh
-- `/navigationTree` — tree structure
-- `/articles/*` — article CRUD
-- `/articleContent/*` — article with resolved paragraph opinions
-- `/paragraphs/*` — paragraph and opinion operations
-- `/schools/*` — system + article-scoped schools
-- `/admin/*` — admin utilities (cleanup, AI markdown styling)
+- `/auth` — `GET /status`, `POST /register` (first admin, then only with an invite token), `POST /login`, `POST /invite-token`
+- `/navigationTree/tree` — article hierarchy for the sidebar
+- `/articles` — article CRUD (`GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}`)
+- `/articles/{id}/content`, `POST /articles/content` — article with its paragraphs and opinions, read and saved as a whole
+- `/paragraph` — paragraph CRUD (`GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}`)
+- `/schools` — `GET /system`, `GET /article/{articleId}`, `POST /`, `DELETE /{id}`
+- `/admin` — `POST /cleanup`, `GET|PUT|DELETE /ai-settings`, `POST /ai-style`, `POST /ai-check`
 
 **Frontend ↔ Backend:**
 - Base URL configured in `mktba.react/src/config.ts` (`http://localhost:5172`)
-- CORS allows `localhost:5173` (Vite dev port)
+- CORS allows any loopback / `localhost` origin (Vite dev port `:5173`)
 - Auth token stored in `localStorage`; protected routes under `/admin/*`
 - HTTP via Axios; server state via React Query
 - Global mazhab selection stored in `localStorage['mktba.mazhab']`, exposed through `MazhabContext`
 
-**Database:** PostgreSQL 16. Connection string in `Mktba.Api/appsettings.json`; local dev uses `docker-compose.yml` (service `postgres`).
+**Database:** PostgreSQL 16. Connection string `ConnectionStrings:DefaultConnection`; Development uses `appsettings.Development.json`, matching `docker-compose.yml` (service `postgres`).
 
 ## Coding conventions
 
@@ -97,6 +101,6 @@ Scope is optional: `fix(api): validate node parent before update`
 - Cover happy path, at least one edge case, and one failure path per behavior change.
 - For bug fixes, add a regression test.
 
-## Active plan
+## Roadmap
 
-Current multi-iteration MVP plan lives at `C:\Users\shora\.claude\plans\wikiweaver-reflective-yeti.md`. Discrepancy checklist (Figma ↔ current UI) — [docs/figma-checklist.md](docs/figma-checklist.md).
+Backlog, order of work and review findings — [docs/backlog.md](docs/backlog.md) (section 6 is the order of work); tasks live in GitHub Issues. Discrepancy checklist (Figma ↔ current UI) — [docs/figma-checklist.md](docs/figma-checklist.md).

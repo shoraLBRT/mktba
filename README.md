@@ -39,10 +39,33 @@ mktba/
 
 ```bash
 docker compose up -d postgres    # поднять локальный PostgreSQL
-dotnet restore
-dotnet build
-dotnet run --project Mktba.Api
+dotnet restore Mktba.sln
+dotnet build Mktba.sln           # без имени решения MSBuild падает (MSB1011: рядом docker-compose.dcproj)
+dotnet run --project Mktba.Api   # :5172, при старте применяются миграции и 4 системные школы
 ```
+
+Строка подключения из коробки: `dotnet run` стартует в Development, а
+`appsettings.Development.json` смотрит в БД `mktba` сервиса `postgres` из `docker-compose.yml`
+(пользователь `mktba`, пароль `mktba_dev` — dev-значения из того же файла). Первого админа
+создаёт форма входа (`/admin/login` на `:5173`) или `POST /auth/register`, демо-контент — скрипт:
+
+```bash
+node scripts/seed-demo-content.mjs --email admin@mktba.local --password '<пароль>'
+```
+
+#### Локальные настройки
+
+Свои значения для своей машины (другая БД, пароль, ключ AI) кладите в
+`Mktba.Api/appsettings.local.json` — он в `.gitignore` и `.dockerignore`, образец —
+`Mktba.Api/appsettings.local.example.json`:
+
+```bash
+cp Mktba.Api/appsettings.local.example.json Mktba.Api/appsettings.local.json
+```
+
+Порядок источников (последний побеждает): `appsettings.json` → `appsettings.{Environment}.json`
+→ `appsettings.local.json` → user-secrets (Development) → переменные окружения
+(`ConnectionStrings__DefaultConnection=...`) → аргументы командной строки.
 
 #### Ключ подписи JWT
 
