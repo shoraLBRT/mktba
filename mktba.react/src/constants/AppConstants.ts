@@ -4,7 +4,6 @@ export const APP_CONSTANTS = {
     ARTICLE_CONTENT: 'articleContent',
     AUTH_STATUS: 'authStatus',
     ADMIN_ARTICLES: 'adminArticles',
-    ADMIN_PARAGRAPHS: 'adminParagraphs',
     ADMIN_AI_SETTINGS: 'adminAiSettings',
     SYSTEM_SCHOOLS: 'systemSchools',
     ARTICLE_SCHOOLS: 'articleSchools',

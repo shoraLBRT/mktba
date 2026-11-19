@@ -103,7 +103,15 @@ if (!app.Environment.IsEnvironment(OpenApiEnvironmentName))
     // Demonstration-only seed data to make navigation/content visible in fresh local environments.
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<MktbaDbContext>();
-    await dbContext.Database.MigrateAsync();
+    // Integration tests run the API on a non-relational (InMemory) provider, which has no migrations.
+    if (dbContext.Database.IsRelational())
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    else
+    {
+        await dbContext.Database.EnsureCreatedAsync();
+    }
     await DemoDataSeeder.SeedAsync(dbContext);
 }
 
