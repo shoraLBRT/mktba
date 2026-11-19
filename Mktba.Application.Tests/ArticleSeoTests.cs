@@ -179,7 +179,7 @@ public class ArticleSeoTests : IDisposable
         (await UpdateSeoAsync(created.Id, new ArticleSeoDto("Второй", null, null, false))).Success.Should().BeTrue();
 
         var first = await _revisions.GetAsync(created.Id, 1);
-        first.Snapshot.SchemaVersion.Should().Be(2);
+        first.Snapshot.SchemaVersion.Should().Be(ArticleSnapshotDto.CurrentSchemaVersion);
         first.Snapshot.Seo.Should().Be(new ArticleSeoDto("Первый", "Описание", "/a.png", true));
 
         _context.ChangeTracker.Clear();
