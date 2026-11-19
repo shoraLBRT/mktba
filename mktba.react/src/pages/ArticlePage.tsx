@@ -372,11 +372,12 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ origin }) => {
                     mode={uiMode}
                     onSelect={(index) => selectAlternative(paragraph.paragraphId, index, paragraph.opinions.length)}
                     onMove={(direction) => moveAlternative(paragraph.paragraphId, paragraph.activeIndex, direction, paragraph.opinions.length)}
-                  >
-                    <div className="article-markdown">
-                      <MarkdownContent content={paragraph.activeOpinion?.content ?? ''} />
-                    </div>
-                  </VersionedParagraphBlock>
+                    panels={paragraph.opinions.map((opinion) => (
+                      <div key={opinion.id} className="article-markdown">
+                        <MarkdownContent content={opinion.content} />
+                      </div>
+                    ))}
+                  />
                 </div>
               );
             })

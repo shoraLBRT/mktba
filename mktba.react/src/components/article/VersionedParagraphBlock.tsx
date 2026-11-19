@@ -1,5 +1,5 @@
 import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocale } from '../../localization/hooks';
 import { getSchoolPalette, type SchoolPaletteKey } from '../mazhab/schoolPalette';
 
@@ -19,7 +19,20 @@ type VersionedParagraphBlockProps = {
   mode: 'arrows' | 'numbers';
   onSelect: (index: number) => void;
   onMove: (direction: -1 | 1) => void;
-  children: ReactNode;
+  /**
+   * One panel per tab, in the same order. Every panel is rendered, also on the server, so the
+   * page HTML carries the text of every opinion; only the active one is visible.
+   */
+  panels: ReactNode[];
+};
+
+const KEY_STEPS: Record<string, (index: number, total: number) => number> = {
+  ArrowRight: (index, total) => (index + 1) % total,
+  ArrowDown: (index, total) => (index + 1) % total,
+  ArrowLeft: (index, total) => (index - 1 + total) % total,
+  ArrowUp: (index, total) => (index - 1 + total) % total,
+  Home: () => 0,
+  End: (_index, total) => total - 1,
 };
 
 export const VersionedParagraphBlock = ({
@@ -29,10 +42,24 @@ export const VersionedParagraphBlock = ({
   mode,
   onSelect,
   onMove,
-  children,
+  panels,
 }: VersionedParagraphBlockProps) => {
   const locale = useLocale();
   const t = locale.versionedParagraph;
+  const idPrefix = useId();
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const isTabs = mode === 'numbers';
+  const tabId = (index: number) => `${idPrefix}-tab-${index}`;
+  const panelId = (index: number) => `${idPrefix}-panel-${index}`;
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const step = KEY_STEPS[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const nextIndex = step(index, tabs.length);
+    onSelect(nextIndex);
+    tabRefs.current[nextIndex]?.focus();
+  };
 
   const activeTab = tabs[activeIndex] ?? tabs[0];
   const palette = getSchoolPalette(activeTab?.paletteKey ?? 'neutral');
@@ -53,12 +80,24 @@ export const VersionedParagraphBlock = ({
           </span>
         </div>
 
-        <div className="text-[14.5px] leading-7 text-[var(--color-ink-strong)]">{children}</div>
+        <div className="text-[14.5px] leading-7 text-[var(--color-ink-strong)]">
+          {panels.map((panel, index) => (
+            <div
+              key={`${order}-${index}`}
+              id={panelId(index)}
+              role={isTabs ? 'tabpanel' : undefined}
+              aria-labelledby={isTabs ? tabId(index) : undefined}
+              hidden={index !== activeIndex}
+            >
+              {panel}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-1.5 px-3 pb-3 pt-1">
         <span className="mr-1 text-[10px] text-[var(--color-ink-subtle)]">{t.versions}</span>
-        {mode === 'arrows' ? (
+        {!isTabs ? (
           <>
             <button
               type="button"
@@ -91,9 +130,16 @@ export const VersionedParagraphBlock = ({
               return (
                 <button
                   key={`${order}-${index}`}
+                  ref={(element) => {
+                    tabRefs.current[index] = element;
+                  }}
+                  id={tabId(index)}
                   type="button"
                   role="tab"
                   aria-selected={isActive}
+                  aria-controls={panelId(index)}
+                  tabIndex={isActive ? 0 : -1}
+                  onKeyDown={(event) => handleTabKeyDown(event, index)}
                   aria-label={tab.fullLabel}
                   title={tab.fullLabel}
                   onClick={() => onSelect(index)}

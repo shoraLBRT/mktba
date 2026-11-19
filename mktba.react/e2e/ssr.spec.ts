@@ -13,6 +13,41 @@ test('the server sends an article page with its title, paragraphs and metadata i
   expect(html).toMatch(/<link rel="canonical" href="[^"]*\/article\/salat"/);
 });
 
+test('the server sends the opinions of every mazhab, not only the shown one (O-03)', async ({ request }) => {
+  const html = await (await request.get('/article/salat')).text();
+
+  for (const text of [
+    'время Фаджра начинается с истинного рассвета',
+    'Малики согласны с основными временами',
+    'Шафииты используют сходные временные интервалы',
+    'Ханбалиты следуют близким расчётам',
+  ]) {
+    expect(html).toContain(text);
+  }
+  expect(html).toMatch(/role="tabpanel"[^>]*hidden=""/);
+});
+
+test('a link with a mazhab parameter keeps the canonical on the clean article URL', async ({ request }) => {
+  const html = await (await request.get('/article/salat?mazhab=shafii')).text();
+
+  expect(html).toMatch(/<link rel="canonical" href="[^"?]*\/article\/salat"/);
+});
+
+test('a reader sees only one opinion of a block and switches it with the arrow keys', async ({ page }) => {
+  await page.goto('/article/salat');
+  const firstSlot = page.getByRole('tablist', { name: 'Мазхабы:' }).first();
+  const hanafiTab = firstSlot.getByRole('tab', { name: 'Мнение мазхаба: Ханафитский мазхаб' });
+  await expect(page.getByText(/время Фаджра начинается с истинного рассвета/)).toBeVisible();
+  await expect(page.getByText(/Малики согласны с основными временами/)).toBeHidden();
+
+  await hanafiTab.focus();
+  await page.keyboard.press('ArrowRight');
+
+  await expect(firstSlot.getByRole('tab', { name: 'Мнение мазхаба: Маликитский мазхаб' })).toBeFocused();
+  await expect(page.getByText(/Малики согласны с основными временами/)).toBeVisible();
+  await expect(page.getByText(/время Фаджра начинается с истинного рассвета/)).toBeHidden();
+});
+
 test('an article page reads without JavaScript', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
