@@ -13,13 +13,13 @@ namespace Mktba.Api.Endpoints
             {
                 var paragraphs = await service.GetAllAsync();
                 return Results.Ok(paragraphs);
-            }).Produces<List<ParagraphReadDto>>();
+            }).Produces<List<ParagraphReadDto>>().RequireAuthorization("AdminOnly");
 
             group.MapGet("/{id}", async (int id, ParagraphService service) =>
             {
                 var paragraph = await service.GetByIdAsync(id);
                 return paragraph is not null ? Results.Ok(paragraph) : Results.NotFound();
-            }).Produces<ParagraphReadDto>().Produces(StatusCodes.Status404NotFound);
+            }).Produces<ParagraphReadDto>().Produces(StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
 
             group.MapPost("/", async (ParagraphCreateDto createDto, ParagraphService service) =>
             {

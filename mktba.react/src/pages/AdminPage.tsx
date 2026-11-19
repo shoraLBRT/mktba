@@ -6,7 +6,6 @@ import {
   cleanupDemoData,
   getAiProviderSettings,
   getArticles,
-  getParagraphs,
   resetAiSettings,
   updateAiProviderSettings,
 } from '../services/adminService';
@@ -52,7 +51,6 @@ const AdminPage: React.FC = () => {
 
   const confirmationPhrase = t.cleanupConfirmationPhrase;
   const articlesQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES], queryFn: getArticles });
-  const paragraphsQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_PARAGRAPHS], queryFn: getParagraphs });
   const aiSettingsQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_AI_SETTINGS], queryFn: getAiProviderSettings });
 
   const aiSettingsDefaults = useMemo<AiSettingsState>(
@@ -79,7 +77,6 @@ const AdminPage: React.FC = () => {
   const refreshContentQueries = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES] }),
-      queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_PARAGRAPHS] }),
       queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE] }),
     ]);
   };
@@ -164,30 +161,6 @@ const AdminPage: React.FC = () => {
   const articleCount = articles.length;
   const articlesWithContent = articles.filter((a) => a.hasContent).length;
   const emptyArticles = articleCount - articlesWithContent;
-
-  // Article to paragraph count mapping
-  const articleParagraphCount = useMemo(() => {
-    const paragraphs = paragraphsQuery.data ?? [];
-    const countByArticle = new Map<number, number>();
-    articles.forEach((article) => {
-      countByArticle.set(article.id, 0);
-    });
-    paragraphs.forEach((para) => {
-      countByArticle.set(para.articleId, (countByArticle.get(para.articleId) ?? 0) + 1);
-    });
-    return countByArticle;
-  }, [articles, paragraphsQuery.data]);
-
-  // Top articles by paragraph count
-  const topArticlesByParagraphs = useMemo(() => {
-    return articles
-      .map((article) => ({
-        article,
-        paragraphCount: articleParagraphCount.get(article.id) ?? 0,
-      }))
-      .sort((a, b) => b.paragraphCount - a.paragraphCount)
-      .slice(0, 5);
-  }, [articles, articleParagraphCount]);
   const aiStatusHint = aiSettingsQuery.isLoading
     ? t.aiConfigurationDescription
     : !aiSettingsQuery.data?.isEnabled
@@ -326,36 +299,6 @@ const AdminPage: React.FC = () => {
                   </div>
                 </Card>
               </div>
-
-              {/* Top Articles by Paragraphs */}
-              <Card className="p-6">
-                <h3 className="mb-4 text-lg font-semibold text-[var(--color-ink-strong)]">Top Articles by Paragraph Count</h3>
-                {paragraphsQuery.isLoading ? (
-                  <p className="text-sm text-[var(--color-ink-muted)]">Loading...</p>
-                ) : topArticlesByParagraphs.length === 0 ? (
-                  <p className="text-sm text-[var(--color-ink-muted)]">No articles yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {topArticlesByParagraphs.map(({ article, paragraphCount }, index) => (
-                      <div key={article.id} className="flex items-center justify-between rounded-lg bg-[var(--color-surface-muted)] p-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-forest)] text-xs font-semibold text-white">
-                            {index + 1}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-[var(--color-ink-strong)]">{article.title}</p>
-                            <p className="text-xs text-[var(--color-ink-muted)]">{article.hasContent ? 'Published' : 'Placeholder'}</p>
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <p className="text-lg font-bold text-[var(--color-brand-forest)]">{paragraphCount}</p>
-                          <p className="text-xs text-[var(--color-ink-muted)]">paragraph{paragraphCount !== 1 ? 's' : ''}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
             </div>
           ) : null}
 

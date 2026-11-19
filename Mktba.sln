@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35919.96
@@ -16,6 +16,8 @@ EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "mktba.react", "mktba.react\mktba.react.esproj", "{2208140E-2BF8-347D-8FCC-370F2498D37E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mktba.Application.Tests", "Mktba.Application.Tests\Mktba.Application.Tests.csproj", "{119C3C23-651A-43E7-A44F-6AD60B8DBE54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mktba.Api.Tests", "Mktba.Api.Tests\Mktba.Api.Tests.csproj", "{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -97,6 +99,18 @@ Global
 		{119C3C23-651A-43E7-A44F-6AD60B8DBE54}.Release|x64.Build.0 = Release|Any CPU
 		{119C3C23-651A-43E7-A44F-6AD60B8DBE54}.Release|x86.ActiveCfg = Release|Any CPU
 		{119C3C23-651A-43E7-A44F-6AD60B8DBE54}.Release|x86.Build.0 = Release|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Debug|x64.Build.0 = Debug|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Debug|x86.Build.0 = Debug|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Release|x64.ActiveCfg = Release|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Release|x64.Build.0 = Release|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Release|x86.ActiveCfg = Release|Any CPU
+		{ECB65F7C-8C6E-4CA8-9362-DDE41541132B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
