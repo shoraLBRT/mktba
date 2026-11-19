@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bot, Check, Copy, Database, FileText, HelpCircle, KeyRound, Sparkles, Trash2, X } from 'lucide-react';
+import { Bot, Check, Copy, Database, FileText, HelpCircle, KeyRound, MonitorSmartphone, Sparkles, Trash2, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   checkAiConnection,
@@ -13,6 +13,7 @@ import {
 import { generateInviteToken } from '../services/authService';
 import type { RolePolicy } from '../auth/roleAccess';
 import { useCurrentUser } from '../auth/useCurrentUser';
+import { SessionsPanel } from '../components/SessionsPanel';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { invalidateArticleQueries } from '../app/queryClient';
 import { formatMessage } from '../localization';
@@ -26,7 +27,7 @@ import { Input } from '../shared/ui/Input';
 import { Switch } from '../shared/ui/Switch';
 import { Textarea } from '../shared/ui/Textarea';
 
-const ADMIN_SECTIONS = ['articles', 'aiProvider', 'adminAccess', 'cleanup'] as const;
+const ADMIN_SECTIONS = ['articles', 'aiProvider', 'adminAccess', 'sessions', 'cleanup'] as const;
 type AdminSection = (typeof ADMIN_SECTIONS)[number];
 
 /** The policy a section needs; an author sees the articles but not the AI settings or invitations. */
@@ -34,6 +35,7 @@ const SECTION_POLICY: Record<AdminSection, RolePolicy> = {
   articles: 'canEditArticles',
   aiProvider: 'canConfigure',
   adminAccess: 'canManageUsers',
+  sessions: 'authenticated',
   cleanup: 'canConfigure',
 };
 
@@ -211,6 +213,12 @@ const AdminPage: React.FC = () => {
       label: t.inviteTokenTitle,
       icon: <KeyRound size={18} />,
       description: 'Admin invitations',
+    },
+    {
+      id: 'sessions',
+      label: t.sessionsTab,
+      icon: <MonitorSmartphone size={18} />,
+      description: t.sessionsTabDescription,
     },
     {
       id: 'cleanup',
@@ -582,6 +590,13 @@ const AdminPage: React.FC = () => {
                 ) : null}
               </Card>
             </div>
+          ) : null}
+
+          {activeSection === 'sessions' ? (
+            <SessionsPanel
+              onEnded={(message) => showNotice('success', message)}
+              onError={(message) => showNotice('error', message)}
+            />
           ) : null}
 
           {/* Cleanup Section */}

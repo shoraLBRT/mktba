@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { adminLogin, adminRegister, getAuthStatus } from '../services/authService';
-import { setStoredAdminToken } from '../services/authTokenStorage';
 import { Button } from '../shared/ui/Button';
 import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
@@ -34,8 +33,7 @@ const AdminLoginPage: React.FC = () => {
 
   const loginMutation = useMutation({
     mutationFn: adminLogin,
-    onSuccess: (result) => {
-      setStoredAdminToken(result.accessToken);
+    onSuccess: () => {
       navigate('/admin');
     },
     onError: (error) => setErrorMessage((error as Error).message),
@@ -43,8 +41,7 @@ const AdminLoginPage: React.FC = () => {
 
   const registerMutation = useMutation({
     mutationFn: adminRegister,
-    onSuccess: (result) => {
-      setStoredAdminToken(result.accessToken);
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.AUTH_STATUS] });
       navigate('/admin');
     },

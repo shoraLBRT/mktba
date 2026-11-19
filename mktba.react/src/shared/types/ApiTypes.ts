@@ -43,6 +43,7 @@ export type AdminLoginRequestDto = Schemas['AdminLoginRequestDto'];
 export type AdminAuthResponseDto = Schemas['AdminAuthResponseDto'];
 export type AdminInviteTokenCreateResponseDto = Schemas['AdminInviteTokenCreateResponseDto'];
 export type CurrentUserDto = Schemas['CurrentUserDto'];
+export type SessionDto = Schemas['SessionDto'];
 export type UserRole = Schemas['UserRole'];
 
 export type NavigationTreeDto = NavigationArticleDto[];
