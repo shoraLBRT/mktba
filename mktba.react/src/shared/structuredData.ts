@@ -4,8 +4,9 @@
  *
  * Authorship: the public API exposes no author identity yet, so an article's author and publisher
  * are the site's `Organization`; `Person` nodes come with public author profiles (P-01, #89).
- * `WebSite` has no `SearchAction` until the site has a URL-addressable search (R-10, #46).
+ * `WebSite` names the site search (`SearchAction`, R-10 #46): the results page takes the query in its URL.
  */
+import { SEARCH_PATH, SEARCH_QUERY_PARAM } from './search';
 import { DEFAULT_SOCIAL_IMAGE_PATH, siteUrlFor } from './siteMeta';
 import { LOGO_ICON_PATH } from './siteIcons';
 
@@ -23,6 +24,13 @@ export type OrganizationNode = NodeRef & {
   logo: ImageObject;
 };
 
+/** How a search engine can send a query to the site's own search. */
+type SearchAction = {
+  '@type': 'SearchAction';
+  target: { '@type': 'EntryPoint'; urlTemplate: string };
+  'query-input': string;
+};
+
 export type WebSiteNode = NodeRef & {
   '@type': 'WebSite';
   name: string;
@@ -30,6 +38,7 @@ export type WebSiteNode = NodeRef & {
   url: string;
   inLanguage: string;
   publisher: NodeRef;
+  potentialAction: SearchAction;
 };
 
 export type ArticleNode = NodeRef & {
@@ -68,6 +77,9 @@ export type SiteFacts = {
   description?: string;
 };
 
+/** The placeholder a search engine replaces with the query in `SearchAction`'s URL template. */
+const SEARCH_TERM = 'search_term_string';
+
 const siteRoot = (siteUrl: string) => siteUrlFor('/', siteUrl);
 const organizationId = (siteUrl: string) => `${siteRoot(siteUrl)}#organization`;
 const webSiteId = (siteUrl: string) => `${siteRoot(siteUrl)}#website`;
@@ -88,6 +100,14 @@ export const webSiteNode = ({ siteUrl, name, description }: SiteFacts): WebSiteN
   url: siteRoot(siteUrl),
   inLanguage: SITE_LANGUAGE,
   publisher: { '@id': organizationId(siteUrl) },
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${siteUrlFor(SEARCH_PATH, siteUrl)}?${SEARCH_QUERY_PARAM}={${SEARCH_TERM}}`,
+    },
+    'query-input': `required name=${SEARCH_TERM}`,
+  },
 });
 
 export type ArticleFacts = {

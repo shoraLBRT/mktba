@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ChevronRight,
   Home,
@@ -6,6 +6,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  Search,
 } from 'lucide-react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
@@ -16,6 +17,8 @@ import { useLocale } from '../localization/hooks';
 import { logOut, useSession } from '../services/session';
 import { Button } from '../shared/ui/Button';
 import { MazhabSelector } from '../components/mazhab/MazhabSelector';
+import { SearchDialog } from '../components/search/SearchDialog';
+import { useSearchShortcut } from '../components/search/searchShortcut';
 
 /** The public site: header, the article tree with search, and the page. Admin pages use `AdminLayout`. */
 const MainLayout: React.FC = () => {
@@ -29,6 +32,11 @@ const MainLayout: React.FC = () => {
   const [mobileSidebarState, setMobileSidebarState] = useState({ open: false, path: currentPath });
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const isMobileSidebarOpen = mobileSidebarState.open && mobileSidebarState.path === currentPath;
+  // The dialog belongs to the page it was opened on: any navigation (the results page too) closes it.
+  const [searchDialogKey, setSearchDialogKey] = useState<string | null>(null);
+  const isSearchDialogOpen = searchDialogKey === location.key;
+  const openSearchDialog = useCallback(() => setSearchDialogKey(location.key), [location.key]);
+  useSearchShortcut(openSearchDialog);
 
   const handleExpandSidebarSearch = () => {
     if (!collapsed) {
@@ -81,6 +89,22 @@ const MainLayout: React.FC = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-1.5 px-3 sm:px-4">
+            <button
+              type="button"
+              onClick={openSearchDialog}
+              aria-haspopup="dialog"
+              aria-keyshortcuts="Control+K Meta+K"
+              aria-label={locale.search.dialog.open}
+              title={locale.search.dialog.open}
+              className="flex h-9 items-center gap-2 rounded-lg border border-[var(--color-border-soft)] px-2.5 text-xs text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)]"
+            >
+              <Search size={15} aria-hidden="true" />
+              <span className="hidden md:inline">{locale.search.dialog.open}</span>
+              <kbd className="hidden rounded border border-[var(--color-border-soft)] px-1 font-sans text-[10px] md:inline">
+                {locale.search.dialog.shortcut}
+              </kbd>
+            </button>
+
             <MazhabSelector />
 
             {isAdmin ? (
@@ -121,6 +145,8 @@ const MainLayout: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {isSearchDialogOpen && <SearchDialog onClose={() => setSearchDialogKey(null)} />}
 
       <div className="flex min-h-[calc(100vh-var(--layout-header-height))]">
         <Sidebar

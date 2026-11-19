@@ -1,6 +1,14 @@
 import { API_BASE_URL } from '../config';
 import { ApiError } from '../shared/api-client/apiError';
-import type { ArticleContentDto, NavigationArticleDto, RecentArticlesDto, SchoolDto, SitemapArticleDto } from '../shared/types/ApiTypes';
+import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../shared/search';
+import type {
+  ArticleContentDto,
+  NavigationArticleDto,
+  RecentArticlesDto,
+  SchoolDto,
+  SearchResultsDto,
+  SitemapArticleDto,
+} from '../shared/types/ApiTypes';
 
 // Node's `process`; the app's TypeScript config has browser types only.
 declare const process: { env: Record<string, string | undefined> };
@@ -57,6 +65,10 @@ export const serverApi = {
     getJson<ArticleContentDto>(`/articles/by-slug/${encodeURIComponent(slug)}/content`),
   getSitemapArticles: () => getJson<SitemapArticleDto[]>('/articles/sitemap'),
   getRecentArticles: () => getJson<RecentArticlesDto>('/articles/recent'),
+  searchArticles: ({ query, page }: SearchRequest) =>
+    getJson<SearchResultsDto>(
+      `/search?${new URLSearchParams({ [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: String(page) }).toString()}`,
+    ),
   getSystemSchools: () => getJson<SchoolDto[]>('/schools/system'),
   getSchoolsByArticleId: (articleId: number) => getJson<SchoolDto[]>(`/schools/article/${articleId}`),
 };

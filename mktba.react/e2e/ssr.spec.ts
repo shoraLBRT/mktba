@@ -286,11 +286,14 @@ test('the server sends an article with Article, BreadcrumbList, WebSite and Orga
   expect(trail.at(-1)).toMatchObject({ position: trail.length, name: 'Салат', item: article.url });
 });
 
-test('the server sends the home page with Organization and WebSite JSON-LD and no search action (O-05)', async ({ request }) => {
+test('the server sends the home page with Organization and WebSite JSON-LD naming the site search (O-05, R-10)', async ({ request }) => {
   const nodes = jsonLdNodes(await (await request.get('/')).text());
 
   expect(nodes.map((node) => node['@type'])).toEqual(['Organization', 'WebSite']);
-  expect(nodes[1]).not.toHaveProperty('potentialAction');
+  const action = nodes[1].potentialAction as { '@type': string; target: { urlTemplate: string } };
+  expect(action['@type']).toBe('SearchAction');
+  expect(new URL(action.target.urlTemplate.replace('{search_term_string}', 'x')).pathname).toBe('/search');
+  expect(action.target.urlTemplate.endsWith('/search?q={search_term_string}')).toBe(true);
 });
 
 /** The inner HTML of one block of the article footer in raw HTML (R-08). */

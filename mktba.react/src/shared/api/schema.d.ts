@@ -2317,6 +2317,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Full-text search over articles.
+         * @description Searches the title, summary, tags and opinion texts with Russian morphology; an article matches when it holds every word of q. Only articles a reader can open are searched: Published and not under a non-Published parent. The same results for every caller, best match first. Matched words come as separate text runs (match: true), never as markup. q is trimmed and must be 2 to 200 characters (400 search_query_too_short / search_query_too_long); locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1 and is kept within 1 to 100; pageSize is 10 by default, kept within 1 to 50.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    locale?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SearchResultsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -2850,6 +2903,30 @@ export interface components {
             isSystem: boolean;
             /** Format: int32 */
             articleScopeId?: number | null;
+        };
+        SearchResultDto: {
+            /** Format: int32 */
+            id: number;
+            slug: string;
+            title: components["schemas"]["SearchTextSegmentDto"][];
+            summary?: components["schemas"]["SearchTextSegmentDto"][] | null;
+            snippet?: components["schemas"]["SearchTextSegmentDto"][] | null;
+            /** Format: int32 */
+            paragraphId?: number | null;
+        };
+        SearchResultsDto: {
+            query: string;
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            items: components["schemas"]["SearchResultDto"][];
+        };
+        SearchTextSegmentDto: {
+            text: string;
+            match: boolean;
         };
         SessionDto: {
             /** Format: uuid */
