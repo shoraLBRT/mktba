@@ -1,17 +1,41 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, ChevronUp, Info, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Info, Link2, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getSystemSchools } from '../../services/schoolService';
-import { useMazhab } from '../../context/mazhabContext';
+import { MAZHAB_LINK_PARAM, useMazhab } from '../../context/mazhabContext';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { useLocale } from '../../localization/hooks';
+import { useHydrated } from '../../shared/useHydrated';
 import { getPaletteForSchool } from './schoolPalette';
 
+export const MAZHAB_HINT_STORAGE_KEY = 'mktba.mazhabHintSeen';
+
+const PANEL_POSITION = 'fixed right-3 top-[calc(var(--layout-header-height)+0.5rem)] z-50';
+
+const readHintSeen = (): boolean => {
+  try {
+    return localStorage.getItem(MAZHAB_HINT_STORAGE_KEY) !== null;
+  } catch {
+    return true;
+  }
+};
+
+type CopyState = 'idle' | 'copied' | 'failed';
+
+/**
+ * The mazhab picker of the site header: a button with the current choice and a panel under it.
+ * A reader who has not chosen a mazhab and has not seen the hint yet gets a short note under the
+ * button; it does not block the page and goes away for good when closed or when the picker is
+ * opened. With a mazhab chosen, the panel offers a link to the current page that opens with it.
+ */
 export const MazhabSelector = () => {
   const locale = useLocale();
   const t = locale.mazhabSelector;
+  const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>('idle');
   const { selectedSchoolId, setSelectedSchoolId } = useMazhab();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -48,18 +72,46 @@ export const MazhabSelector = () => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [aboutOpen]);
 
+  const hintVisible = hydrated && !open && !hintDismissed && selectedSchoolId === null && !readHintSeen();
+
+  const dismissHint = () => {
+    setHintDismissed(true);
+    try {
+      localStorage.setItem(MAZHAB_HINT_STORAGE_KEY, '1');
+    } catch {
+      // Storage is unavailable: the hint stays closed for this visit only.
+    }
+  };
+
+  const toggleOpen = () => {
+    dismissHint();
+    setCopyState('idle');
+    setOpen((prev) => !prev);
+  };
+
   const handleSelect = (id: number | null) => {
     setSelectedSchoolId(id);
     setOpen(false);
+  };
+
+  const handleCopyLink = async (slug: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set(MAZHAB_LINK_PARAM, slug);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
   };
 
   const schoolDescriptions = t.descriptions as Record<string, string | undefined>;
 
   return (
     <>
-      <div ref={ref} className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
+      <div ref={ref} className="flex items-center">
         {open && (
-          <div className="mb-1 w-[min(17.5rem,calc(100vw-2.5rem))] rounded-2xl border border-[var(--color-border-soft)] bg-white p-3 shadow-lg">
+          <div className={`${PANEL_POSITION} w-[min(17.5rem,calc(100vw-1.5rem))] rounded-2xl border border-[var(--color-border-soft)] bg-white p-3 shadow-lg`}>
             <p className="mb-2 text-[11px] font-semibold text-[var(--color-ink-muted)]">{t.title}</p>
 
             <div className="grid grid-cols-2 gap-2">
@@ -120,6 +172,22 @@ export const MazhabSelector = () => {
               )}
             </button>
 
+            {selectedSchool && (
+              <div className="mt-1 border-t border-[var(--color-border-soft)] pt-1">
+                <button
+                  type="button"
+                  onClick={() => void handleCopyLink(selectedSchool.slug)}
+                  className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11.5px] text-[var(--color-ink-default)] transition-colors hover:bg-[var(--color-surface-muted)]"
+                >
+                  <Link2 size={12} className="shrink-0 text-[var(--color-ink-muted)]" />
+                  {t.copyLink}
+                </button>
+                <p role="status" className="m-0 px-2 text-[11px] leading-4 text-[var(--color-ink-muted)]">
+                  {copyState === 'copied' ? t.linkCopied : copyState === 'failed' ? t.linkCopyFailed : null}
+                </p>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => setAboutOpen(true)}
@@ -131,11 +199,28 @@ export const MazhabSelector = () => {
           </div>
         )}
 
+        {hintVisible && (
+          <div
+            role="note"
+            className={`${PANEL_POSITION} flex w-[min(16rem,calc(100vw-1.5rem))] items-start gap-2 rounded-xl border border-[var(--color-border-soft)] bg-white p-2.5 shadow-md`}
+          >
+            <p className="m-0 flex-1 text-[11.5px] leading-4 text-[var(--color-ink-default)]">{t.hint}</p>
+            <button
+              type="button"
+              onClick={dismissHint}
+              aria-label={t.hintClose}
+              className="-mr-1 -mt-1 shrink-0 rounded-lg p-1 text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-muted)]"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={toggleOpen}
           aria-expanded={open}
-          className="flex max-w-[min(15rem,calc(100vw-2.5rem))] items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-white px-3.5 py-2 text-[12px] font-semibold text-[var(--color-ink-default)] shadow-md transition-colors hover:bg-[var(--color-surface-muted)]"
+          className="flex min-h-8 max-w-[11.5rem] items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--color-ink-default)] transition-colors hover:bg-[var(--color-surface-muted)] sm:max-w-[15rem]"
         >
           <span
             className="h-2 w-2 shrink-0 rounded-full"
@@ -144,9 +229,9 @@ export const MazhabSelector = () => {
           />
           <span className="truncate">{selectedSchool ? selectedSchool.name : t.placeholder}</span>
           {open ? (
-            <ChevronDown size={13} className="shrink-0 text-[var(--color-ink-muted)]" />
-          ) : (
             <ChevronUp size={13} className="shrink-0 text-[var(--color-ink-muted)]" />
+          ) : (
+            <ChevronDown size={13} className="shrink-0 text-[var(--color-ink-muted)]" />
           )}
         </button>
       </div>

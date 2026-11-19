@@ -85,7 +85,7 @@ mktba.react           → React 19 + TypeScript, React Router v7 framework mode 
 - CORS allows any loopback / `localhost` origin (Vite dev port `:5173`)
 - Access token (15 min) kept in memory only (`src/services/session.ts`); the refresh token is an `httpOnly` cookie (`mktba_refresh`, `Path=/auth`) rotated by `POST /auth/refresh`, which the axios interceptor calls once on a 401 and the app calls on load. Access tokens carry the session id (`mktba_sid`) and `JwtProblemEvents.TokenValidated` rejects them once the session is revoked (README «Сессии»). Protected routes under `/admin/*`
 - HTTP via Axios; server state via React Query
-- Global mazhab selection stored in `localStorage['mktba.mazhab']`, exposed through `MazhabContext`
+- Global mazhab selection stored in `localStorage['mktba.mazhab']`, exposed through `MazhabContext`; the picker (`components/mazhab/MazhabSelector.tsx`) sits in the public header and shows a one-time hint (`localStorage['mktba.mazhabHintSeen']`). A shared link `?mazhab=<system school slug>` (R-03, #39) wins over the saved choice while the parameter is in the URL and never overwrites it; choosing by hand saves the choice and drops the parameter. The canonical schools are prefetched by the public layout's loader (`routes/public-layout.tsx`), not by pages: a query a component above a page's `HydrationBoundary` already observes gets that boundary's data only in an effect, too late for the server HTML — for the same reason `MazhabProvider` (above the layout) resolves the link slug through a query key of its own
 
 **Database:** PostgreSQL 16. Connection string `ConnectionStrings:DefaultConnection`; Development uses `appsettings.Development.json`, matching `docker-compose.yml` (service `postgres`).
 

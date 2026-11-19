@@ -161,6 +161,8 @@ test('a link with a mazhab parameter keeps the canonical on the clean article UR
   const html = await (await request.get('/article/salat?mazhab=shafii')).text();
 
   expect(html).toMatch(/<link rel="canonical" href="[^"?]*\/article\/salat"/);
+  // The schools still reach the server render: tabs are named after them, not left as common opinions.
+  expect(html).toMatch(/role="tab"[^>]*>Шафииты</);
 });
 
 test('a reader sees only one opinion of a block and switches it with the arrow keys', async ({ page }) => {
