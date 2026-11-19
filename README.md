@@ -54,6 +54,14 @@ npm run dev
 
 Dev-сервер Vite слушает `:5173`, API — `:5172`.
 
+Тесты фронтенда — Vitest и Testing Library (jsdom), файлы `src/**/*.test.{ts,tsx}`:
+
+```bash
+cd mktba.react
+npm test             # однократный прогон, как в CI
+npm run test:watch   # режим наблюдения
+```
+
 ### Контракт FE↔BE
 
 Типы DTO во фронтенде генерируются из OpenAPI-документа бэкенда, руками их не пишут.
