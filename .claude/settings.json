@@ -3,11 +3,11 @@
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
-        "globPattern": "wikiweaver.react/src/**/*.{ts,tsx}",
+        "globPattern": "mktba.react/src/**/*.{ts,tsx}",
         "hooks": [
           {
             "type": "command",
-            "command": "cd wikiweaver.react && npm run lint -- --fix",
+            "command": "cd mktba.react && npm run lint -- --fix",
             "timeout": 30,
             "statusMessage": "Linting..."
           }

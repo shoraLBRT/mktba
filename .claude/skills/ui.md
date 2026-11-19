@@ -1,8 +1,8 @@
 ---
-name: WikiWeaver UI Guidelines
-description: Design system and development workflow for WikiWeaver React components. Auto-apply when working in wikiweaver.react/. Use Tailwind v4, CSS variables, project design tokens, and Playwright for visual verification of non-trivial changes.
+name: mktba UI Guidelines
+description: Design system and development workflow for mktba React components. Auto-apply when working in mktba.react/. Use Tailwind v4, CSS variables, project design tokens, and Playwright for visual verification of non-trivial changes.
 triggers:
-  - wikiweaver.react/
+  - mktba.react/
   - React component
   - frontend
   - AdminPage
@@ -10,13 +10,13 @@ triggers:
   - UI changes
 ---
 
-# WikiWeaver UI Guidelines
+# mktba UI Guidelines
 
-This skill constrains my design output to match WikiWeaver's established design system. Use this skill when building React components, pages, or interface updates.
+This skill constrains my design output to match mktba's established design system. Use this skill when building React components, pages, or interface updates.
 
 ## Design Direction
 
-WikiWeaver has a warm, scholarly aesthetic: a knowledge wiki with parchment-like backgrounds and forest-green brand accents. Design should feel intentional, readable, and hierarchical — appropriate for a knowledge platform.
+mktba has a warm, scholarly aesthetic: a knowledge wiki with parchment-like backgrounds and forest-green brand accents. Design should feel intentional, readable, and hierarchical — appropriate for a knowledge platform.
 
 ## Color Palette (Use CSS Variables ALWAYS)
 
@@ -53,7 +53,7 @@ Never hardcode hex colors. Use these variables from `theme.css`:
 
 ## Typography
 
-WikiWeaver loads these fonts via `fonts.css`:
+mktba loads these fonts via `fonts.css`:
 
 - **`--font-sans: 'Inter', sans-serif`** — UI, body text, controls
 - **`--font-serif: 'Amiri', serif`** — article content, long-form reading
@@ -165,7 +165,7 @@ Commit to this aesthetic and execute with precision.
 
 ## Development Workflow
 
-**This skill is active during all frontend work in `wikiweaver.react/`.** Apply it automatically — no need for the user to invoke it explicitly.
+**This skill is active during all frontend work in `mktba.react/`.** Apply it automatically — no need for the user to invoke it explicitly.
 
 ### When to take Playwright screenshots
 
