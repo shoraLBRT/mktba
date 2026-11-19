@@ -29,3 +29,25 @@ export const collectValidParents = (
   walk(tree ?? [], 0);
   return options;
 };
+
+/**
+ * The chain of articles from a root of the tree down to {@link articleId}, the article itself
+ * last; empty when the tree does not hold it. A stub without content is found like any other.
+ */
+export const findArticlePath = (
+  tree: NavigationArticleDto[] | undefined,
+  articleId: number,
+): NavigationArticleDto[] => {
+  for (const node of tree ?? []) {
+    if (node.id === articleId) {
+      return [node];
+    }
+
+    const nested = findArticlePath(node.children ?? [], articleId);
+    if (nested.length > 0) {
+      return [node, ...nested];
+    }
+  }
+
+  return [];
+};

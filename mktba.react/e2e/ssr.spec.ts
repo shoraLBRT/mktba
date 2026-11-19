@@ -237,6 +237,26 @@ test('the server marks a published stub without content noindex and leaves it ou
   expect(await (await request.get('/sitemap.xml')).text()).not.toContain(`/article/${stub.slug}<`);
 });
 
+/** The steps of the article's breadcrumb trail in raw HTML, in order (R-06). */
+const breadcrumbSteps = (html: string): string[] => {
+  const trail = /<nav[^>]*data-testid="article-breadcrumbs"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? '';
+  return [...trail.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((step) => step[1].replace(/<[^>]+>/g, '').trim());
+};
+
+test('the server sends the article header: breadcrumbs for a stub too, and the reading time of a text (R-06)', async ({ request }) => {
+  const title = `Заглушка шапки ${Date.now()}`;
+  const stub = await publishArticle(request, title, null);
+
+  const stubHtml = await (await request.get(`/article/${stub.slug}`)).text();
+  const articleHtml = await (await request.get('/article/salat')).text();
+
+  expect(breadcrumbSteps(stubHtml)).toEqual(['Главная', title]);
+  expect(stubHtml).not.toContain('data-testid="article-reading-time"');
+  expect(breadcrumbSteps(articleHtml).at(0)).toBe('Главная');
+  expect(breadcrumbSteps(articleHtml).at(-1)).toBe('Салат');
+  expect(articleHtml).toMatch(/data-testid="article-reading-time"[^>]*>.*?\d+ мин чтения/);
+});
+
 test('the server leaves the admin to the browser', async ({ request }) => {
   const response = await request.get('/admin');
 

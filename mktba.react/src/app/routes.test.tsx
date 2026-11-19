@@ -262,6 +262,36 @@ describe('Page semantics', () => {
     ]);
     expect(document.body.querySelector('article img')?.getAttribute('alt')).toBe('Схема');
   });
+
+  it('given a stub article under a stub section, when rendered, then the header still shows its breadcrumbs and no reading time', async () => {
+    vi.mocked(getArticleContentBySlug).mockResolvedValue(article('namaz'));
+    vi.mocked(getNavigationTree).mockResolvedValue([
+      {
+        id: 1,
+        title: 'Столпы ислама',
+        slug: 'stolpy',
+        hasContent: false,
+        children: [{ id: 7, title: 'Намаз', slug: 'namaz', hasContent: false, children: [] }],
+      },
+    ] as unknown as Awaited<ReturnType<typeof getNavigationTree>>);
+
+    renderAt('/article/namaz');
+
+    const trail = await screen.findByRole('navigation', { name: 'Путь к статье' });
+    await waitFor(() =>
+      expect([...trail.querySelectorAll('li')].map((step) => step.textContent)).toEqual(['Главная', 'Столпы ислама', 'Намаз']));
+    expect(trail.querySelector('li[aria-current="page"]')?.textContent).toBe('Намаз');
+    expect([...trail.querySelectorAll('a')].map((link) => link.getAttribute('href'))).toEqual(['/']);
+    expect(screen.queryByTestId('article-reading-time')).toBeNull();
+  });
+
+  it('given an article with text, when rendered, then the header shows the reading time by the default opinions', async () => {
+    vi.mocked(getArticleContentBySlug).mockResolvedValue(richArticle);
+
+    renderAt('/article/namaz');
+
+    expect((await screen.findByTestId('article-reading-time')).textContent).toContain('1 мин чтения');
+  });
 });
 
 const sectionLinks = () =>

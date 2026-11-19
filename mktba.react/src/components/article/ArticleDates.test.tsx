@@ -4,10 +4,10 @@ import { LocalizationProvider } from '../../localization/provider';
 import { formatRussianDate } from '../../shared/lib/formatDate';
 import { ArticleDates } from './ArticleDates';
 
-const renderDates = (publishedAt?: string | null, updatedAt?: string | null) =>
+const renderDates = (publishedAt?: string | null, updatedAt?: string | null, readingMinutes?: number | null) =>
   render(
     <LocalizationProvider>
-      <ArticleDates publishedAt={publishedAt} updatedAt={updatedAt} />
+      <ArticleDates publishedAt={publishedAt} updatedAt={updatedAt} readingMinutes={readingMinutes} />
     </LocalizationProvider>,
   );
 
@@ -48,5 +48,27 @@ describe('ArticleDates', () => {
     renderDates(null, null);
 
     expect(screen.queryByTestId('article-dates')).toBeNull();
+  });
+
+  it('given a reading time, when rendered, then it follows the dates with a spoken label', () => {
+    renderDates('2026-11-01T09:00:00Z', '2026-11-19T10:00:00Z', 7);
+
+    const line = screen.getByTestId('article-dates');
+    expect(line.lastElementChild).toBe(screen.getByTestId('article-reading-time'));
+    expect(line.lastElementChild?.querySelector('[aria-hidden="true"]')?.textContent).toBe('7 мин чтения');
+    expect(line.lastElementChild?.querySelector('.sr-only')?.textContent).toBe('Время чтения: около 7 мин');
+  });
+
+  it('given a reading time and no dates, when rendered, then shows the reading time alone', () => {
+    renderDates(null, null, 1);
+
+    expect(screen.getByTestId('article-dates').children).toHaveLength(1);
+    expect(screen.getByTestId('article-reading-time').textContent).toContain('1 мин чтения');
+  });
+
+  it('given dates and nothing to read, when rendered, then shows no reading time', () => {
+    renderDates('2026-11-01T09:00:00Z', null, null);
+
+    expect(screen.queryByTestId('article-reading-time')).toBeNull();
   });
 });
