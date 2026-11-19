@@ -73,6 +73,7 @@ public class ArticleStatusTests : IDisposable
         var result = await _articles.ChangeStatusAsync(article.Id, ArticleStatus.Published);
 
         result.Status.Should().Be(ArticleStatus.Published);
+        result.AllowedTransitions.Should().Equal(ArticleStatus.Archived);
         (await _context.Articles.FindAsync(article.Id))!.Status.Should().Be(ArticleStatus.Published);
     }
 

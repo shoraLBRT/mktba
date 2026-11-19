@@ -272,7 +272,7 @@
           "ArticleContent"
         ],
         "summary": "Article content by slug; an old slug redirects (302) to the current one.",
-        "description": "A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop.",
+        "description": "A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop. Anonymous readers get 404 for an article that is not Published.",
         "parameters": [
           {
             "name": "slug",
@@ -510,6 +510,68 @@
         }
       }
     },
+    "/articles/{id}/status": {
+      "post": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "Moves an article to another status.",
+        "description": "Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, Archived → Draft. Any other move answers 400 article_status_transition_invalid.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleStatusChangeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleReadDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/status": {
       "get": {
         "tags": [
@@ -661,6 +723,7 @@
         "tags": [
           "Navigation"
         ],
+        "description": "Anonymous readers get only Published articles; a Published article under a non-Published parent is hidden with its subtree. Admins get every article with its status.",
         "responses": {
           "200": {
             "description": "OK",
@@ -1437,9 +1500,11 @@
       },
       "ArticleReadDto": {
         "required": [
+          "allowedTransitions",
           "hasContent",
           "id",
           "slug",
+          "status",
           "title"
         ],
         "type": "object",
@@ -1458,6 +1523,15 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus"
+          },
+          "allowedTransitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleStatus"
+            }
           },
           "hasContent": {
             "type": "boolean"
@@ -1514,6 +1588,27 @@
         },
         "additionalProperties": false
       },
+      "ArticleStatus": {
+        "enum": [
+          "Draft",
+          "InReview",
+          "Published",
+          "Archived"
+        ],
+        "type": "string"
+      },
+      "ArticleStatusChangeDto": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus"
+          }
+        },
+        "additionalProperties": false
+      },
       "ArticleUpdateDto": {
         "required": [
           "title"
@@ -1536,6 +1631,7 @@
           "hasContent",
           "id",
           "slug",
+          "status",
           "title"
         ],
         "type": "object",
@@ -1554,6 +1650,9 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus"
           },
           "hasContent": {
             "type": "boolean"

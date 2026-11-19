@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocale } from '../localization/hooks';
+import { ArticleStatusBadge } from './article/ArticleStatusBadge';
 import { articleHref } from '../shared/slug';
 import type { NavigationArticleDto } from '../shared/types/ApiTypes';
 
@@ -33,8 +34,8 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
   const hasChildren = (article.children?.length ?? 0) > 0;
   const [expanded, setExpanded] = useState(true);
   const isActive = article.id === activeArticleId;
-  // An article without content is a stub: unreachable in the public tree, but the
-  // admin must be able to open its editor to fill it in (see docs/backlog.md, A1).
+  // An article without content is a stub (a Published section heading, say): not a link for
+  // readers, but the admin must be able to open its editor to fill it in (see docs/backlog.md, A1).
   const isClickable = article.hasContent || showArticleEditActions;
 
   return (
@@ -76,6 +77,8 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
         ) : (
           <span className="min-w-0 flex-1 truncate text-[12px] leading-5 text-[var(--color-ink-muted)]">{article.title}</span>
         )}
+
+        {showArticleEditActions && article.status !== 'Published' ? <ArticleStatusBadge status={article.status} compact /> : null}
 
         {onAddChild ? (
           <button

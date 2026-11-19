@@ -11,6 +11,8 @@ namespace Mktba.Application.DTOs
         public int? ParentArticleId { get; set; }
         /// <summary>Publication status; anonymous readers only ever see Published.</summary>
         public ArticleStatus Status { get; set; }
+        /// <summary>Statuses the article may move to next, from <c>ArticleStatusTransitions</c>.</summary>
+        public List<ArticleStatus> AllowedTransitions { get; set; } = new();
         public bool HasContent { get; set; }
     }
 
