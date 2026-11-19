@@ -41,6 +41,48 @@ test('choosing a mazhab switches the shown opinions and is remembered', async ({
   ).toHaveAttribute('aria-selected', 'true');
 });
 
+test('the mazhab picker sits in the header and explains itself once on the first visit (R-03)', async ({ page }) => {
+  await page.goto('/article/salat');
+  const hint = page.getByRole('banner').getByRole('note');
+  await expect(hint).toContainText('Мазхаб — школа исламского права');
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Мазхаб не выбран' })).toBeVisible();
+
+  await hint.getByRole('button', { name: 'Закрыть подсказку' }).click();
+  await expect(hint).toBeHidden();
+
+  await page.reload();
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Мазхаб не выбран' })).toBeVisible();
+  await expect(page.getByRole('note')).toHaveCount(0);
+});
+
+test('a link with a mazhab opens the article with it and leaves the reader their own choice (R-03)', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/article/salat');
+  await page.getByRole('button', { name: 'Мазхаб не выбран' }).click();
+  await page.getByRole('button', { name: /Шафиитский мазхаб/ }).click();
+  await page.getByRole('button', { name: 'Шафиитский мазхаб' }).click();
+  await page.getByRole('button', { name: 'Скопировать ссылку с этим мазхабом' }).click();
+  await expect(page.getByText('Ссылка скопирована')).toBeVisible();
+  const link = await page.evaluate<string>('navigator.clipboard.readText()');
+  expect(link).toMatch(/\/article\/salat\?mazhab=shafii$/);
+
+  // The recipient has a mazhab of their own: the link wins on this page only.
+  await page.getByRole('button', { name: /Ханафитский мазхаб/ }).click();
+  const saved = await page.evaluate(() => localStorage.getItem('mktba.mazhab'));
+  await page.goto(link);
+
+  const firstSlot = page.getByRole('tablist', { name: 'Мазхабы:' }).first();
+  await expect(firstSlot.getByRole('tab', { name: /^Шафииты.*ваш мазхаб$/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Шафиитский мазхаб' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('mktba.mazhab'))).toBe(saved);
+
+  // Choosing by hand saves the choice and drops the parameter.
+  await page.getByRole('button', { name: 'Шафиитский мазхаб' }).click();
+  await page.getByRole('button', { name: /Маликитский мазхаб/ }).click();
+  await expect(page).toHaveURL(/\/article\/salat$/);
+  await expect(firstSlot.getByRole('tab', { name: /^Маликиты.*ваш мазхаб$/ })).toHaveAttribute('aria-selected', 'true');
+});
+
 test('a reader whose mazhab has no opinion of its own sees the common one with a note (R-01)', async ({ page, request }) => {
   const schools = await (await request.get(`${API_URL}/schools/system`)).json() as { id: number; slug: string }[];
   const schoolId = (slug: string) => schools.find((school) => school.slug === slug)!.id;

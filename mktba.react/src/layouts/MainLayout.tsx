@@ -81,6 +81,8 @@ const MainLayout: React.FC = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-1.5 px-3 sm:px-4">
+            <MazhabSelector />
+
             {isAdmin ? (
               <Button
                 variant={isCreateRoute ? 'primary' : 'secondary'}
@@ -134,7 +136,6 @@ const MainLayout: React.FC = () => {
           </ErrorBoundary>
         </main>
       </div>
-      <MazhabSelector />
     </div>
   );
 };

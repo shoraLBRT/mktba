@@ -52,16 +52,11 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
   const queryClient = createServerQueryClient();
   queryClient.setQueryData(articleContentQueryKey(requestedSlug), content);
-  await Promise.all([
-    queryClient.prefetchQuery({
-      queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
-      queryFn: serverApi.getSystemSchools,
-    }),
-    queryClient.prefetchQuery({
-      queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, content.id],
-      queryFn: () => serverApi.getSchoolsByArticleId(content.id),
-    }),
-  ]);
+  // The canonical schools come from the public layout's loader.
+  await queryClient.prefetchQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, content.id],
+    queryFn: () => serverApi.getSchoolsByArticleId(content.id),
+  });
 
   return data<ArticleRouteData>({ missing: null, dehydratedState: dehydrate(queryClient) });
 }
