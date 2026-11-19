@@ -1160,6 +1160,7 @@ export interface components {
             model: string;
             isEnabled: boolean;
             hasApiKey: boolean;
+            isConfigured: boolean;
             markdownStylingSystemPrompt?: string | null;
         };
         AiStyleRequestDto: {

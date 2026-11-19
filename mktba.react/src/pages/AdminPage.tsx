@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Bot, Check, Copy, Database, FileText, HelpCircle, KeyRound, Sparkles, Trash2, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -21,7 +22,12 @@ import { Input } from '../shared/ui/Input';
 import { Switch } from '../shared/ui/Switch';
 import { Textarea } from '../shared/ui/Textarea';
 
-type AdminSection = 'articles' | 'aiProvider' | 'adminAccess' | 'cleanup';
+const ADMIN_SECTIONS = ['articles', 'aiProvider', 'adminAccess', 'cleanup'] as const;
+type AdminSection = (typeof ADMIN_SECTIONS)[number];
+
+/** Opens the section named in `?section=` (links such as the editor's AI hint use it), else the articles list. */
+const toAdminSection = (value: string | null): AdminSection =>
+  ADMIN_SECTIONS.find((section) => section === value) ?? 'articles';
 type Notice = { tone: 'success' | 'warning' | 'error'; message: string };
 type AiSettingsState = {
   baseUrl: string;
@@ -41,7 +47,8 @@ const AdminPage: React.FC = () => {
   const locale = useLocale();
   const t = locale.adminPage;
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<AdminSection>('articles');
+  const [searchParams] = useSearchParams();
+  const [activeSection, setActiveSection] = useState<AdminSection>(() => toAdminSection(searchParams.get('section')));
   const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
   const [cleanupConfirmation, setCleanupConfirmation] = useState('');
   const [inviteToken, setInviteToken] = useState<string | null>(null);
@@ -161,11 +168,11 @@ const AdminPage: React.FC = () => {
   const emptyArticles = articleCount - articlesWithContent;
   const aiStatusHint = aiSettingsQuery.isLoading
     ? t.aiConfigurationDescription
-    : !aiSettingsQuery.data?.isEnabled
-      ? t.aiStatusOff
-      : aiSettingsQuery.data.hasApiKey
+    : !aiSettingsQuery.data?.isConfigured
+      ? t.aiStatusNotConfigured
+      : aiSettingsQuery.data.isEnabled
         ? t.aiStatusReady
-        : t.aiStatusNeedsKey;
+        : t.aiStatusOff;
   const navItems: { id: AdminSection; label: string; icon: React.ReactNode; description: string }[] = [
     {
       id: 'articles',

@@ -13,6 +13,13 @@
         public string Model { get; set; } = string.Empty;
         public bool IsEnabled { get; set; }
         public bool HasApiKey { get; set; }
+
+        /// <summary>
+        /// True when base URL, model and API key are all set. AI features refuse with
+        /// <c>ai_provider_not_configured</c> until then; there is no default provider.
+        /// </summary>
+        public bool IsConfigured { get; set; }
+
         public string? MarkdownStylingSystemPrompt { get; set; }
     }
 

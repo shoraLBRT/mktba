@@ -1093,6 +1093,7 @@
         "required": [
           "baseUrl",
           "hasApiKey",
+          "isConfigured",
           "isEnabled",
           "model"
         ],
@@ -1108,6 +1109,9 @@
             "type": "boolean"
           },
           "hasApiKey": {
+            "type": "boolean"
+          },
+          "isConfigured": {
             "type": "boolean"
           },
           "markdownStylingSystemPrompt": {
