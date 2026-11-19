@@ -73,7 +73,7 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 **Frontend ↔ Backend:**
 - Base URL configured in `mktba.react/src/config.ts` (`http://localhost:5172`)
 - CORS allows any loopback / `localhost` origin (Vite dev port `:5173`)
-- Auth token stored in `localStorage`; protected routes under `/admin/*`
+- Access token (15 min) kept in memory only (`src/services/session.ts`); the refresh token is an `httpOnly` cookie (`mktba_refresh`, `Path=/auth`) rotated by `POST /auth/refresh`, which the axios interceptor calls once on a 401 and the app calls on load. Access tokens carry the session id (`mktba_sid`) and `JwtProblemEvents.TokenValidated` rejects them once the session is revoked (README «Сессии»). Protected routes under `/admin/*`
 - HTTP via Axios; server state via React Query
 - Global mazhab selection stored in `localStorage['mktba.mazhab']`, exposed through `MazhabContext`
 

@@ -13,6 +13,7 @@ namespace Mktba.Infrastructure
             services.AddScoped<AiProviderSettingsRepository>();
             services.AddScoped<UserRepository>();
             services.AddScoped<AdminInviteTokenRepository>();
+            services.AddScoped<RefreshSessionRepository>();
             return services;
         }
     }

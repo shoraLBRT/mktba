@@ -12,8 +12,7 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import Sidebar from '../components/Sidebar';
 import { useSidebar } from '../hooks/useSidebar';
 import { useLocale } from '../localization/hooks';
-import { isAdminAuthenticated } from '../services/authService';
-import { clearStoredAdminToken } from '../services/authTokenStorage';
+import { logOut, useSession } from '../services/session';
 import { Button } from '../shared/ui/Button';
 import { MazhabSelector } from '../components/mazhab/MazhabSelector';
 
@@ -26,7 +25,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { collapsed, toggleCollapsed } = useSidebar();
-  const isAdmin = isAdminAuthenticated();
+  const isAdmin = useSession().accessToken !== null;
   const currentPath = location.pathname;
   const isCreateRoute = location.pathname === APP_CONSTANTS.ROUTES.ADD_ARTICLE;
   const [mobileSidebarState, setMobileSidebarState] = useState({ open: false, path: currentPath });
@@ -121,8 +120,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <Button
                 variant="ghost"
                 className="min-h-8 rounded-lg px-2 py-1.5 text-xs"
-                onClick={() => {
-                  clearStoredAdminToken();
+                onClick={async () => {
+                  await logOut();
                   navigate('/');
                 }}
                 aria-label={locale.layout.actions.logout}

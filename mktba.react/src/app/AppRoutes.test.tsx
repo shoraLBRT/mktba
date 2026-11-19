@@ -6,8 +6,8 @@ import { MazhabProvider } from '../context/MazhabProvider';
 import { LocalizationProvider } from '../localization/provider';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { getNavigationTree } from '../services/Article/navigationService';
-import { isAdminAuthenticated } from '../services/authService';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
+import { clearSession, sessionHttp, setSignedIn, startSession } from '../services/session';
 import { ApiError } from '../shared/api-client/apiError';
 import { AppRoutes } from './AppRoutes';
 import { createQueryClient } from './queryClient';
@@ -15,7 +15,6 @@ import type { ArticleContentDto } from '../shared/types/ApiTypes';
 
 const article = (slug: string): ArticleContentDto => ({ id: 7, title: 'Намаз', slug, paragraphs: [], tags: [] });
 
-vi.mock('../services/authService', () => ({ isAdminAuthenticated: vi.fn() }));
 vi.mock('../services/Article/articleService', () => ({ getArticleContentById: vi.fn(), getArticleContentBySlug: vi.fn() }));
 vi.mock('../services/Article/navigationService', () => ({ getNavigationTree: vi.fn() }));
 vi.mock('../services/schoolService', () => ({ getSchoolsByArticleId: vi.fn(), getSystemSchools: vi.fn() }));
@@ -41,7 +40,7 @@ const renderAt = (path: string) =>
   );
 
 beforeEach(() => {
-  vi.mocked(isAdminAuthenticated).mockReturnValue(false);
+  clearSession();
   vi.mocked(getNavigationTree).mockResolvedValue([]);
   vi.mocked(getSystemSchools).mockResolvedValue([]);
   vi.mocked(getSchoolsByArticleId).mockResolvedValue([]);
@@ -60,7 +59,7 @@ describe('AppRoutes', () => {
   });
 
   it('given an admin on the old create path, when rendered, then redirects to the admin create page', () => {
-    vi.mocked(isAdminAuthenticated).mockReturnValue(true);
+    setSignedIn({ accessToken: 'token-1', email: 'admin@mktba.test' });
 
     renderAt('/article/new');
 
@@ -73,6 +72,18 @@ describe('AppRoutes', () => {
 
     expect(screen.getByText('admin-login-page')).toBeTruthy();
     expect(screen.queryByText('add-article-page')).toBeNull();
+  });
+
+  it('given a session still being restored after a reload, when an admin page renders, then it waits instead of sending them to the login page', () => {
+    localStorage.setItem('mktba.signedIn', '1');
+    const refresh = vi.spyOn(sessionHttp, 'post').mockReturnValue(new Promise(() => {}));
+    void startSession();
+
+    renderAt('/admin/articles/new');
+
+    expect(screen.queryByText('admin-login-page')).toBeNull();
+    expect(screen.getByTestId('path').textContent).toBe('/admin/articles/new');
+    refresh.mockRestore();
   });
 
   it('given an article the API does not have, when opened, then shows the 404 page at once', async () => {

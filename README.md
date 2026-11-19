@@ -20,7 +20,7 @@
 * **Backend**: ASP.NET Core 8 Minimal API, Clean DDD.
 * **База данных**: PostgreSQL 16 + EF Core 8.
 * **Frontend**: React 19 + TypeScript + React Router v7 + React Query v5 + Tailwind CSS v4 + Vite.
-* **Auth**: JWT Bearer + invite-токены для регистрации админов.
+* **Auth**: короткий JWT Bearer в памяти + ротируемый refresh-токен в `httpOnly`-cookie, invite-токены для регистрации админов.
 
 ## Структура репозитория
 
@@ -86,6 +86,37 @@ dotnet user-secrets --project Mktba.Api set "Auth:JwtSigningKey" "$(openssl rand
 
 Окружение `OpenApi` (генерация контракта, `npm run gen:api`) токенов не выпускает и ключ не проверяет.
 
+#### Сессии (U-03)
+
+Вход (`POST /auth/login`, `/auth/register`) возвращает короткий access-токен в теле и ставит
+refresh-токен в cookie `mktba_refresh`. Фронтенд держит access-токен **только в памяти**
+(не в `localStorage`); после перезагрузки страницы и на любой `401` он один раз вызывает
+`POST /auth/refresh` и повторяет запрос. Каждый refresh ротирует токен; повторное предъявление
+уже заменённого токена (признак кражи) завершает всю сессию этого устройства. В базе лежит
+только SHA-256 токена (таблица `RefreshSessions`).
+
+| Ключ `Auth` | Что | По умолчанию |
+| --- | --- | --- |
+| `AccessTokenLifetimeMinutes` | срок access-токена | 15 |
+| `RefreshTokenLifetimeDays` | срок refresh-токена, скользящий (продлевается каждым refresh) | 30 |
+| `RefreshCookiePath` | `Path` cookie: путь `/auth` API так, как его видит браузер | `/auth` |
+
+- **Cookie:** `HttpOnly; SameSite=Strict; Path=/auth; Secure`. `Secure` снимается только в
+  Development (локальный http); в любом другом окружении API нужно отдавать по https.
+- **CSRF:** `POST /auth/refresh` и `/auth/logout` требуют заголовок `X-Requested-With` (иначе `403`).
+  Вместе с `SameSite=Strict` этого достаточно: чужой сайт не отправит cookie, а заголовок со
+  стороннего origin пройдёт только через CORS-preflight, который API для него не разрешает.
+- **Выход:** `POST /auth/logout` — это устройство; `POST /auth/logout-all` — все устройства;
+  `GET /auth/sessions` / `DELETE /auth/sessions/{id}` — список устройств и завершение одного
+  (в админке — раздел «Сессии»). Access-токены несут id сессии, и API принимает их, только пока
+  сессия жива, поэтому выход действует сразу, а не через 15 минут.
+- **Развёртывание:** фронтенд и API должны быть *same-site* (например, `mktba.ru` и
+  `api.mktba.ru`, или один хост с прокси `/api` → API — тогда `Auth__RefreshCookiePath=/api/auth`).
+  CORS сейчас разрешает с credentials только loopback-origin'ы (локальная разработка: Vite `:5173`
+  и API `:5172` — разные origin, но один site); для другого origin политику нужно расширить.
+  Токены, выданные до U-03 (без id сессии), больше не принимаются — после обновления всем нужно
+  войти заново.
+
 #### Ограничение частоты запросов
 
 Секция `RateLimiting` в `appsettings.json` (фиксированное окно; превышение — `429` с `Retry-After`):
@@ -93,6 +124,7 @@ dotnet user-secrets --project Mktba.Api set "Auth:JwtSigningKey" "$(openssl rand
 | Лимит | Эндпоинты | Раздел | По умолчанию |
 | --- | --- | --- | --- |
 | `Auth` | `POST /auth/login`, `POST /auth/register` | IP клиента | 10 запросов / 60 с |
+| `Session` | `POST /auth/refresh`, `POST /auth/logout` | IP клиента | 60 запросов / 60 с |
 | `Ai` | `POST /admin/ai-style`, `POST /admin/ai-check` | id пользователя | 20 запросов / 3600 с |
 
 Переопределение: `RateLimiting__Auth__PermitLimit=...`, `RateLimiting__Ai__WindowSeconds=...`.

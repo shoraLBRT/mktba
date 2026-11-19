@@ -10,6 +10,29 @@ test('an admin logs in and reaches the admin panel', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Добавить статью' })).toBeVisible();
 });
 
+test('a reload keeps the admin signed in without a token in storage', async ({ page }) => {
+  await logIn(page);
+
+  await page.reload();
+
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByRole('heading', { name: 'Статьи', level: 1 })).toBeVisible();
+  const storedKeys = await page.evaluate(() => Object.keys(localStorage));
+  expect(storedKeys).not.toContain('mktba.admin.token');
+  const cookies = await page.context().cookies('http://localhost:5172/auth/refresh');
+  expect(cookies.find((cookie) => cookie.name === 'mktba_refresh')?.httpOnly).toBe(true);
+});
+
+test('logging out ends the session, so a reload does not sign back in', async ({ page }) => {
+  await logIn(page);
+
+  await page.getByRole('button', { name: 'Выйти', exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto('/admin');
+
+  await expect(page).toHaveURL(/\/admin\/login$/);
+});
+
 test('an admin creates an article and then edits it', async ({ page }) => {
   const stamp = Date.now();
   const title = `E2E статья ${stamp}`;

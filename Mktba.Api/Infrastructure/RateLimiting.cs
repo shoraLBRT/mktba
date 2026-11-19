@@ -18,6 +18,9 @@ public sealed class RateLimitingOptions
     /// <summary>Anonymous credential endpoints (<c>/auth/login</c>, <c>/auth/register</c>), partitioned by client IP.</summary>
     public RateLimitRule Auth { get; set; } = new() { PermitLimit = 10, WindowSeconds = 60 };
 
+    /// <summary>Session renewal and sign-out (<c>/auth/refresh</c>, <c>/auth/logout</c>), partitioned by client IP. Every page load of a signed-in user renews once.</summary>
+    public RateLimitRule Session { get; set; } = new() { PermitLimit = 60, WindowSeconds = 60 };
+
     /// <summary>Paid AI provider calls (<c>/admin/ai-style</c>, <c>/admin/ai-check</c>), partitioned by user id.</summary>
     public RateLimitRule Ai { get; set; } = new() { PermitLimit = 20, WindowSeconds = 3600 };
 }
@@ -32,6 +35,7 @@ public sealed class RateLimitRule
 internal static class RateLimitingSetup
 {
     public const string AuthPolicy = "auth";
+    public const string SessionPolicy = "session";
     public const string AiPolicy = "ai";
 
     public static IServiceCollection AddMktbaRateLimiting(this IServiceCollection services, IConfiguration configuration)
@@ -47,6 +51,10 @@ internal static class RateLimitingSetup
             limiter.AddPolicy(AuthPolicy, context => FixedWindow(
                 "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 options.Auth));
+
+            limiter.AddPolicy(SessionPolicy, context => FixedWindow(
+                "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                options.Session));
 
             limiter.AddPolicy(AiPolicy, context =>
             {

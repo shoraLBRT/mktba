@@ -23,10 +23,16 @@ public class AdminLoginRequestDto
     public string Password { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// Answer of login, register and refresh. The refresh token is not here: it travels only in the
+/// <c>httpOnly</c> cookie the same response sets.
+/// </summary>
 public class AdminAuthResponseDto
 {
+    /// <summary>Short-lived bearer token; keep it in memory, not in storage.</summary>
     public string AccessToken { get; set; } = string.Empty;
 
+    /// <summary>When <see cref="AccessToken"/> expires.</summary>
     public DateTime ExpiresAtUtc { get; set; }
 
     public string Email { get; set; } = string.Empty;
@@ -44,6 +50,29 @@ public class CurrentUserDto
 
     public UserRole Role { get; set; }
 }
+/// <summary>One signed-in device of the caller, as listed by <c>GET /auth/sessions</c>.</summary>
+public class SessionDto
+{
+    /// <summary>The device session; <c>DELETE /auth/sessions/{id}</c> ends it.</summary>
+    public Guid Id { get; set; }
+
+    /// <summary>When the device signed in.</summary>
+    public DateTime StartedAtUtc { get; set; }
+
+    /// <summary>When the device last signed in or renewed its access token.</summary>
+    public DateTime LastActiveAtUtc { get; set; }
+
+    /// <summary>When the session ends unless the device renews it before then.</summary>
+    public DateTime ExpiresAtUtc { get; set; }
+
+    public string? UserAgent { get; set; }
+
+    public string? IpAddress { get; set; }
+
+    /// <summary>Whether this is the session of the request's own access token.</summary>
+    public bool IsCurrent { get; set; }
+}
+
 public class AdminInviteTokenCreateResponseDto
 {
     public string Token { get; set; } = string.Empty;

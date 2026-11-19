@@ -23,6 +23,13 @@ namespace Mktba.Infrastructure.Data
         public DbSet<AiProviderSettings> AiProviderSettings { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<AdminInviteToken> AdminInviteTokens { get; set; } = null!;
+        public DbSet<RefreshSession> RefreshSessions { get; set; } = null!;
+
+        /// <summary>Longest stored User-Agent of a refresh session; longer values are cut.</summary>
+        public const int SessionUserAgentMaxLength = 256;
+
+        /// <summary>Longest stored client IP of a refresh session (an IPv6 address fits).</summary>
+        public const int SessionIpAddressMaxLength = 64;
 
         /// <summary>Longest edit comment on a revision.</summary>
         public const int RevisionCommentMaxLength = 500;
@@ -353,6 +360,25 @@ namespace Mktba.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(t => t.UsedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // RefreshSession (U-03): a deleted user takes their sessions with them.
+            modelBuilder.Entity<RefreshSession>(session =>
+            {
+                session.HasIndex(s => s.TokenHash).IsUnique();
+                session.HasIndex(s => s.FamilyId);
+                session.HasIndex(s => s.UserId);
+                session.Property(s => s.TokenHash).HasMaxLength(128).IsRequired();
+                session.Property(s => s.UserAgent).HasMaxLength(SessionUserAgentMaxLength);
+                session.Property(s => s.IpAddress).HasMaxLength(SessionIpAddressMaxLength);
+                session.HasOne(s => s.User)
+                    .WithMany()
+                    .HasForeignKey(s => s.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                session.HasOne(s => s.ReplacedBy)
+                    .WithMany()
+                    .HasForeignKey(s => s.ReplacedById)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
 
             base.OnModelCreating(modelBuilder);
         }

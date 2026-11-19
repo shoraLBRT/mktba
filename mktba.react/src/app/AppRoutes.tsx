@@ -9,13 +9,19 @@ import EditArticlePage from '../pages/EditArticlePage';
 import NotFoundPage from '../pages/NotFoundPage';
 import WelcomePage from '../pages/WelcomePage';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { isAdminAuthenticated } from '../services/authService';
+import { useSession } from '../services/session';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 
 const ADD_ARTICLE_PATH = APP_CONSTANTS.ROUTES.ADD_ARTICLE;
 
+/** Signed-in pages; after a reload it waits for the session to be restored from the refresh cookie. */
 const AdminOnlyRoute = ({ children }: { children: ReactElement }) => {
-  if (!isAdminAuthenticated()) {
+  const session = useSession();
+  if (session.restoring) {
+    return null;
+  }
+
+  if (!session.accessToken) {
     return <Navigate to="/admin/login" replace />;
   }
 

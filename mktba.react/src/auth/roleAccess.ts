@@ -6,6 +6,8 @@ import type { UserRole } from '../shared/types/ApiTypes';
  * edit is per article (U-02): the API says so in the tree's `canEdit` and in `allowedTransitions`.
  */
 const POLICY_ROLES = {
+  /** Any signed-in user: their own profile and sessions. */
+  authenticated: ['Reader', 'Author', 'Scholar', 'Admin'],
   /** Create new articles, and edit, read the history of and submit their own. */
   canEditArticles: ['Author', 'Admin'],
   /** Edit any article, and what no author may do even with their own: delete, move in the tree, change authorship. */
