@@ -24,6 +24,7 @@ vi.mock('../pages/AdminLoginPage', () => ({ default: () => <p>admin-login-page</
 vi.mock('../services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('../pages/admin/AdminDashboardPage', () => ({ default: () => <p>admin-dashboard-page</p> }));
 vi.mock('../pages/admin/AdminArticlesPage', () => ({ default: () => <p>admin-articles-page</p> }));
+vi.mock('../pages/admin/AdminArticleTreePage', () => ({ default: () => <p>admin-article-tree-page</p> }));
 vi.mock('../pages/admin/AdminAiSettingsPage', () => ({ default: () => <p>admin-ai-page</p> }));
 vi.mock('../pages/admin/AdminUsersPage', () => ({ default: () => <p>admin-users-page</p> }));
 vi.mock('../pages/admin/AdminSessionsPage', () => ({ default: () => <p>admin-sessions-page</p> }));

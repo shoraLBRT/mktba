@@ -701,6 +701,136 @@
         }
       }
     },
+    "/articles/admin-list": {
+      "get": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "One page of the admin article list, filtered and sorted.",
+        "description": "Lists the articles the caller may see (an author: Published ones plus their own), without their content. search matches the title or slug case-insensitively; status, authorId, tag (one whole tag) and locale filter exactly. sort is UpdatedAt (default), CreatedAt, PublishedAt (never-published last), Title or Status (workflow order); dir is Desc (default) or Asc; enum values are case-sensitive names. page is 1-based; pageSize defaults to 20 and is kept within 1 to 100.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dir",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleListPageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/bulk/status": {
+      "post": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "Moves several articles to one status, each checked like a single move.",
+        "description": "Applies POST /articles/{id}/status to each id in turn and saves each move on its own, so some may succeed while others fail. Each result carries ok, or the error code the single move would answer: article_not_found, forbidden or article_status_transition_invalid. More than 100 distinct ids answers 400 article_bulk_too_many.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleBulkStatusDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleBulkResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/{id}": {
       "get": {
         "tags": [
@@ -2172,6 +2302,62 @@
         },
         "additionalProperties": false
       },
+      "ArticleBulkItemResultDto": {
+        "required": [
+          "id",
+          "ok"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleBulkResultDto": {
+        "required": [
+          "results"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleBulkItemResultDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleBulkStatusDto": {
+        "required": [
+          "ids",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus"
+          }
+        },
+        "additionalProperties": false
+      },
       "ArticleContentCreateDto": {
         "required": [
           "paragraphs",
@@ -2424,6 +2610,113 @@
           },
           "value": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleListItemDto": {
+        "required": [
+          "allowedTransitions",
+          "canEdit",
+          "createdAt",
+          "id",
+          "locale",
+          "paragraphCount",
+          "slug",
+          "status",
+          "tags",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus"
+          },
+          "allowedTransitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleStatus"
+            }
+          },
+          "parentArticleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "authorId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "paragraphCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleListPageDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleListItemDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

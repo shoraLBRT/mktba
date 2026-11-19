@@ -9,6 +9,7 @@ import NotFoundPage from '../pages/NotFoundPage';
 import WelcomePage from '../pages/WelcomePage';
 import AdminAiSettingsPage from '../pages/admin/AdminAiSettingsPage';
 import AdminArticlesPage from '../pages/admin/AdminArticlesPage';
+import AdminArticleTreePage from '../pages/admin/AdminArticleTreePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminMaintenancePage from '../pages/admin/AdminMaintenancePage';
 import AdminSessionsPage from '../pages/admin/AdminSessionsPage';
@@ -73,6 +74,10 @@ export const AppRoutes = () => {
               element={<AdminSectionRoute policy={section.policy}>{SECTION_PAGES[section.id]}</AdminSectionRoute>}
             />
           ))}
+          <Route
+            path="/admin/articles/tree"
+            element={<AdminSectionRoute policy="canEditArticles"><AdminArticleTreePage /></AdminSectionRoute>}
+          />
           <Route
             path={ADD_ARTICLE_PATH}
             element={<AdminSectionRoute policy="canEditArticles" padded={false}><AddArticlePage /></AdminSectionRoute>}
