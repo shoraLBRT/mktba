@@ -51,7 +51,10 @@
     "overview": "Общее описание",
     "publishedOn": "Опубликовано {date}",
     "updatedOn": "Обновлено {date}",
-    "breadcrumbs": "Путь к статье"
+    "breadcrumbs": "Путь к статье",
+    "breadcrumbsHome": "Главная",
+    "readingTime": "{minutes} мин чтения",
+    "readingTimeLabel": "Время чтения: около {minutes} мин"
   },
   "articleRightSidebar": {
     "onThisPage": "На этой странице",

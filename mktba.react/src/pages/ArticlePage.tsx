@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { articleContentQueryKey, parseLegacyArticleId } from '../services/Article/articleQueries';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
+import { ArticleBreadcrumbs } from '../components/article/ArticleBreadcrumbs';
 import { ArticleDates } from '../components/article/ArticleDates';
 import { ArticleMeta } from '../components/article/ArticleMeta';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
@@ -19,35 +19,14 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
-import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
+import type { SchoolDto } from '../shared/types/ApiTypes';
 import { useMazhab } from '../context/mazhabContext';
 import { useTrackEvent } from '../analytics/useTrackEvent';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
 import { articleHref } from '../shared/slug';
-
-const findArticlePathById = (
-  articles: NavigationArticleDto[],
-  targetArticleId: number,
-  parentPath: NavigationArticleDto[] = [],
-): NavigationArticleDto[] => {
-  for (const article of articles) {
-    const currentPath = [...parentPath, article];
-
-    if (article.id === targetArticleId && article.hasContent) {
-      return currentPath;
-    }
-
-    if (article.children && article.children.length > 0) {
-      const nestedPath = findArticlePathById(article.children, targetArticleId, currentPath);
-      if (nestedPath.length > 0) {
-        return nestedPath;
-      }
-    }
-  }
-
-  return [];
-};
+import { findArticlePath } from '../shared/articleTree';
+import { estimateReadingMinutes } from '../shared/readingTime';
 
 const headingPattern = /^(#{1,6})\s+(.+)$/gm;
 
@@ -145,7 +124,7 @@ const ArticlePage: React.FC = () => {
   );
 
   const articlePath = useMemo(
-    () => (navigationTree ? findArticlePathById(navigationTree, articleId) : []),
+    () => findArticlePath(navigationTree, articleId),
     [navigationTree, articleId],
   );
 
@@ -214,6 +193,17 @@ const ArticlePage: React.FC = () => {
 
     return items;
   }, [locale.articlePage.overview, renderedParagraphs]);
+
+  // The estimate follows each paragraph's default opinion, so it is the same in the server HTML
+  // and after the reader's mazhab is read from the browser.
+  const readingMinutes = useMemo(
+    () =>
+      estimateReadingMinutes(
+        (articleContent?.paragraphs ?? []).map((paragraph) =>
+          (paragraph.opinions.find((opinion) => opinion.isDefault) ?? paragraph.opinions[0])?.content ?? ''),
+      ),
+    [articleContent],
+  );
 
   const selectAlternative = (paragraphId: number, index: number, total: number) => {
     const boundedIndex = Math.max(0, Math.min(index, total - 1));
@@ -302,31 +292,16 @@ const ArticlePage: React.FC = () => {
       {documentHead}
       <article className="min-w-0 flex-1 overflow-hidden border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-r-none xl:border-r xl:border-[var(--color-border-soft)]">
         <div className="mx-auto max-w-[760px] px-4 py-6 pb-24 sm:px-6 lg:px-8 xl:px-10">
-          {breadcrumbItems.length > 0 ? (
-            <nav aria-label={locale.articlePage.breadcrumbs} className="mb-5 flex flex-wrap items-center gap-1 text-[12.5px]">
-              {breadcrumbItems.map((item, index) => (
-                <React.Fragment key={`${item.id}-${index}`}>
-                  <span aria-current={index === breadcrumbItems.length - 1 ? 'page' : undefined} className={
-                    index === breadcrumbItems.length - 1
-                      ? 'text-[var(--color-ink-strong)]'
-                      : item.hasContent
-                        ? 'text-[var(--color-brand-forest)]'
-                        : 'text-[var(--color-ink-muted)]'
-                  }>
-                    {item.hasContent ? <Link to={articleHref(item.slug)}>{item.title}</Link> : item.title}
-                  </span>
-                  {index < breadcrumbItems.length - 1 ? (
-                    <ChevronRight size={12} aria-hidden="true" className="shrink-0 text-[#bebdb8]" />
-                  ) : null}
-                </React.Fragment>
-              ))}
-            </nav>
-          ) : null}
+          <ArticleBreadcrumbs ancestors={breadcrumbItems.slice(0, -1)} currentTitle={articleContent.title} />
 
           <h1 className="mb-4 text-[28px] font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">
             {articleContent.title}
           </h1>
-          <ArticleDates publishedAt={articleContent.publishedAt} updatedAt={articleContent.updatedAt} />
+          <ArticleDates
+            publishedAt={articleContent.publishedAt}
+            updatedAt={articleContent.updatedAt}
+            readingMinutes={readingMinutes}
+          />
 
           {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);
               `flow-root` keeps the float inside the column. */}
