@@ -1,1 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Amiri:wght@400;700&display=swap');
+/*
+ * Self-hosted fonts (Fontsource, bundled by Vite): no request to Google Fonts, no render-blocking
+ * @import. Each file declares font-display: swap and splits by unicode-range, so the browser
+ * downloads only the subsets the page uses (Cyrillic and Latin for Inter, Arabic for Amiri).
+ */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/amiri/400.css';
+@import '@fontsource/amiri/700.css';

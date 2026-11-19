@@ -10,8 +10,10 @@ import {
   useMatches,
   useNavigate,
   useRouteLoaderData,
+  type LinksFunction,
   type LoaderFunctionArgs,
 } from 'react-router';
+import interCyrillic400Url from '@fontsource/inter/files/inter-cyrillic-400-normal.woff2?url';
 import './index.css';
 import { CookieConsent } from './components/CookieConsent';
 import { PageMeta } from './components/PageMeta';
@@ -32,6 +34,14 @@ type RootData = {
 
 /** On the server, once per document: the address absolute page URLs are built on. */
 export const loader = ({ request }: LoaderFunctionArgs): RootData => ({ siteUrl: resolveSiteUrl(request) });
+
+/**
+ * The body text font (Inter, regular, Cyrillic) is fetched with the HTML instead of after the CSS
+ * is parsed, so the swap from the fallback font happens before the first paint more often.
+ */
+export const links: LinksFunction = () => [
+  { rel: 'preload', href: interCyrillic400Url, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
+];
 
 /** The site address does not change while the page is open; navigation never refetches it. */
 export const shouldRevalidate = () => false;

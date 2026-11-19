@@ -24,6 +24,7 @@ Machine-specific settings go in the gitignored `Mktba.Api/appsettings.local.json
 npm install
 npm run dev       # react-router dev (Vite + SSR) on :5173
 npm run build     # tsc -b && react-router build → build/client, build/server
+npm run size      # after build: JS budget of the /article/:slug first load (scripts/check-bundle-size.mjs)
 npm run lint      # eslint
 npm test          # vitest run (unit + Testing Library, jsdom)
 npm start         # react-router-serve the production build (PORT, API_INTERNAL_URL, PUBLIC_SITE_URL)
