@@ -6,23 +6,21 @@ import { LocalizationProvider } from '../../localization/provider';
 import { VersionedParagraphBlock, type OpinionTab } from './VersionedParagraphBlock';
 
 const tabs: OpinionTab[] = [
-  { shortLabel: 'Хан', fullLabel: 'Ханафитский мазхаб', paletteKey: 'hanafi' },
-  { shortLabel: 'Мал', fullLabel: 'Маликитский мазхаб', paletteKey: 'maliki' },
-  { shortLabel: 'Шаф', fullLabel: 'Шафиитский мазхаб', paletteKey: 'shafii' },
+  { label: 'Ханафиты', heading: 'Мнение мазхаба: Ханафитский мазхаб', paletteKey: 'hanafi', isReaderSchool: false },
+  { label: 'Маликиты', heading: 'Мнение мазхаба: Маликитский мазхаб', paletteKey: 'maliki', isReaderSchool: true },
+  { label: 'Шафииты', heading: 'Мнение мазхаба: Шафиитский мазхаб', paletteKey: 'shafii', isReaderSchool: false },
 ];
 const texts = ['Мнение ханафитов', 'Мнение маликитов', 'Мнение шафиитов'];
 
-const Block = ({ mode = 'numbers' as const, initialIndex = 0 }: { mode?: 'arrows' | 'numbers'; initialIndex?: number }) => {
+const Block = ({ initialIndex = 0, note }: { initialIndex?: number; note?: string | null }) => {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   return (
     <LocalizationProvider>
       <VersionedParagraphBlock
-        order={1}
         activeIndex={activeIndex}
         tabs={tabs}
-        mode={mode}
+        note={note}
         onSelect={setActiveIndex}
-        onMove={(direction) => setActiveIndex((index) => (index + direction + tabs.length) % tabs.length)}
         panels={texts.map((text) => <p key={text}>{text}</p>)}
       />
     </LocalizationProvider>
@@ -40,7 +38,7 @@ describe('VersionedParagraphBlock', () => {
     expect(html.match(/hidden=""/g)).toHaveLength(2);
   });
 
-  it('given tabs mode, when rendered, then only the active panel is visible and wired to its tab', () => {
+  it('given several opinions, when rendered, then only the active panel is visible and wired to its tab', () => {
     render(<Block initialIndex={1} />);
 
     expect(panelOf(texts[0]).hidden).toBe(true);
@@ -48,7 +46,9 @@ describe('VersionedParagraphBlock', () => {
     expect(panelOf(texts[2]).hidden).toBe(true);
 
     const activeTab = screen.getByRole('tab', { selected: true });
-    expect(activeTab.getAttribute('aria-label')).toBe(tabs[1].fullLabel);
+    expect(activeTab.hasAttribute('aria-label')).toBe(false);
+    expect(activeTab.textContent).toContain(tabs[1].label);
+    expect(screen.getByText(tabs[1].heading)).toBeTruthy();
     expect(activeTab.getAttribute('aria-controls')).toBe(panelOf(texts[1]).id);
     expect(panelOf(texts[1]).getAttribute('aria-labelledby')).toBe(activeTab.id);
     expect(activeTab.tabIndex).toBe(0);
@@ -86,15 +86,27 @@ describe('VersionedParagraphBlock', () => {
     expect(screen.getAllByRole('tab')[0].getAttribute('aria-selected')).toBe('true');
   });
 
-  it('given arrows mode, when the next arrow is clicked, then every opinion stays in the DOM and the next one shows', () => {
-    render(<Block mode="arrows" />);
+  it('given an opinion of the reader mazhab, when rendered, then its tab name starts with the school and marks it as theirs', () => {
+    render(<Block />);
 
-    expect(screen.queryByRole('tabpanel')).toBeNull();
-    texts.forEach((text) => expect(screen.getByText(text)).toBeTruthy());
+    const readerTab = screen.getByRole('tab', { name: 'Маликиты, ваш мазхаб' });
+    expect(readerTab.querySelector('[data-reader-school]')).not.toBeNull();
+    expect(screen.getByRole('tab', { name: 'Ханафиты' }).querySelector('[data-reader-school]')).toBeNull();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Следующее мнение' }));
+  it('given a note, when rendered, then it is shown above the text; without one nothing is shown', () => {
+    const { unmount } = render(<Block note="У ханафитов отдельного мнения нет — показано общее" />);
+    expect(screen.getByText('У ханафитов отдельного мнения нет — показано общее')).toBeTruthy();
+    unmount();
 
-    expect(panelOf(texts[0]).hidden).toBe(true);
-    expect(panelOf(texts[1]).hidden).toBe(false);
+    render(<Block />);
+    expect(screen.queryByText(/отдельного мнения нет/)).toBeNull();
+  });
+
+  it('given the block, when rendered, then it has no previous or next arrow buttons', () => {
+    render(<Block />);
+
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 });

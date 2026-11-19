@@ -1,24 +1,25 @@
-import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, Info } from 'lucide-react';
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocale } from '../../localization/hooks';
 import { getSchoolPalette, type SchoolPaletteKey } from '../mazhab/schoolPalette';
 
 /** One switchable opinion inside a paragraph slot. */
 export type OpinionTab = {
-  /** Chip caption — always rendered, so colour is never the only signal. */
-  shortLabel: string;
-  /** Full caption for the block header and the chip's accessible name. */
-  fullLabel: string;
+  /** Tab text naming the opinion's schools; it is also the tab's accessible name. */
+  label: string;
+  /** Caption above the opinion's text while its tab is active. */
+  heading: string;
   paletteKey: SchoolPaletteKey;
+  /** The opinion belongs to the reader's chosen mazhab. */
+  isReaderSchool: boolean;
 };
 
 type VersionedParagraphBlockProps = {
-  order: number;
   activeIndex: number;
   tabs: OpinionTab[];
-  mode: 'arrows' | 'numbers';
   onSelect: (index: number) => void;
-  onMove: (direction: -1 | 1) => void;
+  /** Shown above the text, e.g. when the reader's mazhab has no opinion of its own here. */
+  note?: string | null;
   /**
    * One panel per tab, in the same order. Every panel is rendered, also on the server, so the
    * page HTML carries the text of every opinion; only the active one is visible.
@@ -36,19 +37,16 @@ const KEY_STEPS: Record<string, (index: number, total: number) => number> = {
 };
 
 export const VersionedParagraphBlock = ({
-  order,
   activeIndex,
   tabs,
-  mode,
   onSelect,
-  onMove,
+  note,
   panels,
 }: VersionedParagraphBlockProps) => {
   const locale = useLocale();
   const t = locale.versionedParagraph;
   const idPrefix = useId();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const isTabs = mode === 'numbers';
   const tabId = (index: number) => `${idPrefix}-tab-${index}`;
   const panelId = (index: number) => `${idPrefix}-panel-${index}`;
 
@@ -66,27 +64,34 @@ export const VersionedParagraphBlock = ({
 
   return (
     <section
-      className="my-4 rounded-2xl border transition-colors duration-200"
+      className="my-4 min-w-0 rounded-2xl border transition-colors duration-200"
       style={{ backgroundColor: palette.bg, borderColor: palette.border }}
     >
       <div className="px-4 pt-3 pb-2">
         <div className="mb-2 flex items-center gap-1.5">
-          <BookOpen size={11} style={{ color: palette.accent }} />
+          <BookOpen size={11} aria-hidden="true" style={{ color: palette.accent }} />
           <span
             className="text-[10.5px] font-semibold tracking-[0.03em]"
             style={{ color: palette.accent }}
           >
-            {activeTab?.fullLabel}
+            {activeTab?.heading}
           </span>
         </div>
+
+        {note ? (
+          <p className="mb-2 flex items-start gap-1.5 text-[12px] leading-5 text-[var(--color-ink-muted)]">
+            <Info size={13} aria-hidden="true" className="mt-[3px] shrink-0" />
+            <span>{note}</span>
+          </p>
+        ) : null}
 
         <div className="text-[14.5px] leading-7 text-[var(--color-ink-strong)]">
           {panels.map((panel, index) => (
             <div
-              key={`${order}-${index}`}
+              key={index}
               id={panelId(index)}
-              role={isTabs ? 'tabpanel' : undefined}
-              aria-labelledby={isTabs ? tabId(index) : undefined}
+              role="tabpanel"
+              aria-labelledby={tabId(index)}
               hidden={index !== activeIndex}
             >
               {panel}
@@ -95,67 +100,48 @@ export const VersionedParagraphBlock = ({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-1.5 px-3 pb-3 pt-1">
-        <span className="mr-1 text-[10px] text-[var(--color-ink-subtle)]">{t.versions}</span>
-        {!isTabs ? (
-          <>
-            <button
-              type="button"
-              onClick={() => onMove(-1)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border bg-white transition-colors"
-              style={{ borderColor: palette.border, color: palette.accent }}
-              aria-label={t.previous}
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <span className="min-w-12 text-center text-[11px] font-semibold text-[var(--color-ink-muted)]">
-              {activeTab?.shortLabel}
-            </span>
-            <button
-              type="button"
-              onClick={() => onMove(1)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border bg-white transition-colors"
-              style={{ borderColor: palette.border, color: palette.accent }}
-              aria-label={t.next}
-            >
-              <ChevronRight size={14} />
-            </button>
-          </>
-        ) : (
-          <div role="tablist" aria-label={t.versions} className="flex flex-wrap justify-end gap-1.5">
-            {tabs.map((tab, index) => {
-              const isActive = index === activeIndex;
-              const tabPalette = getSchoolPalette(tab.paletteKey);
+      <div className="flex items-center justify-end gap-1.5 px-3 pb-3 pt-1">
+        <span className="shrink-0 text-[10px] text-[var(--color-ink-subtle)]">{t.versions}</span>
+        <div role="tablist" aria-label={t.versions} className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [contain:inline-size] [scrollbar-width:none]">
+          {tabs.map((tab, index) => {
+            const isActive = index === activeIndex;
+            const tabPalette = getSchoolPalette(tab.paletteKey);
 
-              return (
-                <button
-                  key={`${order}-${index}`}
-                  ref={(element) => {
-                    tabRefs.current[index] = element;
-                  }}
-                  id={tabId(index)}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-controls={panelId(index)}
-                  tabIndex={isActive ? 0 : -1}
-                  onKeyDown={(event) => handleTabKeyDown(event, index)}
-                  aria-label={tab.fullLabel}
-                  title={tab.fullLabel}
-                  onClick={() => onSelect(index)}
-                  className="rounded border px-2 py-0.5 text-[11px] font-semibold transition-colors"
-                  style={{
-                    backgroundColor: isActive ? tabPalette.accent : 'white',
-                    color: isActive ? 'white' : tabPalette.accent,
-                    borderColor: isActive ? tabPalette.accent : tabPalette.border,
-                  }}
-                >
-                  {tab.shortLabel}
-                </button>
-              );
-            })}
-          </div>
-        )}
+            return (
+              <button
+                key={index}
+                ref={(element) => {
+                  tabRefs.current[index] = element;
+                }}
+                id={tabId(index)}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={panelId(index)}
+                tabIndex={isActive ? 0 : -1}
+                onKeyDown={(event) => handleTabKeyDown(event, index)}
+                onClick={() => onSelect(index)}
+                className={`${index === 0 ? 'ml-auto ' : ''}flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-2 py-0.5 text-[11px] font-semibold transition-colors`}
+                style={{
+                  backgroundColor: isActive ? tabPalette.accent : 'var(--color-surface)',
+                  color: isActive ? 'var(--color-surface)' : tabPalette.accent,
+                  borderColor: isActive ? tabPalette.accent : tabPalette.border,
+                }}
+              >
+                {tab.isReaderSchool ? (
+                  <span
+                    aria-hidden="true"
+                    data-reader-school=""
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: isActive ? 'var(--color-surface)' : tabPalette.accent }}
+                  />
+                ) : null}
+                {tab.label}
+                {tab.isReaderSchool ? <span className="sr-only">{t.readerSchool}</span> : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

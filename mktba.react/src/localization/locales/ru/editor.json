@@ -234,10 +234,23 @@
     "labelSeveral": "Мнение мазхабов: {schools}",
     "labelConsensus": "Согласие всех мазхабов",
     "labelCommon": "Общее мнение",
-    "tabConsensus": "Все",
-    "tabCommon": "Общее",
+    "tabConsensus": "Все мазхабы",
+    "tabCommon": "Общее мнение",
     "versions": "Мазхабы:",
-    "previous": "Предыдущее мнение",
-    "next": "Следующее мнение"
+    "readerSchool": ", ваш мазхаб",
+    "schoolTab": {
+      "hanafi": "Ханафиты",
+      "maliki": "Маликиты",
+      "shafii": "Шафииты",
+      "hanbali": "Ханбалиты"
+    },
+    "schoolGenitive": {
+      "hanafi": "ханафитов",
+      "maliki": "маликитов",
+      "shafii": "шафиитов",
+      "hanbali": "ханбалитов"
+    },
+    "noOwnOpinion": "У {school} отдельного мнения нет — показано общее",
+    "noOwnOpinionUnnamed": "Для выбранного мазхаба отдельного мнения нет — показано общее"
   }
 }

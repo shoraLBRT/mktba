@@ -1,5 +1,5 @@
-import { expect, test, type APIRequestContext } from '@playwright/test';
-import { adminCredentials } from './helpers';
+import { expect, test } from '@playwright/test';
+import { API_URL, publishArticle } from './helpers';
 
 // Public pages are rendered on the server (O-01): their HTML carries the content before any script runs.
 
@@ -166,14 +166,14 @@ test('a link with a mazhab parameter keeps the canonical on the clean article UR
 test('a reader sees only one opinion of a block and switches it with the arrow keys', async ({ page }) => {
   await page.goto('/article/salat');
   const firstSlot = page.getByRole('tablist', { name: 'Мазхабы:' }).first();
-  const hanafiTab = firstSlot.getByRole('tab', { name: 'Мнение мазхаба: Ханафитский мазхаб' });
+  const hanafiTab = firstSlot.getByRole('tab', { name: 'Ханафиты' });
   await expect(page.getByText(/время Фаджра начинается с истинного рассвета/)).toBeVisible();
   await expect(page.getByText(/Малики согласны с основными временами/)).toBeHidden();
 
   await hanafiTab.focus();
   await page.keyboard.press('ArrowRight');
 
-  await expect(firstSlot.getByRole('tab', { name: 'Мнение мазхаба: Маликитский мазхаб' })).toBeFocused();
+  await expect(firstSlot.getByRole('tab', { name: 'Маликиты' })).toBeFocused();
   await expect(page.getByText(/Малики согласны с основными временами/)).toBeVisible();
   await expect(page.getByText(/время Фаджра начинается с истинного рассвета/)).toBeHidden();
 });
@@ -198,28 +198,6 @@ test('the server answers 404 for an unknown article and an unknown page', async 
   const page = await request.get('/no/such/page');
   expect(page.status()).toBe(404);
 });
-
-const API_URL = 'http://localhost:5172';
-
-/**
- * Creates an article through the API as the e2e admin and publishes it; returns its id and slug.
- * Without paragraphs it is a stub with no content, created the way the admin tree creates one.
- */
-const publishArticle = async (request: APIRequestContext, title: string, paragraphs: unknown[] | null) => {
-  const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
-  expect(login.ok()).toBe(true);
-  const { accessToken } = await login.json() as { accessToken: string };
-  const headers = { Authorization: `Bearer ${accessToken}` };
-  const created = paragraphs
-    ? await request.post(`${API_URL}/articles/content`, { headers, data: { title, paragraphs } })
-    : await request.post(`${API_URL}/articles`, { headers, data: { title } });
-  expect(created.status()).toBe(201);
-  const article = await created.json() as { id: number; slug: string };
-  for (const status of ['InReview', 'Published']) {
-    expect((await request.post(`${API_URL}/articles/${article.id}/status`, { headers, data: { status } })).ok()).toBe(true);
-  }
-  return { ...article, headers };
-};
 
 test('the server answers 410 with a non-indexed page for a deleted article (O-07)', async ({ request }) => {
   const article = await publishArticle(request, `Удаляемая статья ${Date.now()}`, [

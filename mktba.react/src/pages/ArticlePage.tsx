@@ -13,16 +13,10 @@ import { ArticleRightSidebar, type TocItem } from '../components/article/Article
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
 import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
 import { resolveAutoOpinionIndex } from '../components/mazhab/opinionSelection';
+import { buildOpinionCaptions, resolveMissingOpinionNote } from '../components/mazhab/opinionCaptions';
 import MarkdownContent from '../components/MarkdownContent';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
-import { formatMessage, type Locale } from '../localization';
-import {
-  ARTICLE_UI_MODE_STORAGE_KEY,
-  DEFAULT_ARTICLE_UI_MODE,
-  isParagraphUiMode,
-  type ParagraphUiMode,
-} from '../constants/ArticleUiConstants';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
@@ -31,7 +25,6 @@ import { useTrackEvent } from '../analytics/useTrackEvent';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
 import { articleHref } from '../shared/slug';
-import { useHydrated } from '../shared/useHydrated';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -56,15 +49,6 @@ const findArticlePathById = (
   return [];
 };
 
-const readSavedUiMode = (): ParagraphUiMode => {
-  try {
-    const savedMode = localStorage.getItem(ARTICLE_UI_MODE_STORAGE_KEY);
-    return isParagraphUiMode(savedMode) ? savedMode : DEFAULT_ARTICLE_UI_MODE;
-  } catch {
-    return DEFAULT_ARTICLE_UI_MODE;
-  }
-};
-
 const headingPattern = /^(#{1,6})\s+(.+)$/gm;
 
 const extractHeadingTitle = (content: string): string | null => {
@@ -73,50 +57,12 @@ const extractHeadingTitle = (content: string): string | null => {
   return match?.[2]?.trim() ?? null;
 };
 
-/**
- * Captions for one opinion. The chip caption is always rendered next to the
- * colour, so the mazhab stays readable without relying on hue alone.
- */
-const buildOpinionCaptions = (
-  schools: SchoolDto[],
-  systemSchoolIds: number[],
-  t: Locale['versionedParagraph'],
-): Pick<OpinionTab, 'shortLabel' | 'fullLabel'> => {
-  if (schools.length === 0) {
-    return { shortLabel: t.tabCommon, fullLabel: t.labelCommon };
-  }
-
-  const coversEverySystemSchool =
-    systemSchoolIds.length > 0 &&
-    systemSchoolIds.every((schoolId) => schools.some((school) => school.id === schoolId));
-
-  if (coversEverySystemSchool) {
-    return { shortLabel: t.tabConsensus, fullLabel: t.labelConsensus };
-  }
-
-  if (schools.length === 1) {
-    return {
-      shortLabel: schools[0].shortName,
-      fullLabel: formatMessage(t.label, { school: schools[0].name }),
-    };
-  }
-
-  return {
-    shortLabel: schools.map((school) => school.shortName).join(' · '),
-    fullLabel: formatMessage(t.labelSeveral, {
-      schools: schools.map((school) => school.name).join(', '),
-    }),
-  };
-};
-
 const ArticlePage: React.FC = () => {
   const locale = useLocale();
   const navigate = useNavigate();
   const { slug: requestedSlug = '' } = useParams<{ slug: string }>();
   // `/article/{id}` links from before slugs still open the article and are replaced by its slug URL.
   const legacyArticleId = parseLegacyArticleId(requestedSlug);
-  // The saved display mode applies after hydration; the server renders the default.
-  const uiMode = useHydrated() ? readSavedUiMode() : DEFAULT_ARTICLE_UI_MODE;
   const { selectedSchoolId } = useMazhab();
   // Per-paragraph overrides are scoped to the mazhab they were made under, so
   // picking a different mazhab drops them without a state-resetting effect.
@@ -231,8 +177,16 @@ const ArticlePage: React.FC = () => {
           return {
             ...buildOpinionCaptions(schools, systemSchoolIds, tv),
             paletteKey: resolvePaletteKey(schools),
+            isReaderSchool: selectedSchoolId !== null && opinion.schoolIds.includes(selectedSchoolId),
           };
         });
+        const note = resolveMissingOpinionNote(
+          paragraph.opinions,
+          activeIndex,
+          selectedSchoolId,
+          selectedSchoolId !== null ? schoolMap.get(selectedSchoolId) : undefined,
+          tv,
+        );
 
         return {
           paragraphId: paragraph.id,
@@ -241,6 +195,7 @@ const ArticlePage: React.FC = () => {
           activeIndex,
           activeOpinion,
           tabs,
+          note,
           hasAlternatives: paragraph.opinions.length > 1,
           anchorId: title ? `section-${paragraph.order}` : `paragraph-${paragraph.order}`,
           title,
@@ -260,21 +215,10 @@ const ArticlePage: React.FC = () => {
     return items;
   }, [locale.articlePage.overview, renderedParagraphs]);
 
-  const normalizeAlternativeIndex = (index: number, total: number) => {
-    if (total <= 0) return 0;
-    return ((index % total) + total) % total;
-  };
-
   const selectAlternative = (paragraphId: number, index: number, total: number) => {
     const boundedIndex = Math.max(0, Math.min(index, total - 1));
     setAlternative(paragraphId, boundedIndex);
     track('opinion_switch', { paragraphId, index: boundedIndex });
-  };
-
-  const moveAlternative = (paragraphId: number, currentIndex: number, direction: -1 | 1, total: number) => {
-    const nextIndex = normalizeAlternativeIndex(currentIndex + direction, total);
-    setAlternative(paragraphId, nextIndex);
-    track('opinion_switch', { paragraphId, index: nextIndex });
   };
 
   // Structured data breadcrumbs (O-05): the visible trail, without the section titles that link nowhere.
@@ -403,12 +347,10 @@ const ArticlePage: React.FC = () => {
               return (
                 <div key={paragraph.paragraphId} id={paragraph.anchorId} className="scroll-mt-24">
                   <VersionedParagraphBlock
-                    order={paragraph.order}
                     activeIndex={paragraph.activeIndex}
                     tabs={paragraph.tabs}
-                    mode={uiMode}
+                    note={paragraph.note}
                     onSelect={(index) => selectAlternative(paragraph.paragraphId, index, paragraph.opinions.length)}
-                    onMove={(direction) => moveAlternative(paragraph.paragraphId, paragraph.activeIndex, direction, paragraph.opinions.length)}
                     panels={paragraph.opinions.map((opinion) => (
                       <div key={opinion.id} className="article-markdown">
                         <MarkdownContent content={opinion.content} />
