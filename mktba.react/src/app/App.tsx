@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, useNavigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
-import { ADMIN_SESSION_EXPIRED_EVENT, startSession } from '../services/session';
+import { ADMIN_SESSION_EXPIRED_EVENT, startSession, useSession } from '../services/session';
 import { MazhabProvider } from '../context/MazhabProvider';
 import { CookieConsent } from '../components/CookieConsent';
 import { getConsent, initMetrika } from '../analytics/metrika';
@@ -35,6 +35,12 @@ const AdminSessionExpirationHandler = () => {
 };
 
 function App() {
+  // A browser that signed in before waits for its session to be restored, so the first requests
+  // already carry the access token (an anonymous navigation tree would hide drafts, for one).
+  if (useSession().restoring) {
+    return null;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <MazhabProvider>
