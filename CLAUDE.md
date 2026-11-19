@@ -26,7 +26,7 @@ npm run dev       # react-router dev (Vite + SSR) on :5173
 npm run build     # tsc -b && react-router build → build/client, build/server
 npm run lint      # eslint
 npm test          # vitest run (unit + Testing Library, jsdom)
-npm start         # react-router-serve the production build (PORT, API_INTERNAL_URL)
+npm start         # react-router-serve the production build (PORT, API_INTERNAL_URL, PUBLIC_SITE_URL)
 npm test          # Vitest, once (as in CI)
 npm run test:e2e  # Playwright against a throwaway DB, see README
 npm run gen:api   # regenerate the OpenAPI contract after endpoint/DTO changes
@@ -77,7 +77,7 @@ mktba.react           → React 19 + TypeScript, React Router v7 framework mode 
 - Public routes have a server `loader` that fetches the API anonymously (`src/server/api.server.ts`, base `API_INTERNAL_URL`) into a server QueryClient and returns `dehydrate()`d state; the route component wraps the page in `HydrationBoundary`. A `clientLoader` skips the server on later client-side navigations (pages fetch through React Query as before). Loaders set status codes (`data(..., { status: 404 })`, `redirect(..., 301)`).
 - `/admin/*` is client-only (`clientLoader.hydrate` + `HydrateFallback`); auth never runs on the server.
 - No `localStorage`/`window` during render: read stored values after hydration via `useHydrated()`; `useSession` renders anonymously on the server and while hydrating.
-- `<title>`/meta are React 19 elements hoisted into `<head>`; a route with `handle.ownsTitle` renders its own title, otherwise the root renders the default one.
+- Document metadata (O-04): `PageMeta` (`src/components/PageMeta.tsx`) renders title ("{page} — mktba"), description, canonical, robots, Open Graph and Twitter Card as React 19 elements hoisted into `<head>` (in the server HTML too); rules live in `src/shared/siteMeta.ts`. Exactly one `PageMeta` is mounted at a time: a route with `handle.ownsMeta` renders its own (home, article, 404), otherwise the root renders a generic `noindex, nofollow` one (admin, sign-in, service pages). Absolute URLs are built on the root loader's `siteUrl` (`PUBLIC_SITE_URL`, else the request origin) via `useSiteUrl()`; the article canonical path comes from `articleHref`.
 
 **Frontend ↔ Backend:**
 - Base URL configured in `mktba.react/src/config.ts` (`http://localhost:5172`)

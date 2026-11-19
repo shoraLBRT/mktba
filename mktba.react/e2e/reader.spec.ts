@@ -18,7 +18,7 @@ test('an article page sets its own document title and canonical link', async ({ 
   await page.goto('/article/salat');
 
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
-  await expect(page).toHaveTitle('Салат');
+  await expect(page).toHaveTitle('Салат — mktba');
   await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute('href', /\/article\/salat$/);
 });
 

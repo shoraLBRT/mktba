@@ -159,6 +159,7 @@ npm start          # react-router-serve, порт из PORT (по умолчан
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | при сборке | адрес API для браузера (по умолчанию `http://localhost:5172`) |
 | `API_INTERNAL_URL` | при запуске сервера | адрес API для серверного рендера (например, внутри сети деплоя); по умолчанию — `VITE_API_BASE_URL` |
+| `PUBLIC_SITE_URL` | при запуске сервера | публичный адрес сайта (например, `https://mktba.ru`, без пути) для canonical, `og:url` и `og:image`; задавайте за прокси. По умолчанию — origin входящего запроса (подходит для локальной разработки) |
 | `PORT` | при запуске сервера | порт `react-router-serve` |
 
 Тесты фронтенда — Vitest и Testing Library (jsdom), файлы `src/**/*.test.{ts,tsx}`:

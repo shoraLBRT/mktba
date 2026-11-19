@@ -7,7 +7,7 @@ import { articleContentQueryKey, parseLegacyArticleId } from '../services/Articl
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleDates } from '../components/article/ArticleDates';
 import { ArticleMeta } from '../components/article/ArticleMeta';
-import { DefaultDocumentTitle } from '../components/DefaultDocumentTitle';
+import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
 import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
@@ -108,12 +108,7 @@ const buildOpinionCaptions = (
   };
 };
 
-type ArticlePageProps = {
-  /** Origin the canonical link is built on; the server passes the request's. */
-  origin?: string;
-};
-
-const ArticlePage: React.FC<ArticlePageProps> = ({ origin }) => {
+const ArticlePage: React.FC = () => {
   const locale = useLocale();
   const navigate = useNavigate();
   const { slug: requestedSlug = '' } = useParams<{ slug: string }>();
@@ -281,10 +276,18 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ origin }) => {
     track('opinion_switch', { paragraphId, index: nextIndex });
   };
 
-  // The page always renders its own <title> (the route's `ownsTitle` handle): the article's, or the site's.
+  // The page always renders its own metadata (the route's `ownsMeta` handle): the article's, or a
+  // non-indexed placeholder while it loads or failed.
   const documentHead = articleContent?.meta && articleContent.slug
-    ? <ArticleMeta meta={articleContent.meta} slug={articleContent.slug} origin={origin} />
-    : <DefaultDocumentTitle />;
+    ? (
+      <ArticleMeta
+        meta={articleContent.meta}
+        slug={articleContent.slug}
+        publishedAt={articleContent.publishedAt}
+        updatedAt={articleContent.updatedAt}
+      />
+    )
+    : <PageMeta noIndex />;
 
   if (isLoading) {
     return (
@@ -298,7 +301,7 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ origin }) => {
   if ((error instanceof ApiError && error.status === 404) || (!error && !articleContent)) {
     return (
       <>
-        {documentHead}
+        <NotFoundMeta />
         <NotFoundPage />
       </>
     );

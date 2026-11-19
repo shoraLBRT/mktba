@@ -26,7 +26,7 @@ export default defineConfig([
     files: ['src/root.tsx', 'src/routes/**/*.tsx'],
     rules: {
       'react-refresh/only-export-components': ['error', {
-        allowExportNames: ['loader', 'clientLoader', 'handle', 'meta', 'links', 'headers', 'Layout', 'ErrorBoundary', 'HydrateFallback'],
+        allowExportNames: ['loader', 'clientLoader', 'handle', 'meta', 'links', 'headers', 'Layout', 'ErrorBoundary', 'HydrateFallback', 'shouldRevalidate'],
       }],
     },
   },

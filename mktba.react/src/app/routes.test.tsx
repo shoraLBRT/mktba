@@ -5,7 +5,7 @@ import App from '../root';
 import AdminRoute from '../routes/admin';
 import AdminLoginRoute from '../routes/admin-login';
 import ArticleRoute, * as articleRoute from '../routes/article';
-import HomeRoute from '../routes/home';
+import HomeRoute, * as homeRoute from '../routes/home';
 import LegacyAddArticleRoute, * as legacyAddArticleRoute from '../routes/legacy-add-article';
 import NotFoundRoute, * as notFoundRoute from '../routes/not-found';
 import PublicLayoutRoute, * as publicLayoutRoute from '../routes/public-layout';
@@ -47,6 +47,8 @@ const CurrentPath = () => <p data-testid="path">{useLocation().pathname}</p>;
  */
 const RoutesStub = createRoutesStub([
   {
+    id: 'root',
+    loader: () => ({ siteUrl: 'https://mktba.test' }),
     Component: () => (
       <>
         <App />
@@ -58,11 +60,11 @@ const RoutesStub = createRoutesStub([
         Component: PublicLayoutRoute,
         loader: publicLayoutRoute.clientLoader,
         children: [
-          { index: true, Component: HomeRoute },
+          { index: true, Component: HomeRoute, handle: homeRoute.handle },
           { path: 'article/new', Component: LegacyAddArticleRoute, loader: legacyAddArticleRoute.clientLoader },
           { path: 'article/:slug', Component: ArticleRoute, loader: articleRoute.clientLoader, handle: articleRoute.handle },
           { path: 'admin/login', Component: AdminLoginRoute },
-          { path: '*', Component: NotFoundRoute, loader: notFoundRoute.clientLoader },
+          { path: '*', Component: NotFoundRoute, loader: notFoundRoute.clientLoader, handle: notFoundRoute.handle },
         ],
       },
       { path: 'admin/*', Component: AdminRoute },
@@ -89,6 +91,32 @@ describe('AppRoutes', () => {
 
     expect(await screen.findByRole('heading', { name: 'Страница не найдена' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'На главную' }).getAttribute('href')).toBe('/');
+  });
+
+  it('given an unknown route, when rendered, then its head carries the 404 title and robots noindex', async () => {
+    renderAt('/no/such/page');
+
+    await screen.findByRole('heading', { name: 'Страница не найдена' });
+    expect(document.head.querySelectorAll('title')).toHaveLength(1);
+    expect(document.title).toBe('Страница не найдена — mktba');
+    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
+    expect(document.head.querySelector('link[rel="canonical"]')).toBeNull();
+  });
+
+  it('given the home page, when rendered, then its head carries the site title and its canonical URL', async () => {
+    renderAt('/');
+
+    await waitFor(() => expect(document.title).toBe('mktba — исламская wiki'));
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.test/');
+    expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
+  });
+
+  it('given the sign-in page, when rendered, then its head forbids indexing and following', async () => {
+    renderAt('/admin/login');
+
+    await screen.findByText('admin-login-page');
+    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex, nofollow');
+    expect(document.head.querySelectorAll('meta[property="og:title"]')).toHaveLength(1);
   });
 
   it('given the public header, when rendered, then shows no service tabs for the unbuilt Blog and Q&A', async () => {

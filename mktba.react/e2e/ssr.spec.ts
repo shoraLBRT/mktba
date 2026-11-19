@@ -9,8 +9,81 @@ test('the server sends an article page with its title, paragraphs and metadata i
   const html = await response.text();
   expect(html).toMatch(/<h1[^>]*>Салат<\/h1>/);
   expect(html).toContain('ритуальная молитва, которая является одним из пяти столпов ислама');
-  expect(html).toContain('<title>Салат</title>');
+  expect(html).toContain('<title>Салат — mktba</title>');
   expect(html).toMatch(/<link rel="canonical" href="[^"]*\/article\/salat"/);
+});
+
+/** The `content` of a `<meta>` in raw HTML, matched by its `name` or `property`. */
+const metaContent = (html: string, key: string): string | null =>
+  html.match(new RegExp(`<meta (?:name|property)="${key}" content="([^"]*)"`))?.[1] ?? null;
+
+test('the server sends an article with Open Graph and Twitter Card tags (O-04)', async ({ request }) => {
+  const html = await (await request.get('/article/salat')).text();
+
+  expect(metaContent(html, 'og:site_name')).toBe('mktba');
+  expect(metaContent(html, 'og:locale')).toBe('ru_RU');
+  expect(metaContent(html, 'og:type')).toBe('article');
+  expect(metaContent(html, 'og:title')).toBe('Салат');
+  expect(metaContent(html, 'og:url')).toMatch(/^https?:\/\/[^/]+\/article\/salat$/);
+  expect(metaContent(html, 'og:image')).toMatch(/^https?:\/\/[^/]+\/.+/);
+  expect(metaContent(html, 'description')).toBeTruthy();
+  expect(metaContent(html, 'twitter:card')).toBe('summary_large_image');
+  expect(metaContent(html, 'twitter:title')).toBe('Салат');
+  expect(metaContent(html, 'robots')).toBeNull();
+  expect(html.match(/<title>/g)).toHaveLength(1);
+});
+
+test('the server sends the home page with the site title, description and default image', async ({ request }) => {
+  const html = await (await request.get('/')).text();
+
+  expect(html).toContain('<title>mktba — исламская wiki</title>');
+  expect(metaContent(html, 'description')).toBe('исламская wiki — мнения четырёх мазхабов в одном месте');
+  expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^/"]+\/"/);
+  expect(metaContent(html, 'og:type')).toBe('website');
+  expect(metaContent(html, 'og:image')).toMatch(/\/og-default\.png$/);
+  expect(metaContent(html, 'robots')).toBeNull();
+});
+
+test('the server keeps the 404 page and the sign-in page out of the index', async ({ request }) => {
+  const notFound = await (await request.get('/no/such/page')).text();
+  expect(notFound).toContain('<title>Страница не найдена — mktba</title>');
+  expect(metaContent(notFound, 'robots')).toBe('noindex');
+  expect(notFound).not.toContain('rel="canonical"');
+
+  const login = await (await request.get('/admin/login')).text();
+  expect(metaContent(login, 'robots')).toBe('noindex, nofollow');
+
+  const admin = await (await request.get('/admin')).text();
+  expect(metaContent(admin, 'robots')).toBe('noindex, nofollow');
+});
+
+test('the default social image is served', async ({ request }) => {
+  const response = await request.get('/og-default.png');
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('image/png');
+});
+
+test('client-side navigation keeps one set of metadata tags in the head', async ({ page }) => {
+  await page.goto('/no/such/page');
+  await page.getByRole('link', { name: 'На главную' }).click();
+  await expect(page).toHaveTitle('mktba — исламская wiki');
+  await page.getByRole('complementary').getByRole('link', { name: 'Салат', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
+  await expect(page).toHaveTitle('Салат — mktba');
+
+  const head = page.locator('head');
+  for (const selector of [
+    'title',
+    'meta[name="description"]',
+    'link[rel="canonical"]',
+    'meta[property="og:title"]',
+    'meta[property="og:url"]',
+    'meta[name="twitter:card"]',
+  ]) {
+    await expect(head.locator(selector), selector).toHaveCount(1);
+  }
+  await expect(head.locator('meta[name="robots"]')).toHaveCount(0);
 });
 
 test('the server sends the opinions of every mazhab, not only the shown one (O-03)', async ({ request }) => {
