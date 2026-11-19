@@ -7,8 +7,9 @@ import {
   PanelLeftOpen,
   Plus,
 } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import Sidebar from '../components/Sidebar';
 import { useSidebar } from '../hooks/useSidebar';
 import { useLocale } from '../localization/hooks';
@@ -16,11 +17,8 @@ import { logOut, useSession } from '../services/session';
 import { Button } from '../shared/ui/Button';
 import { MazhabSelector } from '../components/mazhab/MazhabSelector';
 
-interface MainLayoutProps {
-  children: React.ReactNode;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+/** The public site: header, the article tree with search, and the page. Admin pages use `AdminLayout`. */
+const MainLayout: React.FC = () => {
   const locale = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
@@ -152,7 +150,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           searchFocusRequest={searchFocusRequest}
           onExpandSidebarSearch={handleExpandSidebarSearch}
         />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <ErrorBoundary resetKey={currentPath}>
+            <Outlet />
+          </ErrorBoundary>
+        </main>
       </div>
       <MazhabSelector />
     </div>

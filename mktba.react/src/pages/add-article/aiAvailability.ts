@@ -16,5 +16,5 @@ export const getAiAvailability = (settings: AiProviderSettingsDto | undefined): 
   return settings.isEnabled ? 'ready' : 'disabled';
 };
 
-/** Admin page link that opens the AI provider settings section. */
-export const AI_SETTINGS_PATH = '/admin?section=aiProvider';
+/** The admin page with the AI provider settings. */
+export const AI_SETTINGS_PATH = '/admin/ai';

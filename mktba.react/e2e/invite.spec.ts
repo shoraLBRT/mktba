@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
-import { declineAnalytics, logIn } from './helpers';
+import { declineAnalytics, logIn, openAdminArticleTree } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await declineAnalytics(page);
 });
 
 const createInvite = async (page: Page, role: string) => {
-  await page.goto('/admin?section=adminAccess');
+  await page.goto('/admin/users');
   await page.getByLabel('Роль', { exact: true }).selectOption({ label: role });
   await page.getByRole('button', { name: 'Создать приглашение' }).click();
   const token = (await page.getByTestId('invite-token').textContent())?.trim();
@@ -35,7 +35,8 @@ test('an author invited by an admin writes and submits an article but cannot pub
   await declineAnalytics(author);
   await register(author, `author-${stamp}@mktba.local`, token);
   await expect(author).toHaveURL(/\/admin$/);
-  await expect(author.getByRole('button', { name: 'Пользователи и приглашения' })).toHaveCount(0);
+  await expect(author.getByRole('navigation', { name: 'Разделы админки' }).getByRole('link', { name: 'Статьи' })).toBeVisible();
+  await expect(author.getByRole('link', { name: 'Пользователи и приглашения' })).toHaveCount(0);
 
   await author.getByRole('button', { name: 'Добавить статью' }).click();
   await author.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
@@ -43,16 +44,16 @@ test('an author invited by an admin writes and submits an article but cannot pub
   await author.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(author).toHaveURL(new RegExp(`/article/${slug}$`));
 
-  await author.goto('/admin');
-  await author.getByRole('complementary').getByRole('link', { name: title, exact: true }).click();
+  await (await openAdminArticleTree(author)).getByRole('link', { name: title, exact: true }).click();
   const statusPanel = author.getByTestId('article-status-panel');
   await statusPanel.getByRole('button', { name: 'Отправить на проверку' }).click();
   await expect(statusPanel.getByText('На проверке')).toBeVisible();
   await expect(statusPanel.getByRole('button', { name: 'Опубликовать' })).toHaveCount(0);
   await authorContext.close();
 
-  // The admin sees the invite as used, by the new author.
+  // The admin sees the invite as used, by the new author; the old single-page link still leads there.
   await page.goto('/admin?section=adminAccess');
+  await expect(page).toHaveURL(/\/admin\/users$/);
   const row = page.getByTestId('invite-row').filter({ hasText: `author-${stamp}@mktba.local` });
   await expect(row.getByText('Использовано')).toBeVisible();
 });
@@ -66,7 +67,8 @@ test('an invite works once: a second registration with it is refused', async ({ 
   const firstPage = await first.newPage();
   await declineAnalytics(firstPage);
   await register(firstPage, `reader-${stamp}@mktba.local`, token);
-  await expect(firstPage).toHaveURL(/\/admin$/);
+  // A reader has no dashboard, so the admin opens on their sessions.
+  await expect(firstPage).toHaveURL(/\/admin\/sessions$/);
   await first.close();
 
   const second = await browser.newContext();

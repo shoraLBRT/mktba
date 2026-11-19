@@ -183,5 +183,26 @@
     ],
     "sessionHint": "JWT session for admin actions",
     "authStatusLoading": "Проверка статуса авторизации..."
+  },
+  "adminLayout": {
+    "title": "Админка",
+    "navLabel": "Разделы админки",
+    "menuOpen": "Открыть меню разделов",
+    "menuClose": "Закрыть меню разделов",
+    "toSite": "На сайт",
+    "sections": {
+      "dashboard": "Обзор",
+      "articles": "Статьи",
+      "users": "Пользователи и приглашения",
+      "sessions": "Сессии",
+      "ai": "ИИ-провайдер",
+      "maintenance": "Обслуживание базы"
+    },
+    "dashboardTitle": "Обзор",
+    "articleTreeTitle": "Дерево статей",
+    "articleTreeDescription": "Создавайте разделы, меняйте порядок и родителя статей. Название статьи открывает редактор.",
+    "forbiddenTitle": "Нет доступа",
+    "forbiddenMessage": "Этот раздел недоступен для вашей роли.",
+    "forbiddenLink": "К разделам админки"
   }
 }
