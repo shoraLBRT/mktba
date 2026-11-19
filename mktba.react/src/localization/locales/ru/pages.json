@@ -95,6 +95,13 @@
     "adjacentArticles": "Соседние статьи",
     "previousArticle": "Предыдущая статья",
     "nextArticle": "Следующая статья",
+    "sources": "Источники",
+    "sourceAuthor": "{author}. ",
+    "sourceDetails": ". {details}",
+    "sourceCitationsSeparator": " — ",
+    "sourceCitationsDivider": ", ",
+    "sourceCitationLink": "Перейти к абзацу, где приведён источник",
+    "sourceCitedInText": "в тексте",
     "backToTop": "Наверх"
   },
   "articleRightSidebar": {

@@ -7,6 +7,7 @@ import {
   canAssignSchools,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
+  createCitation,
   hasAnyFilledContent,
   hasVersionedBlockWithoutFilledDefault,
   importBlocksFromMarkdown,
@@ -15,6 +16,7 @@ import {
   moveBlock,
   removeVersionFromBlock,
   setDefaultVersion,
+  setOpinionSources,
 } from './draftHelpers';
 import type { EditorBlock, VersionedEditorBlock } from './types';
 
@@ -129,13 +131,13 @@ describe('schools on a block with a single opinion (S-14)', () => {
 
   it('given several opinions but only one with text, when building create DTOs, then it is sent as a plain paragraph without schools', () => {
     expect(buildParagraphCreateDtosFromBlocks([onlyDefaultFilled])).toEqual([
-      { articleId: 0, order: 1, opinions: [{ content: 'общее', isDefault: true, schoolIds: [] }] },
+      { articleId: 0, order: 1, opinions: [{ content: 'общее', isDefault: true, schoolIds: [], sources: [] }] },
     ]);
   });
 
   it('given several opinions but only one with text, when building update DTOs, then it is sent as a plain paragraph without schools', () => {
     expect(buildParagraphUpdateDtosFromBlocks([{ ...onlyDefaultFilled, paragraphId: 3 }])).toEqual([
-      { id: 3, order: 1, opinions: [{ id: 0, content: 'общее', isDefault: true, schoolIds: [] }] },
+      { id: 3, order: 1, opinions: [{ id: 0, content: 'общее', isDefault: true, schoolIds: [], sources: [] }] },
     ]);
   });
 
@@ -186,9 +188,9 @@ describe('buildParagraphCreateDtosFromBlocks', () => {
     ];
 
     expect(buildParagraphCreateDtosFromBlocks(blocks)).toEqual([
-      { articleId: 0, order: 1, opinions: [{ content: '## Заголовок', isDefault: true, schoolIds: [] }] },
-      { articleId: 0, order: 2, opinions: [{ content: 'текст', isDefault: true, schoolIds: [] }] },
-      { articleId: 0, order: 3, opinions: [{ content: 'ханафи', isDefault: true, schoolIds: [] }] },
+      { articleId: 0, order: 1, opinions: [{ content: '## Заголовок', isDefault: true, schoolIds: [], sources: [] }] },
+      { articleId: 0, order: 2, opinions: [{ content: 'текст', isDefault: true, schoolIds: [], sources: [] }] },
+      { articleId: 0, order: 3, opinions: [{ content: 'ханафи', isDefault: true, schoolIds: [], sources: [] }] },
     ]);
   });
 
@@ -210,8 +212,8 @@ describe('buildParagraphUpdateDtosFromBlocks', () => {
     ];
 
     expect(buildParagraphUpdateDtosFromBlocks(blocks)).toEqual([
-      { id: 5, order: 1, opinions: [{ id: 50, content: '### Раздел', isDefault: true, schoolIds: [] }] },
-      { id: 0, order: 2, opinions: [{ id: 0, content: 'новый абзац', isDefault: true, schoolIds: [] }] },
+      { id: 5, order: 1, opinions: [{ id: 50, content: '### Раздел', isDefault: true, schoolIds: [], sources: [] }] },
+      { id: 0, order: 2, opinions: [{ id: 0, content: 'новый абзац', isDefault: true, schoolIds: [], sources: [] }] },
     ]);
   });
 });
@@ -223,11 +225,11 @@ describe('importBlocksFromParagraphs', () => {
         id: 2,
         order: 2,
         opinions: [
-          { id: 21, content: 'мнение А', isDefault: true, schoolIds: [1] },
-          { id: 22, content: 'мнение Б', isDefault: false, schoolIds: [2] },
+          { id: 21, content: 'мнение А', isDefault: true, schoolIds: [1], sources: [] },
+          { id: 22, content: 'мнение Б', isDefault: false, schoolIds: [2], sources: [] },
         ],
       },
-      { id: 1, order: 1, opinions: [{ id: 11, content: '## Введение', isDefault: true, schoolIds: [] }] },
+      { id: 1, order: 1, opinions: [{ id: 11, content: '## Введение', isDefault: true, schoolIds: [], sources: [] }] },
     ];
 
     const blocks = importBlocksFromParagraphs(paragraphs);
@@ -239,10 +241,67 @@ describe('importBlocksFromParagraphs', () => {
 
   it('given round-tripped blocks, when rebuilding update DTOs, then the server content is preserved', () => {
     const paragraphs: ParagraphDto[] = [
-      { id: 1, order: 1, opinions: [{ id: 11, content: '### Итог', isDefault: true, schoolIds: [] }] },
+      { id: 1, order: 1, opinions: [{ id: 11, content: '### Итог', isDefault: true, schoolIds: [], sources: [] }] },
     ];
 
     expect(buildParagraphUpdateDtosFromBlocks(importBlocksFromParagraphs(paragraphs))).toEqual(paragraphs);
+  });
+});
+
+describe('citations', () => {
+  const bukhari = { id: 1, kind: 'HadithCollection' as const, title: 'Сахих', author: 'аль-Бухари' };
+  const quran = { id: 2, kind: 'Quran' as const, title: 'Коран' };
+
+  it('given saved citations, when imported and rebuilt, then every opinion keeps its sources, order and locators', () => {
+    const paragraphs: ParagraphDto[] = [
+      { id: 1, order: 1, opinions: [{ id: 11, content: 'Абзац', isDefault: true, schoolIds: [], sources: [{ sourceId: 2, locator: '2:255' }, { sourceId: 1, locator: null }] }] },
+      {
+        id: 2,
+        order: 2,
+        opinions: [
+          { id: 21, content: 'мнение А', isDefault: true, schoolIds: [1], sources: [{ sourceId: 1, locator: '№ 52' }] },
+          { id: 22, content: 'мнение Б', isDefault: false, schoolIds: [2], sources: [] },
+        ],
+      },
+    ];
+
+    const blocks = importBlocksFromParagraphs(paragraphs, [bukhari, quran]);
+
+    expect(buildParagraphUpdateDtosFromBlocks(blocks)).toEqual(paragraphs);
+    expect(buildParagraphCreateDtosFromBlocks(blocks)[0].opinions[0].sources).toEqual([{ sourceId: 2, locator: '2:255' }, { sourceId: 1, locator: null }]);
+  });
+
+  it('given a plain paragraph and a version, when their sources are set, then only the addressed opinion changes', () => {
+    const blocks = [
+      paragraph('p', 'текст'),
+      versioned('v', [
+        { localId: 'a', content: 'А', isDefault: true },
+        { localId: 'b', content: 'Б', isDefault: false },
+      ]),
+    ];
+
+    const withPlain = setOpinionSources(blocks, 'p', null, [createCitation(quran, ' 1:1 ')]);
+    const withBoth = setOpinionSources(withPlain, 'v', 'b', [createCitation(bukhari)]);
+
+    const [plainDto, versionedDto] = buildParagraphCreateDtosFromBlocks(withBoth);
+    expect(plainDto.opinions[0].sources).toEqual([{ sourceId: 2, locator: '1:1' }]);
+    expect(versionedDto.opinions.map((opinion) => opinion.sources)).toEqual([[], [{ sourceId: 1, locator: null }]]);
+  });
+
+  it('given a paragraph with sources, when converted to a block of opinions and back, then the sources stay with the text', () => {
+    const blocks = setOpinionSources([paragraph('p', 'текст')], 'p', null, [createCitation(bukhari, '№ 1')]);
+
+    const versionedBlocks = convertParagraphToVersioned(blocks, 'p');
+    const back = convertVersionedToParagraph(versionedBlocks, 'p');
+
+    expect(buildParagraphCreateDtosFromBlocks(versionedBlocks)[0].opinions[0].sources).toEqual([{ sourceId: 1, locator: '№ 1' }]);
+    expect(buildParagraphCreateDtosFromBlocks(back)[0].opinions[0].sources).toEqual([{ sourceId: 1, locator: '№ 1' }]);
+  });
+
+  it('given a heading holding sources, when saved, then it sends none', () => {
+    const heading: EditorBlock = { id: 'h', kind: 'heading2', content: 'Глава', sources: [createCitation(quran)] };
+
+    expect(buildParagraphCreateDtosFromBlocks([heading])[0].opinions[0].sources).toEqual([]);
   });
 });
 

@@ -7,6 +7,7 @@ import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleBreadcrumbs } from '../components/article/ArticleBreadcrumbs';
 import { ArticleDates } from '../components/article/ArticleDates';
 import { ArticleFooter } from '../components/article/ArticleFooter';
+import { collectCitedSources } from '../shared/articleSources';
 import { ArticleMeta } from '../components/article/ArticleMeta';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { ArticleStructuredData } from '../components/StructuredData';
@@ -161,6 +162,11 @@ const ArticlePage: React.FC = () => {
         slug: link.relatedArticleSlug,
         title: link.relatedArticleTitle,
       })),
+    [articleContent],
+  );
+
+  const citedSources = useMemo(
+    () => collectCitedSources(articleContent?.paragraphs ?? [], articleContent?.sources ?? []),
     [articleContent],
   );
 
@@ -408,6 +414,7 @@ const ArticlePage: React.FC = () => {
           </div>
 
           <ArticleFooter
+            sources={citedSources}
             childArticles={childArticles}
             relatedArticles={relatedArticles}
             previous={adjacentArticles.previous}

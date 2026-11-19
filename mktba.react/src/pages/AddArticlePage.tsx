@@ -30,6 +30,7 @@ import {
   buildParagraphCreateDtosFromBlocks,
   collectWholeArticleAiTargets,
   setOpinionSchools,
+  setOpinionSources,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
   createEmptyBlock,
@@ -542,6 +543,7 @@ const AddArticlePage: React.FC = () => {
                           onChangeVersion={(blockId, localId, content) => setBlocks((current) => updateVersionContent(current, blockId, localId, content))}
                           onSetDefault={(blockId, localId) => setBlocks((current) => setDefaultVersion(current, blockId, localId))}
                           onSetSchools={(blockId, localId, schoolIds) => setBlocks((current) => setOpinionSchools(current, blockId, localId, schoolIds))}
+                          onSetSources={(blockId, localId, sources) => setBlocks((current) => setOpinionSources(current, blockId, localId, sources))}
                           onAddVersion={(blockId) => setBlocks((current) => addVersionToBlock(current, blockId))}
                           onRemoveVersion={(blockId, localId) => setBlocks((current) => removeVersionFromBlock(current, blockId, localId))}
                           onDeleteBlock={(blockId) => setBlocks((current) => (current.length > 1 ? deleteBlock(current, blockId) : current))}

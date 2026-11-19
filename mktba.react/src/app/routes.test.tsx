@@ -210,13 +210,13 @@ const richArticle: ArticleContentDto = {
   publishedAt: '2026-11-01T09:00:00Z',
   updatedAt: '2026-11-19T10:00:00Z',
   paragraphs: [
-    { id: 1, order: 1, opinions: [{ id: 11, content: '# Условия\n\n### Время', isDefault: true, schoolIds: [] }] },
+    { id: 1, order: 1, opinions: [{ id: 11, content: '# Условия\n\n### Время', isDefault: true, schoolIds: [], sources: [] }] },
     {
       id: 2,
       order: 2,
       opinions: [
-        { id: 21, content: '## Порядок\n\n![Схема](/scheme.png)', isDefault: true, schoolIds: [] },
-        { id: 22, content: '#### Иной порядок', isDefault: false, schoolIds: [] },
+        { id: 21, content: '## Порядок\n\n![Схема](/scheme.png)', isDefault: true, schoolIds: [], sources: [] },
+        { id: 22, content: '#### Иной порядок', isDefault: false, schoolIds: [], sources: [] },
       ],
     },
   ],

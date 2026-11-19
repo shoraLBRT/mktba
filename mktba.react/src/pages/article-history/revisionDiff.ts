@@ -1,3 +1,4 @@
+import { sourceLabel } from '../../shared/articleSources';
 import type { ArticleSnapshotDto } from '../../shared/types/ApiTypes';
 
 export type DiffLine = { kind: 'same' | 'added' | 'removed'; text: string };
@@ -43,6 +44,8 @@ export type SectionLabels = {
   relatedLinks: string;
   paragraph: (order: number) => string;
   opinion: (schools: string, isDefault: boolean) => string;
+  /** The line for one citation: «Author. Title, locator» as the revision saved it. */
+  source: (citation: string) => string;
 };
 
 type Section = { key: string; label: string; text: string };
@@ -75,9 +78,13 @@ export const snapshotSections = (
       label: labels.paragraph(paragraph.order),
       text: paragraph.opinions
         .map((opinion) =>
-          paragraph.opinions.length > 1
-            ? `${labels.opinion(opinion.schoolIds.map(schoolName).join(', '), opinion.isDefault)}\n${opinion.content}`
-            : opinion.content,
+          [
+            ...(paragraph.opinions.length > 1 ? [labels.opinion(opinion.schoolIds.map(schoolName).join(', '), opinion.isDefault)] : []),
+            opinion.content,
+            ...(opinion.sources ?? []).map((source) =>
+              labels.source(source.locator ? `${sourceLabel(source)}, ${source.locator}` : sourceLabel(source)),
+            ),
+          ].join('\n'),
         )
         .join('\n\n'),
     });

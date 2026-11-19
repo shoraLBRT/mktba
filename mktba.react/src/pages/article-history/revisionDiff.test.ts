@@ -11,6 +11,7 @@ const labels: SectionLabels = {
   relatedLinks: 'Связанные',
   paragraph: (order) => `Абзац ${order}`,
   opinion: (schools, isDefault) => `[${schools}]${isDefault ? '*' : ''}`,
+  source: (citation) => `Источник: ${citation}`,
 };
 
 const snapshot = (overrides: Partial<ArticleSnapshotDto>): ArticleSnapshotDto => ({
@@ -42,6 +43,35 @@ describe('diffLines', () => {
 });
 
 describe('compareSnapshots', () => {
+  it('given a citation added to an opinion, flags the paragraph and shows the source as the revision saved it', () => {
+    const before = snapshot({});
+    const after = snapshot({
+      schemaVersion: 3,
+      paragraphs: [{
+        order: 1,
+        opinions: [{
+          content: 'Один\nДва',
+          isDefault: true,
+          schoolIds: [],
+          sources: [
+            { sourceId: 1, locator: '№ 1', kind: 'HadithCollection', title: 'Сахих', author: 'аль-Бухари' },
+            { sourceId: 2, kind: 'Quran', title: 'Коран' },
+          ],
+        }],
+      }],
+    });
+
+    const paragraph = compareSnapshots(before, after, labels, String).find((section) => section.key === 'paragraph-1')!;
+
+    expect(paragraph.changed).toBe(true);
+    expect(paragraph.lines).toEqual([
+      { kind: 'same', text: 'Один' },
+      { kind: 'same', text: 'Два' },
+      { kind: 'added', text: 'Источник: аль-Бухари. Сахих, № 1' },
+      { kind: 'added', text: 'Источник: Коран' },
+    ]);
+  });
+
   it('given an edited paragraph and a removed one, flags exactly those sections as changed', () => {
     const from = snapshot({
       paragraphs: [

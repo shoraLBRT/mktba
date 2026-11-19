@@ -32,6 +32,7 @@ import {
   buildParagraphUpdateDtosFromBlocks,
   collectWholeArticleAiTargets,
   setOpinionSchools,
+  setOpinionSources,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
   createEmptyBlock,
@@ -221,7 +222,7 @@ const EditArticlePage: React.FC = () => {
       const data = articleQuery.data;
       setTitle(data.title);
       setSlug(data.slug ?? '');
-      const imported = importBlocksFromParagraphs(data.paragraphs);
+      const imported = importBlocksFromParagraphs(data.paragraphs, data.sources ?? []);
       setBlocks(imported.length > 0 ? imported : [createEmptyBlock('paragraph')]);
       if (data.infobox) {
         setInfobox(importInfoboxFromDto(data.infobox));
@@ -686,6 +687,7 @@ const EditArticlePage: React.FC = () => {
                           onChangeVersion={(blockId, localId, content) => setBlocks((current) => updateVersionContent(current, blockId, localId, content))}
                           onSetDefault={(blockId, localId) => setBlocks((current) => setDefaultVersion(current, blockId, localId))}
                           onSetSchools={(blockId, localId, schoolIds) => setBlocks((current) => setOpinionSchools(current, blockId, localId, schoolIds))}
+                          onSetSources={(blockId, localId, sources) => setBlocks((current) => setOpinionSources(current, blockId, localId, sources))}
                           onAddVersion={(blockId) => setBlocks((current) => addVersionToBlock(current, blockId))}
                           onRemoveVersion={(blockId, localId) => setBlocks((current) => removeVersionFromBlock(current, blockId, localId))}
                           onDeleteBlock={(blockId) => setBlocks((current) => (current.length > 1 ? deleteBlock(current, blockId) : current))}

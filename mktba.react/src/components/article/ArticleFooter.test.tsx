@@ -10,7 +10,7 @@ const renderFooter = (props: Partial<FooterProps>) =>
   render(
     <MemoryRouter>
       <LocalizationProvider>
-        <ArticleFooter childArticles={[]} relatedArticles={[]} previous={null} next={null} {...props} />
+        <ArticleFooter sources={[]} childArticles={[]} relatedArticles={[]} previous={null} next={null} {...props} />
       </LocalizationProvider>
     </MemoryRouter>,
   );
@@ -23,6 +23,28 @@ describe('ArticleFooter', () => {
     const { container } = renderFooter({});
 
     expect(container.innerHTML).toBe('');
+  });
+
+  it('given cited sources, when rendered, then they are a numbered list under a second-level heading with links back to the paragraphs', () => {
+    renderFooter({
+      sources: [
+        {
+          source: { id: 1, kind: 'HadithCollection', title: 'Сахих', author: 'аль-Бухари', details: 'Бейрут, 2002', url: 'https://example.com/sahih' },
+          citations: [{ paragraphId: 10, locator: '№ 1' }, { paragraphId: 20, locator: '№ 52' }],
+        },
+        { source: { id: 2, kind: 'Quran', title: 'Коран' }, citations: [{ paragraphId: 10, locator: null }] },
+      ],
+    });
+
+    const block = screen.getByRole('region', { name: 'Источники' });
+    expect(within(block).getByRole('heading', { level: 2, name: 'Источники' }).tagName).toBe('H2');
+    expect(within(block).getByRole('list').tagName).toBe('OL');
+    expect(within(block).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'аль-Бухари. Сахих. Бейрут, 2002 — № 1, № 52',
+      'Коран — в тексте',
+    ]);
+    expect(hrefs(block)).toEqual(['https://example.com/sahih', '#p-10', '#p-20', '#p-10']);
+    expect(within(block).getByRole('link', { name: 'Сахих' }).getAttribute('rel')).toBe('noopener noreferrer');
   });
 
   it('given child articles, when rendered, then they are listed in order under a second-level heading', () => {
