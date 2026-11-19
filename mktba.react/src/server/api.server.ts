@@ -1,9 +1,12 @@
 import { API_BASE_URL } from '../config';
 import { ApiError } from '../shared/api-client/apiError';
+import { AUTHOR_PAGE_PARAM } from '../shared/author';
 import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../shared/search';
 import type {
   ArticleContentDto,
+  AuthorArticlesDto,
   NavigationArticleDto,
+  PublicProfileDto,
   RecentArticlesDto,
   SchoolDto,
   SearchResultsDto,
@@ -69,6 +72,9 @@ export const serverApi = {
     getJson<SearchResultsDto>(
       `/search?${new URLSearchParams({ [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: String(page) }).toString()}`,
     ),
+  getAuthor: (slug: string) => getJson<PublicProfileDto>(`/authors/${encodeURIComponent(slug)}`),
+  getAuthorArticles: (slug: string, page: number) =>
+    getJson<AuthorArticlesDto>(`/authors/${encodeURIComponent(slug)}/articles?${AUTHOR_PAGE_PARAM}=${page}`),
   getSystemSchools: () => getJson<SchoolDto[]>('/schools/system'),
   getSchoolsByArticleId: (articleId: number) => getJson<SchoolDto[]>(`/schools/article/${articleId}`),
 };

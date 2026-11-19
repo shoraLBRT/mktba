@@ -2319,6 +2319,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/authors/{slug}/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The articles an author wrote or co-authored, for the author's public page.
+         * @description Only articles a reader can open: Published, not under a non-Published parent, and not empty stubs; ordered by publishedAt, latest first. The same list for every caller; no content. The list may be empty for a public author. locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1; pageSize is 20 by default, kept within 1 to 50. Answers 404 author_not_found exactly when GET /authors/{slug} does.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    locale?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthorArticlesDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/schools/system": {
         parameters: {
             query?: never;
@@ -3266,6 +3329,26 @@ export interface components {
             title: string;
             /** Format: int32 */
             parentArticleId?: number | null;
+        };
+        AuthorArticleDto: {
+            /** Format: int32 */
+            id: number;
+            title: string;
+            slug: string;
+            summary?: string | null;
+            /** Format: date-time */
+            publishedAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AuthorArticlesDto: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            items: components["schemas"]["AuthorArticleDto"][];
         };
         CurrentUserDto: {
             /** Format: int32 */

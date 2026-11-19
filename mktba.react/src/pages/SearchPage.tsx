@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
+import { PageLinks } from '../components/PageLinks';
 import { SearchForm } from '../components/search/SearchForm';
 import { useLocale } from '../localization/hooks';
 import { searchArticles } from '../services/Article/articleService';
@@ -14,7 +15,7 @@ import {
   searchQueryKey,
   searchResultHref,
 } from '../shared/search';
-import type { SearchResultDto, SearchResultsDto, SearchTextSegmentDto } from '../shared/types/ApiTypes';
+import type { SearchResultDto, SearchTextSegmentDto } from '../shared/types/ApiTypes';
 
 const linkClass = 'text-[var(--color-brand-forest)] underline-offset-2 hover:underline';
 const noteClass = 'm-0 text-base leading-7 text-[var(--color-ink-muted)]';
@@ -55,37 +56,6 @@ const ResultItem = ({ result }: { result: SearchResultDto }) => (
     )}
   </li>
 );
-
-const Pagination = ({ results }: { results: SearchResultsDto }) => {
-  const t = useLocale().search.pagination;
-  const pageCount = searchPageCount(results.total, results.pageSize);
-
-  if (pageCount <= 1) {
-    return null;
-  }
-
-  return (
-    <nav aria-label={t.label} className="flex items-center justify-between gap-4 text-sm">
-      {results.page > 1 ? (
-        <Link to={searchHref(results.query, results.page - 1)} rel="prev" className={linkClass}>
-          {t.previous}
-        </Link>
-      ) : (
-        <span aria-hidden="true" />
-      )}
-      <span className="text-[var(--color-ink-muted)]">
-        {t.position.replace('{page}', String(Math.min(results.page, pageCount))).replace('{pages}', String(pageCount))}
-      </span>
-      {results.page < pageCount ? (
-        <Link to={searchHref(results.query, results.page + 1)} rel="next" className={linkClass}>
-          {t.next}
-        </Link>
-      ) : (
-        <span aria-hidden="true" />
-      )}
-    </nav>
-  );
-};
 
 /** Nothing matched: say so plainly and suggest what to try. */
 const NothingFound = ({ query }: { query: string }) => {
@@ -164,7 +134,12 @@ const SearchPage = () => {
               <ResultItem key={result.id} result={result} />
             ))}
           </ol>
-          <Pagination results={results} />
+          <PageLinks
+            label={t.pagination.label}
+            page={results.page}
+            pageCount={searchPageCount(results.total, results.pageSize)}
+            hrefFor={(page) => searchHref(results.query, page)}
+          />
         </>
       )}
     </div>

@@ -399,6 +399,21 @@
     "backHome": "На главную",
     "sendAnother": "Написать ещё одно"
   },
+  "authorPage": {
+    "avatarAlt": "Фото автора: {name}",
+    "selfDeclaredTitle": "Об образовании",
+    "degree": "Степень",
+    "institution": "Учебное заведение",
+    "selfDeclaredNote": "Указано самим автором. Редакция mktba эти сведения пока не проверяла.",
+    "linksLabel": "Ссылки автора",
+    "articlesTitle": "Статьи",
+    "articlesCount": "Всего: {count}",
+    "articlesEmpty": "У автора пока нет статей, открытых читателям.",
+    "pagesLabel": "Страницы списка статей",
+    "loadError": "Не удалось загрузить страницу автора.",
+    "articlesLoadError": "Не удалось загрузить статьи.",
+    "metaDescription": "{name}: статьи автора на mktba."
+  },
   "profilePage": {
     "title": "Мой профиль",
     "description": "То, что читатели увидят рядом с вашими статьями. Почта в профиле не показывается никогда.",

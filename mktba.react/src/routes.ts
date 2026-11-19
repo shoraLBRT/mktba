@@ -13,6 +13,7 @@ export default [
     route('feedback', 'routes/feedback.tsx'),
     route('article/new', 'routes/legacy-add-article.tsx'),
     route('article/:slug', 'routes/article.tsx'),
+    route('authors/:slug', 'routes/author.tsx'),
     route('admin/login', 'routes/admin-login.tsx'),
     route('*', 'routes/not-found.tsx'),
   ]),
