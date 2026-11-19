@@ -20,6 +20,7 @@ const article = (overrides: Partial<ArticleReadDto>): ArticleReadDto => ({
   title: 'Намаз',
   slug: 'namaz',
   parentArticleId: null,
+  order: 0,
   status: 'Draft',
   allowedTransitions: ['InReview'],
   hasContent: true,

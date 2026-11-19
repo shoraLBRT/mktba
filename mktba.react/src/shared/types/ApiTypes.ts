@@ -21,6 +21,7 @@ export type ArticleContentCreateDto = Schemas['ArticleContentCreateDto'];
 export type ArticleReadDto = Schemas['ArticleReadDto'];
 export type ArticleStatus = Schemas['ArticleStatus'];
 export type ArticleCreateDto = Schemas['ArticleCreateDto'];
+export type ArticleMoveDto = Schemas['ArticleMoveDto'];
 export type ArticleAuthorsDto = Schemas['ArticleAuthorsDto'];
 export type UserSummaryDto = Schemas['UserSummaryDto'];
 export type ArticleRevisionSummaryDto = Schemas['ArticleRevisionSummaryDto'];

@@ -854,6 +854,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Moves an article to another parent and/or position among its siblings.
+         * @description Places the article at the 0-based index among the new parent's other children (null or past the end appends) and renumbers both sibling lists. Answers 400 article_parent_not_found for an unknown parent and 400 article_move_cycle for the article itself or a descendant. Writes no revision and does not change UpdatedAt.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleMoveDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleReadDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}/authors": {
         parameters: {
             query?: never;
@@ -1703,6 +1766,12 @@ export interface components {
             label: string;
             value: string;
         };
+        ArticleMoveDto: {
+            /** Format: int32 */
+            parentArticleId?: number | null;
+            /** Format: int32 */
+            index?: number | null;
+        };
         ArticleReadDto: {
             /** Format: int32 */
             id: number;
@@ -1710,6 +1779,8 @@ export interface components {
             slug: string;
             /** Format: int32 */
             parentArticleId?: number | null;
+            /** Format: int32 */
+            order: number;
             status: components["schemas"]["ArticleStatus"];
             allowedTransitions: components["schemas"]["ArticleStatus"][];
             hasContent: boolean;

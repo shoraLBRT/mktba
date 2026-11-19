@@ -70,6 +70,7 @@ namespace Mktba.Application.Services
         {
             var article = _mapper.Map<Article>(createDto);
             ArticleTimestamps.StampCreated(article, authorId, _clock);
+            article.Order = await _articleRepository.GetNextSiblingOrderAsync(article.ParentArticleId);
             article.Slug = await new ArticleSlugAssigner(_articleRepository).GenerateUniqueAsync(article.Title, articleId: null);
             await _articleRepository.AddAsync(article);
             await _articleRepository.SaveChangesAsync();
@@ -86,9 +87,72 @@ namespace Mktba.Application.Services
             }
 
             _mapper.Map(updateDto, article);
+            if (updateDto.ParentArticleId != article.ParentArticleId)
+            {
+                await PlaceAsync(article, updateDto.ParentArticleId, index: null);
+            }
+
             article.UpdatedAt = _clock.GetUtcNow().UtcDateTime;
             await _articleRepository.UpdateAsync(article);
             await _articleRepository.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Moves the article under <paramref name="dto"/>'s parent at its index and renumbers the
+        /// siblings it left and joined to 0..N-1, in one save. A move is structural: it writes no
+        /// revision and leaves <see cref="Article.UpdatedAt"/> alone.
+        /// </summary>
+        /// <exception cref="NotFoundException">The article does not exist.</exception>
+        /// <exception cref="ValidationException">The parent does not exist, or is the article or one of its descendants.</exception>
+        public async Task<ArticleReadDto> MoveAsync(int id, ArticleMoveDto dto)
+        {
+            var article = await _articleRepository.GetByIdAsync(id)
+                ?? throw new NotFoundException(AppErrors.ArticleNotFound);
+
+            await PlaceAsync(article, dto.ParentArticleId, dto.Index);
+            await _articleRepository.SaveChangesAsync();
+            return _mapper.Map<ArticleReadDto>(article);
+        }
+
+        /// <summary>Validates the new parent, then stages the article's new position and both sibling renumberings.</summary>
+        private async Task PlaceAsync(Article article, int? parentId, int? index)
+        {
+            if (parentId is int newParentId)
+            {
+                var parentIds = await _articleRepository.GetParentIdsAsync();
+                if (!parentIds.ContainsKey(newParentId))
+                {
+                    throw new ValidationException(AppErrors.ArticleParentNotFound(newParentId));
+                }
+
+                if (ArticleTreeRules.IsSelfOrDescendant(parentIds, article.Id, newParentId))
+                {
+                    throw new ValidationException(AppErrors.ArticleMoveCycle);
+                }
+            }
+
+            var oldParentId = article.ParentArticleId;
+            var siblings = (await _articleRepository.GetSiblingsAsync(parentId))
+                .Where(sibling => sibling.Id != article.Id)
+                .ToList();
+            siblings.Insert(Math.Clamp(index ?? siblings.Count, 0, siblings.Count), article);
+            article.ParentArticleId = parentId;
+            Renumber(siblings);
+
+            if (oldParentId != parentId)
+            {
+                Renumber((await _articleRepository.GetSiblingsAsync(oldParentId))
+                    .Where(sibling => sibling.Id != article.Id));
+            }
+        }
+
+        private static void Renumber(IEnumerable<Article> siblings)
+        {
+            var order = 0;
+            foreach (var sibling in siblings)
+            {
+                sibling.Order = order++;
+            }
         }
 
         public async Task DeleteAsync(int id)

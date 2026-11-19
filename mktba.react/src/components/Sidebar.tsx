@@ -4,18 +4,31 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
-import { createArticle } from '../services/adminService';
+import { createArticle, moveArticle } from '../services/adminService';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { invalidateArticleQueries } from '../app/queryClient';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import { Input } from '../shared/ui/Input';
 import type { NavigationArticleDto } from '../shared/types/ApiTypes';
+import { collectValidParents } from '../shared/articleTree';
 import CreateNodeModal from './CreateNodeModal';
+import MoveNodeModal from './MoveNodeModal';
 import NavigationTree from './NavigationTree';
 
 type CreateNodeTarget = {
   parentId?: number;
   parentTitle?: string;
+};
+
+type MoveNodeTarget = {
+  article: NavigationArticleDto;
+  parentId: number | null;
+};
+
+type MoveRequest = {
+  articleId: number;
+  parentId: number | null;
+  index: number | null;
 };
 
 const filterNavigationTree = (articles: NavigationArticleDto[], searchValue: string): NavigationArticleDto[] => {
@@ -92,7 +105,23 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
   });
 
+  const [moveTarget, setMoveTarget] = useState<MoveNodeTarget | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
+  const moveNodeMutation = useMutation({
+    mutationFn: ({ articleId, parentId, index }: MoveRequest) =>
+      moveArticle(articleId, { parentArticleId: parentId, index }),
+    onSuccess: () => {
+      void invalidateArticleQueries(queryClient);
+      setMoveTarget(null);
+      setMoveError(null);
+    },
+    onError: (error) => setMoveError(`${locale.navigationTree.moveError}: ${extractApiErrorMessage(error)}`),
+  });
+
   const { data: navigationTree, isLoading, error } = useNavigationTree();
+  // Positions only make sense in the whole tree, so reordering is off while a search filters it.
+  const canReorder = showArticleEditActions && !searchValue.trim() && !moveNodeMutation.isPending;
 
   const filteredNavigationTree = useMemo(() => {
     if (!navigationTree) {
@@ -152,6 +181,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="mb-0 mt-1 text-xs text-red-600">{(error as Error).message}</p>
           </div>
         ) : (
+          <>
+          {moveError && !moveTarget ? (
+            <p role="alert" className="mx-2 mb-2 mt-0 text-[12px] leading-5 text-red-600">
+              {moveError}
+            </p>
+          ) : null}
           <NavigationTree
             navigationTree={filteredNavigationTree}
             showArticleEditActions={showArticleEditActions}
@@ -161,7 +196,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ? (parentId, parentTitle) => openCreateModal({ parentId, parentTitle })
                 : undefined
             }
+            onMove={
+              canReorder
+                ? (articleId, parentId, index) => moveNodeMutation.mutate({ articleId, parentId, index })
+                : undefined
+            }
+            onChangeParent={
+              canReorder
+                ? (article, parentId) => {
+                    setMoveError(null);
+                    setMoveTarget({ article, parentId });
+                  }
+                : undefined
+            }
           />
+          </>
         )}
       </div>
 
@@ -235,6 +284,23 @@ const Sidebar: React.FC<SidebarProps> = ({
           onClose={() => {
             setCreateTarget(null);
             setCreateError(null);
+          }}
+        />
+      ) : null}
+
+      {moveTarget ? (
+        <MoveNodeModal
+          articleTitle={moveTarget.article.title}
+          currentParentId={moveTarget.parentId}
+          parentOptions={collectValidParents(navigationTree, moveTarget.article.id)}
+          isPending={moveNodeMutation.isPending}
+          errorMessage={moveError}
+          onConfirm={(parentId) =>
+            moveNodeMutation.mutate({ articleId: moveTarget.article.id, parentId, index: null })
+          }
+          onClose={() => {
+            setMoveTarget(null);
+            setMoveError(null);
           }}
         />
       ) : null}

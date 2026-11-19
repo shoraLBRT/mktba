@@ -7,6 +7,7 @@ import type {
   AiStyleResponseDto,
   ArticleAuthorsDto,
   ArticleCreateDto,
+  ArticleMoveDto,
   ArticleReadDto,
   ArticleStatus,
   UpdateAiProviderSettingsDto,
@@ -48,6 +49,15 @@ export const setArticleAuthors = async (id: number, dto: ArticleAuthorsDto): Pro
 
 export const createArticle = async (dto: ArticleCreateDto): Promise<ArticleReadDto> => {
   const response = await apiClient.post<ArticleReadDto>('/articles/', dto);
+  return response.data;
+};
+
+/**
+ * Moves the article under another parent (null for the top level) at a 0-based index among its
+ * new siblings; a null index appends. The API rejects its own subtree as the parent.
+ */
+export const moveArticle = async (id: number, dto: ArticleMoveDto): Promise<ArticleReadDto> => {
+  const response = await apiClient.post<ArticleReadDto>(`/articles/${id}/move`, dto);
   return response.data;
 };
 

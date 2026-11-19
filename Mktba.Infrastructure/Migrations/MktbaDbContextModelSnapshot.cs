@@ -116,6 +116,9 @@ namespace Mktba.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("ParentArticleId")
                         .HasColumnType("integer");
 
@@ -154,12 +157,12 @@ namespace Mktba.Infrastructure.Migrations
 
                     b.HasIndex("AuthorId");
 
-                    b.HasIndex("ParentArticleId");
-
                     b.HasIndex("PublishedRevisionId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
+
+                    b.HasIndex("ParentArticleId", "Order");
 
                     b.ToTable("Articles");
                 });

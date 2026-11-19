@@ -143,3 +143,49 @@ test('an edit is kept in the history, can be compared and rolled back', async ({
   await page.goto(editUrl.replace(/\/edit$/, '').replace('/admin/articles/', '/article/'));
   await expect(page.getByText('Исходный текст.')).toBeVisible();
 });
+
+test('an admin reorders sections and moves one under another parent', async ({ page }) => {
+  const stamp = Date.now();
+  const parent = `E2E раздел ${stamp}`;
+  const first = `E2E первая ${stamp}`;
+  const second = `E2E вторая ${stamp}`;
+  await logIn(page);
+  const sidebar = page.getByRole('complementary');
+  const row = (title: string) => sidebar.getByRole('link', { name: title, exact: true }).locator('..');
+  const createSection = async (title: string, under?: string) => {
+    if (under) {
+      await row(under).hover();
+      await row(under).getByRole('button', { name: 'Добавить подраздел' }).click();
+    } else {
+      await sidebar.getByRole('button', { name: 'Новый раздел' }).click();
+    }
+    await page.getByPlaceholder('Название раздела').fill(title);
+    await page.getByRole('button', { name: 'Создать', exact: true }).click();
+    await expect(row(title)).toBeVisible();
+  };
+
+  await createSection(parent);
+  await createSection(first, parent);
+  await createSection(second, parent);
+  const childTitles = row(parent).locator('xpath=following-sibling::div[1]').getByRole('link');
+  await expect(childTitles).toHaveText([first, second]);
+
+  await row(second).hover();
+  await row(second).getByRole('button', { name: 'Переместить выше' }).click();
+  await expect(childTitles).toHaveText([second, first]);
+
+  // After a reload the order comes from the server.
+  await page.reload();
+  await expect(childTitles).toHaveText([second, first]);
+
+  await row(first).hover();
+  await row(first).getByRole('button', { name: 'Переместить в другой раздел' }).click();
+  const parentSelect = page.getByLabel('Новый родительский раздел');
+  // The picker offers neither the article itself nor anything inside it.
+  await expect(parentSelect.locator('option', { hasText: first })).toHaveCount(0);
+  await parentSelect.selectOption({ label: 'Верхний уровень' });
+  await page.getByRole('button', { name: 'Переместить', exact: true }).click();
+  await expect(childTitles).toHaveText([second]);
+  // A top-level row has no depth indent.
+  await expect(row(first)).toHaveAttribute('style', /padding-left: 6px/);
+});

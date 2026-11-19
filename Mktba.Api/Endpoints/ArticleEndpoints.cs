@@ -52,6 +52,18 @@ namespace Mktba.Api.Endpoints
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
             .RequireAuthorization("AdminOnly");
 
+            group.MapPost("/{id:int}/move", async (int id, ArticleMoveDto dto, ArticleService service) =>
+                Results.Ok(await service.MoveAsync(id, dto)))
+            .WithSummary("Moves an article to another parent and/or position among its siblings.")
+            .WithDescription(
+                "Places the article at the 0-based index among the new parent's other children (null or "
+                + "past the end appends) and renumbers both sibling lists. Answers 400 article_parent_not_found "
+                + "for an unknown parent and 400 article_move_cycle for the article itself or a descendant. "
+                + "Writes no revision and does not change UpdatedAt.")
+            .Produces<ArticleReadDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
+
             group.MapGet("/{id:int}/authors", async (int id, ArticleAuthorshipService service) =>
                 Results.Ok(await service.GetAsync(id)))
             .WithSummary("The article's author and co-authors.")
