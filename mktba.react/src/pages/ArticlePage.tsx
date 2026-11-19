@@ -6,6 +6,7 @@ import { articleContentQueryKey, parseLegacyArticleId } from '../services/Articl
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleBreadcrumbs } from '../components/article/ArticleBreadcrumbs';
 import { ArticleDates } from '../components/article/ArticleDates';
+import { ArticleFooter } from '../components/article/ArticleFooter';
 import { ArticleMeta } from '../components/article/ArticleMeta';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { ArticleStructuredData } from '../components/StructuredData';
@@ -25,7 +26,7 @@ import { useTrackEvent } from '../analytics/useTrackEvent';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
 import { articleHref } from '../shared/slug';
-import { findArticlePath } from '../shared/articleTree';
+import { findAdjacentArticles, findArticlePath } from '../shared/articleTree';
 import { estimateReadingMinutes } from '../shared/readingTime';
 import { ARTICLE_OVERVIEW_ANCHOR, buildArticleOutline } from '../shared/articleOutline';
 import { useHydrated } from '../shared/useHydrated';
@@ -133,6 +134,34 @@ const ArticlePage: React.FC = () => {
         hasContent: article.hasContent,
       })),
     [articlePath],
+  );
+
+  // The bottom of the page reads the same tree as the breadcrumbs: the public one hides
+  // non-Published articles, so neither the children nor the neighbours can name one.
+  const childArticles = useMemo(
+    () =>
+      (articlePath[articlePath.length - 1]?.children ?? []).map((child) => ({
+        id: child.id,
+        slug: child.slug,
+        title: child.title,
+        hasContent: child.hasContent,
+      })),
+    [articlePath],
+  );
+
+  const adjacentArticles = useMemo(
+    () => findAdjacentArticles(navigationTree, articleId),
+    [navigationTree, articleId],
+  );
+
+  const relatedArticles = useMemo(
+    () =>
+      (articleContent?.relatedLinks ?? []).map((link) => ({
+        id: link.id,
+        slug: link.relatedArticleSlug,
+        title: link.relatedArticleTitle,
+      })),
+    [articleContent],
   );
 
   const renderedParagraphs = useMemo(() => {
@@ -377,6 +406,13 @@ const ArticlePage: React.FC = () => {
             </div>
           )}
           </div>
+
+          <ArticleFooter
+            childArticles={childArticles}
+            relatedArticles={relatedArticles}
+            previous={adjacentArticles.previous}
+            next={adjacentArticles.next}
+          />
         </div>
       </article>
 

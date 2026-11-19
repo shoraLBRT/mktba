@@ -57,6 +57,11 @@
     "readingTimeLabel": "Время чтения: около {minutes} мин",
     "headingLink": "Ссылка на раздел «{title}»",
     "paragraphLink": "Ссылка на абзац {number}",
+    "childArticles": "В этом разделе",
+    "relatedArticles": "Связанные статьи",
+    "adjacentArticles": "Соседние статьи",
+    "previousArticle": "Предыдущая статья",
+    "nextArticle": "Следующая статья",
     "backToTop": "Наверх"
   },
   "articleRightSidebar": {
