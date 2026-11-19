@@ -207,6 +207,20 @@ public sealed class GitHubIssueClientTests : IDisposable
         _handler.Requests.Should().HaveCount(3);
     }
 
+    [Fact]
+    public async Task GivenIssueThatOnlyQuotesTheMarkerInItsText_WhenSearching_ThenItIsNotTakenForTheDelivery()
+    {
+        ScriptAuthentication();
+        _handler.Enqueue(HttpStatusCode.OK, """
+            [{"number":7,"html_url":"https://github.com/o/r/issues/7","body":"````text\n<!-- mktba-feedback:abc -->\n````\n\n<!-- mktba-feedback:other -->\n"},
+             {"number":8,"html_url":"https://github.com/o/r/issues/8","body":"text\n\n<!-- mktba-feedback:abc -->\n"}]
+            """);
+
+        var found = await Client().FindByMarkerAsync("<!-- mktba-feedback:abc -->", Now.UtcDateTime, CancellationToken.None);
+
+        found.Should().Be(new FeedbackIssueRef(8, "https://github.com/o/r/issues/8"));
+    }
+
     private void ScriptAuthentication()
     {
         _handler.Enqueue(HttpStatusCode.OK, """{"id":4242,"app_id":5514770}""");

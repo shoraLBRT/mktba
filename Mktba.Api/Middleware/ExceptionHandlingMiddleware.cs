@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Globalization;
+using System.Security.Claims;
 using Mktba.Application.Exceptions;
 using Mktba.Api.Infrastructure;
 
@@ -68,6 +69,12 @@ public sealed class ExceptionHandlingMiddleware
                 context.Request.Path,
                 context.TraceIdentifier);
             return;
+        }
+
+        if (exception is TooManyRequestsException { RetryAfter: { } retryAfter })
+        {
+            context.Response.Headers.RetryAfter =
+                Math.Max(1, (long)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
         }
 
         await ProblemHttpResponseWriter.WriteAsync(context, statusCode, error);

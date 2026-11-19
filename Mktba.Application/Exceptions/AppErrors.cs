@@ -190,6 +190,9 @@ public static class AppErrors
     public static AppError FeedbackPageUrlInvalid(int maxLength) =>
         new("feedback_page_url_invalid", $"Page URL must be an absolute http(s) URL or a site-relative path of at most {maxLength} characters.", With(("maxLength", maxLength)));
 
+    public static AppError FeedbackLimitReached =>
+        new("feedback_limit_reached", "Too many feedback messages were received lately. Try again later.");
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }

@@ -1779,7 +1779,7 @@ export interface paths {
         put?: never;
         /**
          * Accepts a visitor's message: an article error, a site problem or an idea. No sign-in.
-         * @description The message is stored and answered with 202 at once; an issue in the project's public GitHub repository is created in the background and retried while GitHub is unavailable, so the answer does not depend on GitHub. The contact is kept only in the site's database and is never published. Errors: feedback_type_invalid, feedback_text_required, feedback_text_too_long, feedback_contact_too_long, feedback_page_url_invalid.
+         * @description The message is stored and answered with 202 at once; an issue in the project's public GitHub repository is created in the background and retried while GitHub is unavailable, so the answer does not depend on GitHub. The contact is kept only in the site's database and is never published. Errors: feedback_type_invalid, feedback_text_required, feedback_text_too_long, feedback_contact_too_long, feedback_page_url_invalid. 429 with Retry-After: too_many_requests (this client sent too many messages), feedback_limit_reached (too many messages from all visitors in the last hour). The website field is a trap for bots and must stay empty.
          */
         post: {
             parameters: {
@@ -1805,6 +1805,15 @@ export interface paths {
                 };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3039,6 +3048,7 @@ export interface components {
             /** Format: int32 */
             articleId?: number | null;
             mazhab?: string | null;
+            website?: string | null;
         };
         /** @enum {string} */
         FeedbackType: "ArticleError" | "SiteProblem" | "Idea";

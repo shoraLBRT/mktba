@@ -1,13 +1,33 @@
 namespace Mktba.Application.Configuration;
 
-/// <summary>The <c>Feedback</c> configuration section (F-02, #67).</summary>
+/// <summary>The <c>Feedback</c> configuration section (F-02 #67, F-03 #68).</summary>
 public sealed class FeedbackOptions
 {
     public const string SectionName = "Feedback";
 
+    /// <summary>
+    /// The site's public address, for example <c>https://mktba.ru</c>. When set, an absolute page
+    /// URL on any other origin is dropped from the message; site-relative paths are always kept.
+    /// Empty: any http(s) page URL is stored.
+    /// </summary>
+    public string? SiteUrl { get; set; }
+
+    public FeedbackIntakeOptions Intake { get; set; } = new();
+
     public FeedbackGitHubOptions GitHub { get; set; } = new();
 
     public FeedbackDeliveryOptions Delivery { get; set; } = new();
+}
+
+/// <summary>Limits on what <c>POST /feedback</c> takes in; the per-client limit is <c>RateLimiting:Feedback</c>.</summary>
+public sealed class FeedbackIntakeOptions
+{
+    /// <summary>
+    /// Most messages stored in any 60 minutes from all visitors together, so that many addresses
+    /// at once cannot flood the table and the repository's issues; further ones are answered with
+    /// 429 <c>feedback_limit_reached</c>. Zero or less: no cap.
+    /// </summary>
+    public int MaxPerHour { get; set; } = 30;
 }
 
 /// <summary>

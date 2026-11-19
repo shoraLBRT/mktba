@@ -138,6 +138,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// First: everything after it, the rate limiter included, sees the visitor's address.
+app.UseMktbaForwardedHeaders(app.Configuration);
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (!app.Environment.IsDevelopment())
 {

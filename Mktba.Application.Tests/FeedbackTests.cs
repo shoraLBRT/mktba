@@ -134,7 +134,7 @@ public class FeedbackTests
         created.Title.Should().Be($"Обратная связь №{accepted.Id}: ошибка в статье «Условия омовения»");
         created.Body.Should().Contain("Во втором абзаце ошибка.")
             .And.Contain("https://mktba.ru/article/usloviya")
-            .And.Contain("«Условия омовения»")
+            .And.Contain("- **Статья:** ` Условия омовения `")
             .And.Contain("Ханафитский мазхаб")
             .And.Contain($"оставлен; хранится только в базе сайта, обращение №{accepted.Id}")
             .And.NotContain("secret-contact");
@@ -284,7 +284,11 @@ public class FeedbackTests
         options.IsConfigured.Should().Be(expected);
     }
 
-    private FeedbackService Intake() => new(new FeedbackRepository(_context), _clock);
+    private FeedbackService Intake(FeedbackOptions? options = null) => new(
+        new FeedbackRepository(_context),
+        Options.Create(options ?? new FeedbackOptions()),
+        _clock,
+        NullLogger<FeedbackService>.Instance);
 
     private FeedbackDeliveryService Delivery() => new(
         new FeedbackRepository(_context),
@@ -312,7 +316,7 @@ public class FeedbackTests
     private Task<List<FeedbackMessage>> ReloadAllAsync()
         => _context.FeedbackMessages.AsNoTracking().OrderBy(f => f.Id).ToListAsync();
 
-    private sealed class FakeClock(DateTime start) : TimeProvider
+    internal sealed class FakeClock(DateTime start) : TimeProvider
     {
         private DateTimeOffset _now = new(start);
 
@@ -386,7 +390,7 @@ public class FeedbackPostgresTests : IClassFixture<PostgresDatabaseFixture>
             context.Articles.Add(article);
             await context.SaveChangesAsync();
             articleId = article.Id;
-            await new FeedbackService(new FeedbackRepository(context), TimeProvider.System).SubmitAsync(
+            await Intake(context).SubmitAsync(
                 new FeedbackCreateDto(FeedbackType.ArticleError, "Ошибка \0 с эмодзи 🕌 и одиночным суррогатом \ud83d.", "\0contact", "/article/x", articleId, null));
         }
 
@@ -405,12 +409,42 @@ public class FeedbackPostgresTests : IClassFixture<PostgresDatabaseFixture>
     }
 
     [Fact]
+    public async Task GivenHourlyCapReached_WhenSubmittedOnPostgres_ThenRefusedUntilTheOldestMessageLeavesTheWindow()
+    {
+        // The other tests of this class share the table: the cap counts the newest rows whoever stored them.
+        await using var context = _database.CreateContext();
+        var clock = new FeedbackTests.FakeClock(DateTime.UtcNow.AddDays(1));
+        var intake = new FeedbackService(
+            new FeedbackRepository(context),
+            Options.Create(new FeedbackOptions { Intake = { MaxPerHour = 2 } }),
+            clock,
+            NullLogger<FeedbackService>.Instance);
+        var message = new FeedbackCreateDto(FeedbackType.Idea, "Поток", null, null, null, null);
+        await intake.SubmitAsync(message);
+        clock.Advance(TimeSpan.FromMinutes(10));
+        await intake.SubmitAsync(message);
+
+        var refused = await FluentActions.Awaiting(() => intake.SubmitAsync(message)).Should().ThrowAsync<TooManyRequestsException>();
+        clock.Advance(TimeSpan.FromMinutes(50));
+        var accepted = await intake.SubmitAsync(message);
+
+        refused.Which.RetryAfter.Should().BeCloseTo(TimeSpan.FromMinutes(50), TimeSpan.FromSeconds(1));
+        accepted.Id.Should().BePositive();
+    }
+
+    private static FeedbackService Intake(MktbaDbContext context) => new(
+        new FeedbackRepository(context),
+        Options.Create(new FeedbackOptions { Intake = { MaxPerHour = 0 } }),
+        TimeProvider.System,
+        NullLogger<FeedbackService>.Instance);
+
+    [Fact]
     public async Task GivenTwoWorkersHoldingTheSameMessage_WhenBothStartAnAttempt_ThenTheSecondLosesIt()
     {
         int id;
         await using (var context = _database.CreateContext())
         {
-            id = (await new FeedbackService(new FeedbackRepository(context), TimeProvider.System).SubmitAsync(
+            id = (await Intake(context).SubmitAsync(
                 new FeedbackCreateDto(FeedbackType.Idea, "Гонка", null, null, null, null))).Id;
         }
 
