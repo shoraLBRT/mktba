@@ -4,13 +4,13 @@
     {
         public int DeletedArticles { get; set; }
         public int DeletedParagraphs { get; set; }
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 
     public class AiProviderSettingsDto
     {
-        public string BaseUrl { get; set; }
-        public string Model { get; set; }
+        public string BaseUrl { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
         public bool IsEnabled { get; set; }
         public bool HasApiKey { get; set; }
         public string? MarkdownStylingSystemPrompt { get; set; }
@@ -18,8 +18,8 @@
 
     public class UpdateAiProviderSettingsDto
     {
-        public string BaseUrl { get; set; }
-        public string Model { get; set; }
+        public string BaseUrl { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
         public bool IsEnabled { get; set; }
         public string? ApiKey { get; set; }
         public string? MarkdownStylingSystemPrompt { get; set; }
@@ -27,17 +27,17 @@
 
     public class AiStyleRequestDto
     {
-        public string Text { get; set; }
+        public string Text { get; set; } = string.Empty;
     }
 
     public class AiStyleResponseDto
     {
-        public string StyledText { get; set; }
+        public string StyledText { get; set; } = string.Empty;
     }
 
     public class AiConnectionCheckResultDto
     {
-        public string Message { get; set; }
-        public string StyledText { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string StyledText { get; set; } = string.Empty;
     }
 }
