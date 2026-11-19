@@ -168,7 +168,7 @@ const MainLayout: React.FC = () => {
           </main>
           <footer
             aria-label={locale.layout.footer.label}
-            className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-[var(--color-border-soft)] px-4 py-5 text-[13px] text-[var(--color-ink-muted)] sm:px-6"
+            className="flex flex-col items-start gap-x-6 gap-y-2 border-t border-[var(--color-border-soft)] px-4 py-5 text-[13px] text-[var(--color-ink-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6"
             data-testid="site-footer"
           >
             <span>{locale.brand.sidebarCaption}</span>

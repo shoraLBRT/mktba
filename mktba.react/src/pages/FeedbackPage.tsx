@@ -198,7 +198,7 @@ const FeedbackPage = () => {
       <h1 className="m-0 text-[28px] font-bold tracking-[-0.02em] text-[var(--color-ink-strong)]">{t.title}</h1>
       <p className="mb-0 mt-3 text-base leading-7 text-[var(--color-ink-muted)]">{t.intro}</p>
 
-      <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-6" data-testid="feedback-form">
+      <form onSubmit={handleSubmit} noValidate className="relative mt-6 flex flex-col gap-6" data-testid="feedback-form">
         {formError !== null && (
           <div
             ref={formErrorRef}
@@ -342,7 +342,7 @@ const FeedbackPage = () => {
           <p className="mb-0 mt-3 text-[13px] leading-5 text-[var(--color-ink-muted)]">{t.publicNotice}</p>
         </section>
 
-        <Button type="submit" variant="primary" disabled={mutation.isPending} className="w-full sm:w-auto">
+        <Button type="submit" variant="primary" disabled={mutation.isPending} className="w-full sm:w-auto sm:self-start">
           {mutation.isPending ? t.submitting : t.submit}
         </Button>
       </form>
