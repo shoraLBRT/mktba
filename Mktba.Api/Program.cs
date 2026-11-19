@@ -15,6 +15,7 @@ using Mktba.Api.Infrastructure;
 using Mktba.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddLocalSettingsFile();
 
 builder.Services.AddDbContext<MktbaDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
