@@ -59,6 +59,8 @@ import {
 import { addRelatedLink, importRelatedLinksFromDto, moveRelatedLink, removeRelatedLink, type RelatedLinkDraft } from './add-article/metadataHelpers';
 import type { EditorBlock } from './add-article/types';
 import { SlugField } from './add-article/SlugField';
+import { SeoFields } from './add-article/SeoFields';
+import { buildSeoDto, emptySeoDraft, isValidSocialImageUrl, seoDraftFromDto } from '../shared/seo';
 import { formatMessage } from '../localization';
 import { SLUG_MAX_LENGTH, articleHref, isValidSlug, slugFromTitle } from '../shared/slug';
 
@@ -144,6 +146,7 @@ const EditArticlePage: React.FC = () => {
   const [isAiRunning, setIsAiRunning] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [summary, setSummary] = useState('');
+  const [seo, setSeo] = useState(emptySeoDraft);
   const [tags, setTags] = useState<string[]>([]);
   const [relatedLinks, setRelatedLinks] = useState<RelatedLinkDraft[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -217,6 +220,7 @@ const EditArticlePage: React.FC = () => {
         setInfobox(importInfoboxFromDto(data.infobox));
       }
       setSummary(data.summary ?? '');
+      setSeo(seoDraftFromDto(data.seo));
       setTags(data.tags ?? []);
       setRelatedLinks(data.relatedLinks ? importRelatedLinksFromDto(data.relatedLinks) : []);
       setIsInitialized(true);
@@ -417,6 +421,11 @@ const EditArticlePage: React.FC = () => {
       return;
     }
 
+    if (!isValidSocialImageUrl(seo.socialImageUrl)) {
+      showNotice('warning', addT.seo.imageInvalid);
+      return;
+    }
+
     const infoboxCreateDto = buildInfoboxCreateDto(infobox);
     const infoboxDto = infoboxCreateDto
       ? {
@@ -434,6 +443,7 @@ const EditArticlePage: React.FC = () => {
       infobox: infoboxDto,
       editComment: editComment.trim() || undefined,
       summary: summary.trim() || undefined,
+      seo: buildSeoDto(seo),
       tags,
       relatedLinks: relatedLinks.map((link, index) => ({
         id: 0,
@@ -625,6 +635,7 @@ const EditArticlePage: React.FC = () => {
                       placeholder={t.editCommentPlaceholder}
                     />
                   </div>
+                  <SeoFields value={seo} disabled={isLocked} onChange={setSeo} />
                 </div>
               </div>
 

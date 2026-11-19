@@ -47,6 +47,8 @@ import { addInfoboxField, buildInfoboxCreateDto, createEmptyInfoboxDraft, hasInc
 import { addRelatedLink, buildRelatedLinkCreateDtos, moveRelatedLink, removeRelatedLink, type RelatedLinkDraft } from './add-article/metadataHelpers';
 import type { EditorBlock } from './add-article/types';
 import { SlugField } from './add-article/SlugField';
+import { SeoFields } from './add-article/SeoFields';
+import { buildSeoDto, emptySeoDraft, isValidSocialImageUrl } from '../shared/seo';
 import { formatMessage } from '../localization';
 import { SLUG_MAX_LENGTH, articleHref, isValidSlug, slugFromTitle } from '../shared/slug';
 
@@ -132,6 +134,7 @@ const AddArticlePage: React.FC = () => {
   const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
   const [parentSearch, setParentSearch] = useState('');
   const [summary, setSummary] = useState('');
+  const [seo, setSeo] = useState(emptySeoDraft);
   const [tags, setTags] = useState<string[]>([]);
   const [relatedLinks, setRelatedLinks] = useState<RelatedLinkDraft[]>([]);
 
@@ -357,6 +360,11 @@ const AddArticlePage: React.FC = () => {
       return;
     }
 
+    if (!isValidSocialImageUrl(seo.socialImageUrl)) {
+      showNotice('warning', t.seo.imageInvalid);
+      return;
+    }
+
     mutation.mutate({
       title: title.trim(),
       slug: requestedSlug,
@@ -364,6 +372,7 @@ const AddArticlePage: React.FC = () => {
       paragraphs: buildParagraphCreateDtosFromBlocks(blocks),
       infobox: buildInfoboxCreateDto(infobox),
       summary: summary.trim() || undefined,
+      seo: buildSeoDto(seo),
       tags: tags.length > 0 ? tags : undefined,
       relatedLinks: buildRelatedLinkCreateDtos(relatedLinks),
     });
@@ -487,6 +496,7 @@ const AddArticlePage: React.FC = () => {
                     onChange={setManualSlug}
                     onFillFromTitle={() => setManualSlug(null)}
                   />
+                  <SeoFields value={seo} disabled={isLocked} onChange={setSeo} />
                 </div>
               </div>
 

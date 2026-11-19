@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleDates } from '../components/article/ArticleDates';
+import { ArticleMeta } from '../components/article/ArticleMeta';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
 import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
@@ -298,6 +299,7 @@ const ArticlePage: React.FC = () => {
 
   return (
     <div className="xl:flex xl:gap-0">
+      {articleContent.meta && articleContent.slug ? <ArticleMeta meta={articleContent.meta} slug={articleContent.slug} /> : null}
       <main className="min-w-0 flex-1 overflow-hidden border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-r-none xl:border-r xl:border-[var(--color-border-soft)]">
         <div className="mx-auto max-w-[760px] px-4 py-6 pb-24 sm:px-6 lg:px-8 xl:px-10">
           {breadcrumbItems.length > 0 ? (
