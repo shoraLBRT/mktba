@@ -13,11 +13,34 @@ namespace Mktba.Api.Tests;
 /// </summary>
 public sealed class MktbaApiFactory : WebApplicationFactory<Program>
 {
+    /// <summary>A throwaway 48-byte key: long enough for HS256 and not a committed placeholder.</summary>
+    public static readonly string TestSigningKey = Convert.ToBase64String(Guid.NewGuid().ToByteArray().Concat(Guid.NewGuid().ToByteArray()).ToArray())
+        + "-mktba-api-tests";
+
     private readonly string _databaseName = $"mktba-api-tests-{Guid.NewGuid()}";
+    private readonly string _environment;
+    private readonly string? _signingKey;
+
+    public MktbaApiFactory()
+        : this("Testing", TestSigningKey)
+    {
+    }
+
+    /// <param name="environment">Hosting environment the API starts in.</param>
+    /// <param name="signingKey">Value of <c>Auth:JwtSigningKey</c>; <c>null</c> leaves it unset.</param>
+    internal MktbaApiFactory(string environment, string? signingKey)
+    {
+        _environment = environment;
+        _signingKey = signingKey;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Testing");
+        builder.UseEnvironment(_environment);
+        if (_signingKey is not null)
+        {
+            builder.UseSetting("Auth:JwtSigningKey", _signingKey);
+        }
         builder.ConfigureServices(services =>
         {
             var npgsqlRegistrations = services

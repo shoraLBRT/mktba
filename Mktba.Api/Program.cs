@@ -61,9 +61,14 @@ builder.Services.AddSwaggerGen(options =>
     options.SchemaFilter<NonNullablePropertiesRequiredSchemaFilter>();
 });
 var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
-if (string.IsNullOrWhiteSpace(authOptions.JwtSigningKey))
+// The OpenApi environment only writes the OpenAPI document and never issues or validates tokens.
+if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
 {
-    throw new InvalidOperationException("Auth:JwtSigningKey is required.");
+    var signingKeyError = JwtSigningKeyPolicy.Validate(authOptions.JwtSigningKey, builder.Environment.IsDevelopment());
+    if (signingKeyError is not null)
+    {
+        throw new InvalidOperationException(signingKeyError);
+    }
 }
 
 builder.Services.AddScoped<JwtProblemEvents>();
