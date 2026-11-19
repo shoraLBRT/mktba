@@ -59,6 +59,12 @@ public static class AppErrors
     public static AppError ArticleSlotDefaultOpinionRequired(int order) =>
         new("article_slot_default_opinion_required", $"Each slot must have exactly one default opinion (slot order {order}).", With(("order", order)));
 
+    public static AppError ArticleCoAuthorIsAuthor =>
+        new("article_coauthor_is_author", "The article's author cannot also be its co-author.");
+
+    public static AppError UserNotFound(int userId) =>
+        new("user_not_found", $"User with id {userId} does not exist.", With(("userId", userId)));
+
     public static AppError RelatedArticleNotFound(int articleId) =>
         new("related_article_not_found", $"Related article with id {articleId} does not exist.", With(("articleId", articleId)));
 

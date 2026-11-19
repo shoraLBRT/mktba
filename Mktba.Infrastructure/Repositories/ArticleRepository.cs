@@ -93,6 +93,12 @@ namespace Mktba.Infrastructure.Repositories
 
         public void RemoveSlugRedirect(ArticleSlugRedirect redirect) => _context.ArticleSlugRedirects.Remove(redirect);
 
+        /// <summary>The article with its co-author rows, tracked so they can be changed.</summary>
+        public Task<Article?> GetByIdWithCoAuthorsAsync(int articleId, CancellationToken cancellationToken = default)
+            => _dbSet
+                .Include(article => article.CoAuthors)
+                .FirstOrDefaultAsync(article => article.Id == articleId, cancellationToken);
+
         public Task<int> CountAsync(CancellationToken cancellationToken = default)
             => _dbSet.CountAsync(cancellationToken);
 

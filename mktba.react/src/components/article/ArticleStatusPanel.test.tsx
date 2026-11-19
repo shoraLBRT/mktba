@@ -23,6 +23,8 @@ const article = (overrides: Partial<ArticleReadDto>): ArticleReadDto => ({
   status: 'Draft',
   allowedTransitions: ['InReview'],
   hasContent: true,
+  createdAt: '2026-11-01T09:00:00Z',
+  updatedAt: '2026-11-01T09:00:00Z',
   ...overrides,
 });
 

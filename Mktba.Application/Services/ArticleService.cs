@@ -10,11 +10,13 @@ namespace Mktba.Application.Services
     {
         private readonly ArticleRepository _articleRepository;
         private readonly IMapper _mapper;
+        private readonly TimeProvider _clock;
 
-        public ArticleService(ArticleRepository articleRepository, IMapper mapper)
+        public ArticleService(ArticleRepository articleRepository, IMapper mapper, TimeProvider clock)
         {
             _articleRepository = articleRepository;
             _mapper = mapper;
+            _clock = clock;
         }
 
         /// <summary>All articles; without <paramref name="includeUnpublished"/> only Published ones.</summary>
@@ -35,6 +37,8 @@ namespace Mktba.Application.Services
 
         /// <summary>
         /// Moves the article to <paramref name="target"/> if <see cref="ArticleStatusTransitions"/> allows it.
+        /// The first move to Published sets <see cref="Article.PublishedAt"/>; later ones keep it.
+        /// A status change is not a content save and leaves <see cref="Article.UpdatedAt"/> alone.
         /// </summary>
         /// <exception cref="NotFoundException">The article does not exist.</exception>
         /// <exception cref="ValidationException">The transition is not allowed.</exception>
@@ -49,14 +53,21 @@ namespace Mktba.Application.Services
             }
 
             article.Status = target;
+            if (target == ArticleStatus.Published)
+            {
+                article.PublishedAt ??= _clock.GetUtcNow().UtcDateTime;
+            }
+
             await _articleRepository.UpdateAsync(article);
             await _articleRepository.SaveChangesAsync();
             return _mapper.Map<ArticleReadDto>(article);
         }
 
-        public async Task<ArticleReadDto> CreateAsync(ArticleCreateDto createDto)
+        /// <param name="authorId">The creating user, recorded as the article's author.</param>
+        public async Task<ArticleReadDto> CreateAsync(ArticleCreateDto createDto, int? authorId)
         {
             var article = _mapper.Map<Article>(createDto);
+            ArticleTimestamps.StampCreated(article, authorId, _clock);
             article.Slug = await new ArticleSlugAssigner(_articleRepository).GenerateUniqueAsync(article.Title, articleId: null);
             await _articleRepository.AddAsync(article);
             await _articleRepository.SaveChangesAsync();
@@ -73,6 +84,7 @@ namespace Mktba.Application.Services
             }
 
             _mapper.Map(updateDto, article);
+            article.UpdatedAt = _clock.GetUtcNow().UtcDateTime;
             await _articleRepository.UpdateAsync(article);
             await _articleRepository.SaveChangesAsync();
         }

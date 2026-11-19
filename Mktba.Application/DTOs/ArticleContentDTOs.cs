@@ -57,6 +57,8 @@
     /// The article's URL segment. Always set on read. On update, null or blank keeps the current
     /// slug; a new value is validated, and the old slug keeps working as a redirect.
     /// </param>
+    /// <param name="PublishedAt">Read only: when the article was first published (UTC), null if never. Ignored on update.</param>
+    /// <param name="UpdatedAt">Read only: when the article was last saved (UTC). Ignored on update.</param>
     public record ArticleContentDto(
         int Id,
         string Title,
@@ -65,7 +67,9 @@
         string? Summary,
         List<string> Tags,
         List<ArticleRelatedLinkDto>? RelatedLinks,
-        string? Slug = null
+        string? Slug = null,
+        DateTime? PublishedAt = null,
+        DateTime? UpdatedAt = null
     );
 
     /// <summary>

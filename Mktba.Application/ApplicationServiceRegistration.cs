@@ -1,4 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mktba.Application.Services;
 
 namespace Mktba.Application
@@ -12,6 +13,8 @@ namespace Mktba.Application
             services.AddScoped<SchoolService>();
             services.AddScoped<NavigationTreeService>();
             services.AddScoped<ArticleContentService>();
+            services.AddScoped<ArticleAuthorshipService>();
+            services.TryAddSingleton(TimeProvider.System);
             services.AddScoped<AdminService>();
             services.AddScoped<AdminAuthService>();
             return services;

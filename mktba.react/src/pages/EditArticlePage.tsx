@@ -16,6 +16,7 @@ import { Textarea } from '../shared/ui/Textarea';
 import type { ArticleContentDto, ArticleInfoboxDto, NavigationArticleDto } from '../shared/types/ApiTypes';
 import { createCustomSchool, deleteCustomSchool, getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
+import { ArticleAuthorsPanel } from '../components/article/ArticleAuthorsPanel';
 import { ArticleStatusPanel } from '../components/article/ArticleStatusPanel';
 import { DocumentBlockEditor } from './add-article/DocumentBlockEditor';
 import { EditorBottomToolbar, type FormatAction } from './add-article/EditorBottomToolbar';
@@ -576,6 +577,11 @@ const EditArticlePage: React.FC = () => {
                   <ArticleStatusPanel
                     articleId={numericId}
                     onChanged={(status) => showNotice('success', t.statusChanged.replace('{status}', locale.articleStatus[status]))}
+                    onError={(message) => showNotice('error', message)}
+                  />
+                  <ArticleAuthorsPanel
+                    articleId={numericId}
+                    onSaved={() => showNotice('success', t.authorsSaved)}
                     onError={(message) => showNotice('error', message)}
                   />
                   <div>

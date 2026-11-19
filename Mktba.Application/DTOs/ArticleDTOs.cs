@@ -14,6 +14,14 @@ namespace Mktba.Application.DTOs
         /// <summary>Statuses the article may move to next, from <c>ArticleStatusTransitions</c>.</summary>
         public List<ArticleStatus> AllowedTransitions { get; set; } = new();
         public bool HasContent { get; set; }
+        /// <summary>When the article was created (UTC).</summary>
+        public DateTime CreatedAt { get; set; }
+        /// <summary>When the article's content or metadata was last saved (UTC).</summary>
+        public DateTime UpdatedAt { get; set; }
+        /// <summary>When the article was first published (UTC); kept through archiving and re-publishing.</summary>
+        public DateTime? PublishedAt { get; set; }
+        /// <summary>Id of the user who created the article; null for articles from before authorship was recorded.</summary>
+        public int? AuthorId { get; set; }
     }
 
     /// <summary>Request to move an article to another status; see <c>ArticleStatusTransitions</c>.</summary>

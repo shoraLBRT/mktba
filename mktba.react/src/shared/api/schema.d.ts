@@ -645,6 +645,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/{id}/authors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The article's author and co-authors. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleAuthorsDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        /**
+         * Replaces the article's author and co-authors.
+         * @description Duplicate co-author ids are ignored. Answers 400 user_not_found for an unknown user and 400 article_coauthor_is_author when the author is also listed as co-author.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleAuthorsDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleAuthorsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/status": {
         parameters: {
             query?: never;
@@ -1238,6 +1332,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every user, for choosing article authors. Admin only: it lists emails. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserSummaryDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1300,6 +1430,11 @@ export interface components {
             } | null;
             traceId: string;
         };
+        ArticleAuthorsDto: {
+            /** Format: int32 */
+            authorId?: number | null;
+            coAuthorIds: number[];
+        };
         ArticleContentCreateDto: {
             title: string;
             /** Format: int32 */
@@ -1321,6 +1456,10 @@ export interface components {
             tags: string[];
             relatedLinks?: components["schemas"]["ArticleRelatedLinkDto"][] | null;
             slug?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         ArticleCreateDto: {
             title: string;
@@ -1363,6 +1502,14 @@ export interface components {
             status: components["schemas"]["ArticleStatus"];
             allowedTransitions: components["schemas"]["ArticleStatus"][];
             hasContent: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: int32 */
+            authorId?: number | null;
         };
         ArticleRelatedLinkCreateDto: {
             /** Format: int32 */
@@ -1471,6 +1618,11 @@ export interface components {
             isEnabled: boolean;
             apiKey?: string | null;
             markdownStylingSystemPrompt?: string | null;
+        };
+        UserSummaryDto: {
+            /** Format: int32 */
+            id: number;
+            email: string;
         };
     };
     responses: never;

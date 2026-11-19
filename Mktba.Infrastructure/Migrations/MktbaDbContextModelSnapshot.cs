@@ -102,6 +102,12 @@ namespace Mktba.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AuthorId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("InfoboxSubtitle")
                         .HasMaxLength(240)
                         .HasColumnType("character varying(240)");
@@ -112,6 +118,9 @@ namespace Mktba.Infrastructure.Migrations
 
                     b.Property<int?>("ParentArticleId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -135,7 +144,12 @@ namespace Mktba.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
 
                     b.HasIndex("ParentArticleId");
 
@@ -143,6 +157,21 @@ namespace Mktba.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Articles");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleCoAuthor", b =>
+                {
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ArticleId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ArticleCoAuthors");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleInfoboxField", b =>
@@ -387,12 +416,38 @@ namespace Mktba.Infrastructure.Migrations
 
             modelBuilder.Entity("Mktba.Domain.Entities.Article", b =>
                 {
+                    b.HasOne("Mktba.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Mktba.Domain.Entities.Article", "ParentArticle")
                         .WithMany("ChildArticles")
                         .HasForeignKey("ParentArticleId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("Author");
+
                     b.Navigation("ParentArticle");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleCoAuthor", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany("CoAuthors")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleInfoboxField", b =>
@@ -490,6 +545,8 @@ namespace Mktba.Infrastructure.Migrations
             modelBuilder.Entity("Mktba.Domain.Entities.Article", b =>
                 {
                     b.Navigation("ChildArticles");
+
+                    b.Navigation("CoAuthors");
 
                     b.Navigation("CustomSchools");
 

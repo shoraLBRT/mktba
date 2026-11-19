@@ -13,6 +13,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleInfoboxField> ArticleInfoboxFields { get; set; } = null!;
         public DbSet<ArticleRelatedLink> ArticleRelatedLinks { get; set; } = null!;
         public DbSet<ArticleSlugRedirect> ArticleSlugRedirects { get; set; } = null!;
+        public DbSet<ArticleCoAuthor> ArticleCoAuthors { get; set; } = null!;
         public DbSet<Paragraph> Paragraphs { get; set; } = null!;
         public DbSet<Opinion> Opinions { get; set; } = null!;
         public DbSet<School> Schools { get; set; } = null!;
@@ -55,6 +56,29 @@ namespace Mktba.Infrastructure.Data
                 .HasOne(r => r.Article)
                 .WithMany(a => a.SlugRedirects)
                 .HasForeignKey(r => r.ArticleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Authorship: deleting a user keeps their articles (author becomes null) and drops their co-authorships.
+            modelBuilder.Entity<Article>()
+                .HasOne(a => a.Author)
+                .WithMany()
+                .HasForeignKey(a => a.AuthorId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            modelBuilder.Entity<ArticleCoAuthor>()
+                .HasKey(c => new { c.ArticleId, c.UserId });
+
+            modelBuilder.Entity<ArticleCoAuthor>()
+                .HasOne(c => c.Article)
+                .WithMany(a => a.CoAuthors)
+                .HasForeignKey(c => c.ArticleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ArticleCoAuthor>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Article hierarchy

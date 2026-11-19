@@ -17,7 +17,9 @@
     "noContent": "Нет доступного контента",
     "loadError": "Ошибка загрузки статьи",
     "uiModeUpdated": "Режим отображения абзацев обновлен",
-    "overview": "Общее описание"
+    "overview": "Общее описание",
+    "publishedOn": "Опубликовано {date}",
+    "updatedOn": "Обновлено {date}"
   },
   "articleRightSidebar": {
     "onThisPage": "На этой странице",

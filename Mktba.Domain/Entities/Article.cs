@@ -25,5 +25,19 @@
         public ICollection<School> CustomSchools { get; set; } = new List<School>();
         /// <summary>Slugs the article used before; requests for them redirect to <see cref="Slug"/>.</summary>
         public ICollection<ArticleSlugRedirect> SlugRedirects { get; set; } = new List<ArticleSlugRedirect>();
+        /// <summary>When the article was created (UTC).</summary>
+        public DateTime CreatedAt { get; set; }
+        /// <summary>When the article's content or metadata was last saved (UTC); equals <see cref="CreatedAt"/> until then.</summary>
+        public DateTime UpdatedAt { get; set; }
+        /// <summary>
+        /// When the article first became Published (UTC). Kept through archiving and re-publishing:
+        /// it is the date of first publication, not of the latest one. Null until first published.
+        /// </summary>
+        public DateTime? PublishedAt { get; set; }
+        /// <summary>The user who created the article; null for articles created before authorship was recorded, or whose author was deleted.</summary>
+        public int? AuthorId { get; set; }
+        public User? Author { get; set; }
+        /// <summary>Users credited next to the author; never includes the author.</summary>
+        public ICollection<ArticleCoAuthor> CoAuthors { get; set; } = new List<ArticleCoAuthor>();
     }
 }

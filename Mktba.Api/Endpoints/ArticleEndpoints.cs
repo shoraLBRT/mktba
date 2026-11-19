@@ -27,9 +27,9 @@ namespace Mktba.Api.Endpoints
                     : ApiProblemResults.Problem(StatusCodes.Status404NotFound, AppErrors.ArticleNotFound);
             }).Produces<ArticleReadDto>().ProducesApiProblem(StatusCodes.Status404NotFound);
 
-            group.MapPost("/", async (ArticleCreateDto createDto, ArticleService service) =>
+            group.MapPost("/", async (ArticleCreateDto createDto, ClaimsPrincipal user, ArticleService service) =>
             {
-                var createdArticle = await service.CreateAsync(createDto);
+                var createdArticle = await service.CreateAsync(createDto, user.GetUserId());
                 return Results.Created($"/articles/{createdArticle.Id}", createdArticle);
             }).Produces<ArticleReadDto>(StatusCodes.Status201Created).RequireAuthorization("AdminOnly");
 
@@ -49,6 +49,23 @@ namespace Mktba.Api.Endpoints
                 "Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, "
                 + "Archived → Draft. Any other move answers 400 article_status_transition_invalid.")
             .Produces<ArticleReadDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
+
+            group.MapGet("/{id:int}/authors", async (int id, ArticleAuthorshipService service) =>
+                Results.Ok(await service.GetAsync(id)))
+            .WithSummary("The article's author and co-authors.")
+            .Produces<ArticleAuthorsDto>()
+            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
+
+            group.MapPut("/{id:int}/authors", async (int id, ArticleAuthorsDto dto, ArticleAuthorshipService service) =>
+                Results.Ok(await service.SetAsync(id, dto)))
+            .WithSummary("Replaces the article's author and co-authors.")
+            .WithDescription(
+                "Duplicate co-author ids are ignored. Answers 400 user_not_found for an unknown user and "
+                + "400 article_coauthor_is_author when the author is also listed as co-author.")
+            .Produces<ArticleAuthorsDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
             .RequireAuthorization("AdminOnly");
 

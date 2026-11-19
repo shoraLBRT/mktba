@@ -12,12 +12,15 @@ namespace Mktba.Application.Services
         private readonly ParagraphRepository _paragraphRepo;
         private readonly IUnitOfWork _uow;
         private readonly ArticleSlugAssigner _slugs;
+        private readonly TimeProvider _clock;
 
         public ArticleContentService(
             ArticleRepository articleRepo,
             ParagraphRepository paragraphRepo,
-            IUnitOfWork uow)
+            IUnitOfWork uow,
+            TimeProvider clock)
         {
+            _clock = clock;
             _articleRepo = articleRepo;
             _paragraphRepo = paragraphRepo;
             _uow = uow;
@@ -61,7 +64,8 @@ namespace Mktba.Application.Services
                 : throw new NotFoundException(AppErrors.ArticleNotFound);
         }
 
-        public async Task<ArticleContentDto> CreateArticleWithContentAsync(ArticleContentCreateDto dto)
+        /// <param name="authorId">The creating user, recorded as the article's author.</param>
+        public async Task<ArticleContentDto> CreateArticleWithContentAsync(ArticleContentCreateDto dto, int? authorId)
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
             {
@@ -104,6 +108,7 @@ namespace Mktba.Application.Services
                     Summary = NormalizeOptionalText(dto.Summary),
                     Tags = SerializeTags(dto.Tags)
                 };
+                ArticleTimestamps.StampCreated(article, authorId, _clock);
 
                 await _articleRepo.AddAsync(article);
                 await _uow.SaveChangesAsync();
@@ -468,7 +473,9 @@ namespace Mktba.Application.Services
                 article.Summary,
                 ParseTags(article.Tags),
                 MapRelatedLinks(article, includeUnpublished),
-                article.Slug);
+                article.Slug,
+                article.PublishedAt,
+                article.UpdatedAt);
         }
 
         private static ArticleInfoboxDto? MapInfobox(Article article)
@@ -579,6 +586,7 @@ namespace Mktba.Application.Services
             List<ArticleRelatedLinkCreateDto>? relatedLinks)
         {
             article.Title = title;
+            article.UpdatedAt = _clock.GetUtcNow().UtcDateTime;
             article.InfoboxTitle = infobox?.Title;
             article.InfoboxSubtitle = infobox?.Subtitle;
             article.Summary = NormalizeOptionalText(summary);
