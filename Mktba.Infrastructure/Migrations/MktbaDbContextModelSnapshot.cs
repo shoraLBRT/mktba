@@ -123,6 +123,9 @@ namespace Mktba.Infrastructure.Migrations
                         .HasColumnType("character varying(8)")
                         .HasDefaultValue("ru");
 
+                    b.Property<bool>("NoIndex")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
@@ -135,10 +138,22 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<int?>("PublishedRevisionId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SeoDescription")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("SeoTitle")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
+
+                    b.Property<string>("SocialImageUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
 
                     b.Property<string>("Status")
                         .IsRequired()

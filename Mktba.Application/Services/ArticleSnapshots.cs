@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Mktba.Application.DTOs;
 using Mktba.Domain.Entities;
 
@@ -42,7 +42,8 @@ namespace Mktba.Application.Services
                 article.RelatedLinks
                     .OrderBy(l => l.Order)
                     .Select(l => new ArticleSnapshotRelatedLinkDto(l.RelatedArticleId, l.RelatedArticle.Title, l.RelatedArticle.Slug, l.Order))
-                    .ToList());
+                    .ToList(),
+                ArticleSeo.From(article));
         }
 
         public static string Serialize(ArticleSnapshotDto snapshot) => JsonSerializer.Serialize(snapshot, Json);
@@ -80,6 +81,7 @@ namespace Mktba.Application.Services
                     .Select(l => new ArticleRelatedLinkDto(0, l.RelatedArticleId, l.RelatedArticleTitle, l.Order, l.RelatedArticleSlug))
                     .ToList(),
                 snapshot.Slug,
-                EditComment: editComment);
+                EditComment: editComment,
+                Seo: snapshot.Seo);
     }
 }

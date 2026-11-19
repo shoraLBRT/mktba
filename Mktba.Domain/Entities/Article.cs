@@ -36,6 +36,14 @@
         public ICollection<ArticleInfoboxField> InfoboxFields { get; set; } = new List<ArticleInfoboxField>();
         public string? Summary { get; set; }
         public string? Tags { get; set; }
+        /// <summary>Title for search engines and link previews; null falls back to <see cref="Title"/>.</summary>
+        public string? SeoTitle { get; set; }
+        /// <summary>Description for search engines and link previews; null falls back to <see cref="Summary"/>, then to the start of the text.</summary>
+        public string? SeoDescription { get; set; }
+        /// <summary>Image for link previews (og:image): an absolute http(s) URL or a site-relative path; null means none.</summary>
+        public string? SocialImageUrl { get; set; }
+        /// <summary>True asks search engines not to index the article (robots noindex).</summary>
+        public bool NoIndex { get; set; }
         public ICollection<ArticleRelatedLink> RelatedLinks { get; set; } = new List<ArticleRelatedLink>();
         /// <summary>Кастомные школы, созданные редактором только для этой статьи</summary>
         public ICollection<School> CustomSchools { get; set; } = new List<School>();

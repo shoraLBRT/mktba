@@ -46,6 +46,21 @@ public static class AppErrors
         $"Slug must be 1-{Services.ArticleSlugRules.MaxLength} characters of a-z, 0-9 and single hyphens, and not digits only.",
         With(("maxLength", Services.ArticleSlugRules.MaxLength)));
 
+    public static AppError ArticleSeoTitleTooLong => new(
+        "article_seo_title_too_long",
+        $"SEO title must be at most {Infrastructure.Data.MktbaDbContext.SeoTitleMaxLength} characters.",
+        With(("maxLength", Infrastructure.Data.MktbaDbContext.SeoTitleMaxLength)));
+
+    public static AppError ArticleSeoDescriptionTooLong => new(
+        "article_seo_description_too_long",
+        $"SEO description must be at most {Infrastructure.Data.MktbaDbContext.SeoDescriptionMaxLength} characters.",
+        With(("maxLength", Infrastructure.Data.MktbaDbContext.SeoDescriptionMaxLength)));
+
+    public static AppError ArticleSocialImageUrlInvalid => new(
+        "article_social_image_url_invalid",
+        $"Social image must be an absolute http(s) URL or a path starting with '/', at most {Infrastructure.Data.MktbaDbContext.SocialImageUrlMaxLength} characters.",
+        With(("maxLength", Infrastructure.Data.MktbaDbContext.SocialImageUrlMaxLength)));
+
     public static AppError ArticleStatusTransitionInvalid(Domain.Entities.ArticleStatus from, Domain.Entities.ArticleStatus to) =>
         new("article_status_transition_invalid", $"An article cannot move from {from} to {to}.",
             With(("from", from.ToString()), ("to", to.ToString())));

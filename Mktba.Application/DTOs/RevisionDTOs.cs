@@ -1,11 +1,15 @@
-namespace Mktba.Application.DTOs
+﻿namespace Mktba.Application.DTOs
 {
     /// <summary>
     /// The article as one revision saved it. Stored as JSON (camelCase) and returned as is. It is
     /// self-contained: related links carry the title and slug they had at save time, so a revision
     /// renders without reading the current working copy. School ids refer to <c>/schools</c>.
     /// </summary>
-    /// <param name="SchemaVersion">Shape of this snapshot; <see cref="CurrentSchemaVersion"/> for new ones. Readers must handle every older version.</param>
+    /// <param name="SchemaVersion">
+    /// Shape of this snapshot; <see cref="CurrentSchemaVersion"/> for new ones. Readers must handle
+    /// every older version. 1: no SEO fields. 2: adds <paramref name="Seo"/>.
+    /// </param>
+    /// <param name="Seo">SEO overrides at save time; null in version 1 snapshots, which predate them (restoring one clears the overrides).</param>
     public record ArticleSnapshotDto(
         int SchemaVersion,
         string Title,
@@ -14,10 +18,11 @@ namespace Mktba.Application.DTOs
         List<string> Tags,
         ArticleSnapshotInfoboxDto? Infobox,
         List<ArticleSnapshotParagraphDto> Paragraphs,
-        List<ArticleSnapshotRelatedLinkDto> RelatedLinks)
+        List<ArticleSnapshotRelatedLinkDto> RelatedLinks,
+        ArticleSeoDto? Seo = null)
     {
         /// <summary>The schema version new snapshots are written with.</summary>
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
     }
 
     public record ArticleSnapshotInfoboxDto(

@@ -101,6 +101,12 @@ namespace Mktba.Application.Services
                 throw new ValidationException(commentError);
             }
 
+            var seo = ArticleSeo.Normalize(dto.Seo);
+            if (ArticleSeo.Check(seo) is { } seoError)
+            {
+                throw new ValidationException(seoError);
+            }
+
             var locale = Locales.Normalize(dto.Locale)
                 ?? throw new ValidationException(AppErrors.LocaleUnsupported(dto.Locale!));
             var slug = await _slugs.ChooseAsync(dto.Slug, dto.Title, locale, articleId: null);
@@ -121,6 +127,7 @@ namespace Mktba.Application.Services
                     Summary = NormalizeOptionalText(dto.Summary),
                     Tags = SerializeTags(dto.Tags)
                 };
+                ArticleSeo.Apply(article, seo);
                 ArticleTimestamps.StampCreated(article, authorId, _clock);
 
                 await _articleRepo.AddAsync(article);
@@ -209,6 +216,9 @@ namespace Mktba.Application.Services
 
             if (CheckEditComment(dto.EditComment) is { } commentError) return (false, commentError);
 
+            var seo = ArticleSeo.Normalize(dto.Seo);
+            if (ArticleSeo.Check(seo) is { } seoError) return (false, seoError);
+
             var incomingParagraphs = dto.Paragraphs ?? new List<ParagraphDto>();
             var (valid, orderError) = ValidateOrderDto(incomingParagraphs);
             if (!valid) return (false, orderError);
@@ -263,6 +273,7 @@ namespace Mktba.Application.Services
                 UpdateExistingParagraphs(existingParagraphs, incomingParagraphs);
                 await AddNewParagraphsAsync(articleId, incomingParagraphs);
                 UpdateArticleMetadata(article, dto.Title, normalizedInfobox, dto.Summary, dto.Tags, incomingRelatedLinks);
+                ArticleSeo.Apply(article, seo);
                 if (newSlug is not null)
                 {
                     await _slugs.ChangeAsync(article, newSlug);
@@ -525,7 +536,9 @@ namespace Mktba.Application.Services
                 article.PublishedAt,
                 article.UpdatedAt,
                 Locale: article.Locale,
-                TranslationGroupId: article.TranslationGroupId);
+                TranslationGroupId: article.TranslationGroupId,
+                Seo: ArticleSeo.From(article),
+                Meta: ArticleSeo.Resolve(article));
         }
 
         private static ArticleInfoboxDto? MapInfobox(Article article)
