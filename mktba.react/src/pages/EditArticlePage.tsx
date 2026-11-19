@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FileText, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router';
 import MarkdownContent from '../components/MarkdownContent';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';

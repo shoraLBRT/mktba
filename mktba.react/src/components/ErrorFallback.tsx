@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useLocale } from '../localization/hooks';
 import { Button } from '../shared/ui/Button';
 

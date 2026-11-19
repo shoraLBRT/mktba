@@ -11,8 +11,7 @@ type ArticleMetaProps = {
 
 /**
  * The article's document metadata: title, description, Open Graph, robots and canonical.
- * React 19 hoists these elements into `<head>`. A client-side stopgap: crawlers that do not run
- * JavaScript see them only once the public pages are rendered on the server (O-01, #52).
+ * React 19 hoists these elements into `<head>`, also in the server-rendered HTML.
  */
 export const ArticleMeta = ({ meta, slug, origin = window.location.origin }: ArticleMetaProps) => {
   const canonical = toAbsoluteUrl(articleHref(slug), origin);

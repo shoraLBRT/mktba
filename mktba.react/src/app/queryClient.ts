@@ -49,3 +49,10 @@ export const invalidateArticleQueries = (queryClient: QueryClient) =>
     queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT] }),
     queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_REVISIONS] }),
   ]);
+
+/**
+ * A query client for one server render's loader: it never retries (a slow API must not hold the
+ * page back), and its data is handed to the browser's client with `dehydrate`.
+ */
+export const createServerQueryClient = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false } } });

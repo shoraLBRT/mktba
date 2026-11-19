@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router';
 import type { RolePolicy } from '../auth/roleAccess';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import AdminForbiddenPage from '../pages/admin/AdminForbiddenPage';

@@ -19,7 +19,7 @@
 
 * **Backend**: ASP.NET Core 8 Minimal API, Clean DDD.
 * **База данных**: PostgreSQL 16 + EF Core 8.
-* **Frontend**: React 19 + TypeScript + React Router v7 + React Query v5 + Tailwind CSS v4 + Vite.
+* **Frontend**: React 19 + TypeScript + React Router v7 (framework mode, SSR публичных страниц) + React Query v5 + Tailwind CSS v4 + Vite.
 * **Auth**: короткий JWT Bearer в памяти + ротируемый refresh-токен в `httpOnly`-cookie, одноразовые приглашения с ролью (Reader/Author/Scholar/Admin) для регистрации.
 
 ## Структура репозитория
@@ -140,7 +140,26 @@ npm install
 npm run dev
 ```
 
-Dev-сервер Vite слушает `:5173`, API — `:5172`.
+Dev-сервер (`react-router dev`, Vite с серверным рендером) слушает `:5173`, API — `:5172`.
+
+Публичные страницы (главная, статья, 404) рендерятся на сервере: HTML уже содержит дерево статей,
+заголовок, все параграфы статьи и её метаданные; старый slug и ссылка `/article/{id}` отвечают
+`301` на текущий адрес, неизвестная статья — `404`. Сервер читает API анонимно, поэтому видит только
+опубликованное; сессия, выбранный мазхаб и прочие настройки из `localStorage` применяются в
+браузере сразу после гидратации. Админка (`/admin/*`) рендерится только в браузере.
+
+Продакшен-сборка и Node-сервер:
+
+```bash
+npm run build      # tsc + react-router build → build/client (статика), build/server (SSR)
+npm start          # react-router-serve, порт из PORT (по умолчанию 3000)
+```
+
+| Переменная | Когда | Назначение |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | при сборке | адрес API для браузера (по умолчанию `http://localhost:5172`) |
+| `API_INTERNAL_URL` | при запуске сервера | адрес API для серверного рендера (например, внутри сети деплоя); по умолчанию — `VITE_API_BASE_URL` |
+| `PORT` | при запуске сервера | порт `react-router-serve` |
 
 Тесты фронтенда — Vitest и Testing Library (jsdom), файлы `src/**/*.test.{ts,tsx}`:
 
@@ -182,8 +201,8 @@ docker exec mktba_postgres psql -U mktba -d postgres -c "DROP DATABASE mktba_e2e
 ```
 
 Playwright сам поднимает API (`dotnet run`, `:5172`, БД `mktba_e2e`, миграции при старте,
-случайный JWT-ключ на прогон) и Vite (`:5173`). Порт `:5172` должен быть свободен: уже запущенный
-API не переиспользуется, чтобы тест не попал в базу с нужными данными; Vite переиспользуется. Проект `setup` (`e2e/setup.mjs`) регистрирует первого админа
+случайный JWT-ключ на прогон) и SSR dev-сервер (`:5173`). Порт `:5172` должен быть свободен: уже запущенный
+API не переиспользуется, чтобы тест не попал в базу с нужными данными; dev-сервер переиспользуется. Проект `setup` (`e2e/setup.mjs`) регистрирует первого админа
 (`E2E_ADMIN_EMAIL`, по умолчанию `e2e@mktba.local`, пароль `E2E_ADMIN_PASSWORD`) или входит им,
 если он уже есть, и заливает `scripts/demo-content.json`, если дерево статей пустое, поэтому
 повторный прогон по той же БД работает с тем же паролем. Другая БД — `E2E_DB_CONNECTION`

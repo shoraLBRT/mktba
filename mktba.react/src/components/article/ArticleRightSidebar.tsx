@@ -1,6 +1,6 @@
 import { Tag } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useLocale } from '../../localization/hooks';
 import { articleHref } from '../../shared/slug';
 import type { ArticleRelatedLinkDto } from '../../shared/types/ApiTypes';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useLocale } from '../../localization/hooks';
 
 /** Shown for an admin URL the signed-in role may not open. The API refuses the data anyway. */

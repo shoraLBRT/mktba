@@ -7,7 +7,7 @@ import {
   PanelLeftOpen,
   Plus,
 } from 'lucide-react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import Sidebar from '../components/Sidebar';

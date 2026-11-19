@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateArticleQueries } from '../app/queryClient';
 import { APP_CONSTANTS } from '../constants/AppConstants';

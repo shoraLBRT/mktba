@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, FolderInput, Plus } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import { useLocale } from '../localization/hooks';
 import { ArticleStatusBadge } from './article/ArticleStatusBadge';
 import { articleHref } from '../shared/slug';

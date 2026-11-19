@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router';
 import { useLocale } from '../../localization/hooks';
 import { cn } from '../../shared/lib/cn';
 
