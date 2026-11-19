@@ -79,6 +79,7 @@ mktba.react           → React 19 + TypeScript, React Router v7 framework mode 
 - `/admin/*` is client-only (`clientLoader.hydrate` + `HydrateFallback`); auth never runs on the server.
 - No `localStorage`/`window` during render: read stored values after hydration via `useHydrated()`; `useSession` renders anonymously on the server and while hydrating.
 - Document metadata (O-04): `PageMeta` (`src/components/PageMeta.tsx`) renders title ("{page} — mktba"), description, canonical, robots, Open Graph and Twitter Card as React 19 elements hoisted into `<head>` (in the server HTML too); rules live in `src/shared/siteMeta.ts`. Exactly one `PageMeta` is mounted at a time: a route with `handle.ownsMeta` renders its own (home, article, 404), otherwise the root renders a generic `noindex, nofollow` one (admin, sign-in, service pages). Absolute URLs are built on the root loader's `siteUrl` (`PUBLIC_SITE_URL`, else the request origin) via `useSiteUrl()`; the article canonical path comes from `articleHref`.
+- Infobox layout (R-04): `ArticleInfoboxPanel` floats right by the width of its nearest `@container` ancestor (`@2xl`, the article column), not the viewport; whatever renders it must provide that `@container flow-root` wrapper. A bordered or filled block that can sit next to it needs `flow-root` so it ends at the float instead of running under it. Below `sm` the body is collapsed with CSS only (it stays in the server HTML).
 
 **Frontend ↔ Backend:**
 - Base URL configured in `mktba.react/src/config.ts` (`http://localhost:5172`)

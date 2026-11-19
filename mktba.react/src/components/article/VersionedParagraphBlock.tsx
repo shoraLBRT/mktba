@@ -64,7 +64,7 @@ export const VersionedParagraphBlock = ({
 
   return (
     <section
-      className="my-4 min-w-0 rounded-2xl border transition-colors duration-200"
+      className="my-4 flow-root min-w-0 rounded-2xl border transition-colors duration-200"
       style={{ backgroundColor: palette.bg, borderColor: palette.border }}
     >
       <div className="px-4 pt-3 pb-2">

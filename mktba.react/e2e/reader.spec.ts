@@ -109,6 +109,97 @@ test('a reader whose mazhab has no opinion of its own sees the common one with a
   await expect(page.getByText(/отдельного мнения нет/)).toBeHidden();
 });
 
+test('the infobox never overlaps the text or overflows, and collapses on a phone (R-04)', async ({ page, request }) => {
+  const unbroken = `https://example.org/${'ochen-dlinnaya-ssylka-'.repeat(6)}`;
+  const article = await publishArticle(
+    request,
+    `Инфобокс ${Date.now()}`,
+    [
+      { order: 1, opinions: [{ content: `Вступление. ${'Обычный текст абзаца. '.repeat(20)}`, isDefault: true, schoolIds: [] }] },
+      {
+        order: 2,
+        opinions: [
+          { content: 'Первое мнение блока', isDefault: true, schoolIds: [] },
+          { content: 'Второе мнение блока', isDefault: false, schoolIds: [] },
+        ],
+      },
+      { order: 3, opinions: [{ content: `## Раздел\n\n${'Ещё текст. '.repeat(40)}`, isDefault: true, schoolIds: [] }] },
+    ],
+    {
+      infobox: {
+        title: 'الصلاة',
+        subtitle: 'Салят',
+        fields: [
+          { order: 1, key: 'translit', label: 'Транслитерация', value: 'Достопримечательность-без-пробелов' },
+          { order: 2, key: 'source', label: 'Источник', value: unbroken },
+          { order: 3, key: 'type', label: 'Тип', value: 'Столп ислама' },
+        ],
+      },
+    },
+  );
+  const url = `/article/${article.slug}`;
+
+  // Collapsed or not, the facts are in the server HTML.
+  expect(await (await request.get(url)).text()).toContain('Столп ислама');
+
+  const infobox = page.getByRole('complementary', { name: 'الصلاة' });
+  const body = infobox.getByTestId('infobox-body');
+  type Box = { left: number; right: number; top: number; bottom: number };
+  type Layout = { pageOverflow: number; infoboxOverflow: number; column: Box; infobox: Box; blocks: Box[] };
+  // Runs in the page (the e2e project compiles without DOM types, hence a script string).
+  const layout = () => page.evaluate<Layout>(`(() => {
+    const box = (element) => {
+      const { left, right, top, bottom } = element.getBoundingClientRect();
+      return { left, right, top, bottom };
+    };
+    const aside = document.querySelector('#article-overview aside');
+    return {
+      pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      infoboxOverflow: aside.scrollWidth - aside.clientWidth,
+      column: box(aside.closest('.\\\\@container')),
+      infobox: box(aside),
+      blocks: [
+        ...[...document.querySelectorAll('article [role="tablist"]')].map((tablist) => tablist.closest('section')),
+        ...document.querySelectorAll('article .article-markdown h2'),
+      ].map(box),
+    };
+  })()`);
+
+  for (const width of [320, 390, 640, 768, 1024, 1280, 1536, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(url);
+    await expect(infobox).toBeVisible();
+    const seen = await layout();
+
+    expect(seen.pageOverflow, `page scrolls sideways at ${width}`).toBeLessThanOrEqual(0);
+    expect(seen.infoboxOverflow, `infobox content is clipped at ${width}`).toBeLessThanOrEqual(0);
+    expect(seen.infobox.left, `infobox leaves the column at ${width}`).toBeGreaterThanOrEqual(seen.column.left - 0.5);
+    expect(seen.infobox.right, `infobox leaves the column at ${width}`).toBeLessThanOrEqual(seen.column.right + 0.5);
+    expect(seen.blocks.length).toBeGreaterThanOrEqual(2);
+    for (const block of seen.blocks) {
+      const apart = block.left >= seen.infobox.right || block.right <= seen.infobox.left
+        || block.top >= seen.infobox.bottom || block.bottom <= seen.infobox.top;
+      expect(apart, `infobox overlaps a block at ${width}`).toBe(true);
+    }
+    const floated = seen.infobox.right - seen.infobox.left < seen.column.right - seen.column.left;
+    expect(floated, `infobox floats beside the text only in a wide column (${width})`).toBe(width >= 768);
+    if (width < 640) {
+      await expect(body).toBeHidden();
+    } else {
+      await expect(body).toBeVisible();
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(url);
+  await infobox.getByRole('button', { name: 'Показать сведения' }).click();
+  await expect(body).toBeVisible();
+  await expect(body).toContainText('Столп ислама');
+  expect((await layout()).infoboxOverflow).toBeLessThanOrEqual(0);
+  await infobox.getByRole('button', { name: 'Скрыть сведения' }).click();
+  await expect(body).toBeHidden();
+});
+
 test('an unknown page and a missing article show the 404 page', async ({ page }) => {
   await page.goto('/no/such/page');
   await expect(page.getByRole('heading', { name: 'Страница не найдена' })).toBeVisible();

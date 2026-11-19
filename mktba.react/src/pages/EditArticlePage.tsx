@@ -650,7 +650,7 @@ const EditArticlePage: React.FC = () => {
 
               <div className="px-4 py-6 sm:px-6 lg:px-8">
                 {isPreview ? (
-                  <div className="mx-auto max-w-[720px] rounded-[26px] border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-6 py-8 shadow-sm">
+                  <div className="@container mx-auto flow-root max-w-[720px] rounded-[26px] border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-6 py-8 shadow-sm">
                     <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-subtle)]">
                       <FileText size={12} />
                       {addT.previewTitle}
