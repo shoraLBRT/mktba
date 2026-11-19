@@ -42,6 +42,8 @@ export default defineConfig({
       env: {
         ConnectionStrings__DefaultConnection: DB_CONNECTION,
         Auth__JwtSigningKey: JWT_SIGNING_KEY,
+        // Every test logs in from 127.0.0.1; keep the per-IP auth limit out of the way.
+        RateLimiting__Auth__PermitLimit: '1000',
       },
       // Never reuse an API that is already running: it may point at a database with real data.
       reuseExistingServer: false,

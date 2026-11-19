@@ -61,6 +61,20 @@ dotnet user-secrets --project Mktba.Api set "Auth:JwtSigningKey" "$(openssl rand
 
 Окружение `OpenApi` (генерация контракта, `npm run gen:api`) токенов не выпускает и ключ не проверяет.
 
+#### Ограничение частоты запросов
+
+Секция `RateLimiting` в `appsettings.json` (фиксированное окно; превышение — `429` с `Retry-After`):
+
+| Лимит | Эндпоинты | Раздел | По умолчанию |
+| --- | --- | --- | --- |
+| `Auth` | `POST /auth/login`, `POST /auth/register` | IP клиента | 10 запросов / 60 с |
+| `Ai` | `POST /admin/ai-style`, `POST /admin/ai-check` | id пользователя | 20 запросов / 3600 с |
+
+Переопределение: `RateLimiting__Auth__PermitLimit=...`, `RateLimiting__Ai__WindowSeconds=...`.
+IP берётся из адреса соединения: `X-Forwarded-For` не учитывается, пока не настроен
+`ForwardedHeaders`. За обратным прокси все клиенты делят один лимит `Auth` — при развёртывании
+за прокси middleware нужно включить.
+
 ### Frontend
 
 ```bash

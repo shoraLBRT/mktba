@@ -1,4 +1,7 @@
+using System.Net;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -20,6 +23,20 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
     private readonly string _databaseName = $"mktba-api-tests-{Guid.NewGuid()}";
     private readonly string _environment;
     private readonly string? _signingKey;
+    private readonly IReadOnlyDictionary<string, string> _settings;
+
+    /// <summary>
+    /// Test-only request header that sets the connection's remote IP, so tests can act as
+    /// different clients. TestServer leaves the remote IP empty otherwise.
+    /// </summary>
+    public const string RemoteIpHeader = "X-Test-Remote-Ip";
+
+    /// <summary>Rate limits high enough that suites sharing one factory never hit them.</summary>
+    private static readonly IReadOnlyDictionary<string, string> GenerousRateLimits = new Dictionary<string, string>
+    {
+        ["RateLimiting:Auth:PermitLimit"] = "10000",
+        ["RateLimiting:Ai:PermitLimit"] = "10000",
+    };
 
     public MktbaApiFactory()
         : this("Testing", TestSigningKey)
@@ -28,10 +45,12 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
 
     /// <param name="environment">Hosting environment the API starts in.</param>
     /// <param name="signingKey">Value of <c>Auth:JwtSigningKey</c>; <c>null</c> leaves it unset.</param>
-    internal MktbaApiFactory(string environment, string? signingKey)
+    /// <param name="settings">Configuration overrides; <c>null</c> uses rate limits no test reaches.</param>
+    internal MktbaApiFactory(string environment, string? signingKey, IReadOnlyDictionary<string, string>? settings = null)
     {
         _environment = environment;
         _signingKey = signingKey;
+        _settings = settings ?? GenerousRateLimits;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -40,6 +59,10 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
         if (_signingKey is not null)
         {
             builder.UseSetting("Auth:JwtSigningKey", _signingKey);
+        }
+        foreach (var (key, value) in _settings)
+        {
+            builder.UseSetting(key, value);
         }
         builder.ConfigureServices(services =>
         {
@@ -54,6 +77,23 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
             }
 
             services.AddDbContext<MktbaDbContext>(options => options.UseInMemoryDatabase(_databaseName));
+            services.AddSingleton<IStartupFilter, RemoteIpFromHeaderStartupFilter>();
         });
+    }
+
+    private sealed class RemoteIpFromHeaderStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+        {
+            app.Use((context, nextMiddleware) =>
+            {
+                if (IPAddress.TryParse(context.Request.Headers[RemoteIpHeader], out var address))
+                {
+                    context.Connection.RemoteIpAddress = address;
+                }
+                return nextMiddleware(context);
+            });
+            next(app);
+        };
     }
 }

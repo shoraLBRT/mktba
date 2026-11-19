@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Mktba.Application.DTOs;
+using Mktba.Api.Infrastructure;
 using Mktba.Application.Services;
 
 namespace Mktba.Api.Endpoints;
@@ -25,7 +26,8 @@ public static class AuthEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AdminAuthResponseDto>().Produces(StatusCodes.Status400BadRequest);
+        }).Produces<AdminAuthResponseDto>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status429TooManyRequests)
+        .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
 
         group.MapPost("/login", async (
             AdminLoginRequestDto request,
@@ -36,7 +38,8 @@ public static class AuthEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AdminAuthResponseDto>().Produces(StatusCodes.Status400BadRequest);
+        }).Produces<AdminAuthResponseDto>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status429TooManyRequests)
+        .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
 
         group.MapPost("/invite-token", async (
             ClaimsPrincipal principal,

@@ -1,4 +1,5 @@
-﻿using Mktba.Application.DTOs;
+﻿using Mktba.Api.Infrastructure;
+using Mktba.Application.DTOs;
 using Mktba.Application.Services;
 
 namespace Mktba.Api.Endpoints;
@@ -47,7 +48,8 @@ public static class AdminEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AiStyleResponseDto>().Produces(StatusCodes.Status400BadRequest);
+        }).Produces<AiStyleResponseDto>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status429TooManyRequests)
+        .RequireRateLimiting(RateLimitingSetup.AiPolicy);
 
         group.MapPost("/ai-check", async (AdminService service, CancellationToken cancellationToken) =>
         {
@@ -55,7 +57,8 @@ public static class AdminEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AiConnectionCheckResultDto>().Produces(StatusCodes.Status400BadRequest);
+        }).Produces<AiConnectionCheckResultDto>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status429TooManyRequests)
+        .RequireRateLimiting(RateLimitingSetup.AiPolicy);
 
         return builder;
     }
