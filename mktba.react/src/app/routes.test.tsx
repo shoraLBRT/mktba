@@ -9,7 +9,7 @@ import HomeRoute, * as homeRoute from '../routes/home';
 import LegacyAddArticleRoute, * as legacyAddArticleRoute from '../routes/legacy-add-article';
 import NotFoundRoute, * as notFoundRoute from '../routes/not-found';
 import PublicLayoutRoute, * as publicLayoutRoute from '../routes/public-layout';
-import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
+import { getArticleContentById, getArticleContentBySlug, getRecentArticles } from '../services/Article/articleService';
 import { getCurrentUser } from '../services/authService';
 import { getNavigationTree } from '../services/Article/navigationService';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
@@ -19,7 +19,7 @@ import type { ArticleContentDto, UserRole } from '../shared/types/ApiTypes';
 
 const article = (slug: string): ArticleContentDto => ({ id: 7, title: 'Намаз', slug, paragraphs: [], tags: [] });
 
-vi.mock('../services/Article/articleService', () => ({ getArticleContentById: vi.fn(), getArticleContentBySlug: vi.fn() }));
+vi.mock('../services/Article/articleService', () => ({ getArticleContentById: vi.fn(), getArticleContentBySlug: vi.fn(), getRecentArticles: vi.fn() }));
 vi.mock('../services/Article/navigationService', () => ({ getNavigationTree: vi.fn() }));
 vi.mock('../services/schoolService', () => ({ getSchoolsByArticleId: vi.fn(), getSystemSchools: vi.fn() }));
 vi.mock('../pages/AddArticlePage', () => ({ default: () => <p>add-article-page</p> }));
@@ -60,7 +60,7 @@ const RoutesStub = createRoutesStub([
         Component: PublicLayoutRoute,
         loader: publicLayoutRoute.clientLoader,
         children: [
-          { index: true, Component: HomeRoute, handle: homeRoute.handle },
+          { index: true, Component: HomeRoute, loader: homeRoute.clientLoader, handle: homeRoute.handle },
           { path: 'article/new', Component: LegacyAddArticleRoute, loader: legacyAddArticleRoute.clientLoader },
           { path: 'article/:slug', Component: ArticleRoute, loader: articleRoute.clientLoader, handle: articleRoute.handle },
           { path: 'admin/login', Component: AdminLoginRoute },
@@ -77,6 +77,7 @@ const renderAt = (path: string) => render(<RoutesStub initialEntries={[path]} />
 beforeEach(() => {
   clearSession();
   vi.mocked(getNavigationTree).mockResolvedValue([]);
+  vi.mocked(getRecentArticles).mockResolvedValue({ new: [], updated: [] });
   vi.mocked(getSystemSchools).mockResolvedValue([]);
   vi.mocked(getSchoolsByArticleId).mockResolvedValue([]);
 });

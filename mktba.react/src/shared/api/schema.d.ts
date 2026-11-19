@@ -910,6 +910,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The newest and the most recently updated articles, for the home page.
+         * @description Two lists of articles a reader can open: Published, not under a non-Published parent, and not empty stubs. new is ordered by publishedAt, updated holds the articles saved after they were published, ordered by updatedAt; both latest first. The same lists for every caller; no content. locale defaults to ru (an unsupported one answers 400 locale_unsupported); limit is the size of each list, 6 by default, kept within 1 to 20.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    locale?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecentArticlesDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}": {
         parameters: {
             query?: never;
@@ -2767,6 +2818,21 @@ export interface components {
             /** Format: int32 */
             order: number;
             opinions: components["schemas"]["OpinionUpdateDto"][];
+        };
+        RecentArticleDto: {
+            /** Format: int32 */
+            id: number;
+            title: string;
+            slug: string;
+            summary?: string | null;
+            /** Format: date-time */
+            publishedAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        RecentArticlesDto: {
+            new: components["schemas"]["RecentArticleDto"][];
+            updated: components["schemas"]["RecentArticleDto"][];
         };
         SchoolCreateDto: {
             slug: string;

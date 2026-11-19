@@ -13,6 +13,7 @@ namespace Mktba.Application
             services.AddScoped<SchoolService>();
             services.AddScoped<NavigationTreeService>();
             services.AddScoped<SitemapService>();
+            services.AddScoped<RecentArticlesService>();
             services.AddScoped<ArticleContentService>();
             services.AddScoped<ArticleRevisionService>();
             services.AddScoped<ArticleAuthorshipService>();

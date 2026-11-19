@@ -81,6 +81,18 @@ namespace Mktba.Api.Endpoints
                 + "non-Published parent. The same list for every caller; no content.")
             .Produces<List<SitemapArticleDto>>();
 
+            group.MapGet("/recent", async (string? locale, int? limit, RecentArticlesService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.GetAsync(locale, limit ?? RecentArticlesService.DefaultLimit, cancellationToken)))
+            .WithSummary("The newest and the most recently updated articles, for the home page.")
+            .WithDescription(
+                "Two lists of articles a reader can open: Published, not under a non-Published parent, and "
+                + "not empty stubs. new is ordered by publishedAt, updated holds the articles saved after "
+                + "they were published, ordered by updatedAt; both latest first. The same lists for every "
+                + "caller; no content. locale defaults to ru (an unsupported one answers 400 "
+                + "locale_unsupported); limit is the size of each list, 6 by default, kept within 1 to 20.")
+            .Produces<RecentArticlesDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest);
+
             group.MapGet("/{id:int}", async (int id, ClaimsPrincipal user, ArticleService service) =>
             {
                 var article = await service.GetByIdAsync(id, user.ToArticleViewer());
