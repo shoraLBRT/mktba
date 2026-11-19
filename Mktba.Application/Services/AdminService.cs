@@ -1,4 +1,5 @@
 ﻿using Mktba.Application.Exceptions;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -136,7 +137,7 @@ namespace Mktba.Application.Services
 
             if (!styleResult.IsSuccess)
             {
-                return ServiceResult<AiStyleResponseDto>.Failure(styleResult.Error!);
+                return ServiceResult<AiStyleResponseDto>.Failure(styleResult.Error);
             }
 
             return ServiceResult<AiStyleResponseDto>.Success(new AiStyleResponseDto
@@ -152,7 +153,7 @@ namespace Mktba.Application.Services
 
             if (!styleResult.IsSuccess)
             {
-                return ServiceResult<AiConnectionCheckResultDto>.Failure(styleResult.Error!);
+                return ServiceResult<AiConnectionCheckResultDto>.Failure(styleResult.Error);
             }
 
             return ServiceResult<AiConnectionCheckResultDto>.Success(new AiConnectionCheckResultDto
@@ -350,7 +351,12 @@ namespace Mktba.Application.Services
             public static ServiceResult<T> Failure(AppError error) => new(false, default, error);
         }
 
-        private sealed record AiStyleResult(bool IsSuccess, string? StyledText, AppError? Error)
+        private sealed record AiStyleResult(
+            [property: MemberNotNullWhen(true, "StyledText")]
+            [property: MemberNotNullWhen(false, "Error")]
+            bool IsSuccess,
+            string? StyledText,
+            AppError? Error)
         {
             public static AiStyleResult Success(string styledText) => new(true, styledText, null);
             public static AiStyleResult Failure(AppError error) => new(false, null, error);
