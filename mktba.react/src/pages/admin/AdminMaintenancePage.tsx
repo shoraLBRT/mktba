@@ -44,11 +44,11 @@ const AdminMaintenancePage: React.FC = () => {
 
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-red-700">{t.maintenanceTitle}</h1>
-        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">This action is permanent and cannot be undone.</p>
+        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t.maintenanceIrreversible}</p>
       </div>
       <Card className="border-red-200 bg-red-50 p-6">
         <div className="mb-4 rounded-lg bg-white p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-red-600">Warning</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-red-600">{t.maintenanceWarning}</p>
           <p className="mt-2 text-sm text-red-900">{t.maintenanceDescription}</p>
         </div>
 

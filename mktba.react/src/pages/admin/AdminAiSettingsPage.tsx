@@ -121,7 +121,7 @@ const AdminAiSettingsPage: React.FC = () => {
 
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink-strong)]">{t.aiTab}</h1>
-        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">Configure your AI provider connection and customize the markdown styling behavior.</p>
+        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t.aiPageDescription}</p>
       </div>
 
       <Card className="border-[var(--color-brand-forest-soft)] bg-[var(--color-brand-forest-soft)]/20 p-6">
@@ -144,7 +144,7 @@ const AdminAiSettingsPage: React.FC = () => {
 
       <Card className="p-6">
         <div className="mb-6 rounded-lg bg-[var(--color-surface-muted)] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">Status</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">{t.aiStatusLabel}</p>
           <p className="mt-1 text-base font-semibold text-[var(--color-ink-strong)]">{aiStatusHint}</p>
         </div>
 

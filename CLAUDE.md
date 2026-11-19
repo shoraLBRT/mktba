@@ -84,6 +84,7 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 ## Coding conventions
 
 - English for all code symbols; Russian may appear in UI strings/comments/AI prompts.
+- UI text lives only in `mktba.react/src/localization/locales/ru/*.json`; ESLint (`i18next/no-literal-string`) fails on hard-coded JSX text and user-facing attribute strings in `src/**/*.tsx`.
 - No dead code, no commented-out blocks, no TODOs without an issue reference.
 - No unrelated refactors mixed into task-specific changes.
 - Keep public API/DTO contracts documented.

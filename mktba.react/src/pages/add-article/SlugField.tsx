@@ -2,6 +2,8 @@ import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
 import { SLUG_MAX_LENGTH, isValidSlug } from '../../shared/slug';
 
+const ARTICLE_PATH_PREFIX = '/article/';
+
 type SlugFieldProps = {
   value: string;
   disabled?: boolean;
@@ -26,7 +28,7 @@ export const SlugField = ({ value, disabled, onChange, onFillFromTitle, locale =
         {t.slugLabel}
       </label>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-[var(--color-ink-muted)]">/article/</span>
+        <span className="text-sm text-[var(--color-ink-muted)]">{ARTICLE_PATH_PREFIX}</span>
         <input
           id="article-slug"
           value={value}
