@@ -64,6 +64,8 @@ public static class AppErrors
     public static AppError ParagraphOpinionsRequired => new("paragraph_opinions_required", "At least one opinion is required.");
     public static AppError ParagraphDefaultOpinionRequired =>
         new("paragraph_default_opinion_required", "Exactly one opinion must be marked as default.");
+    public static AppError ParagraphPlainSchoolsNotAllowed =>
+        new("paragraph_plain_schools_not_allowed", "A paragraph with a single opinion is common to all schools and cannot be linked to schools.");
 
     public static AppError ParagraphOrderTooLarge(int maxOrder) =>
         new("paragraph_order_too_large", $"Order cannot be greater than {maxOrder}.", With(("maxOrder", maxOrder)));

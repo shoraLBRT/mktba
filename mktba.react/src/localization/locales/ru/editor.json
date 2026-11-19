@@ -80,6 +80,7 @@
     "toggleToParagraph": "Преобразовать в обычный параграф",
     "defaultVersion": "По умолчанию",
     "versionTextPlaceholder": "Текст мнения {index}...",
+    "schoolsNeedSecondVersion": "Абзац с одним мнением общий для всех мазхабов. Чтобы указать мазхабы, добавьте второе мнение.",
     "versions": "Мазхабы:",
     "versionTitle": "Мнение {index}",
     "defaultVersionTitle": "Мнение по умолчанию",

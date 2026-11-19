@@ -25,15 +25,22 @@ namespace Mktba.Application.DTOs
         public int Id { get; set; }
         public string Content { get; set; } = string.Empty;
         public bool IsDefault { get; set; }
+        /// <summary>
+        /// Schools this opinion is linked to. Allowed only when the paragraph has two or more opinions:
+        /// a paragraph with a single opinion is common to all schools, and school ids on it are rejected
+        /// with <c>paragraph_plain_schools_not_allowed</c>.
+        /// </summary>
         public List<int> SchoolIds { get; set; } = new();
     }
 
+    /// <param name="SchoolIds">Schools the opinion is linked to; must be empty when the paragraph has a single opinion (<c>paragraph_plain_schools_not_allowed</c>).</param>
     public record OpinionCreateDto(
         string Content,
         bool IsDefault,
         List<int> SchoolIds
     );
 
+    /// <param name="SchoolIds">Schools the opinion is linked to; must be empty when the paragraph has a single opinion (<c>paragraph_plain_schools_not_allowed</c>).</param>
     public record OpinionUpdateDto(
         int Id,                    // 0 = новый, >0 = обновить существующий
         string Content,

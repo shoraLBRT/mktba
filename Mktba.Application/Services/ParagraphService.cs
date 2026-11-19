@@ -55,6 +55,12 @@ namespace Mktba.Application.Services
                 throw new ValidationException(AppErrors.ParagraphDefaultOpinionRequired);
             }
 
+            var schoolsError = ParagraphRules.CheckPlainParagraphSchools(createDto.Opinions.Select(o => o.SchoolIds).ToList());
+            if (schoolsError is not null)
+            {
+                throw new ValidationException(schoolsError);
+            }
+
             // Shift existing paragraphs at or after the new order
             var existingAtOrder = existingParagraphs.FirstOrDefault(p => p.Order == createDto.Order);
             if (existingAtOrder != null)
@@ -107,6 +113,12 @@ namespace Mktba.Application.Services
             if (defaultCount != 1)
             {
                 throw new ValidationException(AppErrors.ParagraphDefaultOpinionRequired);
+            }
+
+            var schoolsError = ParagraphRules.CheckPlainParagraphSchools(updateDto.Opinions.Select(o => o.SchoolIds).ToList());
+            if (schoolsError is not null)
+            {
+                throw new ValidationException(schoolsError);
             }
 
             if (paragraph.Order != updateDto.Order)

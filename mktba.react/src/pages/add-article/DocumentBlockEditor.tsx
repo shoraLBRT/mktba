@@ -5,6 +5,7 @@ import { useLocale } from '../../localization/hooks';
 import { cn } from '../../shared/lib/cn';
 import { Textarea } from '../../shared/ui/Textarea';
 import type { SchoolDto } from '../../shared/types/ApiTypes';
+import { canAssignSchools } from './draftHelpers';
 import type { AlternativeDraft, EditorBlock } from './types';
 
 type EditorTarget = {
@@ -258,12 +259,16 @@ export const DocumentBlockEditor = ({
                   placeholder={formatMessage(t.versionTextPlaceholder, { index: selectedIndex + 1 })}
                 />
 
-                <SchoolChips
-                  availableSchools={availableSchools}
-                  selectedSchoolIds={selectedVariant.schoolIds}
-                  disabled={disabled}
-                  onToggle={toggleSchool}
-                />
+                {canAssignSchools(block) ? (
+                  <SchoolChips
+                    availableSchools={availableSchools}
+                    selectedSchoolIds={selectedVariant.schoolIds}
+                    disabled={disabled}
+                    onToggle={toggleSchool}
+                  />
+                ) : (
+                  <p className="mt-2 text-[10px] text-[var(--color-ink-subtle)]">{t.schoolsNeedSecondVersion}</p>
+                )}
               </>
             );
           })()}

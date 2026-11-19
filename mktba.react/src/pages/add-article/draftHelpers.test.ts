@@ -4,6 +4,7 @@ import {
   buildDocumentPreviewMarkdown,
   buildParagraphCreateDtosFromBlocks,
   buildParagraphUpdateDtosFromBlocks,
+  canAssignSchools,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
   hasAnyFilledContent,
@@ -94,6 +95,63 @@ describe('setDefaultVersion and removeVersionFromBlock', () => {
   });
 });
 
+describe('schools on a block with a single opinion (S-14)', () => {
+  it('given a block with one opinion, when checking, then schools cannot be assigned', () => {
+    expect(canAssignSchools(versioned('s', [{ localId: 'only', content: 'text', isDefault: true }]))).toBe(false);
+  });
+
+  it('given a block with two opinions, when checking, then schools can be assigned', () => {
+    expect(
+      canAssignSchools(
+        versioned('v', [
+          { localId: 'x', content: 'a', isDefault: true },
+          { localId: 'y', content: 'b', isDefault: false },
+        ]),
+      ),
+    ).toBe(true);
+  });
+
+  it('given two opinions with schools, when one is removed, then the remaining opinion loses its schools', () => {
+    const block = versioned('v', [
+      { localId: 'x', content: 'a', isDefault: true, schoolIds: [1] },
+      { localId: 'y', content: 'b', isDefault: false, schoolIds: [2] },
+    ]);
+
+    const [next] = removeVersionFromBlock([block], 'v', 'y') as VersionedEditorBlock[];
+
+    expect(next.variants).toEqual([expect.objectContaining({ localId: 'x', schoolIds: [] })]);
+  });
+
+  const onlyDefaultFilled = versioned('v', [
+    { localId: 'x', content: 'общее', isDefault: true, schoolIds: [1] },
+    { localId: 'y', content: '   ', isDefault: false, schoolIds: [2] },
+  ]);
+
+  it('given several opinions but only one with text, when building create DTOs, then it is sent as a plain paragraph without schools', () => {
+    expect(buildParagraphCreateDtosFromBlocks([onlyDefaultFilled])).toEqual([
+      { articleId: 0, order: 1, opinions: [{ content: 'общее', isDefault: true, schoolIds: [] }] },
+    ]);
+  });
+
+  it('given several opinions but only one with text, when building update DTOs, then it is sent as a plain paragraph without schools', () => {
+    expect(buildParagraphUpdateDtosFromBlocks([{ ...onlyDefaultFilled, paragraphId: 3 }])).toEqual([
+      { id: 3, order: 1, opinions: [{ id: 0, content: 'общее', isDefault: true, schoolIds: [] }] },
+    ]);
+  });
+
+  it('given three opinions with schools, when one is removed, then the others keep their schools', () => {
+    const block = versioned('v', [
+      { localId: 'x', content: 'a', isDefault: true, schoolIds: [1] },
+      { localId: 'y', content: 'b', isDefault: false, schoolIds: [2] },
+      { localId: 'z', content: 'c', isDefault: false, schoolIds: [3] },
+    ]);
+
+    const [next] = removeVersionFromBlock([block], 'v', 'z') as VersionedEditorBlock[];
+
+    expect(next.variants.map((variant) => variant.schoolIds)).toEqual([[1], [2]]);
+  });
+});
+
 describe('convertParagraphToVersioned and convertVersionedToParagraph', () => {
   it('given a plain paragraph, when converting to versioned, then its content becomes the default variant', () => {
     const [next] = convertParagraphToVersioned(
@@ -130,7 +188,7 @@ describe('buildParagraphCreateDtosFromBlocks', () => {
     expect(buildParagraphCreateDtosFromBlocks(blocks)).toEqual([
       { articleId: 0, order: 1, opinions: [{ content: '## Заголовок', isDefault: true, schoolIds: [] }] },
       { articleId: 0, order: 2, opinions: [{ content: 'текст', isDefault: true, schoolIds: [] }] },
-      { articleId: 0, order: 3, opinions: [{ content: 'ханафи', isDefault: true, schoolIds: [1] }] },
+      { articleId: 0, order: 3, opinions: [{ content: 'ханафи', isDefault: true, schoolIds: [] }] },
     ]);
   });
 

@@ -1,5 +1,5 @@
 import type { OpinionCreateDto, OpinionDto, ParagraphCreateDto, ParagraphDto } from '../../shared/types/ApiTypes';
-import type { AlternativeDraft, EditorBlock, PlainBlockKind } from './types';
+import type { AlternativeDraft, EditorBlock, PlainBlockKind, VersionedEditorBlock } from './types';
 
 const createVariant = (isDefault: boolean): AlternativeDraft => ({
   localId: crypto.randomUUID(),
@@ -77,6 +77,13 @@ export const addVersionToBlock = (blocks: EditorBlock[], blockId: string): Edito
         },
   );
 
+/**
+ * Schools can be assigned only in a block with two or more versions. A paragraph with a single
+ * opinion is common to all schools, and the API rejects school ids on it
+ * (`paragraph_plain_schools_not_allowed`).
+ */
+export const canAssignSchools = (block: VersionedEditorBlock): boolean => block.variants.length > 1;
+
 export const removeVersionFromBlock = (
   blocks: EditorBlock[],
   blockId: string,
@@ -87,9 +94,12 @@ export const removeVersionFromBlock = (
       return block;
     }
 
-    const variants = block.variants.filter((variant) => variant.localId !== localId);
+    let variants = block.variants.filter((variant) => variant.localId !== localId);
     if (!variants.some((variant) => variant.isDefault) && variants[0]) {
       variants[0] = { ...variants[0], isDefault: true };
+    }
+    if (!canAssignSchools({ ...block, variants })) {
+      variants = variants.map((variant) => ({ ...variant, schoolIds: [] }));
     }
 
     return { ...block, variants };
@@ -193,6 +203,13 @@ const toStoredMarkdown = (block: EditorBlock): string[] => {
   return [];
 };
 
+/**
+ * A versioned block whose other opinions are empty is saved as a plain paragraph: its only opinion
+ * is common to all schools, so it is sent without school ids and as the default
+ * (the API rejects school ids on a single-opinion paragraph).
+ */
+const asPlainOpinion = <T extends OpinionCreateDto>(opinion: T): T => ({ ...opinion, isDefault: true, schoolIds: [] });
+
 export const buildParagraphCreateDtosFromBlocks = (blocks: EditorBlock[]): ParagraphCreateDto[] => {
   const paragraphs: ParagraphCreateDto[] = [];
 
@@ -207,6 +224,9 @@ export const buildParagraphCreateDtosFromBlocks = (blocks: EditorBlock[]): Parag
           isDefault: variant.isDefault,
           schoolIds: variant.schoolIds,
         }));
+      if (opinions.length === 1) {
+        opinions[0] = asPlainOpinion(opinions[0]);
+      }
 
       if (opinions.length > 0) {
         paragraphs.push({ articleId: 0, order, opinions });
@@ -242,6 +262,9 @@ export const buildParagraphUpdateDtosFromBlocks = (blocks: EditorBlock[]): Parag
           isDefault: variant.isDefault,
           schoolIds: variant.schoolIds,
         }));
+      if (opinions.length === 1) {
+        opinions[0] = asPlainOpinion(opinions[0]);
+      }
 
       if (opinions.length > 0) {
         paragraphs.push({ id: block.paragraphId ?? 0, order, opinions });
