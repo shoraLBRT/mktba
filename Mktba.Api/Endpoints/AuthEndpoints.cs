@@ -42,6 +42,21 @@ public static class AuthEndpoints
         }).Produces<AdminAuthResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
         .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
 
+        group.MapGet("/me", async (ClaimsPrincipal principal, AdminAuthService service, CancellationToken cancellationToken) =>
+        {
+            var user = principal.GetUserId() is int userId
+                ? await service.GetCurrentUserAsync(userId, cancellationToken)
+                : null;
+            return user is null
+                ? ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized)
+                : Results.Ok(user);
+        })
+        .WithSummary("The signed-in user and their current role.")
+        .WithDescription("The role is read from the database, so it reflects a change made after the token was issued.")
+        .Produces<CurrentUserDto>()
+        .ProducesApiProblem(StatusCodes.Status401Unauthorized)
+        .RequireAuthorization(Policies.Authenticated);
+
         group.MapPost("/invite-token", async (
             ClaimsPrincipal principal,
             AdminAuthService service,
@@ -57,7 +72,7 @@ public static class AuthEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, result.Error!);
-        }).Produces<AdminInviteTokenCreateResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
+        }).Produces<AdminInviteTokenCreateResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization(Policies.CanManageUsers);
 
         return builder;
     }

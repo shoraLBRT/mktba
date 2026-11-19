@@ -15,7 +15,7 @@ namespace Mktba.Api.Endpoints
             {
                 var paragraphs = await service.GetAllAsync();
                 return Results.Ok(paragraphs);
-            }).Produces<List<ParagraphReadDto>>().RequireAuthorization("AdminOnly");
+            }).Produces<List<ParagraphReadDto>>().RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapGet("/{id}", async (int id, ParagraphService service) =>
             {
@@ -23,25 +23,25 @@ namespace Mktba.Api.Endpoints
                 return paragraph is not null
                     ? Results.Ok(paragraph)
                     : ApiProblemResults.Problem(StatusCodes.Status404NotFound, AppErrors.ParagraphNotFound);
-            }).Produces<ParagraphReadDto>().ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
+            }).Produces<ParagraphReadDto>().ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapPost("/", async (ParagraphCreateDto createDto, ParagraphService service) =>
             {
                 var createdParagraph = await service.CreateAsync(createDto);
                 return Results.Created($"/paragraph/{createdParagraph!.Id}", createdParagraph);
-            }).Produces<ParagraphReadDto>(StatusCodes.Status201Created).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
+            }).Produces<ParagraphReadDto>(StatusCodes.Status201Created).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapPut("/{id}", async (int id, ParagraphUpdateDto updateDto, ParagraphService service) =>
             {
                 await service.UpdateAsync(id, updateDto);
                 return Results.NoContent();
-            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound).RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapDelete("/{id}", async (int id, ParagraphService service) =>
             {
                 await service.DeleteAsync(id);
                 return Results.NoContent();
-            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization(Policies.CanEditAnyArticle);
 
             return builder;
         }

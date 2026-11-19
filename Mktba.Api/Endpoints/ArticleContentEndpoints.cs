@@ -42,13 +42,13 @@ namespace Mktba.Api.Endpoints
             {
                 var article = await service.CreateArticleWithContentAsync(dto, user.GetUserId());
                 return Results.Created($"/articles/{article.Id}/content", article);
-            }).Produces<ArticleContentDto>(StatusCodes.Status201Created).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
+            }).Produces<ArticleContentDto>(StatusCodes.Status201Created).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization(Policies.CanEditArticles);
 
             group.MapPut("/{id:int}/content", async (int id, ArticleContentDto dto, ClaimsPrincipal user, ArticleContentService service) =>
             {
                 var (success, error) = await service.UpdateContentAsync(id, dto, user.GetUserId());
                 return success ? Results.NoContent() : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, error!);
-            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization(Policies.CanEditAnyArticle);
 
             MapRevisionEndpoints(group);
 
@@ -62,21 +62,21 @@ namespace Mktba.Api.Endpoints
             .WithSummary("The article's revisions, newest first.")
             .Produces<List<ArticleRevisionSummaryDto>>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapGet("/{id:int}/revisions/{number:int}", async (int id, int number, ArticleRevisionService service) =>
                 Results.Ok(await service.GetAsync(id, number)))
             .WithSummary("One revision with its snapshot.")
             .Produces<ArticleRevisionDto>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapGet("/{id:int}/revisions/compare", async (int id, int from, int to, ArticleRevisionService service) =>
                 Results.Ok(await service.CompareAsync(id, from, to)))
             .WithSummary("Two revisions with their snapshots; the client renders the difference.")
             .Produces<ArticleRevisionComparisonDto>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapPost("/{id:int}/revisions/{number:int}/restore", async (int id, int number, ArticleRevisionRestoreDto dto, ClaimsPrincipal user, ArticleRevisionService service) =>
                 Results.Ok(await service.RestoreAsync(id, number, dto.Comment, user.GetUserId())))
@@ -88,7 +88,7 @@ namespace Mktba.Api.Endpoints
             .Produces<ArticleRevisionSummaryDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest)
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
         }
 
         private static string BySlugContentPath(string slug, string? locale) =>

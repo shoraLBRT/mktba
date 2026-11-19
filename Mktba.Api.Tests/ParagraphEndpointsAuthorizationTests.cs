@@ -110,8 +110,8 @@ public sealed class ParagraphEndpointsAuthorizationTests : IClassFixture<MktbaAp
 
         var register = await client.PostAsJsonAsync("/auth/register", credentials);
         var auth = register.IsSuccessStatusCode
-            ? await register.Content.ReadFromJsonAsync<AdminAuthResponseDto>()
-            : await (await client.PostAsJsonAsync("/auth/login", credentials)).Content.ReadFromJsonAsync<AdminAuthResponseDto>();
+            ? await register.Content.ReadFromJsonAsync<AdminAuthResponseDto>(ApiJson.Options)
+            : await (await client.PostAsJsonAsync("/auth/login", credentials)).Content.ReadFromJsonAsync<AdminAuthResponseDto>(ApiJson.Options);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
         return client;

@@ -51,7 +51,7 @@ public sealed class AiProviderNotConfiguredTests
     {
         var client = factory.CreateClient();
         var response = await client.PostAsJsonAsync("/auth/register", new { Email = "admin@mktba.test", Password = "Test-password-1" });
-        var auth = await response.Content.ReadFromJsonAsync<AdminAuthResponseDto>();
+        var auth = await response.Content.ReadFromJsonAsync<AdminAuthResponseDto>(ApiJson.Options);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
         return client;
     }

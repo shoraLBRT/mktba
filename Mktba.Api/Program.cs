@@ -99,12 +99,7 @@ builder.Services
         options.EventsType = typeof(JwtProblemEvents);
     });
 
-builder.Services.AddAuthorizationBuilder()
-    .AddPolicy("AdminOnly", policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.RequireRole("Admin");
-    });
+builder.Services.AddAuthorizationBuilder().AddMktbaPolicies();
 
 builder.Services.AddMktbaRateLimiting(builder.Configuration);
 
