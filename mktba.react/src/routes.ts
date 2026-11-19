@@ -10,6 +10,7 @@ export default [
   layout('routes/public-layout.tsx', [
     index('routes/home.tsx'),
     route('search', 'routes/search.tsx'),
+    route('feedback', 'routes/feedback.tsx'),
     route('article/new', 'routes/legacy-add-article.tsx'),
     route('article/:slug', 'routes/article.tsx'),
     route('admin/login', 'routes/admin-login.tsx'),

@@ -65,3 +65,6 @@ export type SessionDto = Schemas['SessionDto'];
 export type UserRole = Schemas['UserRole'];
 
 export type NavigationTreeDto = NavigationArticleDto[];
+export type FeedbackType = Schemas['FeedbackType'];
+export type FeedbackCreateDto = Schemas['FeedbackCreateDto'];
+export type FeedbackAcceptedDto = Schemas['FeedbackAcceptedDto'];

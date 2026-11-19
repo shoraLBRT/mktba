@@ -15,6 +15,7 @@ import Sidebar from '../components/Sidebar';
 import { useSidebar } from '../hooks/useSidebar';
 import { useLocale } from '../localization/hooks';
 import { logOut, useSession } from '../services/session';
+import { FEEDBACK_PATH, feedbackHref } from '../shared/feedback';
 import { Button } from '../shared/ui/Button';
 import { MazhabSelector } from '../components/mazhab/MazhabSelector';
 import { SearchDialog } from '../components/search/SearchDialog';
@@ -28,6 +29,10 @@ const MainLayout: React.FC = () => {
   const { collapsed, toggleCollapsed } = useSidebar();
   const isAdmin = useSession().accessToken !== null;
   const currentPath = location.pathname;
+  // On the form itself the link keeps what the form was opened with; elsewhere it carries this page.
+  const feedbackLink = currentPath === FEEDBACK_PATH
+    ? `${FEEDBACK_PATH}${location.search}`
+    : feedbackHref({ from: `${location.pathname}${location.search}` });
   const isCreateRoute = location.pathname === APP_CONSTANTS.ROUTES.ADD_ARTICLE;
   const [mobileSidebarState, setMobileSidebarState] = useState({ open: false, path: currentPath });
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
@@ -155,11 +160,23 @@ const MainLayout: React.FC = () => {
           searchFocusRequest={searchFocusRequest}
           onExpandSidebarSearch={handleExpandSidebarSearch}
         />
-        <main className="flex-1">
-          <ErrorBoundary resetKey={currentPath}>
-            <Outlet />
-          </ErrorBoundary>
-        </main>
+        <div className="flex flex-1 flex-col">
+          <main className="flex-1">
+            <ErrorBoundary resetKey={currentPath}>
+              <Outlet />
+            </ErrorBoundary>
+          </main>
+          <footer
+            aria-label={locale.layout.footer.label}
+            className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-[var(--color-border-soft)] px-4 py-5 text-[13px] text-[var(--color-ink-muted)] sm:px-6"
+            data-testid="site-footer"
+          >
+            <span>{locale.brand.sidebarCaption}</span>
+            <Link to={feedbackLink} className="text-[var(--color-brand-forest)] hover:underline">
+              {locale.layout.footer.feedback}
+            </Link>
+          </footer>
+        </div>
       </div>
     </div>
   );

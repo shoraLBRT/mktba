@@ -10,7 +10,7 @@ const renderFooter = (props: Partial<FooterProps>) =>
   render(
     <MemoryRouter>
       <LocalizationProvider>
-        <ArticleFooter sources={[]} childArticles={[]} relatedArticles={[]} previous={null} next={null} {...props} />
+        <ArticleFooter sources={[]} childArticles={[]} relatedArticles={[]} previous={null} next={null} errorReportHref="/feedback?type=article-error&article=7" {...props} />
       </LocalizationProvider>
     </MemoryRouter>,
   );
@@ -19,10 +19,13 @@ const hrefs = (container: HTMLElement) =>
   within(container).getAllByRole('link').map((link) => link.getAttribute('href'));
 
 describe('ArticleFooter', () => {
-  it('given nothing to show, when rendered, then there is no footer at all', () => {
-    const { container } = renderFooter({});
+  it('given nothing else to show, when rendered, then the footer still offers to report an error in the article', () => {
+    renderFooter({});
 
-    expect(container.innerHTML).toBe('');
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.queryByRole('navigation')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Сообщить об ошибке' }).getAttribute('href'))
+      .toBe('/feedback?type=article-error&article=7');
   });
 
   it('given cited sources, when rendered, then they are a numbered list under a second-level heading with links back to the paragraphs', () => {
@@ -102,7 +105,7 @@ describe('ArticleFooter', () => {
     renderFooter({ next: { id: 3, slug: 'post', title: 'Пост' } });
 
     expect(screen.getAllByRole('navigation')).toHaveLength(1);
-    expect(screen.getAllByRole('link').map((link) => link.getAttribute('rel'))).toEqual(['next']);
+    expect(screen.getAllByRole('link').map((link) => link.getAttribute('rel'))).toEqual(['next', null]);
     expect(screen.queryByRole('heading')).toBeNull();
   });
 });

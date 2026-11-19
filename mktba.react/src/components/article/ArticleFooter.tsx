@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Flag } from 'lucide-react';
 import { Link } from 'react-router';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
@@ -31,6 +31,8 @@ type ArticleFooterProps = {
   previous: FooterArticle | null;
   /** The nearest article with content after the open one in the tree, if any. */
   next: FooterArticle | null;
+  /** The feedback form opened for this article (`feedbackHref`): «сообщить об ошибке». */
+  errorReportHref: string;
 };
 
 const headingClass = 'mb-3 mt-0 text-[17px] font-semibold tracking-[-0.01em] text-[var(--color-ink-strong)]';
@@ -43,21 +45,18 @@ const adjacentTitleClass = 'text-[14px] font-medium text-[var(--color-brand-fore
 
 /**
  * The bottom of the article: the sources it cites, its child articles, the related articles and the
- * previous / next article by the tree. A block with nothing to show is left out, and so is the
- * whole footer. Each source lists the places it is cited from as links back to those paragraphs.
+ * previous / next article by the tree, then the link to report an error in the article. A block
+ * with nothing to show is left out; the error report is always there. Each source lists the places
+ * it is cited from as links back to those paragraphs.
  * The related block repeats the right sidebar's one, which only wide screens have, so it is
  * hidden from `xl` up.
  */
-export const ArticleFooter = ({ sources, childArticles, relatedArticles, previous, next }: ArticleFooterProps) => {
+export const ArticleFooter = ({ sources, childArticles, relatedArticles, previous, next, errorReportHref }: ArticleFooterProps) => {
   const t = useLocale().articlePage;
   const hasSources = sources.length > 0;
   const hasChildren = childArticles.length > 0;
   const hasRelated = relatedArticles.length > 0;
   const hasAdjacent = previous !== null || next !== null;
-
-  if (!hasSources && !hasChildren && !hasRelated && !hasAdjacent) {
-    return null;
-  }
 
   return (
     <footer
@@ -150,6 +149,15 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
           )}
         </nav>
       )}
+
+      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-[var(--color-ink-muted)]" data-testid="article-report-error">
+        {t.reportErrorPrompt}
+        {' '}
+        <Link to={errorReportHref} className={`inline-flex items-center gap-1.5 ${linkClass}`}>
+          <Flag size={13} aria-hidden="true" />
+          {t.reportError}
+        </Link>
+      </p>
     </footer>
   );
 };
