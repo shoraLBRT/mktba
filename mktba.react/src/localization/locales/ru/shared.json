@@ -67,6 +67,7 @@
     "editArticle": "Редактировать статью",
     "collapseSection": "Свернуть раздел",
     "expandSection": "Развернуть раздел",
+    "childCount": "Подразделов: {count}",
     "addChild": "Добавить подраздел",
     "moveUp": "Переместить выше",
     "moveDown": "Переместить ниже",
