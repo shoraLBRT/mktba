@@ -151,6 +151,7 @@ app.MapAdminEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapInviteEndpoints();
+app.MapSearchEndpoints();
 
 app.Run();
 

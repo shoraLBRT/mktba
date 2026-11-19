@@ -134,6 +134,8 @@
     "article_seo_description_too_long": "Описание для поиска — не длиннее {maxLength} символов.",
     "article_social_image_url_invalid": "Изображение для соцсетей: нужен полный адрес http(s)://… или путь от корня сайта, начинающийся с «/» (до {maxLength} символов).",
     "locale_unsupported": "Язык «{locale}» не поддерживается. Доступны: {supported}.",
+    "search_query_too_short": "Запрос слишком короткий: нужно не меньше {minLength} символов.",
+    "search_query_too_long": "Запрос слишком длинный: не больше {maxLength} символов.",
     "revision_not_found": "Ревизия №{number} этой статьи не найдена.",
     "revision_comment_too_long": "Комментарий к правке — не длиннее {maxLength} символов.",
     "article_slot_opinions_required": "У абзаца №{order} должно быть хотя бы одно мнение.",

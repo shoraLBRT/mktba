@@ -8,6 +8,7 @@ namespace Mktba.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services)
         {
             services.AddScoped<ArticleRepository>();
+            services.AddScoped<ArticleSearchRepository>();
             services.AddScoped<ParagraphRepository>();
             services.AddScoped<SchoolRepository>();
             services.AddScoped<AiProviderSettingsRepository>();
