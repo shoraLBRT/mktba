@@ -193,7 +193,8 @@ public class SessionService
             throw new InvalidOperationException(AuthMessages.SigningKeyMissing);
         }
 
-        var expiresAtUtc = UtcNow.AddMinutes(_authOptions.AccessTokenLifetimeMinutes);
+        var issuedAtUtc = UtcNow;
+        var expiresAtUtc = issuedAtUtc.AddMinutes(_authOptions.AccessTokenLifetimeMinutes);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]
@@ -203,6 +204,8 @@ public class SessionService
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
                 new Claim(SessionIdClaimType, session.FamilyId.ToString()),
             }),
+            IssuedAt = issuedAtUtc,
+            NotBefore = issuedAtUtc,
             Expires = expiresAtUtc,
             Issuer = _authOptions.JwtIssuer,
             Audience = _authOptions.JwtAudience,

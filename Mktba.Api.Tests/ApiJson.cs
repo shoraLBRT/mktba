@@ -14,6 +14,13 @@ internal static class ApiJson
         Converters = { new JsonStringEnumConverter() }
     };
 
+    /// <summary>The <c>code</c> of a problem response.</summary>
+    public static async Task<string?> ReadCodeAsync(HttpResponseMessage response)
+    {
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return problem.RootElement.GetProperty("code").GetString();
+    }
+
     /// <summary>Moves a Draft article through review to Published.</summary>
     public static async Task PublishAsync(HttpClient admin, int articleId)
     {

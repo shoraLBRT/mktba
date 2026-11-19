@@ -28,6 +28,11 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         ["GET /auth/status"] = Public,
         ["POST /auth/register"] = Public,
         ["POST /auth/login"] = Public,
+        ["POST /auth/refresh"] = Public,
+        ["POST /auth/logout"] = Public,
+        ["POST /auth/logout-all"] = Policies.Authenticated,
+        ["GET /auth/sessions"] = Policies.Authenticated,
+        ["DELETE /auth/sessions/{id:guid}"] = Policies.Authenticated,
         ["GET /auth/me"] = Policies.Authenticated,
         ["POST /auth/invite-token"] = Policies.CanManageUsers,
         ["GET /users/"] = Policies.CanManageUsers,
@@ -114,8 +119,10 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         var anonymous = _factory.CreateClient();
         var failures = new List<string>();
 
-        // Destructive endpoints (cleanup) run last so they cannot disturb the rest of the matrix.
-        foreach (var endpoint in MappedEndpoints().Where(e => e.Policy is not null).OrderBy(e => e.Key.Contains("cleanup")))
+        // Destructive endpoints run last so they cannot disturb the rest of the matrix: cleanup, then
+        // logout-all, which ends the sessions of the clients themselves.
+        foreach (var endpoint in MappedEndpoints().Where(e => e.Policy is not null)
+            .OrderBy(e => e.Key.Contains("logout-all") ? 2 : e.Key.Contains("cleanup") ? 1 : 0))
         {
             var status = await SendAsync(anonymous, endpoint);
             if (status != HttpStatusCode.Unauthorized)
@@ -203,7 +210,9 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
                 path.Append(part switch
                 {
                     RoutePatternLiteralPart literal => literal.Content,
-                    RoutePatternParameterPart parameter => parameter.ParameterPolicies.Any(p => p.Content == "int") ? "987654" : "missing",
+                    RoutePatternParameterPart parameter => parameter.ParameterPolicies.Any(p => p.Content == "int") ? "987654"
+                        : parameter.ParameterPolicies.Any(p => p.Content == "guid") ? Guid.Empty.ToString()
+                        : "missing",
                     _ => string.Empty,
                 });
             }
