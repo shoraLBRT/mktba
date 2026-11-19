@@ -27,14 +27,10 @@ import NotFoundPage from './NotFoundPage';
 import { articleHref } from '../shared/slug';
 import { findArticlePath } from '../shared/articleTree';
 import { estimateReadingMinutes } from '../shared/readingTime';
-
-const headingPattern = /^(#{1,6})\s+(.+)$/gm;
-
-const extractHeadingTitle = (content: string): string | null => {
-  const match = headingPattern.exec(content);
-  headingPattern.lastIndex = 0;
-  return match?.[2]?.trim() ?? null;
-};
+import { ARTICLE_OVERVIEW_ANCHOR, buildArticleOutline } from '../shared/articleOutline';
+import { useHydrated } from '../shared/useHydrated';
+import { BackToTopButton } from '../components/article/BackToTopButton';
+import { useHashAnchor } from '../components/article/useHashAnchor';
 
 const ArticlePage: React.FC = () => {
   const locale = useLocale();
@@ -146,7 +142,6 @@ const ArticlePage: React.FC = () => {
         const autoIndex = resolveAutoOpinionIndex(paragraph.opinions, selectedSchoolId);
         const activeIndex = selectedAlternatives[paragraph.id] ?? autoIndex;
         const activeOpinion = paragraph.opinions[activeIndex] ?? paragraph.opinions[0];
-        const title = extractHeadingTitle(activeOpinion?.content ?? '');
 
         const tabs = paragraph.opinions.map<OpinionTab>((opinion) => {
           const schools = opinion.schoolIds
@@ -176,23 +171,44 @@ const ArticlePage: React.FC = () => {
           tabs,
           note,
           hasAlternatives: paragraph.opinions.length > 1,
-          anchorId: title ? `section-${paragraph.order}` : `paragraph-${paragraph.order}`,
-          title,
         };
       });
   }, [articleContent, selectedAlternatives, schoolMap, selectedSchoolId, systemSchoolIds, tv]);
 
-  const tocItems = useMemo<TocItem[]>(() => {
-    const items: TocItem[] = [{ id: 'article-overview', label: locale.articlePage.overview }];
+  // Anchors follow the opinions on screen: the default ones in the server HTML and while hydrating,
+  // the reader's after that. Only the shown opinion's headings get ids, so an id is never repeated
+  // in a hidden panel.
+  const outline = useMemo(
+    () =>
+      buildArticleOutline(
+        renderedParagraphs.map((paragraph) => ({
+          paragraphId: paragraph.paragraphId,
+          content: paragraph.activeOpinion?.content ?? '',
+        })),
+      ).map((paragraph) => ({
+        ...paragraph,
+        headingAnchors: paragraph.headings.map((heading) => ({
+          id: heading.id,
+          text: heading.text,
+          linkLabel: locale.articlePage.headingLink.replace('{title}', heading.text),
+        })),
+      })),
+    [renderedParagraphs, locale.articlePage.headingLink],
+  );
 
-    renderedParagraphs.forEach((paragraph) => {
-      if (paragraph.title) {
-        items.push({ id: paragraph.anchorId, label: paragraph.title });
-      }
-    });
+  const tocItems = useMemo<TocItem[]>(
+    () => [
+      { id: ARTICLE_OVERVIEW_ANCHOR, label: locale.articlePage.overview, depth: 2 },
+      ...outline.flatMap((paragraph) =>
+        paragraph.headings
+          .filter((heading) => heading.depth <= 3 && heading.text.length > 0)
+          .map<TocItem>((heading) => ({ id: heading.id, label: heading.text, depth: heading.depth === 3 ? 3 : 2 }))),
+    ],
+    [locale.articlePage.overview, outline],
+  );
 
-    return items;
-  }, [locale.articlePage.overview, renderedParagraphs]);
+  const hydrated = useHydrated();
+  useHashAnchor(hydrated && articleContent !== undefined, `${articleId}:${selectedSchoolId ?? ''}`);
 
   // The estimate follows each paragraph's default opinion, so it is the same in the server HTML
   // and after the reader's mazhab is read from the browser.
@@ -306,32 +322,49 @@ const ArticlePage: React.FC = () => {
           {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);
               `flow-root` keeps the float inside the column. */}
           <div className="@container flow-root">
-          <div id="article-overview" className="scroll-mt-24">
+          <div id={ARTICLE_OVERVIEW_ANCHOR} className="scroll-mt-24">
             <ArticleInfoboxPanel infobox={articleContent.infobox} />
           </div>
 
           {renderedParagraphs.length > 0 ? (
-            renderedParagraphs.map((paragraph) => {
+            renderedParagraphs.map((paragraph, index) => {
+              const { anchorId, headingAnchors, startsWithHeading } = outline[index];
+              // A paragraph that opens with a heading is linked through the heading's own anchor.
+              const paragraphLink = startsWithHeading ? null : (
+                <a
+                  href={`#${anchorId}`}
+                  aria-label={locale.articlePage.paragraphLink.replace('{number}', String(index + 1))}
+                  className={`absolute -left-6 ${paragraph.hasAlternatives ? 'top-4' : 'top-1'} hidden h-6 w-6 items-center justify-center rounded text-[13px] text-[var(--color-ink-muted)] no-underline opacity-0 transition-opacity hover:text-[var(--color-brand-forest)] focus-visible:opacity-100 group-hover/paragraph:opacity-100 sm:flex`}
+                >
+                  <span aria-hidden="true">¶</span>
+                </a>
+              );
+
               if (!paragraph.hasAlternatives) {
                 return (
-                  <section key={paragraph.paragraphId} id={paragraph.anchorId} className="scroll-mt-24 py-0.5">
+                  <section key={paragraph.paragraphId} id={anchorId} className="group/paragraph relative scroll-mt-24 py-0.5">
+                    {paragraphLink}
                     <div className="article-markdown text-[14.5px] leading-8 text-[var(--color-ink-default)]">
-                      <MarkdownContent content={paragraph.activeOpinion?.content ?? ''} />
+                      <MarkdownContent content={paragraph.activeOpinion?.content ?? ''} headingAnchors={headingAnchors} />
                     </div>
                   </section>
                 );
               }
 
               return (
-                <div key={paragraph.paragraphId} id={paragraph.anchorId} className="scroll-mt-24">
+                <div key={paragraph.paragraphId} id={anchorId} className="group/paragraph relative scroll-mt-24">
+                  {paragraphLink}
                   <VersionedParagraphBlock
                     activeIndex={paragraph.activeIndex}
                     tabs={paragraph.tabs}
                     note={paragraph.note}
-                    onSelect={(index) => selectAlternative(paragraph.paragraphId, index, paragraph.opinions.length)}
-                    panels={paragraph.opinions.map((opinion) => (
+                    onSelect={(optionIndex) => selectAlternative(paragraph.paragraphId, optionIndex, paragraph.opinions.length)}
+                    panels={paragraph.opinions.map((opinion, opinionIndex) => (
                       <div key={opinion.id} className="article-markdown">
-                        <MarkdownContent content={opinion.content} />
+                        <MarkdownContent
+                          content={opinion.content}
+                          headingAnchors={opinionIndex === paragraph.activeIndex ? headingAnchors : undefined}
+                        />
                       </div>
                     ))}
                   />
@@ -353,6 +386,7 @@ const ArticlePage: React.FC = () => {
         tags={articleContent.tags}
         relatedLinks={articleContent.relatedLinks ?? undefined}
       />
+      <BackToTopButton />
     </div>
   );
 };
