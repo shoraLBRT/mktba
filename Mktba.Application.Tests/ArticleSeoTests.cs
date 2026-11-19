@@ -75,7 +75,8 @@ public class ArticleSeoTests : IDisposable
         var article = await ReloadAsync(created.Id);
 
         article.Seo.Should().Be(new ArticleSeoDto(null, null, null, false));
-        article.Meta.Should().Be(new ArticleMetaDto("Намаз", "Краткое описание", null, false));
+        // A new article is a draft, and a draft is never indexed (O-07).
+        article.Meta.Should().Be(new ArticleMetaDto("Намаз", "Краткое описание", null, true));
     }
 
     [Fact]

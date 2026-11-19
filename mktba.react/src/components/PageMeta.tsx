@@ -77,8 +77,9 @@ export const PageMeta = ({
   );
 };
 
-/** The 404 page's metadata: its own title, not indexed, no canonical. */
-export const NotFoundMeta = () => {
-  const { notFoundPage } = useLocale();
-  return <PageMeta title={notFoundPage.title} description={notFoundPage.message} noIndex />;
+/** The 404 (or, with `status` 410, the removed article) page's metadata: its own title, not indexed, no canonical. */
+export const NotFoundMeta = ({ status = 404 }: { status?: 404 | 410 }) => {
+  const locale = useLocale();
+  const texts = status === 410 ? locale.goneArticlePage : locale.notFoundPage;
+  return <PageMeta title={texts.title} description={texts.message} noIndex />;
 };

@@ -35,6 +35,7 @@ public sealed class ArticleSeoEndpointTests : IClassFixture<MktbaApiFactory>
     {
         var admin = await CreateAdminClientAsync();
         var created = await CreateArticleAsync(admin, "Без SEO", seo: null);
+        await ApiJson.PublishAsync(admin, created.Id);
 
         var content = await admin.GetFromJsonAsync<ArticleContentDto>($"/articles/{created.Id}/content");
 

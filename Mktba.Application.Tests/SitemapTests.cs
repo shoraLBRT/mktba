@@ -19,8 +19,9 @@ public class SitemapTests : IDisposable
 
     public void Dispose() => _context.Dispose();
 
+    /// <summary>A Published article with content (a summary), so it is not a stub.</summary>
     private static Article Published(string slug, Article? parent = null) =>
-        new() { Title = slug, Slug = slug, Status = ArticleStatus.Published, ParentArticle = parent };
+        new() { Title = slug, Slug = slug, Status = ArticleStatus.Published, ParentArticle = parent, Summary = "Text" };
 
     [Fact]
     public async Task GivenPublishedArticle_WhenListing_ThenItIsListedWithLocaleGroupAndLastModified()
@@ -102,5 +103,30 @@ public class SitemapTests : IDisposable
         var articles = await _service.GetArticlesAsync();
 
         articles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GivenPublishedStubWithoutContent_WhenListing_ThenItIsLeftOutButItsChildIsListed()
+    {
+        var stub = new Article { Title = "stub", Slug = "stub", Status = ArticleStatus.Published };
+        _context.Articles.AddRange(stub, Published("child", stub));
+        await _context.SaveChangesAsync();
+
+        var articles = await _service.GetArticlesAsync();
+
+        articles.Select(article => article.Slug).Should().Equal("child");
+    }
+
+    [Fact]
+    public async Task GivenArticleWithOnlyAnOpinion_WhenListing_ThenItIsListed()
+    {
+        var article = new Article { Title = "namaz", Slug = "namaz", Status = ArticleStatus.Published };
+        article.Paragraphs.Add(new Paragraph { Order = 1, Opinions = [new Opinion { Content = "Text", IsDefault = true }] });
+        _context.Articles.Add(article);
+        await _context.SaveChangesAsync();
+
+        var articles = await _service.GetArticlesAsync();
+
+        articles.Select(entry => entry.Slug).Should().Equal("namaz");
     }
 }

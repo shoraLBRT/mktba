@@ -15,7 +15,12 @@ namespace Mktba.Api.Endpoints
             {
                 var content = await service.GetContentByArticleIdAsync(id, user.ToArticleViewer());
                 return Results.Ok(content);
-            }).Produces<ArticleContentDto>().ProducesApiProblem(StatusCodes.Status404NotFound);
+            })
+            .WithDescription(
+                "An article the caller may not read answers 404 article_not_found, or 410 article_gone "
+                + "when it was published and is now Archived.")
+            .Produces<ArticleContentDto>()
+            .ProducesApiProblem(StatusCodes.Status404NotFound, StatusCodes.Status410Gone);
 
             group.MapGet("/by-slug/{slug}/content", async (string slug, string? locale, ClaimsPrincipal user, ArticleContentService service) =>
             {
@@ -31,13 +36,14 @@ namespace Mktba.Api.Endpoints
                 + "and can compare its slug with the one they asked for. The redirect is temporary on purpose: "
                 + "an old slug can become current again, and a cached permanent redirect would then loop. "
                 + "An article that is not Published answers 404 except to an admin or its own author or "
-                + "co-author. Slugs are unique per "
+                + "co-author. A slug, current or old, of an article that was published and then deleted or "
+                + "archived answers 410 article_gone, unless another article has taken it since. Slugs are unique per "
                 + "language: the optional locale query parameter (default ru) picks the language, and an "
                 + "unsupported one answers 400 locale_unsupported.")
             .Produces<ArticleContentDto>()
             .Produces(StatusCodes.Status302Found)
             .ProducesApiProblem(StatusCodes.Status400BadRequest)
-            .ProducesApiProblem(StatusCodes.Status404NotFound);
+            .ProducesApiProblem(StatusCodes.Status404NotFound, StatusCodes.Status410Gone);
 
             group.MapPost("/content", async (ArticleContentCreateDto dto, ClaimsPrincipal user, ArticleContentService service) =>
             {

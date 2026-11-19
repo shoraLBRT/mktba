@@ -323,6 +323,15 @@ const ArticlePage: React.FC = () => {
     );
   }
 
+  if (error instanceof ApiError && error.status === 410) {
+    return (
+      <>
+        <NotFoundMeta status={410} />
+        <NotFoundPage status={410} />
+      </>
+    );
+  }
+
   if ((error instanceof ApiError && error.status === 404) || (!error && !articleContent)) {
     return (
       <>

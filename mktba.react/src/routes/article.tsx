@@ -13,8 +13,11 @@ import { ApiError } from '../shared/api-client/apiError';
 import { articleHref } from '../shared/slug';
 
 type ArticleRouteData = {
-  /** The API has no published article at this URL. */
-  notFound: boolean;
+  /**
+   * Why the API has no published article at this URL: 404 never was (or not public), 410 removed
+   * on purpose (deleted or archived after publication). Null when the article is here.
+   */
+  missing: 404 | 410 | null;
   /** The article and its schools from the server; missing after a client-side navigation. */
   dehydratedState?: DehydratedState;
 };
@@ -23,7 +26,8 @@ export const handle: RouteHandle = { ownsMeta: true };
 
 /**
  * On the server: the article with its schools, so the HTML carries the title and every paragraph.
- * An id link or an old slug is redirected to the current slug URL; an unknown one answers 404.
+ * An id link or an old slug is redirected to the current slug URL; an unknown one answers 404 and
+ * a removed one 410. An API that fails answers 503 (see `serverApi`).
  */
 export async function loader({ params }: LoaderFunctionArgs) {
   const requestedSlug = params.slug ?? '';
@@ -35,8 +39,8 @@ export async function loader({ params }: LoaderFunctionArgs) {
       ? await serverApi.getArticleContentById(legacyArticleId)
       : await serverApi.getArticleContentBySlug(requestedSlug);
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      return data<ArticleRouteData>({ notFound: true }, { status: 404 });
+    if (error instanceof ApiError && (error.status === 404 || error.status === 410)) {
+      return data<ArticleRouteData>({ missing: error.status }, { status: error.status });
     }
 
     throw error;
@@ -59,23 +63,24 @@ export async function loader({ params }: LoaderFunctionArgs) {
     }),
   ]);
 
-  return data<ArticleRouteData>({ notFound: false, dehydratedState: dehydrate(queryClient) });
+  return data<ArticleRouteData>({ missing: null, dehydratedState: dehydrate(queryClient) });
 }
 
 /** In the browser, after the first page: the page fetches through React Query as before. */
-export const clientLoader = () => data<ArticleRouteData>({ notFound: false });
+export const clientLoader = () => data<ArticleRouteData>({ missing: null });
 
 export default function ArticleRoute() {
-  const { notFound, dehydratedState } = useLoaderData<typeof loader>();
-  // The server reads anonymously: a draft is a 404 there, but a signed-in editor may open it. The
-  // page asks the API again once the session is restored, so that request carries the token.
+  const { missing, dehydratedState } = useLoaderData<typeof loader>();
+  // The server reads anonymously: a draft is a 404 there (an archived article a 410), but a
+  // signed-in editor may open it. The page asks the API again once the session is restored, so
+  // that request carries the token.
   const signedIn = useSession().accessToken !== null;
 
-  if (notFound && !signedIn) {
+  if (missing !== null && !signedIn) {
     return (
       <>
-        <NotFoundMeta />
-        <NotFoundPage />
+        <NotFoundMeta status={missing} />
+        <NotFoundPage status={missing} />
       </>
     );
   }

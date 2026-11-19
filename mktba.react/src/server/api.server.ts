@@ -13,12 +13,34 @@ const REQUEST_TIMEOUT_MS = 10_000;
  */
 const apiBaseUrl = (): string => (process.env.API_INTERNAL_URL?.trim() || API_BASE_URL).replace(/\/+$/, '');
 
-/** An anonymous GET against the API; follows redirects, throws `ApiError` with the status otherwise. */
+/** How long a crawler is asked to wait before retrying a page the API could not serve. */
+const RETRY_AFTER_SECONDS = 120;
+
+/**
+ * What a loader throws when the API is down, timed out or failed (5xx): a 503 the route error
+ * boundary renders, so the page is not served as 200 and crawlers retry instead of dropping it.
+ */
+const apiUnavailable = () =>
+  new Response(null, { status: 503, headers: { 'Retry-After': String(RETRY_AFTER_SECONDS) } });
+
+/**
+ * An anonymous GET against the API; follows redirects. A 4xx answer throws `ApiError` with the
+ * status; no answer or a 5xx throws a 503 `Response`.
+ */
 const getJson = async <T>(path: string): Promise<T> => {
-  const response = await fetch(`${apiBaseUrl()}${path}`, {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl()}${path}`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch {
+    throw apiUnavailable();
+  }
+
+  if (response.status >= 500) {
+    throw apiUnavailable();
+  }
 
   if (!response.ok) {
     throw new ApiError(`GET ${path} answered ${response.status}`, response.status);

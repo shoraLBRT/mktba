@@ -33,7 +33,7 @@ describe('article route loader', () => {
     const result = await load('salat');
 
     expect(result.init?.status).toBeUndefined();
-    expect(result.data.notFound).toBe(false);
+    expect(result.data.missing).toBeNull();
     const contentQuery = result.data.dehydratedState?.queries.find(
       (query) => query.queryKey[0] === APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT,
     );
@@ -66,12 +66,31 @@ describe('article route loader', () => {
     const result = await load('no-such-article');
 
     expect(result.init?.status).toBe(404);
-    expect(result.data).toEqual({ notFound: true });
+    expect(result.data).toEqual({ missing: 404 });
   });
 
-  it('given an API that fails, when an article is loaded, then the error reaches the error boundary', async () => {
+  it('given an article that was removed, when it is loaded, then answers 410 without data', async () => {
+    mockApi(json({ code: 'article_gone' }, 410));
+
+    const result = await load('udalennaya');
+
+    expect(result.init?.status).toBe(410);
+    expect(result.data).toEqual({ missing: 410 });
+  });
+
+  it('given an API that fails, when an article is loaded, then the error boundary answers 503 with Retry-After', async () => {
     mockApi(json({}, 500));
 
-    await expect(load('salat')).rejects.toMatchObject({ status: 500 });
+    const thrown = await load('salat').catch((error: unknown) => error);
+
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(503);
+    expect((thrown as Response).headers.get('Retry-After')).toBe('120');
+  });
+
+  it('given an API that cannot be reached, when an article is loaded, then the error boundary answers 503', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'));
+
+    await expect(load('salat')).rejects.toMatchObject({ status: 503 });
   });
 });

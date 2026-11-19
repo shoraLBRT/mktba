@@ -74,7 +74,12 @@ namespace Mktba.Infrastructure.Repositories
                     article.Slug,
                     article.Locale,
                     article.TranslationGroupId,
-                    article.NoIndex,
+                    article.NoIndex
+                        || !(article.Paragraphs.Any(paragraph => paragraph.Opinions.Any())
+                            || article.InfoboxFields.Any()
+                            || (article.InfoboxTitle != null && article.InfoboxTitle.Trim() != "")
+                            || (article.InfoboxSubtitle != null && article.InfoboxSubtitle.Trim() != "")
+                            || (article.Summary != null && article.Summary.Trim() != "")),
                     article.UpdatedAt))
                 .ToListAsync(cancellationToken);
 
@@ -250,6 +255,51 @@ namespace Mktba.Infrastructure.Repositories
         public void AddSlugRedirect(ArticleSlugRedirect redirect) => _context.ArticleSlugRedirects.Add(redirect);
 
         public void RemoveSlugRedirect(ArticleSlugRedirect redirect) => _context.ArticleSlugRedirects.Remove(redirect);
+
+        /// <summary>
+        /// Whether <paramref name="slug"/> in <paramref name="locale"/> names a page that was removed on
+        /// purpose (O-07): a slug, current or old, of an Archived article that had been published, or a
+        /// tombstone of a deleted article — unless an article has taken the slug since.
+        /// </summary>
+        public async Task<bool> IsSlugGoneAsync(string locale, string slug, CancellationToken cancellationToken = default)
+        {
+            var archived = await _dbSet.AnyAsync(
+                article => article.Locale == locale
+                    && article.Status == ArticleStatus.Archived
+                    && article.PublishedAt != null
+                    && (article.Slug == slug || article.SlugRedirects.Any(redirect => redirect.Locale == locale && redirect.Slug == slug)),
+                cancellationToken);
+            if (archived)
+            {
+                return true;
+            }
+
+            return await _context.DeletedArticleSlugs.AnyAsync(deleted => deleted.Locale == locale && deleted.Slug == slug, cancellationToken)
+                && !await IsSlugTakenAsync(locale, slug, exceptArticleId: null, cancellationToken);
+        }
+
+        /// <summary>
+        /// Records the slugs of an article being deleted as tombstones dated <paramref name="deletedAt"/>;
+        /// a slug that already has one gets the new date. Changes are saved by the caller.
+        /// </summary>
+        public async Task AddDeletedSlugsAsync(string locale, IReadOnlyCollection<string> slugs, DateTime deletedAt, CancellationToken cancellationToken = default)
+        {
+            var existing = await _context.DeletedArticleSlugs
+                .Where(deleted => deleted.Locale == locale && slugs.Contains(deleted.Slug))
+                .ToListAsync(cancellationToken);
+            foreach (var slug in slugs)
+            {
+                var tombstone = existing.FirstOrDefault(deleted => deleted.Slug == slug);
+                if (tombstone is null)
+                {
+                    _context.DeletedArticleSlugs.Add(new DeletedArticleSlug { Locale = locale, Slug = slug, DeletedAt = deletedAt });
+                }
+                else
+                {
+                    tombstone.DeletedAt = deletedAt;
+                }
+            }
+        }
 
         /// <summary>The article with its co-author rows, tracked so they can be changed.</summary>
         public Task<Article?> GetByIdWithCoAuthorsAsync(int articleId, CancellationToken cancellationToken = default)

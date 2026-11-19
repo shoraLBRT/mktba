@@ -68,7 +68,10 @@
     /// opinion cut to 160 characters; null when the article has none of them.
     /// </param>
     /// <param name="SocialImageUrl">The social image URL as stored, or null.</param>
-    /// <param name="NoIndex">True when the page must carry robots noindex.</param>
+    /// <param name="NoIndex">
+    /// True when the page must carry robots noindex: the article is marked noindex, is not Published
+    /// (an editor viewing a draft), or is a stub with no content yet (O-07).
+    /// </param>
     public record ArticleMetaDto(
         string Title,
         string? Description,

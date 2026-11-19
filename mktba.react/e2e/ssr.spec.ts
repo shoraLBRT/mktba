@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
+import { adminCredentials } from './helpers';
 
 // Public pages are rendered on the server (O-01): their HTML carries the content before any script runs.
 
@@ -140,6 +141,48 @@ test('the server answers 404 for an unknown article and an unknown page', async 
 
   const page = await request.get('/no/such/page');
   expect(page.status()).toBe(404);
+});
+
+const API_URL = 'http://localhost:5172';
+
+/** Creates an article through the API as the e2e admin and publishes it; returns its id and slug. */
+const publishArticle = async (request: APIRequestContext, title: string, paragraphs: unknown[]) => {
+  const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
+  expect(login.ok()).toBe(true);
+  const { accessToken } = await login.json() as { accessToken: string };
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  const created = await request.post(`${API_URL}/articles/content`, { headers, data: { title, paragraphs } });
+  expect(created.status()).toBe(201);
+  const article = await created.json() as { id: number; slug: string };
+  for (const status of ['InReview', 'Published']) {
+    expect((await request.post(`${API_URL}/articles/${article.id}/status`, { headers, data: { status } })).ok()).toBe(true);
+  }
+  return { ...article, headers };
+};
+
+test('the server answers 410 with a non-indexed page for a deleted article (O-07)', async ({ request }) => {
+  const article = await publishArticle(request, `Удаляемая статья ${Date.now()}`, [
+    { order: 1, opinions: [{ content: 'Текст', isDefault: true, schoolIds: [] }] },
+  ]);
+  expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).status()).toBe(204);
+
+  const response = await request.get(`/article/${article.slug}`, { maxRedirects: 0 });
+
+  expect(response.status()).toBe(410);
+  const html = await response.text();
+  expect(html).toContain('Статья удалена');
+  expect(metaContent(html, 'robots')).toContain('noindex');
+});
+
+test('the server marks a published stub without content noindex and leaves it out of the sitemap (O-07)', async ({ request }) => {
+  const stub = await publishArticle(request, `Заглушка ${Date.now()}`, []);
+
+  const response = await request.get(`/article/${stub.slug}`);
+
+  expect(response.status()).toBe(200);
+  expect(metaContent(await response.text(), 'robots')).toContain('noindex');
+  expect(metaContent(await (await request.get('/article/salat')).text(), 'robots')).toBeNull();
+  expect(await (await request.get('/sitemap.xml')).text()).not.toContain(`/article/${stub.slug}<`);
 });
 
 test('the server leaves the admin to the browser', async ({ request }) => {

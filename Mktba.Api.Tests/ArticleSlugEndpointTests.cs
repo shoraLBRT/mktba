@@ -100,6 +100,51 @@ public sealed class ArticleSlugEndpointTests : IClassFixture<MktbaApiFactory>
         tree!.Should().Contain(node => node.Id == created.Id && node.Slug == "uzel-dereva");
     }
 
+    [Fact]
+    public async Task GivenDeletedPublishedArticle_WhenReadingBySlug_ThenReturns410WithArticleGoneCode()
+    {
+        var admin = await CreateAdminClientAsync();
+        var created = await CreateArticleAsync(admin, "Удалённая статья");
+        (await admin.DeleteAsync($"/articles/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var response = await _factory.CreateClient().GetAsync($"/articles/by-slug/{created.Slug}/content");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Gone);
+        (await ApiJson.ReadCodeAsync(response)).Should().Be("article_gone");
+    }
+
+    [Fact]
+    public async Task GivenSlugOfDeletedArticleReusedByNewArticle_WhenReadingBySlug_ThenReturnsTheNewArticle()
+    {
+        var admin = await CreateAdminClientAsync();
+        var deleted = await CreateArticleAsync(admin, "Повторный адрес");
+        (await admin.DeleteAsync($"/articles/{deleted.Id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var reused = await CreateArticleAsync(admin, "Повторный адрес");
+        reused.Slug.Should().Be(deleted.Slug);
+
+        var content = await _factory.CreateClient().GetFromJsonAsync<ArticleContentDto>($"/articles/by-slug/{deleted.Slug}/content");
+
+        content!.Id.Should().Be(reused.Id);
+    }
+
+    [Fact]
+    public async Task GivenArchivedArticle_WhenReadAnonymouslyBySlugOrId_ThenReturns410()
+    {
+        var admin = await CreateAdminClientAsync();
+        var created = await CreateArticleAsync(admin, "Снятая статья");
+        var archive = await admin.PostAsJsonAsync($"/articles/{created.Id}/status", new { status = "Archived" });
+        archive.EnsureSuccessStatusCode();
+        var anonymous = _factory.CreateClient();
+
+        var bySlug = await anonymous.GetAsync($"/articles/by-slug/{created.Slug}/content");
+        var byId = await anonymous.GetAsync($"/articles/{created.Id}/content");
+
+        bySlug.StatusCode.Should().Be(HttpStatusCode.Gone);
+        byId.StatusCode.Should().Be(HttpStatusCode.Gone);
+        (await ApiJson.ReadCodeAsync(byId)).Should().Be("article_gone");
+        (await admin.GetAsync($"/articles/{created.Id}/content")).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     /// <summary>
     /// Sends the opinions as new (id 0): the InMemory provider cannot re-attach a replaced opinion
     /// under its old id, and these tests are about slugs.
