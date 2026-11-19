@@ -6,6 +6,7 @@ import { useLocale } from '../../localization/hooks';
 import { createSource, searchSources } from '../../services/sourceService';
 import { extractApiErrorMessage } from '../../shared/api-client/apiError';
 import { sourceLabel } from '../../shared/articleSources';
+import { cn } from '../../shared/lib/cn';
 import type { SourceDto, SourceKind, SourceWriteDto } from '../../shared/types/ApiTypes';
 import { Input } from '../../shared/ui/Input';
 import { createCitation } from './draftHelpers';
@@ -101,7 +102,12 @@ export const OpinionSourcesEditor = ({ citations, disabled, onChange }: OpinionS
         type="button"
         disabled={disabled}
         aria-expanded={isOpen}
-        className={textButtonClass}
+        // Like the block's own toolbar, the button stays out of the way until the block is used.
+        className={cn(
+          textButtonClass,
+          citations.length === 0 && !isOpen &&
+            'opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100',
+        )}
         onClick={() => setIsOpen((current) => !current)}
       >
         <Plus size={11} aria-hidden="true" />
