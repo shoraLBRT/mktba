@@ -88,4 +88,65 @@ public class NavigationTreeTests : IDisposable
 
         tree[0].HasContent.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GetTreeAsync_HasContent_TrueWhenOnlyInfoboxFieldExists()
+    {
+        var article = new Article { Title = "Infobox only" };
+        article.InfoboxFields.Add(new ArticleInfoboxField { Key = "born", Label = "Born", Value = "1000", Order = 1 });
+        _context.Articles.Add(article);
+        await _context.SaveChangesAsync();
+
+        var tree = await _service.GetTreeAsync();
+
+        tree[0].HasContent.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_HasContent_TrueWhenOnlyInfoboxSubtitleSet()
+    {
+        _context.Articles.Add(new Article { Title = "Subtitle only", InfoboxSubtitle = "Imam" });
+        await _context.SaveChangesAsync();
+
+        var tree = await _service.GetTreeAsync();
+
+        tree[0].HasContent.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_HasContent_FalseWhenInfoboxTitleIsWhitespace()
+    {
+        _context.Articles.Add(new Article { Title = "Blank infobox", InfoboxTitle = "   " });
+        await _context.SaveChangesAsync();
+
+        var tree = await _service.GetTreeAsync();
+
+        tree[0].HasContent.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_MixedContent_ReportsHasContentPerNodeAndKeepsShape()
+    {
+        var root = new Article { Title = "Root" };
+        _context.Articles.Add(root);
+        await _context.SaveChangesAsync();
+
+        var withText = new Article { Title = "With text", ParentArticleId = root.Id };
+        var empty = new Article { Title = "Empty", ParentArticleId = root.Id };
+        _context.Articles.AddRange(withText, empty);
+        await _context.SaveChangesAsync();
+
+        var paragraph = new Paragraph { ArticleId = withText.Id, Order = 1 };
+        paragraph.Opinions.Add(new Opinion { Content = "Text", IsDefault = true });
+        _context.Paragraphs.Add(paragraph);
+        await _context.SaveChangesAsync();
+
+        var tree = await _service.GetTreeAsync();
+
+        tree.Should().ContainSingle();
+        tree[0].HasContent.Should().BeFalse();
+        tree[0].Children!.Select(child => (child.Title, child.HasContent))
+            .Should().Equal(("With text", true), ("Empty", false));
+        tree[0].Children!.Should().AllSatisfy(child => child.Children.Should().BeEmpty());
+    }
 }

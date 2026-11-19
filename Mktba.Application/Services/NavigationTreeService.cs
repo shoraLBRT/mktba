@@ -14,17 +14,14 @@ namespace Mktba.Application.Services
 
         public async Task<List<NavigationArticleDto>> GetTreeAsync()
         {
-            var articles = await _articleRepository.GetAllWithParagraphsAsync();
-            var lookup = articles
-                .Select(article => new NavigationArticleDto
+            var rows = await _articleRepository.GetNavigationRowsAsync();
+            var lookup = rows
+                .Select(row => new NavigationArticleDto
                 {
-                    Id = article.Id,
-                    Title = article.Title,
-                    ParentArticleId = article.ParentArticleId,
-                    HasContent = article.Paragraphs.Any()
-                        || article.InfoboxFields.Any()
-                        || !string.IsNullOrWhiteSpace(article.InfoboxTitle)
-                        || !string.IsNullOrWhiteSpace(article.InfoboxSubtitle),
+                    Id = row.Id,
+                    Title = row.Title,
+                    ParentArticleId = row.ParentArticleId,
+                    HasContent = row.HasContent,
                     Children = new List<NavigationArticleDto>()
                 })
                 .ToDictionary(article => article.Id);
