@@ -1,15 +1,15 @@
-﻿namespace Mktba.Application.Exceptions;
+namespace Mktba.Application.Exceptions;
 
 public abstract class AppException : Exception
 {
-    protected AppException(string message, int statusCode, string code)
-        : base(message)
+    protected AppException(AppError error, int statusCode)
+        : base(error.Message)
     {
+        Error = error;
         StatusCode = statusCode;
-        Code = code;
     }
 
-    public int StatusCode { get; }
+    public AppError Error { get; }
 
-    public string Code { get; }
+    public int StatusCode { get; }
 }

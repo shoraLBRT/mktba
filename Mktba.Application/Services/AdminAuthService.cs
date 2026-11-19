@@ -1,3 +1,4 @@
+using Mktba.Application.Exceptions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -43,13 +44,13 @@ public class AdminAuthService
         var normalizedEmail = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(normalizedEmail) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AuthMessages.EmailAndPasswordRequired);
+            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.EmailAndPasswordRequired);
         }
 
         var alreadyExists = await _userRepository.ExistsByEmailAsync(normalizedEmail, cancellationToken);
         if (alreadyExists)
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AuthMessages.AdminAlreadyExists);
+            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.AdminAlreadyExists);
         }
 
         var hasAdmins = await _userRepository.AnyAsync(cancellationToken);
@@ -59,7 +60,7 @@ public class AdminAuthService
             inviteToken = await ValidateInviteTokenAsync(request.InviteToken, cancellationToken);
             if (inviteToken is null)
             {
-                return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AuthMessages.InviteTokenInvalid);
+                return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.InviteTokenInvalid);
             }
         }
 
@@ -85,19 +86,19 @@ public class AdminAuthService
         var normalizedEmail = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(normalizedEmail) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AuthMessages.EmailAndPasswordRequired);
+            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.EmailAndPasswordRequired);
         }
 
         var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
         if (user is null)
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AuthMessages.InvalidCredentials);
+            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.InvalidCredentials);
         }
 
         var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verificationResult == PasswordVerificationResult.Failed)
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AuthMessages.InvalidCredentials);
+            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.InvalidCredentials);
         }
 
         return AdminService.ServiceResult<AdminAuthResponseDto>.Success(CreateAuthResponse(user));

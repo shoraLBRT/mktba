@@ -30,6 +30,8 @@ builder.Services.AddAutoMapper(
     typeof(MappingProfile)
 );
 builder.Services.AddEndpointsApiExplorer();
+// Request binding failures throw, so ExceptionHandlingMiddleware answers them with a problem body.
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 
 // Настройка JSON сериализации для обработки циклических ссылок
 builder.Services.ConfigureHttpJsonOptions(options =>

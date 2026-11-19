@@ -31,20 +31,20 @@ public class SchoolService
     public async Task<SchoolDto> CreateCustomSchoolAsync(SchoolCreateDto dto, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(dto.Slug))
-            throw new ValidationException("Slug is required.");
+            throw new ValidationException(AppErrors.SchoolSlugRequired);
 
         if (string.IsNullOrWhiteSpace(dto.Name))
-            throw new ValidationException("Name is required.");
+            throw new ValidationException(AppErrors.SchoolNameRequired);
 
         if (string.IsNullOrWhiteSpace(dto.ShortName))
-            throw new ValidationException("ShortName is required.");
+            throw new ValidationException(AppErrors.SchoolShortNameRequired);
 
         if (await _articleRepo.GetByIdAsync(dto.ArticleScopeId) is null)
-            throw new NotFoundException($"Article with id {dto.ArticleScopeId} not found.");
+            throw new NotFoundException(AppErrors.ArticleNotFound);
 
         var slug = dto.Slug.Trim().ToLowerInvariant();
         if (await _schoolRepo.SlugExistsAsync(slug, cancellationToken))
-            throw new ValidationException($"School with slug '{slug}' already exists.");
+            throw new ValidationException(AppErrors.SchoolSlugTaken(slug));
 
         var school = new School
         {
@@ -65,10 +65,10 @@ public class SchoolService
     {
         var school = await _schoolRepo.GetByIdAsync(id);
         if (school is null)
-            throw new NotFoundException("School not found.");
+            throw new NotFoundException(AppErrors.SchoolNotFound);
 
         if (school.IsSystem)
-            throw new ValidationException("System schools cannot be deleted.");
+            throw new ValidationException(AppErrors.SystemSchoolDeleteForbidden);
 
         await _schoolRepo.DeleteAsync(school);
         await _schoolRepo.SaveChangesAsync();

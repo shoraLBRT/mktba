@@ -72,6 +72,7 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 - No dead code, no commented-out blocks, no TODOs without an issue reference.
 - No unrelated refactors mixed into task-specific changes.
 - Keep public API/DTO contracts documented.
+- API errors are `application/problem+json` bodies (`ApiProblemDetails`: `title`, `status`, `code`, optional `params`, `traceId`). Add a new error to `Mktba.Application/Exceptions/AppErrors.cs` (stable snake_case code) and its Russian text to `apiErrors` in `mktba.react/src/localization/locales/ru/shared.json`; the UI shows only the translation by code, never the server's `title`.
 
 ## Commits
 

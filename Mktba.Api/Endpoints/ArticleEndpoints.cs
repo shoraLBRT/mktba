@@ -1,4 +1,6 @@
-﻿using Mktba.Application.DTOs;
+﻿using Mktba.Api.Infrastructure;
+using Mktba.Application.DTOs;
+using Mktba.Application.Exceptions;
 using Mktba.Application.Services;
 
 namespace Mktba.Api.Endpoints
@@ -18,8 +20,10 @@ namespace Mktba.Api.Endpoints
             group.MapGet("/{id:int}", async (int id, ArticleService service) =>
             {
                 var article = await service.GetByIdAsync(id);
-                return article is not null ? Results.Ok(article) : Results.NotFound();
-            }).Produces<ArticleReadDto>().Produces(StatusCodes.Status404NotFound);
+                return article is not null
+                    ? Results.Ok(article)
+                    : ApiProblemResults.Problem(StatusCodes.Status404NotFound, AppErrors.ArticleNotFound);
+            }).Produces<ArticleReadDto>().ProducesApiProblem(StatusCodes.Status404NotFound);
 
             group.MapPost("/", async (ArticleCreateDto createDto, ArticleService service) =>
             {
@@ -31,13 +35,13 @@ namespace Mktba.Api.Endpoints
             {
                 await service.UpdateAsync(id, updateDto);
                 return Results.NoContent();
-            }).Produces(StatusCodes.Status204NoContent).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
 
             group.MapDelete("/{id:int}", async (int id, ArticleService service) =>
             {
                 await service.DeleteAsync(id);
                 return Results.NoContent();
-            }).Produces(StatusCodes.Status204NoContent).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
 
             return builder;
         }

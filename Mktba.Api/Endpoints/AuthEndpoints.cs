@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Mktba.Application.DTOs;
+using Mktba.Application.Exceptions;
 using Mktba.Api.Infrastructure;
 using Mktba.Application.Services;
 
@@ -25,8 +26,8 @@ public static class AuthEndpoints
             var result = await service.RegisterAsync(request, cancellationToken);
             return result.IsSuccess
                 ? Results.Ok(result.Value)
-                : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AdminAuthResponseDto>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status429TooManyRequests)
+                : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, result.Error!);
+        }).Produces<AdminAuthResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
         .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
 
         group.MapPost("/login", async (
@@ -37,8 +38,8 @@ public static class AuthEndpoints
             var result = await service.LoginAsync(request, cancellationToken);
             return result.IsSuccess
                 ? Results.Ok(result.Value)
-                : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AdminAuthResponseDto>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status429TooManyRequests)
+                : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, result.Error!);
+        }).Produces<AdminAuthResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
         .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
 
         group.MapPost("/invite-token", async (
@@ -49,14 +50,14 @@ public static class AuthEndpoints
             var adminIdClaim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(adminIdClaim, out var adminId))
             {
-                return Results.Unauthorized();
+                return ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized);
             }
 
             var result = await service.GenerateInviteTokenAsync(adminId, cancellationToken);
             return result.IsSuccess
                 ? Results.Ok(result.Value)
-                : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AdminInviteTokenCreateResponseDto>().Produces(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
+                : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, result.Error!);
+        }).Produces<AdminInviteTokenCreateResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
 
         return builder;
     }

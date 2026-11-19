@@ -1,27 +1,24 @@
-﻿using System.Text.Json;
+using System.Text.Json;
+using Mktba.Application.Exceptions;
 
 namespace Mktba.Api.Infrastructure;
 
 internal static class ProblemHttpResponseWriter
 {
+    public const string ContentType = "application/problem+json";
+
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+
     public static Task WriteAsync(
         HttpContext context,
         int statusCode,
-        string code,
-        string title,
+        AppError error,
         CancellationToken cancellationToken = default)
     {
         context.Response.StatusCode = statusCode;
-        context.Response.ContentType = "application/problem+json";
+        context.Response.ContentType = ContentType;
 
-        return context.Response.WriteAsync(
-            JsonSerializer.Serialize(new
-            {
-                title,
-                status = statusCode,
-                code,
-                traceId = context.TraceIdentifier,
-            }),
-            cancellationToken);
+        var problem = new ApiProblemDetails(error.Message, statusCode, error.Code, error.Params, context.TraceIdentifier);
+        return context.Response.WriteAsync(JsonSerializer.Serialize(problem, SerializerOptions), cancellationToken);
     }
 }

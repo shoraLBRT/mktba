@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Mktba.Application.Exceptions;
 
 namespace Mktba.Api.Infrastructure;
 
@@ -67,8 +68,7 @@ internal static class RateLimitingSetup
                 return new ValueTask(ProblemHttpResponseWriter.WriteAsync(
                     context.HttpContext,
                     StatusCodes.Status429TooManyRequests,
-                    "too_many_requests",
-                    "Too many requests. Try again later.",
+                    AppErrors.TooManyRequests,
                     cancellationToken));
             };
         });

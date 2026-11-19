@@ -1,0 +1,83 @@
+namespace Mktba.Application.Exceptions;
+
+/// <summary>
+/// The catalog of API error codes. Every code here has a Russian translation in
+/// mktba.react/src/localization/locales/ru/shared.json (section "apiErrors").
+/// </summary>
+public static class AppErrors
+{
+    // Generic
+    public static AppError BadRequest => new("bad_request", "The request could not be read.");
+    public static AppError Unauthorized => new("unauthorized", "Authentication is required.");
+    public static AppError Forbidden => new("forbidden", "You do not have permission to perform this action.");
+    public static AppError TooManyRequests => new("too_many_requests", "Too many requests. Try again later.");
+    public static AppError InternalError => new("internal_error", "Internal server error.");
+
+    // Auth
+    public static AppError EmailAndPasswordRequired => new("email_and_password_required", "Email and password are required.");
+    public static AppError InvalidCredentials => new("invalid_credentials", "Invalid credentials.");
+    public static AppError AdminAlreadyExists => new("admin_already_exists", "Admin with this email already exists.");
+    public static AppError InviteTokenInvalid => new("invite_token_invalid", "Invite token is invalid or expired.");
+
+    // AI styling
+    public static AppError AiTextRequired => new("ai_text_required", "Text is required.");
+    public static AppError AiSettingsIncomplete => new("ai_settings_incomplete", "BaseUrl and model are required.");
+    public static AppError AiDisabled => new("ai_disabled", "AI styling is disabled in the settings.");
+    public static AppError AiApiKeyMissing => new("ai_api_key_missing", "AI provider API key is not configured.");
+    public static AppError AiProviderEmptyResponse => new("ai_provider_empty_response", "AI provider returned empty content.");
+
+    public static AppError AiProviderRequestFailed(int status, string providerMessage) =>
+        new("ai_provider_request_failed", $"AI provider request failed ({status}): {providerMessage}", With(("status", status)));
+
+    // Articles
+    public static AppError ArticleNotFound => new("article_not_found", "Article not found.");
+    public static AppError ArticleTitleRequired => new("article_title_required", "Title is required.");
+    public static AppError ArticleIdMismatch => new("article_id_mismatch", "Article id in the body does not match the route.");
+    public static AppError ArticleContentUpdateFailed => new("article_content_update_failed", "Error occurred while updating content.");
+    public static AppError ArticleParagraphsRequired => new("article_paragraphs_required", "At least one paragraph is required.");
+    public static AppError ArticleParagraphOrderInvalid => new("article_paragraph_order_invalid", "Paragraph order must be >= 1.");
+    public static AppError ArticleParagraphOrderNotContiguous =>
+        new("article_paragraph_order_not_contiguous", "Paragraph order values must form a contiguous sequence from 1 to N.");
+    public static AppError ArticleParagraphForeign => new("article_paragraph_foreign", "Some paragraph ids do not belong to this article.");
+    public static AppError ArticleRelatedLinkSelf => new("article_related_link_self", "An article cannot link to itself.");
+
+    public static AppError ArticleSlotOpinionsRequired(int order) =>
+        new("article_slot_opinions_required", $"Slot at order {order} must have at least one opinion.", With(("order", order)));
+
+    public static AppError ArticleSlotDefaultOpinionRequired(int order) =>
+        new("article_slot_default_opinion_required", $"Each slot must have exactly one default opinion (slot order {order}).", With(("order", order)));
+
+    public static AppError RelatedArticleNotFound(int articleId) =>
+        new("related_article_not_found", $"Related article with id {articleId} does not exist.", With(("articleId", articleId)));
+
+    // Infobox
+    public static AppError InfoboxFieldOrderInvalid => new("infobox_field_order_invalid", "Infobox field order must be >= 1.");
+    public static AppError InfoboxFieldOrderNotContiguous =>
+        new("infobox_field_order_not_contiguous", "Infobox field order must form a contiguous sequence from 1 to N.");
+    public static AppError InfoboxFieldKeyRequired => new("infobox_field_key_required", "Each infobox field must contain a key.");
+    public static AppError InfoboxFieldLabelRequired => new("infobox_field_label_required", "Each infobox field must contain a label.");
+    public static AppError InfoboxFieldValueRequired => new("infobox_field_value_required", "Each infobox field must contain a value.");
+
+    // Paragraphs
+    public static AppError ParagraphNotFound => new("paragraph_not_found", "Paragraph not found.");
+    public static AppError ParagraphOrderInvalid => new("paragraph_order_invalid", "Order must be greater than or equal to 1.");
+    public static AppError ParagraphOpinionsRequired => new("paragraph_opinions_required", "At least one opinion is required.");
+    public static AppError ParagraphDefaultOpinionRequired =>
+        new("paragraph_default_opinion_required", "Exactly one opinion must be marked as default.");
+
+    public static AppError ParagraphOrderTooLarge(int maxOrder) =>
+        new("paragraph_order_too_large", $"Order cannot be greater than {maxOrder}.", With(("maxOrder", maxOrder)));
+
+    // Schools
+    public static AppError SchoolNotFound => new("school_not_found", "School not found.");
+    public static AppError SchoolSlugRequired => new("school_slug_required", "Slug is required.");
+    public static AppError SchoolNameRequired => new("school_name_required", "Name is required.");
+    public static AppError SchoolShortNameRequired => new("school_short_name_required", "ShortName is required.");
+    public static AppError SystemSchoolDeleteForbidden => new("system_school_delete_forbidden", "System schools cannot be deleted.");
+
+    public static AppError SchoolSlugTaken(string slug) =>
+        new("school_slug_taken", $"School with slug '{slug}' already exists.", With(("slug", slug)));
+
+    private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
+        values.ToDictionary(value => value.Key, value => value.Value);
+}

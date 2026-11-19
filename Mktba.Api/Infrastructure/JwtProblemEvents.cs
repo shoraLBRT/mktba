@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Net.Http.Headers;
+using Mktba.Application.Exceptions;
 
 namespace Mktba.Api.Infrastructure;
 
@@ -42,8 +43,7 @@ internal sealed class JwtProblemEvents : JwtBearerEvents
         await ProblemHttpResponseWriter.WriteAsync(
             context.HttpContext,
             StatusCodes.Status401Unauthorized,
-            "unauthorized",
-            "Authentication is required.");
+            AppErrors.Unauthorized);
     }
 
     public override async Task Forbidden(ForbiddenContext context)
@@ -68,7 +68,6 @@ internal sealed class JwtProblemEvents : JwtBearerEvents
         await ProblemHttpResponseWriter.WriteAsync(
             context.HttpContext,
             StatusCodes.Status403Forbidden,
-            "forbidden",
-            "You do not have permission to perform this action.");
+            AppErrors.Forbidden);
     }
 }

@@ -23,7 +23,7 @@ import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolServi
 import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
 import { useMazhab } from '../context/mazhabContext';
 import { useTrackEvent } from '../analytics/useTrackEvent';
-import { ApiError } from '../shared/api-client/apiError';
+import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
 
 const findArticlePathById = (
@@ -268,7 +268,7 @@ const ArticlePage: React.FC = () => {
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="w-full max-w-xl rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-red-700 shadow-sm">
           <p className="m-0 text-base font-semibold">{locale.articlePage.loadError}</p>
-          <p className="mb-0 mt-2 text-sm text-red-600">{(error as Error).message}</p>
+          <p className="mb-0 mt-2 text-sm text-red-600">{extractApiErrorMessage(error)}</p>
         </div>
       </div>
     );

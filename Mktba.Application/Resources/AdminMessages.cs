@@ -14,9 +14,4 @@ public static class AdminMessages
 
     public const string AiConnectionTestText = "Это тестовый текст для проверки ИИ стилизации markdown он должен вернуть аккуратный markdown без изменения порядка слов";
     public const string ConnectionSuccessMessage = "Проверка прошла успешно. Провайдер отвечает и возвращает текст.";
-    public const string TextRequiredMessage = "Text is required.";
-    public const string BaseUrlAndModelRequiredMessage = "BaseUrl and model are required.";
-    public const string AiDisabledMessage = "ИИ отключён. Включите 'Использовать ИИ стилизацию' в настройках.";
-    public const string ApiKeyRequiredMessage = "API key не настроен. Добавьте ключ и сохраните настройки.";
-    public const string EmptyProviderResponseMessage = "AI provider returned empty content.";
 }
