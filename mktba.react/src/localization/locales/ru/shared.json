@@ -17,6 +17,10 @@
       "label": "Навигация",
       "treeLabel": "Статьи",
       "mobileClose": "Закрыть навигацию"
+    },
+    "footer": {
+      "label": "Подвал сайта",
+      "feedback": "Обратная связь"
     }
   },
   "common": {

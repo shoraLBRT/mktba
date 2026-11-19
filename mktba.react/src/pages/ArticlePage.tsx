@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { articleContentQueryKey, parseLegacyArticleId } from '../services/Article/articleQueries';
@@ -27,6 +27,7 @@ import { useTrackEvent } from '../analytics/useTrackEvent';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
 import { articleHref } from '../shared/slug';
+import { feedbackHref } from '../shared/feedback';
 import { findAdjacentArticles, findArticlePath } from '../shared/articleTree';
 import { estimateReadingMinutes } from '../shared/readingTime';
 import { ARTICLE_OVERVIEW_ANCHOR, buildArticleOutline } from '../shared/articleOutline';
@@ -37,6 +38,7 @@ import { useHashAnchor } from '../components/article/useHashAnchor';
 const ArticlePage: React.FC = () => {
   const locale = useLocale();
   const navigate = useNavigate();
+  const { search: locationSearch } = useLocation();
   const { slug: requestedSlug = '' } = useParams<{ slug: string }>();
   // `/article/{id}` links from before slugs still open the article and are replaced by its slug URL.
   const legacyArticleId = parseLegacyArticleId(requestedSlug);
@@ -419,6 +421,11 @@ const ArticlePage: React.FC = () => {
             relatedArticles={relatedArticles}
             previous={adjacentArticles.previous}
             next={adjacentArticles.next}
+            errorReportHref={feedbackHref({
+              type: 'ArticleError',
+              articleId: articleContent.id,
+              from: `${articleHref(articleContent.slug ?? requestedSlug)}${locationSearch}`,
+            })}
           />
         </div>
       </article>
