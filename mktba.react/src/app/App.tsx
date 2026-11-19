@@ -1,33 +1,19 @@
-import { type ReactElement, useEffect } from 'react';
+import { useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter as Router, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, useNavigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
-import ArticlePage from '../pages/ArticlePage';
-import AddArticlePage from '../pages/AddArticlePage';
-import AdminLoginPage from '../pages/AdminLoginPage';
-import AdminPage from '../pages/AdminPage';
-import EditArticlePage from '../pages/EditArticlePage';
-import WelcomePage from '../pages/WelcomePage';
-import { isAdminAuthenticated } from '../services/authService';
 import { ADMIN_SESSION_EXPIRED_EVENT } from '../services/authTokenStorage';
 import { MazhabProvider } from '../context/MazhabProvider';
 import { CookieConsent } from '../components/CookieConsent';
 import { getConsent, initMetrika } from '../analytics/metrika';
 import { createQueryClient } from './queryClient';
+import { AppRoutes } from './AppRoutes';
 
 const queryClient = createQueryClient();
 
 if (getConsent() === true) {
   initMetrika();
 }
-
-const AdminOnlyRoute = ({ children }: { children: ReactElement }) => {
-  if (!isAdminAuthenticated()) {
-    return <Navigate to="/admin/login" replace />;
-  }
-
-  return children;
-};
 
 const AdminSessionExpirationHandler = () => {
   const navigate = useNavigate();
@@ -54,17 +40,7 @@ function App() {
         <AdminSessionExpirationHandler />
         <MainLayout>
           <CookieConsent />
-          <Routes>
-            <Route path="/" element={<WelcomePage />} />
-            <Route path="/article/:id" element={<ArticlePage />} />
-            <Route path="/admin/login" element={<AdminLoginPage />} />
-            <Route path="/admin" element={<AdminOnlyRoute><AdminPage /></AdminOnlyRoute>} />
-            <Route path="/article/new" element={<AdminOnlyRoute><AddArticlePage /></AdminOnlyRoute>} />
-            <Route
-              path="/admin/articles/:articleId/edit"
-              element={<AdminOnlyRoute><EditArticlePage /></AdminOnlyRoute>}
-            />
-          </Routes>
+          <AppRoutes />
         </MainLayout>
       </Router>
       </MazhabProvider>

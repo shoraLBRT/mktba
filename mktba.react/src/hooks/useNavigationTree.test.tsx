@@ -2,7 +2,14 @@ import type { ReactNode } from 'react';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createQueryClient, invalidateArticleQueries, QUERY_STALE_TIME_MS } from '../app/queryClient';
+import {
+  createQueryClient,
+  invalidateArticleQueries,
+  QUERY_MAX_RETRIES,
+  QUERY_STALE_TIME_MS,
+  shouldRetryQuery,
+} from '../app/queryClient';
+import { ApiError } from '../shared/api-client/apiError';
 import { getNavigationTree } from '../services/Article/navigationService';
 import { useNavigationTree } from './useNavigationTree';
 
@@ -25,6 +32,23 @@ describe('createQueryClient', () => {
     expect(defaults?.staleTime).toBe(QUERY_STALE_TIME_MS);
     expect(QUERY_STALE_TIME_MS).toBeGreaterThan(0);
     expect(defaults?.refetchOnWindowFocus).toBe(false);
+  });
+});
+
+describe('shouldRetryQuery', () => {
+  it('given a 404 from the API, when deciding, then does not retry', () => {
+    expect(shouldRetryQuery(0, new ApiError('Not found', 404))).toBe(false);
+  });
+
+  it('given a server error, when under the limit, then retries until the limit', () => {
+    const error = new ApiError('Server error', 500);
+
+    expect(shouldRetryQuery(0, error)).toBe(true);
+    expect(shouldRetryQuery(QUERY_MAX_RETRIES, error)).toBe(false);
+  });
+
+  it('given a network error without a status, when deciding, then retries', () => {
+    expect(shouldRetryQuery(1, new ApiError('Network Error'))).toBe(true);
   });
 });
 

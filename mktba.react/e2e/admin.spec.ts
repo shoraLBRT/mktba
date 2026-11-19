@@ -16,7 +16,7 @@ test('an admin creates an article and then edits it', async ({ page }) => {
   await logIn(page);
 
   await page.getByRole('button', { name: 'Добавить статью' }).click();
-  await expect(page).toHaveURL(/\/article\/new$/);
+  await expect(page).toHaveURL(/\/admin\/articles\/new$/);
   await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
   await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Первый абзац из E2E-теста.');
   await page.getByRole('button', { name: 'Сохранить' }).click();

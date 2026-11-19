@@ -1,4 +1,8 @@
 export const APP_CONSTANTS = {
+  ROUTES: {
+    /** The article creation page; the old `/article/new` redirects here. */
+    ADD_ARTICLE: '/admin/articles/new',
+  },
   QUERY_KEYS: {
     NAVIGATION_TREE: 'navigationTree',
     ARTICLE_CONTENT: 'articleContent',
