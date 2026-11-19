@@ -17,6 +17,12 @@ public sealed class FeedbackOptions
 /// </summary>
 public sealed class FeedbackGitHubOptions
 {
+    /// <summary>
+    /// False switches delivery off whatever else is set: for test runs on a machine whose local
+    /// settings hold a real key (the e2e API sets it).
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
     /// <summary>The App ID (or its client ID): the issuer of the app's JWT.</summary>
     public string? AppId { get; set; }
 
@@ -42,7 +48,8 @@ public sealed class FeedbackGitHubOptions
     /// stored and simply stays <c>Pending</c>.
     /// </summary>
     public bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(AppId)
+        Enabled
+        && !string.IsNullOrWhiteSpace(AppId)
         && !string.IsNullOrWhiteSpace(Owner)
         && !string.IsNullOrWhiteSpace(Repository)
         && (!string.IsNullOrWhiteSpace(PrivateKey) || !string.IsNullOrWhiteSpace(PrivateKeyPath));

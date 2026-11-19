@@ -44,6 +44,8 @@ export default defineConfig({
         Auth__JwtSigningKey: JWT_SIGNING_KEY,
         // Every test logs in from 127.0.0.1; keep the per-IP auth limit out of the way.
         RateLimiting__Auth__PermitLimit: '1000',
+        // A developer's appsettings.local.json may hold a real GitHub App key: e2e never files issues.
+        Feedback__GitHub__Enabled: 'false',
       },
       // Never reuse an API that is already running: it may point at a database with real data.
       reuseExistingServer: false,
