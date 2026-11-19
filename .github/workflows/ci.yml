@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      # The solution is named explicitly: docker-compose.dcproj at the root makes a bare
+      # `dotnet build` fail with MSB1011.
+      - run: dotnet restore Mktba.sln
+      - run: dotnet build Mktba.sln --no-restore --configuration Release
+      - run: dotnet test Mktba.sln --no-build --configuration Release --verbosity minimal
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mktba.react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mktba.react/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
