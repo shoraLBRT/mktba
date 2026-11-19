@@ -148,3 +148,32 @@ test('the server leaves the admin to the browser', async ({ request }) => {
   expect(response.status()).toBe(200);
   expect(await response.text()).not.toContain('Разделы админки');
 });
+
+type JsonLdNode = Record<string, unknown> & { '@type': string };
+
+/** Every JSON-LD graph node in raw HTML (O-05). */
+const jsonLdNodes = (html: string): JsonLdNode[] =>
+  [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)]
+    .flatMap((match) => (JSON.parse(match[1]) as { '@graph': JsonLdNode[] })['@graph']);
+
+test('the server sends an article with Article, BreadcrumbList, WebSite and Organization JSON-LD (O-05)', async ({ request }) => {
+  const html = await (await request.get('/article/salat')).text();
+  const nodes = jsonLdNodes(html);
+
+  expect(nodes.map((node) => node['@type'])).toEqual(['Organization', 'WebSite', 'Article', 'BreadcrumbList']);
+  const [organization, , article, breadcrumbs] = nodes;
+  expect(organization).toMatchObject({ name: 'mktba' });
+  expect(article.headline).toBe('Салат');
+  expect(article.url).toMatch(/^https?:\/\/[^/]+\/article\/salat$/);
+  expect(article.datePublished).toBeTruthy();
+  expect(article.author).toEqual({ '@id': organization['@id'] });
+  const trail = breadcrumbs.itemListElement as Array<{ position: number; name: string; item: string }>;
+  expect(trail.at(-1)).toMatchObject({ position: trail.length, name: 'Салат', item: article.url });
+});
+
+test('the server sends the home page with Organization and WebSite JSON-LD and no search action (O-05)', async ({ request }) => {
+  const nodes = jsonLdNodes(await (await request.get('/')).text());
+
+  expect(nodes.map((node) => node['@type'])).toEqual(['Organization', 'WebSite']);
+  expect(nodes[1]).not.toHaveProperty('potentialAction');
+});
