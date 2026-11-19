@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 using Mktba.Application;
@@ -51,7 +52,14 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddHttpClient();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Fixed title and version: the document is committed (mktba.react/src/shared/api/openapi.json),
+    // so it must not change with the assembly version.
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Mktba API", Version = "v1" });
+    options.SupportNonNullableReferenceTypes();
+    options.SchemaFilter<NonNullablePropertiesRequiredSchemaFilter>();
+});
 var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
 if (string.IsNullOrWhiteSpace(authOptions.JwtSigningKey))
 {
@@ -88,9 +96,12 @@ builder.Services.AddAuthorizationBuilder()
 
 var app = builder.Build();
 
-// Demonstration-only seed data to make navigation/content visible in fresh local environments.
-using (var scope = app.Services.CreateScope())
+// The OpenApi environment only generates the OpenAPI document (see mktba.react `npm run gen:api`)
+// and must not touch the database.
+if (!app.Environment.IsEnvironment(OpenApiEnvironmentName))
 {
+    // Demonstration-only seed data to make navigation/content visible in fresh local environments.
+    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<MktbaDbContext>();
     await dbContext.Database.MigrateAsync();
     await DemoDataSeeder.SeedAsync(dbContext);
@@ -120,3 +131,9 @@ app.MapAdminEndpoints();
 app.MapAuthEndpoints();
 
 app.Run();
+
+public partial class Program
+{
+    private const string OpenApiEnvironmentName = "OpenApi";
+}
+

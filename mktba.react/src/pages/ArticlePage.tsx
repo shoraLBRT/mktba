@@ -357,9 +357,9 @@ const ArticlePage: React.FC = () => {
 
       <ArticleRightSidebar
         tocItems={tocItems}
-        summary={articleContent.summary}
+        summary={articleContent.summary ?? undefined}
         tags={articleContent.tags}
-        relatedLinks={articleContent.relatedLinks}
+        relatedLinks={articleContent.relatedLinks ?? undefined}
       />
     </div>
   );

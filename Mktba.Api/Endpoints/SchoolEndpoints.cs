@@ -15,14 +15,14 @@ public static class SchoolEndpoints
         {
             var schools = await service.GetSystemSchoolsAsync(ct);
             return Results.Ok(schools);
-        });
+        }).Produces<List<SchoolDto>>();
 
         // GET /schools/article/{articleId} — custom schools scoped to an article
         group.MapGet("/article/{articleId:int}", async (int articleId, SchoolService service, CancellationToken ct) =>
         {
             var schools = await service.GetByArticleIdAsync(articleId, ct);
             return Results.Ok(schools);
-        });
+        }).Produces<List<SchoolDto>>();
 
         // POST /schools — create a custom school for an article (admin only)
         group.MapPost("/", async (SchoolCreateDto dto, SchoolService service, CancellationToken ct) =>
@@ -40,7 +40,11 @@ public static class SchoolEndpoints
             {
                 return Results.NotFound(new { message = ex.Message });
             }
-        }).RequireAuthorization("AdminOnly");
+        })
+            .Produces<SchoolDto>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
 
         // DELETE /schools/{id} — delete a custom school (admin only)
         group.MapDelete("/{id:int}", async (int id, SchoolService service, CancellationToken ct) =>
@@ -58,7 +62,11 @@ public static class SchoolEndpoints
             {
                 return Results.NotFound();
             }
-        }).RequireAuthorization("AdminOnly");
+        })
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
 
         return builder;
     }

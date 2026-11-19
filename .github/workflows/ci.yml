@@ -44,3 +44,31 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+
+  # FE<->BE contract: the committed OpenAPI document and the TypeScript types generated from it
+  # must match the API. A drift fails here; a contract change the frontend does not handle fails
+  # `tsc` in the frontend job.
+  api-contract:
+    name: api-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mktba.react/package-lock.json
+      - run: npm ci
+        working-directory: mktba.react
+      - run: npm run gen:api
+        working-directory: mktba.react
+      - name: Fail on contract drift
+        run: |
+          if [ -n "$(git status --porcelain -- mktba.react/src/shared/api)" ]; then
+            git --no-pager diff -- mktba.react/src/shared/api
+            echo "::error::The API contract is out of date. Run 'npm run gen:api' in mktba.react and commit the result."
+            exit 1
+          fi
