@@ -31,13 +31,13 @@ namespace Mktba.Api.Endpoints
             {
                 var createdArticle = await service.CreateAsync(createDto, user.GetUserId());
                 return Results.Created($"/articles/{createdArticle.Id}", createdArticle);
-            }).Produces<ArticleReadDto>(StatusCodes.Status201Created).RequireAuthorization("AdminOnly");
+            }).Produces<ArticleReadDto>(StatusCodes.Status201Created).RequireAuthorization(Policies.CanEditArticles);
 
             group.MapPut("/{id:int}", async (int id, ArticleUpdateDto updateDto, ArticleService service) =>
             {
                 await service.UpdateAsync(id, updateDto);
                 return Results.NoContent();
-            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapPost("/{id:int}/status", async (int id, ArticleStatusChangeDto dto, ArticleService service) =>
             {
@@ -50,7 +50,7 @@ namespace Mktba.Api.Endpoints
                 + "Archived → Draft. Any other move answers 400 article_status_transition_invalid.")
             .Produces<ArticleReadDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanReviewArticles);
 
             group.MapPost("/{id:int}/move", async (int id, ArticleMoveDto dto, ArticleService service) =>
                 Results.Ok(await service.MoveAsync(id, dto)))
@@ -62,14 +62,14 @@ namespace Mktba.Api.Endpoints
                 + "Writes no revision and does not change UpdatedAt.")
             .Produces<ArticleReadDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapGet("/{id:int}/authors", async (int id, ArticleAuthorshipService service) =>
                 Results.Ok(await service.GetAsync(id)))
             .WithSummary("The article's author and co-authors.")
             .Produces<ArticleAuthorsDto>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapPut("/{id:int}/authors", async (int id, ArticleAuthorsDto dto, ArticleAuthorshipService service) =>
                 Results.Ok(await service.SetAsync(id, dto)))
@@ -79,13 +79,13 @@ namespace Mktba.Api.Endpoints
                 + "400 article_coauthor_is_author when the author is also listed as co-author.")
             .Produces<ArticleAuthorsDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapDelete("/{id:int}", async (int id, ArticleService service) =>
             {
                 await service.DeleteAsync(id);
                 return Results.NoContent();
-            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization(Policies.CanEditAnyArticle);
 
             return builder;
         }

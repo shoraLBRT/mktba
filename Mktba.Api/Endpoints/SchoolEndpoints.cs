@@ -32,7 +32,7 @@ public static class SchoolEndpoints
         })
             .Produces<SchoolDto>(StatusCodes.Status201Created)
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
         // DELETE /schools/{id} — delete a custom school (admin only)
         group.MapDelete("/{id:int}", async (int id, SchoolService service, CancellationToken ct) =>
@@ -42,7 +42,7 @@ public static class SchoolEndpoints
         })
             .Produces(StatusCodes.Status204NoContent)
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
-            .RequireAuthorization("AdminOnly");
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
         return builder;
     }

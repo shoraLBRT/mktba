@@ -133,7 +133,7 @@ public sealed class RateLimitingTests
     {
         var client = CreateClientFromIp(factory, "10.0.0.9");
         var response = await client.PostAsJsonAsync("/auth/register", new { Email = "first@mktba.test", Password = "Test-password-1" });
-        var auth = await response.Content.ReadFromJsonAsync<AdminAuthResponseDto>();
+        var auth = await response.Content.ReadFromJsonAsync<AdminAuthResponseDto>(ApiJson.Options);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
         return client;
     }
@@ -149,7 +149,7 @@ public sealed class RateLimitingTests
             Password = "Test-password-1",
             InviteToken = invite!.Token,
         });
-        var auth = await response.Content.ReadFromJsonAsync<AdminAuthResponseDto>();
+        var auth = await response.Content.ReadFromJsonAsync<AdminAuthResponseDto>(ApiJson.Options);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
         return client;
     }

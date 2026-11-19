@@ -327,6 +327,12 @@ namespace Mktba.Infrastructure.Data
                 .Property(u => u.ExternalId)
                 .HasMaxLength(256);
 
+            modelBuilder.Entity<User>()
+                .Property(u => u.Role)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .IsRequired();
+
             // AdminInviteToken
             modelBuilder.Entity<AdminInviteToken>()
                 .HasIndex(t => t.TokenHash)

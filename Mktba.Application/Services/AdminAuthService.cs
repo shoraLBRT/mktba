@@ -37,6 +37,13 @@ public class AdminAuthService
         return new AdminAuthStatusDto { RequiresBootstrapAdmin = !hasAdmins };
     }
 
+    /// <summary>The user with <paramref name="userId"/>, or null when it no longer exists.</summary>
+    public async Task<CurrentUserDto?> GetCurrentUserAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.FindReadOnlyAsync(userId, cancellationToken);
+        return user is null ? null : new CurrentUserDto { Id = user.Id, Email = user.Email, Role = user.Role };
+    }
+
     public async Task<AdminService.ServiceResult<AdminAuthResponseDto>> RegisterAsync(
         AdminRegisterRequestDto request,
         CancellationToken cancellationToken = default)
@@ -64,7 +71,8 @@ public class AdminAuthService
             }
         }
 
-        var user = new User { Email = normalizedEmail };
+        // The first user and every invited user are admins; choosing the role of an invite is U-04 (#32).
+        var user = new User { Email = normalizedEmail, Role = UserRole.Admin };
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         await _userRepository.AddAsync(user);
 
@@ -170,6 +178,7 @@ public class AdminAuthService
             AccessToken = tokenHandler.WriteToken(token),
             ExpiresAtUtc = expiresAtUtc,
             Email = user.Email,
+            Role = user.Role,
         };
     }
 

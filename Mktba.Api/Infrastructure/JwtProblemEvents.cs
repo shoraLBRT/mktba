@@ -2,12 +2,42 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Net.Http.Headers;
 using Mktba.Application.Exceptions;
+using Mktba.Infrastructure.Repositories;
 
 namespace Mktba.Api.Infrastructure;
 
 internal sealed class JwtProblemEvents : JwtBearerEvents
 {
     private const string AuthFailureItemKey = "auth.failure.reason";
+
+    /// <summary>
+    /// Takes the caller's role from the database instead of the token, so a role change applies at
+    /// once and a token issued before roles existed (or for a deleted user) grants nothing it should
+    /// not: no such user fails authentication (401), otherwise the stored role replaces any role claim.
+    /// </summary>
+    public override async Task TokenValidated(TokenValidatedContext context)
+    {
+        if (context.Principal?.Identity is not ClaimsIdentity identity
+            || !int.TryParse(identity.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+        {
+            context.Fail("The token does not name a user.");
+            return;
+        }
+
+        var users = context.HttpContext.RequestServices.GetRequiredService<UserRepository>();
+        var role = await users.GetRoleAsync(userId, context.HttpContext.RequestAborted);
+        if (role is null)
+        {
+            context.Fail("The token's user no longer exists.");
+            return;
+        }
+
+        foreach (var claim in identity.FindAll(identity.RoleClaimType).ToList())
+        {
+            identity.RemoveClaim(claim);
+        }
+        identity.AddClaim(new Claim(identity.RoleClaimType, role.Value.ToString()));
+    }
 
     public override Task AuthenticationFailed(AuthenticationFailedContext context)
     {
