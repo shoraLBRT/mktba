@@ -1,17 +1,51 @@
+import { dehydrate, HydrationBoundary, type DehydratedState } from '@tanstack/react-query';
+import { useLoaderData } from 'react-router';
+import { createServerQueryClient } from '../app/queryClient';
 import type { RouteHandle } from '../app/routeHandle';
 import { PageMeta } from '../components/PageMeta';
 import { SiteStructuredData } from '../components/StructuredData';
-import WelcomePage from '../pages/WelcomePage';
+import { APP_CONSTANTS } from '../constants/AppConstants';
+import HomePage from '../pages/HomePage';
+import { serverApi } from '../server/api.server';
+
+type HomeRouteData = {
+  /**
+   * The new and updated articles from the server; missing after a client-side navigation and when
+   * the API could not be reached (the browser retries).
+   */
+  dehydratedState?: DehydratedState;
+};
 
 export const handle: RouteHandle = { ownsMeta: true };
 
+/**
+ * On the server: the lists of new and updated articles, so they are in the HTML. The sections and
+ * the title search read the navigation tree the public layout's loader already fetched.
+ */
+export async function loader(): Promise<HomeRouteData> {
+  const queryClient = createServerQueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES],
+    queryFn: serverApi.getRecentArticles,
+  });
+
+  return { dehydratedState: dehydrate(queryClient) };
+}
+
+/** In the browser, after the first page: React Query fetches and caches the lists itself. */
+export const clientLoader = (): HomeRouteData => ({});
+
 /** The home page: the site's own title, description, default social image and structured data. */
 export default function HomeRoute() {
+  const { dehydratedState } = useLoaderData<typeof loader>();
+
   return (
     <>
       <PageMeta path="/" />
       <SiteStructuredData />
-      <WelcomePage />
+      <HydrationBoundary state={dehydratedState}>
+        <HomePage />
+      </HydrationBoundary>
     </>
   );
 }

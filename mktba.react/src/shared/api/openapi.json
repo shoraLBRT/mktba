@@ -875,6 +875,54 @@
         }
       }
     },
+    "/articles/recent": {
+      "get": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "The newest and the most recently updated articles, for the home page.",
+        "description": "Two lists of articles a reader can open: Published, not under a non-Published parent, and not empty stubs. new is ordered by publishedAt, updated holds the articles saved after they were published, ordered by updatedAt; both latest first. The same lists for every caller; no content. locale defaults to ru (an unsupported one answers 400 locale_unsupported); limit is the size of each list, 6 by default, kept within 1 to 20.",
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentArticlesDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/{id}": {
       "get": {
         "tags": [
@@ -3587,6 +3635,63 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OpinionUpdateDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecentArticleDto": {
+        "required": [
+          "id",
+          "publishedAt",
+          "slug",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecentArticlesDto": {
+        "required": [
+          "new",
+          "updated"
+        ],
+        "type": "object",
+        "properties": {
+          "new": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentArticleDto"
+            }
+          },
+          "updated": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentArticleDto"
             }
           }
         },

@@ -1,5 +1,5 @@
 import apiClient from '../../shared/api-client/ApiClient';
-import type { ArticleContentCreateDto, ArticleContentDto } from '../../shared/types/ApiTypes';
+import type { ArticleContentCreateDto, ArticleContentDto, RecentArticlesDto } from '../../shared/types/ApiTypes';
 
 export const getArticleContentById = async (id: number): Promise<ArticleContentDto> => {
   const response = await apiClient.get<ArticleContentDto>(`/articles/${id}/content`);
@@ -15,6 +15,12 @@ export const getArticleContentBySlug = async (slug: string): Promise<ArticleCont
   return response.data;
 };
 
+/** The newest and the most recently updated published articles, for the home page. */
+export const getRecentArticles = async (): Promise<RecentArticlesDto> => {
+  const response = await apiClient.get<RecentArticlesDto>('/articles/recent');
+  return response.data;
+};
+
 export const createArticleContent = async (payload: ArticleContentCreateDto): Promise<ArticleContentDto> => {
   const response = await apiClient.post<ArticleContentDto>('/articles/content', payload);
   return response.data;
@@ -27,6 +33,7 @@ export const updateArticleContent = async (id: number, payload: ArticleContentDt
 export const articleService = {
   getArticleContentById,
   getArticleContentBySlug,
+  getRecentArticles,
   createArticleContent,
   updateArticleContent,
 };

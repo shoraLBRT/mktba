@@ -6,6 +6,7 @@ export const APP_CONSTANTS = {
   QUERY_KEYS: {
     NAVIGATION_TREE: 'navigationTree',
     ARTICLE_CONTENT: 'articleContent',
+    RECENT_ARTICLES: 'recentArticles',
     AUTH_STATUS: 'authStatus',
     CURRENT_USER: 'currentUser',
     ADMIN_ARTICLES: 'adminArticles',

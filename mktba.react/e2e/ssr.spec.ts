@@ -25,6 +25,17 @@ test('the server sends an article page with one h1, its landmarks and machine-re
   expect(html).toMatch(/<time datetime="\d{4}-\d{2}-\d{2}T[^"]+Z">/i);
 });
 
+test('the server sends the home page with its sections and new articles in the HTML (R-05)', async ({ request }) => {
+  const response = await request.get('/');
+
+  expect(response.status()).toBe(200);
+  const html = await response.text();
+  expect(html).toMatch(/<h2[^>]*>Разделы<\/h2>/);
+  expect(html).toMatch(/<h2[^>]*>Новые статьи<\/h2>[\s\S]*?<a[^>]*href="\/article\/[^"]+"/);
+  expect(html).toMatch(/<h2[^>]*>Что такое mktba<\/h2>/);
+  expect(html).toContain('<title>mktba — исламская wiki</title>');
+});
+
 test('the server sends the home page with exactly one h1 inside main (O-10)', async ({ request }) => {
   const html = await (await request.get('/')).text();
 

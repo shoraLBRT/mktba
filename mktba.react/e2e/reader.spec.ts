@@ -224,3 +224,51 @@ test('an article page has no serious or critical accessibility violations (O-10)
 
   expect(serious).toEqual([]);
 });
+
+test('the home page offers sections, new and updated articles and a title search (R-05)', async ({ page, request }) => {
+  const title = `Главная новинка ${Date.now()}`;
+  const article = await publishArticle(request, title, [
+    { order: 1, opinions: [{ content: 'Текст новой статьи', isDefault: true, schoolIds: [] }] },
+  ]);
+
+  await page.goto('/');
+  const main = page.getByRole('main');
+  await expect(main.getByRole('heading', { name: 'mktba — исламская wiki', level: 1 })).toBeVisible();
+  await expect(main.getByRole('region', { name: 'Разделы' }).getByRole('link').first()).toBeVisible();
+  await expect(main.getByRole('region', { name: 'Что такое mktba' })).toContainText('открытая исламская wiki');
+  const fresh = main.getByRole('region', { name: 'Новые статьи' });
+  await expect(fresh.getByRole('listitem').first().getByRole('link', { name: title, exact: true })).toBeVisible();
+  await expect(main.getByRole('region', { name: 'Обновлённые статьи' }).getByRole('link', { name: title, exact: true })).toHaveCount(0);
+
+  const content = await (await request.get(`${API_URL}/articles/${article.id}/content`, { headers: article.headers })).json();
+  const saved = await request.put(`${API_URL}/articles/${article.id}/content`, {
+    headers: article.headers,
+    data: { ...content, summary: 'Описание, добавленное после публикации' },
+  });
+  expect(saved.ok()).toBe(true);
+
+  await page.reload();
+  const updated = main.getByRole('region', { name: 'Обновлённые статьи' }).getByRole('listitem').first();
+  await expect(updated.getByRole('link', { name: title, exact: true })).toBeVisible();
+  await expect(updated).toContainText('Описание, добавленное после публикации');
+
+  await main.getByRole('searchbox', { name: 'Найти статью по названию' }).fill('главная новинка');
+  await main.getByRole('list', { name: 'Найденные статьи' }).getByRole('link', { name: title, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/article/${article.slug}$`));
+  await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+});
+
+test('the home page has no serious or critical accessibility violations (R-05)', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('main').getByRole('region', { name: 'Разделы' })).toBeVisible();
+
+  // Colour contrast is R-17 (#141); the rest must stay clean.
+  const { violations } = await new AxeBuilder({ page })
+    .disableRules(['color-contrast'])
+    .analyze();
+  const serious = violations
+    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
+
+  expect(serious).toEqual([]);
+});

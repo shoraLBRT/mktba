@@ -84,6 +84,30 @@ namespace Mktba.Infrastructure.Repositories
                 .ToListAsync(cancellationToken);
 
         /// <summary>
+        /// Every article an anonymous reader may see (Published), projected to
+        /// <see cref="ArticleRecentRow"/> in a single query with no content rows.
+        /// </summary>
+        public Task<List<ArticleRecentRow>> GetRecentRowsAsync(CancellationToken cancellationToken = default)
+            => _dbSet
+                .AsNoTracking()
+                .VisibleTo(ArticleViewer.Anonymous)
+                .Select(article => new ArticleRecentRow(
+                    article.Id,
+                    article.ParentArticleId,
+                    article.Title,
+                    article.Slug,
+                    article.Summary,
+                    article.Locale,
+                    article.Paragraphs.Any(paragraph => paragraph.Opinions.Any())
+                        || article.InfoboxFields.Any()
+                        || (article.InfoboxTitle != null && article.InfoboxTitle.Trim() != "")
+                        || (article.InfoboxSubtitle != null && article.InfoboxSubtitle.Trim() != "")
+                        || (article.Summary != null && article.Summary.Trim() != ""),
+                    article.PublishedAt,
+                    article.UpdatedAt))
+                .ToListAsync(cancellationToken);
+
+        /// <summary>
         /// One page of the articles <paramref name="viewer"/> may read, filtered and sorted by
         /// <paramref name="query"/>, and the number of matching articles. Two queries — the count and
         /// the page — and no paragraph, infobox or link rows are read.
