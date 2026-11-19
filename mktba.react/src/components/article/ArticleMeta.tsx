@@ -1,33 +1,28 @@
 import { articleHref } from '../../shared/slug';
-import { toAbsoluteUrl } from '../../shared/seo';
 import type { ArticleMetaDto } from '../../shared/types/ApiTypes';
+import { PageMeta } from '../PageMeta';
 
 type ArticleMetaProps = {
   meta: ArticleMetaDto;
   slug: string;
-  /** Origin the canonical link and a site-relative og:image are resolved against. */
-  origin?: string;
+  publishedAt?: string | null;
+  updatedAt?: string | null;
 };
 
 /**
- * The article's document metadata: title, description, Open Graph, robots and canonical.
- * React 19 hoists these elements into `<head>`, also in the server-rendered HTML.
+ * An article's document metadata (M-10 SEO fields, O-04 site tags): the effective title and
+ * description, the canonical article URL, the social image (the site's default when the article has
+ * none), robots noindex and the publication dates.
  */
-export const ArticleMeta = ({ meta, slug, origin = window.location.origin }: ArticleMetaProps) => {
-  const canonical = toAbsoluteUrl(articleHref(slug), origin);
-  const image = meta.socialImageUrl ? toAbsoluteUrl(meta.socialImageUrl, origin) : null;
-
-  return (
-    <>
-      <title>{meta.title}</title>
-      {meta.description ? <meta name="description" content={meta.description} /> : null}
-      <link rel="canonical" href={canonical} />
-      {meta.noIndex ? <meta name="robots" content="noindex" /> : null}
-      <meta property="og:type" content="article" />
-      <meta property="og:title" content={meta.title} />
-      {meta.description ? <meta property="og:description" content={meta.description} /> : null}
-      <meta property="og:url" content={canonical} />
-      {image ? <meta property="og:image" content={image} /> : null}
-    </>
-  );
-};
+export const ArticleMeta = ({ meta, slug, publishedAt, updatedAt }: ArticleMetaProps) => (
+  <PageMeta
+    title={meta.title}
+    description={meta.description || undefined}
+    path={articleHref(slug)}
+    image={meta.socialImageUrl || undefined}
+    type="article"
+    noIndex={meta.noIndex}
+    publishedTime={publishedAt}
+    modifiedTime={updatedAt}
+  />
+);

@@ -34,7 +34,6 @@ describe('article route loader', () => {
 
     expect(result.init?.status).toBeUndefined();
     expect(result.data.notFound).toBe(false);
-    expect(result.data.origin).toBe('http://mktba.test');
     const contentQuery = result.data.dehydratedState?.queries.find(
       (query) => query.queryKey[0] === APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT,
     );
@@ -67,7 +66,7 @@ describe('article route loader', () => {
     const result = await load('no-such-article');
 
     expect(result.init?.status).toBe(404);
-    expect(result.data).toEqual({ notFound: true, origin: 'http://mktba.test' });
+    expect(result.data).toEqual({ notFound: true });
   });
 
   it('given an API that fails, when an article is loaded, then the error reaches the error boundary', async () => {

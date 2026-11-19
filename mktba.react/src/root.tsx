@@ -1,15 +1,40 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useMatches, useNavigate } from 'react-router';
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+  useMatches,
+  useNavigate,
+  useRouteLoaderData,
+  type LoaderFunctionArgs,
+} from 'react-router';
 import './index.css';
 import { CookieConsent } from './components/CookieConsent';
-import { DefaultDocumentTitle } from './components/DefaultDocumentTitle';
+import { PageMeta } from './components/PageMeta';
 import { ErrorFallback } from './components/ErrorFallback';
 import { MazhabProvider } from './context/MazhabProvider';
+import { useLocale } from './localization/hooks';
 import { LocalizationProvider } from './localization/provider';
 import { ADMIN_SESSION_EXPIRED_EVENT, useSession } from './services/session';
 import { createQueryClient, invalidateArticleQueries } from './app/queryClient';
 import type { RouteHandle } from './app/routeHandle';
+import { SiteUrlContext } from './app/siteUrl';
+import { resolveSiteUrl } from './server/siteUrl.server';
+
+type RootData = {
+  /** Public site address for canonical links and Open Graph URLs (`PUBLIC_SITE_URL`). */
+  siteUrl: string;
+};
+
+/** On the server, once per document: the address absolute page URLs are built on. */
+export const loader = ({ request }: LoaderFunctionArgs): RootData => ({ siteUrl: resolveSiteUrl(request) });
+
+/** The site address does not change while the page is open; navigation never refetches it. */
+export const shouldRevalidate = () => false;
 
 /** The HTML document around every page, rendered on the server. */
 export function Layout({ children }: { children: ReactNode }) {
@@ -67,37 +92,47 @@ const SessionQueryRefresh = () => {
   return null;
 };
 
-/** The default `<title>`, unless the matched page renders its own. */
-const DocumentTitle = () => {
-  const ownsTitle = useMatches().some((match) => (match.handle as RouteHandle | undefined)?.ownsTitle);
-  return ownsTitle ? null : <DefaultDocumentTitle />;
+/** Generic, non-indexed metadata (admin, sign-in, service pages), unless the matched page renders its own. */
+const FallbackPageMeta = () => {
+  const ownsMeta = useMatches().some((match) => (match.handle as RouteHandle | undefined)?.ownsMeta);
+  return ownsMeta ? null : <PageMeta noIndex noFollow />;
 };
 
 export default function App() {
   // One client per server render and one for the browser's lifetime.
   const [queryClient] = useState(createQueryClient);
+  const { siteUrl } = useLoaderData<typeof loader>();
 
   return (
-    <LocalizationProvider>
-      <QueryClientProvider client={queryClient}>
-        <MazhabProvider>
-          <DocumentTitle />
-          <AdminSessionExpirationHandler />
-          <SessionQueryRefresh />
-          <CookieConsent />
-          <Outlet />
-        </MazhabProvider>
-      </QueryClientProvider>
-    </LocalizationProvider>
+    <SiteUrlContext.Provider value={siteUrl}>
+      <LocalizationProvider>
+        <QueryClientProvider client={queryClient}>
+          <MazhabProvider>
+            <FallbackPageMeta />
+            <AdminSessionExpirationHandler />
+            <SessionQueryRefresh />
+            <CookieConsent />
+            <Outlet />
+          </MazhabProvider>
+        </QueryClientProvider>
+      </LocalizationProvider>
+    </SiteUrlContext.Provider>
   );
 }
 
 /** A loader that failed or a page that threw while rendering. */
 export function ErrorBoundary() {
+  const siteUrl = useRouteLoaderData<typeof loader>('root')?.siteUrl ?? null;
+
   return (
-    <LocalizationProvider>
-      <DefaultDocumentTitle />
-      <ErrorFallback />
-    </LocalizationProvider>
+    <SiteUrlContext.Provider value={siteUrl}>
+      <LocalizationProvider>
+        <ErrorPageMeta />
+        <ErrorFallback />
+      </LocalizationProvider>
+    </SiteUrlContext.Provider>
   );
 }
+
+/** The error page's metadata: its own title, not indexed. */
+const ErrorPageMeta = () => <PageMeta title={useLocale().errorPage.title} description={null} noIndex />;
