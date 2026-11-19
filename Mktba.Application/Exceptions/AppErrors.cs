@@ -177,6 +177,19 @@ public static class AppErrors
     public static AppError SourceLocatorTooLong(int maxLength) =>
         new("source_locator_too_long", $"A source locator cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
 
+    // Feedback
+    public static AppError FeedbackTypeInvalid => new("feedback_type_invalid", "Feedback type is required: ArticleError, SiteProblem or Idea.");
+    public static AppError FeedbackTextRequired => new("feedback_text_required", "Feedback text is required.");
+
+    public static AppError FeedbackTextTooLong(int maxLength) =>
+        new("feedback_text_too_long", $"Feedback text cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError FeedbackContactTooLong(int maxLength) =>
+        new("feedback_contact_too_long", $"Feedback contact cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError FeedbackPageUrlInvalid(int maxLength) =>
+        new("feedback_page_url_invalid", $"Page URL must be an absolute http(s) URL or a site-relative path of at most {maxLength} characters.", With(("maxLength", maxLength)));
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }
