@@ -145,13 +145,18 @@ test('the server answers 404 for an unknown article and an unknown page', async 
 
 const API_URL = 'http://localhost:5172';
 
-/** Creates an article through the API as the e2e admin and publishes it; returns its id and slug. */
-const publishArticle = async (request: APIRequestContext, title: string, paragraphs: unknown[]) => {
+/**
+ * Creates an article through the API as the e2e admin and publishes it; returns its id and slug.
+ * Without paragraphs it is a stub with no content, created the way the admin tree creates one.
+ */
+const publishArticle = async (request: APIRequestContext, title: string, paragraphs: unknown[] | null) => {
   const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
   expect(login.ok()).toBe(true);
   const { accessToken } = await login.json() as { accessToken: string };
   const headers = { Authorization: `Bearer ${accessToken}` };
-  const created = await request.post(`${API_URL}/articles/content`, { headers, data: { title, paragraphs } });
+  const created = paragraphs
+    ? await request.post(`${API_URL}/articles/content`, { headers, data: { title, paragraphs } })
+    : await request.post(`${API_URL}/articles`, { headers, data: { title } });
   expect(created.status()).toBe(201);
   const article = await created.json() as { id: number; slug: string };
   for (const status of ['InReview', 'Published']) {
@@ -175,7 +180,7 @@ test('the server answers 410 with a non-indexed page for a deleted article (O-07
 });
 
 test('the server marks a published stub without content noindex and leaves it out of the sitemap (O-07)', async ({ request }) => {
-  const stub = await publishArticle(request, `Заглушка ${Date.now()}`, []);
+  const stub = await publishArticle(request, `Заглушка ${Date.now()}`, null);
 
   const response = await request.get(`/article/${stub.slug}`);
 
