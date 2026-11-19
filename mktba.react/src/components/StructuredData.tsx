@@ -4,10 +4,13 @@ import {
   articleNode,
   breadcrumbListNode,
   organizationNode,
+  personNode,
+  profilePageNode,
   serializeJsonLd,
   structuredDataGraph,
   webSiteNode,
   type ArticleFacts,
+  type AuthorFacts,
   type BreadcrumbStep,
   type SiteFacts,
   type StructuredDataGraph,
@@ -47,6 +50,21 @@ export const ArticleStructuredData = ({ article, breadcrumbs }: ArticleStructure
         webSiteNode(site),
         articleNode(site, article),
         breadcrumbListNode(site.siteUrl, article.path, breadcrumbs),
+      ])}
+    />
+  );
+};
+
+/** An author page's structured data: `Organization`, `WebSite`, the `ProfilePage` and its `Person`. */
+export const AuthorStructuredData = ({ author }: { author: AuthorFacts }) => {
+  const site = useSiteFacts();
+  return (
+    <StructuredData
+      graph={structuredDataGraph([
+        organizationNode(site),
+        webSiteNode(site),
+        profilePageNode(site, author),
+        personNode(site, author),
       ])}
     />
   );

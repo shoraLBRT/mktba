@@ -2,8 +2,9 @@
  * Schema.org structured data (O-05, #56): typed builders for the JSON-LD `@graph` a public page
  * carries, and its safe serialization into a `<script type="application/ld+json">`.
  *
- * Authorship: the public API exposes no author identity yet, so an article's author and publisher
- * are the site's `Organization`; `Person` nodes come with public author profiles (P-01, #89).
+ * Authorship: the article DTO carries no author yet, so an article's author and publisher are the
+ * site's `Organization`. An author page (P-01, #89) describes its `Person` (`personId` is the node
+ * an article's `author` will point at, P-06 #94).
  * `WebSite` names the site search (`SearchAction`, R-10 #46): the results page takes the query in its URL.
  */
 import { SEARCH_PATH, SEARCH_QUERY_PARAM } from './search';
@@ -63,7 +64,31 @@ export type BreadcrumbListNode = NodeRef & {
   itemListElement: ListItem[];
 };
 
-export type StructuredDataNode = OrganizationNode | WebSiteNode | ArticleNode | BreadcrumbListNode;
+export type PersonNode = NodeRef & {
+  '@type': 'Person';
+  name: string;
+  url: string;
+  description?: string;
+  image?: string;
+  sameAs?: string[];
+};
+
+export type ProfilePageNode = NodeRef & {
+  '@type': 'ProfilePage';
+  name: string;
+  url: string;
+  inLanguage: string;
+  isPartOf: NodeRef;
+  mainEntity: NodeRef;
+};
+
+export type StructuredDataNode =
+  | OrganizationNode
+  | WebSiteNode
+  | ArticleNode
+  | BreadcrumbListNode
+  | PersonNode
+  | ProfilePageNode;
 
 export type StructuredDataGraph = {
   '@context': 'https://schema.org';
@@ -137,6 +162,49 @@ export const articleNode = (site: SiteFacts, article: ArticleFacts): ArticleNode
     author: { '@id': organizationId(site.siteUrl) },
     publisher: { '@id': organizationId(site.siteUrl) },
     isPartOf: { '@id': webSiteId(site.siteUrl) },
+  };
+};
+
+export type AuthorFacts = {
+  /** Site path of the author page. */
+  path: string;
+  name: string;
+  /** The author's own text about themselves. */
+  description?: string | null;
+  /** Avatar, absolute or site-relative. */
+  image?: string | null;
+  /** The author's own pages elsewhere (absolute URLs). */
+  links?: string[];
+};
+
+/** `@id` of the `Person` an author page describes; the same on every page that names the author. */
+export const personId = (siteUrl: string, authorPath: string): string => `${siteUrlFor(authorPath, siteUrl)}#person`;
+
+/**
+ * The author as a `Person`: the name and what the author published about themselves. The degree
+ * and the institution are left out: they are self-declared until verification exists (V-01 #117).
+ */
+export const personNode = (site: SiteFacts, author: AuthorFacts): PersonNode => ({
+  '@id': personId(site.siteUrl, author.path),
+  '@type': 'Person',
+  name: author.name,
+  url: siteUrlFor(author.path, site.siteUrl),
+  ...(author.description ? { description: author.description } : {}),
+  ...(author.image ? { image: siteUrlFor(author.image, site.siteUrl) } : {}),
+  ...(author.links && author.links.length > 0 ? { sameAs: author.links } : {}),
+});
+
+/** The author page itself: a `ProfilePage` whose main entity is the `Person`. */
+export const profilePageNode = (site: SiteFacts, author: AuthorFacts): ProfilePageNode => {
+  const url = siteUrlFor(author.path, site.siteUrl);
+  return {
+    '@id': `${url}#profilepage`,
+    '@type': 'ProfilePage',
+    name: author.name,
+    url,
+    inLanguage: SITE_LANGUAGE,
+    isPartOf: { '@id': webSiteId(site.siteUrl) },
+    mainEntity: { '@id': personId(site.siteUrl, author.path) },
   };
 };
 

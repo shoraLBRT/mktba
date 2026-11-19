@@ -16,6 +16,8 @@ export const APP_CONSTANTS = {
     ARTICLE_SCHOOLS: 'articleSchools',
     ADMIN_USERS: 'adminUsers',
     MY_PROFILE: 'myProfile',
+    AUTHOR: 'author',
+    AUTHOR_ARTICLES: 'authorArticles',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
   },
