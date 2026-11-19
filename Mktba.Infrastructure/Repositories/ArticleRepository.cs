@@ -23,6 +23,25 @@ namespace Mktba.Infrastructure.Repositories
                 .Include(article => article.RelatedLinks)
                 .ToListAsync(cancellationToken);
 
+        /// <summary>
+        /// Projects every article to <see cref="ArticleNavigationRow"/> in a single query, ordered by id.
+        /// Content presence is computed in SQL (EXISTS over paragraphs and infobox fields), so no
+        /// child rows are loaded.
+        /// </summary>
+        public Task<List<ArticleNavigationRow>> GetNavigationRowsAsync(CancellationToken cancellationToken = default)
+            => _dbSet
+                .AsNoTracking()
+                .OrderBy(article => article.Id)
+                .Select(article => new ArticleNavigationRow(
+                    article.Id,
+                    article.Title,
+                    article.ParentArticleId,
+                    article.Paragraphs.Any()
+                        || article.InfoboxFields.Any()
+                        || !string.IsNullOrWhiteSpace(article.InfoboxTitle)
+                        || !string.IsNullOrWhiteSpace(article.InfoboxSubtitle)))
+                .ToListAsync(cancellationToken);
+
         public Task<Article?> GetByIdWithContentAsync(int articleId, CancellationToken cancellationToken = default)
             => _dbSet
                 .Include(article => article.Paragraphs)
