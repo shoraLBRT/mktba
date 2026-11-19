@@ -4,6 +4,7 @@
     "shortName": "mk",
     "description": "исламская wiki — мнения четырёх мазхабов в одном месте",
     "welcomeTitle": "Добро пожаловать в mktba",
+    "documentTitle": "mktba — исламская wiki",
     "sidebarCaption": "mktba — исламская wiki",
     "adminLoginDescription": "Управляйте контентом, AI-настройками и служебными функциями платформы в единой админ-панели."
   }

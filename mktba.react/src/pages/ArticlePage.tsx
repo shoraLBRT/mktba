@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
+import { articleContentQueryKey, parseLegacyArticleId } from '../services/Article/articleQueries';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleDates } from '../components/article/ArticleDates';
 import { ArticleMeta } from '../components/article/ArticleMeta';
+import { DefaultDocumentTitle } from '../components/DefaultDocumentTitle';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
 import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
@@ -28,6 +30,7 @@ import { useTrackEvent } from '../analytics/useTrackEvent';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
 import { articleHref } from '../shared/slug';
+import { useHydrated } from '../shared/useHydrated';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -52,9 +55,13 @@ const findArticlePathById = (
   return [];
 };
 
-const getInitialUiMode = (): ParagraphUiMode => {
-  const savedMode = localStorage.getItem(ARTICLE_UI_MODE_STORAGE_KEY);
-  return isParagraphUiMode(savedMode) ? savedMode : DEFAULT_ARTICLE_UI_MODE;
+const readSavedUiMode = (): ParagraphUiMode => {
+  try {
+    const savedMode = localStorage.getItem(ARTICLE_UI_MODE_STORAGE_KEY);
+    return isParagraphUiMode(savedMode) ? savedMode : DEFAULT_ARTICLE_UI_MODE;
+  } catch {
+    return DEFAULT_ARTICLE_UI_MODE;
+  }
 };
 
 const headingPattern = /^(#{1,6})\s+(.+)$/gm;
@@ -101,13 +108,19 @@ const buildOpinionCaptions = (
   };
 };
 
-const ArticlePage: React.FC = () => {
+type ArticlePageProps = {
+  /** Origin the canonical link is built on; the server passes the request's. */
+  origin?: string;
+};
+
+const ArticlePage: React.FC<ArticlePageProps> = ({ origin }) => {
   const locale = useLocale();
   const navigate = useNavigate();
   const { slug: requestedSlug = '' } = useParams<{ slug: string }>();
   // `/article/{id}` links from before slugs still open the article and are replaced by its slug URL.
-  const legacyArticleId = /^\d+$/.test(requestedSlug) ? Number(requestedSlug) : null;
-  const [uiMode] = useState<ParagraphUiMode>(getInitialUiMode);
+  const legacyArticleId = parseLegacyArticleId(requestedSlug);
+  // The saved display mode applies after hydration; the server renders the default.
+  const uiMode = useHydrated() ? readSavedUiMode() : DEFAULT_ARTICLE_UI_MODE;
   const { selectedSchoolId } = useMazhab();
   // Per-paragraph overrides are scoped to the mazhab they were made under, so
   // picking a different mazhab drops them without a state-resetting effect.
@@ -132,9 +145,7 @@ const ArticlePage: React.FC = () => {
   };
 
   const { data: articleContent, isLoading, error } = useQuery({
-    queryKey: legacyArticleId !== null
-      ? [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, legacyArticleId]
-      : [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, 'slug', requestedSlug],
+    queryKey: articleContentQueryKey(requestedSlug),
     queryFn: () => (legacyArticleId !== null
       ? getArticleContentById(legacyArticleId)
       : getArticleContentBySlug(requestedSlug)),
@@ -270,21 +281,33 @@ const ArticlePage: React.FC = () => {
     track('opinion_switch', { paragraphId, index: nextIndex });
   };
 
+  // The page always renders its own <title> (the route's `ownsTitle` handle): the article's, or the site's.
+  const documentHead = articleContent?.meta && articleContent.slug
+    ? <ArticleMeta meta={articleContent.meta} slug={articleContent.slug} origin={origin} />
+    : <DefaultDocumentTitle />;
+
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
+        {documentHead}
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--color-border-soft)] border-t-[var(--color-brand-forest)]" />
       </div>
     );
   }
 
-  if (error instanceof ApiError && error.status === 404) {
-    return <NotFoundPage />;
+  if ((error instanceof ApiError && error.status === 404) || (!error && !articleContent)) {
+    return (
+      <>
+        {documentHead}
+        <NotFoundPage />
+      </>
+    );
   }
 
-  if (error) {
+  if (error || !articleContent) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
+        {documentHead}
         <div className="w-full max-w-xl rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-red-700 shadow-sm">
           <p className="m-0 text-base font-semibold">{locale.articlePage.loadError}</p>
           <p className="mb-0 mt-2 text-sm text-red-600">{extractApiErrorMessage(error)}</p>
@@ -293,13 +316,9 @@ const ArticlePage: React.FC = () => {
     );
   }
 
-  if (!articleContent) {
-    return <NotFoundPage />;
-  }
-
   return (
     <div className="xl:flex xl:gap-0">
-      {articleContent.meta && articleContent.slug ? <ArticleMeta meta={articleContent.meta} slug={articleContent.slug} /> : null}
+      {documentHead}
       <main className="min-w-0 flex-1 overflow-hidden border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-r-none xl:border-r xl:border-[var(--color-border-soft)]">
         <div className="mx-auto max-w-[760px] px-4 py-6 pb-24 sm:px-6 lg:px-8 xl:px-10">
           {breadcrumbItems.length > 0 ? (

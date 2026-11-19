@@ -56,7 +56,9 @@ const writeHint = (signedIn: boolean): void => {
   }
 };
 
-let state: SessionState = { accessToken: null, email: null, restoring: false };
+const ANONYMOUS: SessionState = { accessToken: null, email: null, restoring: false };
+
+let state: SessionState = ANONYMOUS;
 const listeners = new Set<() => void>();
 
 const setState = (next: SessionState): void => {
@@ -75,8 +77,12 @@ export const subscribeSession = (listener: () => void): (() => void) => {
   };
 };
 
-/** The current session; re-renders when it changes. */
-export const useSession = (): SessionState => useSyncExternalStore(subscribeSession, getSessionState);
+/**
+ * The current session; re-renders when it changes. The server renders every page anonymously, and
+ * so does the hydrating browser, which then switches to its own session.
+ */
+export const useSession = (): SessionState =>
+  useSyncExternalStore(subscribeSession, getSessionState, () => ANONYMOUS);
 
 /** Keeps the tokens of a login, register or refresh answer. */
 export const setSignedIn = (auth: Pick<AdminAuthResponseDto, 'accessToken' | 'email'>): void => {

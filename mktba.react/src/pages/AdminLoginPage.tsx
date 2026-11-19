@@ -1,7 +1,7 @@
 import React, { useId, useState } from 'react';
 import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { adminLogin, adminRegister, getAuthStatus } from '../services/authService';

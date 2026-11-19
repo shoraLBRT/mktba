@@ -1,17 +1,20 @@
-import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { createRoutesStub, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MazhabProvider } from '../context/MazhabProvider';
-import { LocalizationProvider } from '../localization/provider';
+import App from '../root';
+import AdminRoute from '../routes/admin';
+import AdminLoginRoute from '../routes/admin-login';
+import ArticleRoute, * as articleRoute from '../routes/article';
+import HomeRoute from '../routes/home';
+import LegacyAddArticleRoute, * as legacyAddArticleRoute from '../routes/legacy-add-article';
+import NotFoundRoute, * as notFoundRoute from '../routes/not-found';
+import PublicLayoutRoute, * as publicLayoutRoute from '../routes/public-layout';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { getCurrentUser } from '../services/authService';
 import { getNavigationTree } from '../services/Article/navigationService';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { clearSession, sessionHttp, setSignedIn, startSession } from '../services/session';
 import { ApiError } from '../shared/api-client/apiError';
-import { AppRoutes } from './AppRoutes';
-import { createQueryClient } from './queryClient';
 import type { ArticleContentDto, UserRole } from '../shared/types/ApiTypes';
 
 const article = (slug: string): ArticleContentDto => ({ id: 7, title: 'Намаз', slug, paragraphs: [], tags: [] });
@@ -38,19 +41,36 @@ const signInAs = (role: UserRole) => {
 
 const CurrentPath = () => <p data-testid="path">{useLocation().pathname}</p>;
 
-const renderAt = (path: string) =>
-  render(
-    <LocalizationProvider>
-      <QueryClientProvider client={createQueryClient()}>
-        <MazhabProvider>
-          <MemoryRouter initialEntries={[path]}>
-            <AppRoutes />
-            <CurrentPath />
-          </MemoryRouter>
-        </MazhabProvider>
-      </QueryClientProvider>
-    </LocalizationProvider>,
-  );
+/**
+ * The route tree of src/routes.ts with the browser's loaders, as after the first page: the server
+ * loaders are covered by the e2e SSR test.
+ */
+const RoutesStub = createRoutesStub([
+  {
+    Component: () => (
+      <>
+        <App />
+        <CurrentPath />
+      </>
+    ),
+    children: [
+      {
+        Component: PublicLayoutRoute,
+        loader: publicLayoutRoute.clientLoader,
+        children: [
+          { index: true, Component: HomeRoute },
+          { path: 'article/new', Component: LegacyAddArticleRoute, loader: legacyAddArticleRoute.clientLoader },
+          { path: 'article/:slug', Component: ArticleRoute, loader: articleRoute.clientLoader, handle: articleRoute.handle },
+          { path: 'admin/login', Component: AdminLoginRoute },
+          { path: '*', Component: NotFoundRoute, loader: notFoundRoute.clientLoader },
+        ],
+      },
+      { path: 'admin/*', Component: AdminRoute },
+    ],
+  },
+]);
+
+const renderAt = (path: string) => render(<RoutesStub initialEntries={[path]} />);
 
 beforeEach(() => {
   clearSession();
@@ -64,17 +84,17 @@ afterEach(() => {
 });
 
 describe('AppRoutes', () => {
-  it('given an unknown route, when rendered, then shows the 404 page with a link home', () => {
+  it('given an unknown route, when rendered, then shows the 404 page with a link home', async () => {
     renderAt('/no/such/page');
 
-    expect(screen.getByRole('heading', { name: 'Страница не найдена' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Страница не найдена' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'На главную' }).getAttribute('href')).toBe('/');
   });
 
-  it('given the public header, when rendered, then shows no service tabs for the unbuilt Blog and Q&A', () => {
+  it('given the public header, when rendered, then shows no service tabs for the unbuilt Blog and Q&A', async () => {
     renderAt('/no/such/page');
 
-    const header = screen.getByRole('banner');
+    const header = await screen.findByRole('banner');
     expect(header.textContent).not.toMatch(/Blog|Q&A|скоро/);
     expect(screen.queryByRole('button', { name: /Blog|Q&A/ })).toBeNull();
   });
@@ -88,22 +108,22 @@ describe('AppRoutes', () => {
     expect(screen.getByTestId('path').textContent).toBe('/admin/articles/new');
   });
 
-  it('given a guest on the create page, when rendered, then sends them to the login page', () => {
+  it('given a guest on the create page, when rendered, then sends them to the login page', async () => {
     renderAt('/admin/articles/new');
 
-    expect(screen.getByText('admin-login-page')).toBeTruthy();
+    expect(await screen.findByText('admin-login-page')).toBeTruthy();
     expect(screen.queryByText('add-article-page')).toBeNull();
   });
 
-  it('given a session still being restored after a reload, when an admin page renders, then it waits instead of sending them to the login page', () => {
+  it('given a session still being restored after a reload, when an admin page renders, then it waits instead of sending them to the login page', async () => {
     localStorage.setItem('mktba.signedIn', '1');
     const refresh = vi.spyOn(sessionHttp, 'post').mockReturnValue(new Promise(() => {}));
     void startSession();
 
     renderAt('/admin/articles/new');
 
+    expect((await screen.findByTestId('path')).textContent).toBe('/admin/articles/new');
     expect(screen.queryByText('admin-login-page')).toBeNull();
-    expect(screen.getByTestId('path').textContent).toBe('/admin/articles/new');
     refresh.mockRestore();
   });
 
@@ -223,10 +243,10 @@ describe('AdminLayout', () => {
     expect(screen.getByTestId('path').textContent).toBe(path);
   });
 
-  it('given a public page, when rendered, then it keeps the article tree search and has no admin menu', () => {
+  it('given a public page, when rendered, then it keeps the article tree search and has no admin menu', async () => {
     renderAt('/');
 
-    expect(screen.getAllByPlaceholderText('Поиск').length).toBeGreaterThan(0);
+    expect((await screen.findAllByPlaceholderText('Поиск')).length).toBeGreaterThan(0);
     expect(screen.queryByRole('navigation', { name: 'Разделы админки' })).toBeNull();
   });
 });

@@ -22,11 +22,11 @@ Machine-specific settings go in the gitignored `Mktba.Api/appsettings.local.json
 ### Frontend (run from `mktba.react/`)
 ```bash
 npm install
-npm run dev       # dev server on :5173
-npm run build     # tsc -b && vite build
+npm run dev       # react-router dev (Vite + SSR) on :5173
+npm run build     # tsc -b && react-router build → build/client, build/server
 npm run lint      # eslint
 npm test          # vitest run (unit + Testing Library, jsdom)
-npm run preview   # preview production build
+npm start         # react-router-serve the production build (PORT, API_INTERNAL_URL)
 npm test          # Vitest, once (as in CI)
 npm run test:e2e  # Playwright against a throwaway DB, see README
 npm run gen:api   # regenerate the OpenAPI contract after endpoint/DTO changes
@@ -41,7 +41,7 @@ Mktba.Domain          → pure entities, no external dependencies
 Mktba.Application     → services, DTOs, AutoMapper profiles
 Mktba.Infrastructure  → EF Core (PostgreSQL), repositories, Unit of Work, seeders
 Mktba.Api      → ASP.NET Core 8 Minimal API, JWT auth, CORS, Swagger
-mktba.react           → React 19 + TypeScript, React Router v7, React Query v5, Tailwind CSS v4, Vite
+mktba.react           → React 19 + TypeScript, React Router v7 framework mode (SSR), React Query v5, Tailwind CSS v4, Vite
 ```
 
 **Key domain concepts:**
@@ -71,6 +71,13 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 - `/paragraph` — paragraph CRUD (`GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}`)
 - `/schools` — `GET /system`, `GET /article/{articleId}`, `POST /`, `DELETE /{id}`
 - `/admin` — `POST /cleanup`, `GET|PUT|DELETE /ai-settings`, `POST /ai-style`, `POST /ai-check`
+
+**Frontend rendering (O-01, decision D1):**
+- React Router v7 framework mode, `appDirectory: 'src'`: `src/root.tsx` (document, providers), `src/routes.ts` (route config), `src/routes/*` (route modules), `src/entry.client.tsx` (browser startup: session restore, Metrika).
+- Public routes have a server `loader` that fetches the API anonymously (`src/server/api.server.ts`, base `API_INTERNAL_URL`) into a server QueryClient and returns `dehydrate()`d state; the route component wraps the page in `HydrationBoundary`. A `clientLoader` skips the server on later client-side navigations (pages fetch through React Query as before). Loaders set status codes (`data(..., { status: 404 })`, `redirect(..., 301)`).
+- `/admin/*` is client-only (`clientLoader.hydrate` + `HydrateFallback`); auth never runs on the server.
+- No `localStorage`/`window` during render: read stored values after hydration via `useHydrated()`; `useSession` renders anonymously on the server and while hydrating.
+- `<title>`/meta are React 19 elements hoisted into `<head>`; a route with `handle.ownsTitle` renders its own title, otherwise the root renders the default one.
 
 **Frontend ↔ Backend:**
 - Base URL configured in `mktba.react/src/config.ts` (`http://localhost:5172`)

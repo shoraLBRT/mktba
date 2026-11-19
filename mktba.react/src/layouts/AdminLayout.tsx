@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Home, LogOut, Menu, Plus, X } from 'lucide-react';
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { APP_CONSTANTS } from '../constants/AppConstants';

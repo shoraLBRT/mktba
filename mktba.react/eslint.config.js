@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'build', '.react-router']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -22,6 +22,15 @@ export default defineConfig([
     },
   },
   {
+    // Route modules export what React Router reads besides the component.
+    files: ['src/root.tsx', 'src/routes/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': ['error', {
+        allowExportNames: ['loader', 'clientLoader', 'handle', 'meta', 'links', 'headers', 'Layout', 'ErrorBoundary', 'HydrateFallback'],
+      }],
+    },
+  },
+  {
     // UI text comes from src/localization dictionaries; hard-coded JSX text and attribute strings are errors.
     files: ['src/**/*.tsx'],
     ignores: ['src/**/*.test.tsx'],
@@ -32,7 +41,7 @@ export default defineConfig([
         'jsx-attributes': {
           exclude: [
             'className', 'style', 'type', 'key', 'id', 'width', 'height', 'to', 'href', 'target', 'rel',
-            'role', 'name', 'htmlFor', 'autoComplete', 'inputMode', 'method', 'accept', 'src', 'viewBox',
+            'role', 'name', 'lang', 'charSet', 'content', 'htmlFor', 'autoComplete', 'inputMode', 'method', 'accept', 'src', 'viewBox',
             'fill', 'stroke', 'd', 'variant', 'size', 'path', 'policy', 'aria-modal', 'data-.*', 'aria-(controls|describedby|labelledby|live|current|haspopup|hidden|expanded)',
           ],
         },

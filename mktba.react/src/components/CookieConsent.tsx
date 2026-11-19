@@ -1,23 +1,26 @@
 import { useState } from 'react';
 import { getConsent, initMetrika, setConsent } from '../analytics/metrika';
 import { useLocale } from '../localization/hooks';
+import { useHydrated } from '../shared/useHydrated';
 
+/** Asks for analytics consent once; shown only in the browser, after hydration, since the answer is in `localStorage`. */
 export const CookieConsent = () => {
   const locale = useLocale();
   const t = locale.cookieConsent;
-  const [visible, setVisible] = useState(() => getConsent() === null);
+  const hydrated = useHydrated();
+  const [answered, setAnswered] = useState(false);
 
-  if (!visible) return null;
+  if (!hydrated || answered || getConsent() !== null) return null;
 
   const handleAccept = () => {
     setConsent(true);
     initMetrika();
-    setVisible(false);
+    setAnswered(true);
   };
 
   const handleDecline = () => {
     setConsent(false);
-    setVisible(false);
+    setAnswered(true);
   };
 
   return (
