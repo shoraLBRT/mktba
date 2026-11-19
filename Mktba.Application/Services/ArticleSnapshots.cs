@@ -7,7 +7,10 @@ namespace Mktba.Application.Services
     /// <summary>Builds, writes and reads the JSON snapshots stored in <see cref="ArticleRevision.Snapshot"/>.</summary>
     internal static class ArticleSnapshots
     {
-        private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+        private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+        {
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+        };
 
         /// <summary>The article's working copy as a snapshot of the current schema version.</summary>
         public static ArticleSnapshotDto From(Article article)
@@ -36,7 +39,13 @@ namespace Mktba.Application.Services
                             .Select(o => new ArticleSnapshotOpinionDto(
                                 o.Content,
                                 o.IsDefault,
-                                o.OpinionSchools.Select(os => os.SchoolId).Order().ToList()))
+                                o.OpinionSchools.Select(os => os.SchoolId).Order().ToList(),
+                                o.Sources
+                                    .OrderBy(c => c.Order)
+                                    .ThenBy(c => c.Id)
+                                    .Select(c => new ArticleSnapshotSourceDto(
+                                        c.SourceId, c.Locator, c.Source.Kind, c.Source.Title, c.Source.Author, c.Source.Details, c.Source.Url))
+                                    .ToList()))
                             .ToList()))
                     .ToList(),
                 article.RelatedLinks
@@ -65,7 +74,13 @@ namespace Mktba.Application.Services
                     {
                         Order = p.Order,
                         Opinions = p.Opinions
-                            .Select(o => new OpinionDto { Content = o.Content, IsDefault = o.IsDefault, SchoolIds = o.SchoolIds.ToList() })
+                            .Select(o => new OpinionDto
+                            {
+                                Content = o.Content,
+                                IsDefault = o.IsDefault,
+                                SchoolIds = o.SchoolIds.ToList(),
+                                Sources = (o.Sources ?? []).Select(s => new OpinionSourceDto(s.SourceId, s.Locator)).ToList(),
+                            })
                             .ToList(),
                     })
                     .ToList(),

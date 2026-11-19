@@ -6,7 +6,8 @@ import { cn } from '../../shared/lib/cn';
 import { Textarea } from '../../shared/ui/Textarea';
 import type { SchoolDto } from '../../shared/types/ApiTypes';
 import { canAssignSchools } from './draftHelpers';
-import type { AlternativeDraft, EditorBlock } from './types';
+import { OpinionSourcesEditor } from './OpinionSourcesEditor';
+import type { AlternativeDraft, CitationDraft, EditorBlock } from './types';
 
 type EditorTarget = {
   blockId: string;
@@ -27,6 +28,8 @@ type DocumentBlockEditorProps = {
   onChangeVersion: (blockId: string, localId: string, content: string) => void;
   onSetDefault: (blockId: string, localId: string) => void;
   onSetSchools: (blockId: string, localId: string, schoolIds: number[]) => void;
+  /** Replaces the citations of a version, or of a plain paragraph when `localId` is null. */
+  onSetSources: (blockId: string, localId: string | null, sources: CitationDraft[]) => void;
   onAddVersion: (blockId: string) => void;
   onRemoveVersion: (blockId: string, localId: string) => void;
   onDeleteBlock: (blockId: string) => void;
@@ -124,6 +127,7 @@ export const DocumentBlockEditor = ({
   onChangeVersion,
   onSetDefault,
   onSetSchools,
+  onSetSources,
   onAddVersion,
   onRemoveVersion,
   onDeleteBlock,
@@ -269,6 +273,13 @@ export const DocumentBlockEditor = ({
                 ) : (
                   <p className="mt-2 text-[10px] text-[var(--color-ink-subtle)]">{t.schoolsNeedSecondVersion}</p>
                 )}
+
+                <OpinionSourcesEditor
+                  key={selectedVariant.localId}
+                  citations={selectedVariant.sources ?? []}
+                  disabled={disabled}
+                  onChange={(sources) => onSetSources(block.id, selectedVariant.localId, sources)}
+                />
               </>
             );
           })()}
@@ -316,6 +327,7 @@ export const DocumentBlockEditor = ({
           </div>
         </div>
       ) : (
+        <>
         <AutoResizingTextarea
           textareaRef={(node) => editorRef(targetKey(block.id, null), node)}
           value={block.content}
@@ -336,6 +348,14 @@ export const DocumentBlockEditor = ({
                   : t.paragraphPlaceholder
             }
           />
+          {block.kind === 'paragraph' ? (
+            <OpinionSourcesEditor
+              citations={block.sources ?? []}
+              disabled={disabled}
+              onChange={(sources) => onSetSources(block.id, null, sources)}
+            />
+          ) : null}
+        </>
       )}
 
     </section>

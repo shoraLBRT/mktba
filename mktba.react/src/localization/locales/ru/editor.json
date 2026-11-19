@@ -153,6 +153,32 @@
       "linkSnippet": "ссылка",
       "lineCount": "Строк Markdown"
     },
+    "sources": {
+      "title": "Источники",
+      "add": "Источник",
+      "locatorLabel": "Место в источнике «{title}»",
+      "locatorPlaceholder": "с. 12 · № 52 · 2:255",
+      "remove": "Убрать источник «{title}»",
+      "searchLabel": "Поиск в справочнике источников",
+      "searchPlaceholder": "Название или автор…",
+      "noResults": "В справочнике ничего не найдено.",
+      "resultsLabel": "Найденные источники",
+      "createToggle": "Новый источник",
+      "kindLabel": "Вид источника",
+      "titleLabel": "Название",
+      "authorLabel": "Автор",
+      "detailsLabel": "Выходные данные",
+      "detailsPlaceholder": "Издательство, город, год",
+      "urlLabel": "Ссылка",
+      "urlPlaceholder": "https://…",
+      "createSubmit": "Добавить в справочник",
+      "kinds": {
+        "Book": "Книга",
+        "HadithCollection": "Сборник хадисов",
+        "Quran": "Коран",
+        "Other": "Другое"
+      }
+    },
     "customSchools": {
       "title": "Кастомные школы",
       "addButton": "Добавить школу",
@@ -226,7 +252,8 @@
       "relatedLinks": "Связанные статьи",
       "paragraph": "Абзац {order}",
       "opinionDefault": "Мнение ({schools}) — по умолчанию",
-      "opinion": "Мнение ({schools})"
+      "opinion": "Мнение ({schools})",
+      "source": "Источник: {citation}"
     }
   },
   "versionedParagraph": {

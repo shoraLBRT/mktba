@@ -241,3 +241,55 @@ test('an admin reorders sections and moves one under another parent', async ({ p
   // A top-level row has no depth indent.
   await expect(row(first)).toHaveAttribute('style', /padding-left: 6px/);
 });
+
+test('an admin cites a new source in the editor, and readers see it under the published article', async ({ page, browser, request }) => {
+  const stamp = Date.now();
+  const title = `E2E источники ${stamp}`;
+  const slug = `e2e-istochniki-${stamp}`;
+  const sourceTitle = `Сахих ${stamp}`;
+  await logIn(page);
+
+  await page.getByRole('button', { name: 'Добавить статью' }).click();
+  await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
+  await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Абзац со ссылкой на хадис.');
+  await page.getByRole('button', { name: 'Источник', exact: true }).click();
+  await page.getByRole('button', { name: 'Новый источник' }).click();
+  const form = page.getByTestId('source-create-form');
+  await form.getByLabel('Вид источника').selectOption('HadithCollection');
+  await form.getByLabel('Название').fill(sourceTitle);
+  await form.getByLabel('Автор').fill('аль-Бухари');
+  await form.getByRole('button', { name: 'Добавить в справочник' }).click();
+  await page.getByLabel(`Место в источнике «${sourceTitle}»`).fill('№ 1');
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/article/${slug}$`));
+
+  // The editor opens the saved article with the citation and its locator, and publishes it.
+  await (await openAdminArticleTree(page)).getByRole('link', { name: title, exact: true }).click();
+  await expect(page.getByLabel(`Место в источнике «${sourceTitle}»`)).toHaveValue('№ 1');
+  const statusPanel = page.getByTestId('article-status-panel');
+  await statusPanel.getByRole('button', { name: 'Отправить на проверку' }).click();
+  await expect(statusPanel.getByText('На проверке')).toBeVisible();
+  await statusPanel.getByRole('button', { name: 'Опубликовать' }).click();
+  await expect(statusPanel.getByText('Опубликована')).toBeVisible();
+
+  // The directory now offers the source to the next opinion that needs it.
+  await page.getByRole('button', { name: 'Источник', exact: true }).click();
+  await page.getByLabel('Поиск в справочнике источников').fill(String(stamp));
+  await expect(page.getByRole('list', { name: 'Найденные источники' }).getByRole('button')).toContainText(`аль-Бухари. ${sourceTitle}`);
+
+  // The server HTML already holds the block: it does not wait for the browser.
+  const html = await (await request.get(`/article/${slug}`)).text();
+  expect(html).toContain('id="article-sources-title"');
+  expect(html).toContain(sourceTitle);
+
+  const reader = await browser.newPage();
+  await declineAnalytics(reader);
+  await reader.goto(`/article/${slug}`);
+  const sources = reader.getByTestId('article-sources');
+  await expect(sources.getByRole('heading', { name: 'Источники', level: 2 })).toBeVisible();
+  await expect(sources.getByRole('listitem')).toHaveText(`аль-Бухари. ${sourceTitle} — № 1`);
+  await sources.getByRole('link', { name: '№ 1' }).click();
+  await expect(reader).toHaveURL(/#p-\d+$/);
+  await expect(reader.getByText('Абзац со ссылкой на хадис.')).toBeInViewport();
+  await reader.close();
+});

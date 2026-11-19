@@ -147,6 +147,7 @@ app.MapNavigationEndpoints();
 app.MapArticleEndpoints();
 app.MapParagraphEndpoints();
 app.MapSchoolEndpoints();
+app.MapSourceEndpoints();
 app.MapAdminEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();

@@ -157,6 +157,26 @@ public static class AppErrors
     public static AppError SchoolSlugTaken(string slug) =>
         new("school_slug_taken", $"School with slug '{slug}' already exists.", With(("slug", slug)));
 
+    // Sources
+    public static AppError SourceTitleRequired => new("source_title_required", "Source title is required.");
+    public static AppError SourceKindInvalid => new("source_kind_invalid", "Unknown source kind.");
+    public static AppError SourceUrlInvalid => new("source_url_invalid", "Source URL must be an absolute http or https URL.");
+
+    public static AppError SourceNotFound(int id) =>
+        new("source_not_found", $"Source {id} not found.", With(("id", id)));
+
+    public static AppError SourceFieldTooLong(string field, int maxLength) =>
+        new("source_field_too_long", $"Source {field} cannot be longer than {maxLength} characters.", With(("field", field), ("maxLength", maxLength)));
+
+    public static AppError SourceDuplicate(int id) =>
+        new("source_duplicate", $"The same source already exists (id {id}).", With(("id", id)));
+
+    public static AppError SourceInUse(int count) =>
+        new("source_in_use", $"The source is cited {count} time(s) and cannot be deleted.", With(("count", count)));
+
+    public static AppError SourceLocatorTooLong(int maxLength) =>
+        new("source_locator_too_long", $"A source locator cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }

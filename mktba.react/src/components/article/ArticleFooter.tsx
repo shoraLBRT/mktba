@@ -1,6 +1,10 @@
+import { Fragment } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
+import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
+import { paragraphAnchorId } from '../../shared/articleOutline';
+import type { CitedSource } from '../../shared/articleSources';
 import { articleHref } from '../../shared/slug';
 
 /** An article the bottom of the page leads to. */
@@ -17,6 +21,8 @@ export type FooterChildArticle = FooterArticle & {
 };
 
 type ArticleFooterProps = {
+  /** The sources the article cites (`collectCitedSources`), in the order of first citation. */
+  sources: CitedSource[];
   /** The open article's direct children in the navigation tree, in tree order. */
   childArticles: FooterChildArticle[];
   /** The articles the editor linked as related, in the editor's order. */
@@ -36,18 +42,20 @@ const adjacentCaptionClass = 'flex items-center gap-1 text-[12px] text-[var(--co
 const adjacentTitleClass = 'text-[14px] font-medium text-[var(--color-brand-forest)] [overflow-wrap:anywhere]';
 
 /**
- * The bottom of the article: its child articles, the related articles and the previous / next
- * article by the tree. A block with nothing to show is left out, and so is the whole footer.
+ * The bottom of the article: the sources it cites, its child articles, the related articles and the
+ * previous / next article by the tree. A block with nothing to show is left out, and so is the
+ * whole footer. Each source lists the places it is cited from as links back to those paragraphs.
  * The related block repeats the right sidebar's one, which only wide screens have, so it is
  * hidden from `xl` up.
  */
-export const ArticleFooter = ({ childArticles, relatedArticles, previous, next }: ArticleFooterProps) => {
+export const ArticleFooter = ({ sources, childArticles, relatedArticles, previous, next }: ArticleFooterProps) => {
   const t = useLocale().articlePage;
+  const hasSources = sources.length > 0;
   const hasChildren = childArticles.length > 0;
   const hasRelated = relatedArticles.length > 0;
   const hasAdjacent = previous !== null || next !== null;
 
-  if (!hasChildren && !hasRelated && !hasAdjacent) {
+  if (!hasSources && !hasChildren && !hasRelated && !hasAdjacent) {
     return null;
   }
 
@@ -56,6 +64,36 @@ export const ArticleFooter = ({ childArticles, relatedArticles, previous, next }
       className="mt-10 space-y-8 border-t border-[var(--color-border-soft)] pt-8"
       data-testid="article-footer"
     >
+      {hasSources && (
+        <section aria-labelledby="article-sources-title" data-testid="article-sources">
+          <h2 id="article-sources-title" className={headingClass}>{t.sources}</h2>
+          <ol className="m-0 list-decimal space-y-1.5 pl-5 text-[14px] leading-6 text-[var(--color-ink-default)]">
+            {sources.map(({ source, citations }) => (
+              <li key={source.id} className="[overflow-wrap:anywhere]">
+                {source.author ? formatMessage(t.sourceAuthor, { author: source.author }) : null}
+                {source.url
+                  ? <a href={source.url} target="_blank" rel="noopener noreferrer" className={linkClass}><cite className="not-italic">{source.title}</cite></a>
+                  : <cite className="not-italic font-medium text-[var(--color-ink-strong)]">{source.title}</cite>}
+                {source.details ? <span className="text-[var(--color-ink-muted)]">{formatMessage(t.sourceDetails, { details: source.details })}</span> : null}
+                <span className="text-[var(--color-ink-muted)]">{t.sourceCitationsSeparator}</span>
+                {citations.map((citation, index) => (
+                  <Fragment key={`${citation.paragraphId}:${citation.locator ?? ''}`}>
+                    {index > 0 ? t.sourceCitationsDivider : null}
+                    <a
+                      href={`#${paragraphAnchorId(citation.paragraphId)}`}
+                      title={t.sourceCitationLink}
+                      className={linkClass}
+                    >
+                      {citation.locator ?? t.sourceCitedInText}
+                    </a>
+                  </Fragment>
+                ))}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
       {hasChildren && (
         <nav aria-labelledby="article-children-title" data-testid="article-children">
           <h2 id="article-children-title" className={headingClass}>{t.childArticles}</h2>

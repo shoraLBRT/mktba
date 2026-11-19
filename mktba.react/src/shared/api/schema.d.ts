@@ -2370,6 +2370,189 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The directory of sources, for the picker in the article editor.
+         * @description Entries whose title or author contains q (case-insensitive; no q lists the directory from the start), optionally of one kind, ordered by title. limit is 20 by default, kept within 1 to 50. Readers do not need it: the content of an article carries the sources it cites.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    kind?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SourceDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Adds an entry to the directory of sources.
+         * @description An entry of the same kind with the same title and author (ignoring case) fails with source_duplicate, whose params.id names the existing one.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SourceWriteDto"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SourceDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sources/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replaces a directory entry (admins only: it changes every article that cites it).
+         * @description Saved revisions keep the source as it was when they were written.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SourceWriteDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SourceDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Deletes a directory entry that no opinion cites (admins only).
+         * @description A cited entry fails with source_in_use (params.count citations): remove the citations first.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -2579,6 +2762,7 @@ export interface components {
             translationGroupId?: string | null;
             seo?: components["schemas"]["ArticleSeoDto"];
             meta?: components["schemas"]["ArticleMetaDto"];
+            sources?: components["schemas"]["SourceDto"][] | null;
         };
         ArticleCreateDto: {
             title: string;
@@ -2750,6 +2934,7 @@ export interface components {
             content: string;
             isDefault: boolean;
             schoolIds: number[];
+            sources?: components["schemas"]["ArticleSnapshotSourceDto"][] | null;
         };
         ArticleSnapshotParagraphDto: {
             /** Format: int32 */
@@ -2763,6 +2948,16 @@ export interface components {
             relatedArticleSlug: string;
             /** Format: int32 */
             order: number;
+        };
+        ArticleSnapshotSourceDto: {
+            /** Format: int32 */
+            sourceId: number;
+            locator?: string | null;
+            kind: components["schemas"]["SourceKind"];
+            title: string;
+            author?: string | null;
+            details?: string | null;
+            url?: string | null;
         };
         /** @enum {string} */
         ArticleStatus: "Draft" | "InReview" | "Published" | "Archived";
@@ -2829,6 +3024,7 @@ export interface components {
             content: string;
             isDefault: boolean;
             schoolIds: number[];
+            sources?: components["schemas"]["OpinionSourceDto"][] | null;
         };
         OpinionDto: {
             /** Format: int32 */
@@ -2836,6 +3032,12 @@ export interface components {
             content: string;
             isDefault: boolean;
             schoolIds: number[];
+            sources: components["schemas"]["OpinionSourceDto"][];
+        };
+        OpinionSourceDto: {
+            /** Format: int32 */
+            sourceId: number;
+            locator?: string | null;
         };
         OpinionUpdateDto: {
             /** Format: int32 */
@@ -2843,6 +3045,7 @@ export interface components {
             content: string;
             isDefault: boolean;
             schoolIds: number[];
+            sources?: components["schemas"]["OpinionSourceDto"][] | null;
         };
         ParagraphCreateDto: {
             /** Format: int32 */
@@ -2948,6 +3151,24 @@ export interface components {
             translationGroupId: string;
             /** Format: date-time */
             lastModified: string;
+        };
+        SourceDto: {
+            /** Format: int32 */
+            id: number;
+            kind: components["schemas"]["SourceKind"];
+            title: string;
+            author?: string | null;
+            details?: string | null;
+            url?: string | null;
+        };
+        /** @enum {string} */
+        SourceKind: "Book" | "HadithCollection" | "Quran" | "Other";
+        SourceWriteDto: {
+            kind: components["schemas"]["SourceKind"];
+            title: string;
+            author?: string | null;
+            details?: string | null;
+            url?: string | null;
         };
         UpdateAiProviderSettingsDto: {
             baseUrl: string;

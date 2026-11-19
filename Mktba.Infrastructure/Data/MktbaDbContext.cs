@@ -21,6 +21,8 @@ namespace Mktba.Infrastructure.Data
         public DbSet<School> Schools { get; set; } = null!;
         public DbSet<SchoolTranslation> SchoolTranslations { get; set; } = null!;
         public DbSet<OpinionSchool> OpinionSchools { get; set; } = null!;
+        public DbSet<Source> Sources { get; set; } = null!;
+        public DbSet<OpinionSource> OpinionSources { get; set; } = null!;
         public DbSet<AiProviderSettings> AiProviderSettings { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Invite> Invites { get; set; } = null!;
@@ -46,6 +48,21 @@ namespace Mktba.Infrastructure.Data
 
         /// <summary>Longest social image URL of an article.</summary>
         public const int SocialImageUrlMaxLength = 2048;
+
+        /// <summary>Longest title of a source.</summary>
+        public const int SourceTitleMaxLength = 300;
+
+        /// <summary>Longest author of a source.</summary>
+        public const int SourceAuthorMaxLength = 200;
+
+        /// <summary>Longest publication details of a source.</summary>
+        public const int SourceDetailsMaxLength = 500;
+
+        /// <summary>Longest URL of a source.</summary>
+        public const int SourceUrlMaxLength = 2048;
+
+        /// <summary>Longest locator of a citation (page, hadith number, sura:ayah).</summary>
+        public const int SourceLocatorMaxLength = 200;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -326,6 +343,30 @@ namespace Mktba.Infrastructure.Data
                 .WithMany(s => s.OpinionSchools)
                 .HasForeignKey(os => os.SchoolId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Directory of sources and citations (M-07, #71). A cited source cannot be deleted
+            // (Restrict); a citation goes with its opinion (Cascade).
+            modelBuilder.Entity<Source>(source =>
+            {
+                source.Property(s => s.Kind).HasConversion<string>().HasMaxLength(32).IsRequired();
+                source.Property(s => s.Title).HasMaxLength(SourceTitleMaxLength).IsRequired();
+                source.Property(s => s.Author).HasMaxLength(SourceAuthorMaxLength);
+                source.Property(s => s.Details).HasMaxLength(SourceDetailsMaxLength);
+                source.Property(s => s.Url).HasMaxLength(SourceUrlMaxLength);
+            });
+
+            modelBuilder.Entity<OpinionSource>(citation =>
+            {
+                citation.Property(c => c.Locator).HasMaxLength(SourceLocatorMaxLength);
+                citation.HasOne(c => c.Opinion)
+                    .WithMany(o => o.Sources)
+                    .HasForeignKey(c => c.OpinionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                citation.HasOne(c => c.Source)
+                    .WithMany(s => s.Citations)
+                    .HasForeignKey(c => c.SourceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             // AiProviderSettings
             modelBuilder.Entity<AiProviderSettings>()

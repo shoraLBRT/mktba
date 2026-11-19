@@ -71,6 +71,7 @@ const ArticleHistoryPage = () => {
     relatedLinks: t.sections.relatedLinks,
     paragraph: (order) => formatMessage(t.sections.paragraph, { order }),
     opinion: (schools, isDefault) => formatMessage(isDefault ? t.sections.opinionDefault : t.sections.opinion, { schools }),
+    source: (citation) => formatMessage(t.sections.source, { citation }),
   }), [t]);
 
   const sections = useMemo(

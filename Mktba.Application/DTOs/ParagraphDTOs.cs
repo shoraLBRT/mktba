@@ -31,21 +31,30 @@ namespace Mktba.Application.DTOs
         /// with <c>paragraph_plain_schools_not_allowed</c>.
         /// </summary>
         public List<int> SchoolIds { get; set; } = new();
+        /// <summary>
+        /// The sources this opinion cites, in order (M-07). On a write it replaces the citations of
+        /// the opinion; an unknown source id fails with <c>source_not_found</c>.
+        /// </summary>
+        public List<OpinionSourceDto> Sources { get; set; } = new();
     }
 
     /// <param name="SchoolIds">Schools the opinion is linked to; must be empty when the paragraph has a single opinion (<c>paragraph_plain_schools_not_allowed</c>).</param>
+    /// <param name="Sources">The sources the opinion cites, in order; null means none.</param>
     public record OpinionCreateDto(
         string Content,
         bool IsDefault,
-        List<int> SchoolIds
+        List<int> SchoolIds,
+        List<OpinionSourceDto>? Sources = null
     );
 
     /// <param name="SchoolIds">Schools the opinion is linked to; must be empty when the paragraph has a single opinion (<c>paragraph_plain_schools_not_allowed</c>).</param>
+    /// <param name="Sources">The sources the opinion cites, in order; replaces the current ones, null means none.</param>
     public record OpinionUpdateDto(
         int Id,                    // 0 = новый, >0 = обновить существующий
         string Content,
         bool IsDefault,
-        List<int> SchoolIds
+        List<int> SchoolIds,
+        List<OpinionSourceDto>? Sources = null
     );
 
     // ── Paragraph (slot) ─────────────────────────────────────────────────────

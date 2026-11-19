@@ -29,7 +29,12 @@ namespace Mktba.Application.Mappings
             // Opinion → OpinionDto (class-based, AutoMapper handles member mapping)
             CreateMap<Opinion, OpinionDto>()
                 .ForMember(dest => dest.SchoolIds,
-                    opt => opt.MapFrom(src => src.OpinionSchools.Select(os => os.SchoolId).ToList()));
+                    opt => opt.MapFrom(src => src.OpinionSchools.Select(os => os.SchoolId).ToList()))
+                .ForMember(dest => dest.Sources,
+                    opt => opt.MapFrom(src => src.Sources
+                        .OrderBy(c => c.Order)
+                        .Select(c => new OpinionSourceDto(c.SourceId, c.Locator))
+                        .ToList()));
 
             // Paragraph (slot)
             CreateMap<Paragraph, ParagraphDto>();

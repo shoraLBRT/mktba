@@ -1,5 +1,47 @@
-import type { OpinionCreateDto, OpinionDto, ParagraphCreateDto, ParagraphDto } from '../../shared/types/ApiTypes';
-import type { AlternativeDraft, EditorBlock, PlainBlockKind, VersionedEditorBlock } from './types';
+import type { OpinionCreateDto, OpinionDto, OpinionSourceDto, ParagraphCreateDto, ParagraphDto, SourceDto } from '../../shared/types/ApiTypes';
+import type { AlternativeDraft, CitationDraft, EditorBlock, PlainBlockKind, VersionedEditorBlock } from './types';
+
+/** A citation of `source` as the editor holds it. */
+export const createCitation = (source: SourceDto, locator = ''): CitationDraft => ({
+  localId: crypto.randomUUID(),
+  source,
+  locator,
+});
+
+const toCitationDtos = (citations: CitationDraft[] | undefined): OpinionSourceDto[] =>
+  (citations ?? []).map(({ source, locator }) => ({ sourceId: source.id, locator: locator.trim() || null }));
+
+/** The saved citations of an opinion as drafts; a citation whose source the article does not carry is skipped. */
+const toCitationDrafts = (citations: OpinionSourceDto[] | null | undefined, sources: Map<number, SourceDto>): CitationDraft[] =>
+  (citations ?? []).flatMap(({ sourceId, locator }) => {
+    const source = sources.get(sourceId);
+    return source ? [createCitation(source, locator ?? '')] : [];
+  });
+
+/**
+ * Replaces the citations of one opinion: of a version (`localId`) of a versioned block, or of a
+ * plain paragraph (`localId` null).
+ */
+export const setOpinionSources = (
+  blocks: EditorBlock[],
+  blockId: string,
+  localId: string | null,
+  sources: CitationDraft[],
+): EditorBlock[] =>
+  blocks.map((block) => {
+    if (block.id !== blockId) {
+      return block;
+    }
+
+    if (block.kind !== 'versioned') {
+      return localId === null ? { ...block, sources } : block;
+    }
+
+    return {
+      ...block,
+      variants: block.variants.map((variant) => (variant.localId === localId ? { ...variant, sources } : variant)),
+    };
+  });
 
 const createVariant = (isDefault: boolean): AlternativeDraft => ({
   localId: crypto.randomUUID(),
@@ -159,6 +201,7 @@ export const convertParagraphToVersioned = (blocks: EditorBlock[], blockId: stri
           isDefault: true,
           opinionId: block.opinionId,
           schoolIds: [],
+          sources: block.sources,
         },
       ],
     };
@@ -178,6 +221,7 @@ export const convertVersionedToParagraph = (blocks: EditorBlock[], blockId: stri
       content: defaultVariant?.content ?? '',
       paragraphId: block.paragraphId,
       opinionId: defaultVariant?.opinionId,
+      sources: defaultVariant?.sources,
     };
   });
 
@@ -210,6 +254,10 @@ const toStoredMarkdown = (block: EditorBlock): string[] => {
  */
 const asPlainOpinion = <T extends OpinionCreateDto>(opinion: T): T => ({ ...opinion, isDefault: true, schoolIds: [] });
 
+/** Only a paragraph cites sources: a heading block sends none, whatever it held before it became a heading. */
+const plainBlockSources = (block: EditorBlock): OpinionSourceDto[] =>
+  block.kind === 'paragraph' ? toCitationDtos(block.sources) : [];
+
 export const buildParagraphCreateDtosFromBlocks = (blocks: EditorBlock[]): ParagraphCreateDto[] => {
   const paragraphs: ParagraphCreateDto[] = [];
 
@@ -223,6 +271,7 @@ export const buildParagraphCreateDtosFromBlocks = (blocks: EditorBlock[]): Parag
           content: variant.content.trim(),
           isDefault: variant.isDefault,
           schoolIds: variant.schoolIds,
+          sources: toCitationDtos(variant.sources),
         }));
       if (opinions.length === 1) {
         opinions[0] = asPlainOpinion(opinions[0]);
@@ -240,7 +289,7 @@ export const buildParagraphCreateDtosFromBlocks = (blocks: EditorBlock[]): Parag
     paragraphs.push({
       articleId: 0,
       order,
-      opinions: [{ content, isDefault: true, schoolIds: [] }],
+      opinions: [{ content, isDefault: true, schoolIds: [], sources: plainBlockSources(block) }],
     });
   });
 
@@ -261,6 +310,7 @@ export const buildParagraphUpdateDtosFromBlocks = (blocks: EditorBlock[]): Parag
           content: variant.content.trim(),
           isDefault: variant.isDefault,
           schoolIds: variant.schoolIds,
+          sources: toCitationDtos(variant.sources),
         }));
       if (opinions.length === 1) {
         opinions[0] = asPlainOpinion(opinions[0]);
@@ -283,6 +333,7 @@ export const buildParagraphUpdateDtosFromBlocks = (blocks: EditorBlock[]): Parag
         content,
         isDefault: true,
         schoolIds: [],
+        sources: plainBlockSources(block),
       }],
     });
   });
@@ -349,7 +400,12 @@ export const buildDocumentPreviewMarkdown = (blocks: EditorBlock[]): string =>
     })
     .join('\n\n');
 
-export const importBlocksFromParagraphs = (paragraphs: ParagraphDto[]): EditorBlock[] => {
+/**
+ * @param sources The directory entries the article cites (`ArticleContentDto.sources`), which the
+ * citations of the opinions refer to by id.
+ */
+export const importBlocksFromParagraphs = (paragraphs: ParagraphDto[], sources: SourceDto[] = []): EditorBlock[] => {
+  const sourcesById = new Map(sources.map((source) => [source.id, source]));
   return [...paragraphs].sort((a, b) => a.order - b.order).map((paragraph) => {
     const { id: paragraphId, opinions } = paragraph;
 
@@ -383,6 +439,7 @@ export const importBlocksFromParagraphs = (paragraphs: ParagraphDto[]): EditorBl
         content,
         paragraphId,
         opinionId: op.id,
+        sources: toCitationDrafts(op.sources, sourcesById),
       };
     }
 
@@ -396,6 +453,7 @@ export const importBlocksFromParagraphs = (paragraphs: ParagraphDto[]): EditorBl
         isDefault: op.isDefault,
         opinionId: op.id,
         schoolIds: op.schoolIds,
+        sources: toCitationDrafts(op.sources, sourcesById),
       })),
     };
   });
