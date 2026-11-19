@@ -71,7 +71,7 @@ export const SearchDialog = ({ onClose }: { onClose: () => void }) => {
           </button>
         </div>
         <SearchForm autoFocus />
-        <p className="mb-0 mt-3 text-xs text-[var(--color-ink-subtle)]">{t.hint}</p>
+        <p className="mb-0 mt-3 text-xs text-[var(--color-ink-muted)]">{t.hint}</p>
       </div>
     </div>
   );

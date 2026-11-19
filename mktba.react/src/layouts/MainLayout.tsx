@@ -67,7 +67,7 @@ const MainLayout: React.FC = () => {
         </div>
 
         <div className="flex min-w-0 flex-1 items-stretch">
-          <div className="flex items-center border-r border-[var(--color-border-soft)] px-2 sm:px-3">
+          <div className="flex items-center border-r border-[var(--color-border-soft)] px-1 sm:px-3">
             <button
               type="button"
               onClick={toggleCollapsed}
@@ -88,19 +88,18 @@ const MainLayout: React.FC = () => {
             </Link>
           </div>
 
-          <div className="ml-auto flex items-center gap-1.5 px-3 sm:px-4">
+          <div className="ml-auto flex items-center gap-1 px-2 sm:gap-1.5 sm:px-4">
             <button
               type="button"
               onClick={openSearchDialog}
               aria-haspopup="dialog"
               aria-keyshortcuts="Control+K Meta+K"
-              aria-label={locale.search.dialog.open}
               title={locale.search.dialog.open}
-              className="flex h-9 items-center gap-2 rounded-lg border border-[var(--color-border-soft)] px-2.5 text-xs text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)]"
+              className="flex h-9 w-8 shrink-0 items-center justify-center gap-2 rounded-lg border border-transparent text-xs text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)] md:w-auto md:border-[var(--color-border-soft)] md:px-2.5"
             >
               <Search size={15} aria-hidden="true" />
-              <span className="hidden md:inline">{locale.search.dialog.open}</span>
-              <kbd className="hidden rounded border border-[var(--color-border-soft)] px-1 font-sans text-[10px] md:inline">
+              <span className="sr-only md:not-sr-only">{locale.search.dialog.open}</span>
+              <kbd aria-hidden="true" className="hidden rounded border border-[var(--color-border-soft)] px-1 font-sans text-[10px] md:inline">
                 {locale.search.dialog.shortcut}
               </kbd>
             </button>
