@@ -15,6 +15,11 @@
         public string? InfoboxSubtitle { get; set; }
         public int? ParentArticleId { get; set; }
         public Article? ParentArticle { get; set; }
+        /// <summary>
+        /// Position among the siblings (articles with the same <see cref="ParentArticleId"/>), 0 first.
+        /// The tree sorts siblings by Order, then by Id; a move renumbers the siblings 0..N-1.
+        /// </summary>
+        public int Order { get; set; }
         public ICollection<Article> ChildArticles { get; set; } = new List<Article>();
         public ICollection<Paragraph> Paragraphs { get; set; } = new List<Paragraph>();
         public ICollection<ArticleInfoboxField> InfoboxFields { get; set; } = new List<ArticleInfoboxField>();

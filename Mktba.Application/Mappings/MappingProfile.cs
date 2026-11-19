@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Mktba.Application.DTOs;
 using Mktba.Domain.Entities;
 
@@ -19,7 +19,9 @@ namespace Mktba.Application.Mappings
                 .ForMember(dest => dest.AllowedTransitions, opt => opt.MapFrom(src =>
                     ArticleStatusTransitions.AllowedFrom(src.Status).ToList()));
             CreateMap<ArticleCreateDto, Article>();
-            CreateMap<ArticleUpdateDto, Article>();
+            // A parent change goes through ArticleService's move rules, not a plain copy.
+            CreateMap<ArticleUpdateDto, Article>()
+                .ForMember(dest => dest.ParentArticleId, opt => opt.Ignore());
 
             // School
             CreateMap<School, SchoolDto>();

@@ -25,7 +25,8 @@ namespace Mktba.Infrastructure.Repositories
                 .ToListAsync(cancellationToken);
 
         /// <summary>
-        /// Projects every article to <see cref="ArticleNavigationRow"/> in a single query, ordered by id.
+        /// Projects every article to <see cref="ArticleNavigationRow"/> in a single query, ordered by
+        /// parent, then by <see cref="Article.Order"/> among siblings, then by id.
         /// Content presence is computed in SQL (EXISTS over paragraphs and infobox fields), so no
         /// child rows are loaded. With <paramref name="publishedOnly"/> the query returns only
         /// <see cref="ArticleStatus.Published"/> articles.
@@ -34,7 +35,9 @@ namespace Mktba.Infrastructure.Repositories
             => _dbSet
                 .AsNoTracking()
                 .Where(article => !publishedOnly || article.Status == ArticleStatus.Published)
-                .OrderBy(article => article.Id)
+                .OrderBy(article => article.ParentArticleId)
+                .ThenBy(article => article.Order)
+                .ThenBy(article => article.Id)
                 .Select(article => new ArticleNavigationRow(
                     article.Id,
                     article.Title,
@@ -114,6 +117,26 @@ namespace Mktba.Infrastructure.Repositories
             => _dbSet
                 .Include(article => article.CoAuthors)
                 .FirstOrDefaultAsync(article => article.Id == articleId, cancellationToken);
+
+        /// <summary>Every article's parent id, keyed by article id — the whole hierarchy in one query.</summary>
+        public Task<Dictionary<int, int?>> GetParentIdsAsync(CancellationToken cancellationToken = default)
+            => _dbSet
+                .AsNoTracking()
+                .ToDictionaryAsync(article => article.Id, article => article.ParentArticleId, cancellationToken);
+
+        /// <summary>The children of <paramref name="parentId"/> (roots for null), tracked, in tree order.</summary>
+        public Task<List<Article>> GetSiblingsAsync(int? parentId, CancellationToken cancellationToken = default)
+            => _dbSet
+                .Where(article => article.ParentArticleId == parentId)
+                .OrderBy(article => article.Order)
+                .ThenBy(article => article.Id)
+                .ToListAsync(cancellationToken);
+
+        /// <summary>The <see cref="Article.Order"/> that places a new child of <paramref name="parentId"/> last.</summary>
+        public async Task<int> GetNextSiblingOrderAsync(int? parentId, CancellationToken cancellationToken = default)
+            => (await _dbSet
+                .Where(article => article.ParentArticleId == parentId)
+                .MaxAsync(article => (int?)article.Order, cancellationToken) ?? -1) + 1;
 
         public Task<int> CountAsync(CancellationToken cancellationToken = default)
             => _dbSet.CountAsync(cancellationToken);

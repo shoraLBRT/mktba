@@ -67,6 +67,12 @@ public static class AppErrors
         $"Edit comment must be at most {Infrastructure.Data.MktbaDbContext.RevisionCommentMaxLength} characters.",
         With(("maxLength", Infrastructure.Data.MktbaDbContext.RevisionCommentMaxLength)));
 
+    public static AppError ArticleMoveCycle =>
+        new("article_move_cycle", "An article cannot be moved under itself or one of its descendants.");
+
+    public static AppError ArticleParentNotFound(int parentId) =>
+        new("article_parent_not_found", $"Parent article with id {parentId} does not exist.", With(("parentId", parentId)));
+
     public static AppError ArticleCoAuthorIsAuthor =>
         new("article_coauthor_is_author", "The article's author cannot also be its co-author.");
 

@@ -126,6 +126,10 @@ namespace Mktba.Infrastructure.Data
                 .HasForeignKey(a => a.ParentArticleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // The tree reads siblings in (ParentArticleId, Order) order.
+            modelBuilder.Entity<Article>()
+                .HasIndex(a => new { a.ParentArticleId, a.Order });
+
             modelBuilder.Entity<Article>()
                 .HasMany(a => a.Paragraphs)
                 .WithOne(p => p.Article)

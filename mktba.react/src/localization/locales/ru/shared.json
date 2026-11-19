@@ -126,6 +126,8 @@
     "system_school_delete_forbidden": "Системные школы удалять нельзя.",
     "article_status_transition_invalid": "Статью нельзя перевести в этот статус из текущего.",
     "article_coauthor_is_author": "Автор статьи не может быть одновременно её соавтором.",
+    "article_move_cycle": "Статью нельзя переместить внутрь неё самой или её подстатьи.",
+    "article_parent_not_found": "Родительская статья не найдена.",
     "user_not_found": "Пользователь не найден."
   },
   "articleStatus": {

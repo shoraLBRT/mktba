@@ -108,6 +108,7 @@ namespace Mktba.Application.Services
                     Title = dto.Title,
                     Slug = slug,
                     ParentArticleId = dto.ParentArticleId,
+                    Order = await _articleRepo.GetNextSiblingOrderAsync(dto.ParentArticleId),
                     InfoboxTitle = normalizedInfobox?.Title,
                     InfoboxSubtitle = normalizedInfobox?.Subtitle,
                     Summary = NormalizeOptionalText(dto.Summary),
