@@ -18,6 +18,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<Paragraph> Paragraphs { get; set; } = null!;
         public DbSet<Opinion> Opinions { get; set; } = null!;
         public DbSet<School> Schools { get; set; } = null!;
+        public DbSet<SchoolTranslation> SchoolTranslations { get; set; } = null!;
         public DbSet<OpinionSchool> OpinionSchools { get; set; } = null!;
         public DbSet<AiProviderSettings> AiProviderSettings { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
@@ -31,7 +32,7 @@ namespace Mktba.Infrastructure.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Article slug: unique across all articles until M-09 (#27) widens it to (Locale, Slug).
+            // Article slug: unique per language (M-09, #27), so a translation may keep the original's slug.
             modelBuilder.Entity<Article>()
                 .Property(a => a.Slug)
                 .HasMaxLength(ArticleSlugMaxLength)
@@ -44,7 +45,18 @@ namespace Mktba.Infrastructure.Data
                 .IsRequired();
 
             modelBuilder.Entity<Article>()
-                .HasIndex(a => a.Slug)
+                .Property(a => a.Locale)
+                .HasMaxLength(Locales.MaxLength)
+                .HasDefaultValue(Locales.Default)
+                .IsRequired();
+
+            modelBuilder.Entity<Article>()
+                .HasIndex(a => new { a.Locale, a.Slug })
+                .IsUnique();
+
+            // A translation group holds at most one article per language (D6, #21).
+            modelBuilder.Entity<Article>()
+                .HasIndex(a => new { a.TranslationGroupId, a.Locale })
                 .IsUnique();
 
             modelBuilder.Entity<ArticleSlugRedirect>()
@@ -53,7 +65,13 @@ namespace Mktba.Infrastructure.Data
                 .IsRequired();
 
             modelBuilder.Entity<ArticleSlugRedirect>()
-                .HasIndex(r => r.Slug)
+                .Property(r => r.Locale)
+                .HasMaxLength(Locales.MaxLength)
+                .HasDefaultValue(Locales.Default)
+                .IsRequired();
+
+            modelBuilder.Entity<ArticleSlugRedirect>()
+                .HasIndex(r => new { r.Locale, r.Slug })
                 .IsUnique();
 
             modelBuilder.Entity<ArticleSlugRedirect>()
@@ -225,6 +243,30 @@ namespace Mktba.Infrastructure.Data
             modelBuilder.Entity<School>()
                 .Property(s => s.ShortName)
                 .HasMaxLength(20);
+
+            // SchoolTranslation: one name per school and locale; Russian stays on School itself.
+            modelBuilder.Entity<SchoolTranslation>()
+                .HasKey(t => new { t.SchoolId, t.Locale });
+
+            modelBuilder.Entity<SchoolTranslation>()
+                .Property(t => t.Locale)
+                .HasMaxLength(Locales.MaxLength);
+
+            modelBuilder.Entity<SchoolTranslation>()
+                .Property(t => t.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            modelBuilder.Entity<SchoolTranslation>()
+                .Property(t => t.ShortName)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            modelBuilder.Entity<SchoolTranslation>()
+                .HasOne(t => t.School)
+                .WithMany(s => s.Translations)
+                .HasForeignKey(t => t.SchoolId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // OpinionSchool (composite PK)
             modelBuilder.Entity<OpinionSchool>()

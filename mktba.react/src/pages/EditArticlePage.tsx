@@ -610,6 +610,7 @@ const EditArticlePage: React.FC = () => {
                     disabled={isLocked}
                     onChange={setSlug}
                     onFillFromTitle={() => setSlug(slugFromTitle(title))}
+                    locale={articleQuery.data.locale ?? undefined}
                   />
                   <div>
                     <label htmlFor="edit-comment" className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">

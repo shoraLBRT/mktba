@@ -76,31 +76,33 @@ namespace Mktba.Infrastructure.Repositories
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(article => article.Id == articleId, cancellationToken);
 
-        /// <summary>The id of the article whose current slug is <paramref name="slug"/>, if any.</summary>
-        public Task<int?> FindIdBySlugAsync(string slug, CancellationToken cancellationToken = default)
+        /// <summary>The id of the article in <paramref name="locale"/> whose current slug is <paramref name="slug"/>, if any.</summary>
+        public Task<int?> FindIdBySlugAsync(string locale, string slug, CancellationToken cancellationToken = default)
             => _dbSet
                 .AsNoTracking()
-                .Where(article => article.Slug == slug)
+                .Where(article => article.Locale == locale && article.Slug == slug)
                 .Select(article => (int?)article.Id)
                 .FirstOrDefaultAsync(cancellationToken);
 
-        /// <summary>The current slug of the article that used to have <paramref name="oldSlug"/>, if any.</summary>
-        public Task<string?> FindRedirectTargetSlugAsync(string oldSlug, bool publishedOnly, CancellationToken cancellationToken = default)
+        /// <summary>The current slug of the article in <paramref name="locale"/> that used to have <paramref name="oldSlug"/>, if any.</summary>
+        public Task<string?> FindRedirectTargetSlugAsync(string locale, string oldSlug, bool publishedOnly, CancellationToken cancellationToken = default)
             => _context.ArticleSlugRedirects
                 .AsNoTracking()
-                .Where(redirect => redirect.Slug == oldSlug)
+                .Where(redirect => redirect.Locale == locale && redirect.Slug == oldSlug)
                 .Where(redirect => !publishedOnly || redirect.Article.Status == ArticleStatus.Published)
                 .Select(redirect => redirect.Article.Slug)
                 .FirstOrDefaultAsync(cancellationToken);
 
         /// <summary>
-        /// Whether <paramref name="slug"/> belongs to another article, as its current slug or as one
-        /// of its redirects. The article <paramref name="exceptArticleId"/> may reuse its own old slugs.
+        /// Whether <paramref name="slug"/> belongs to another article in <paramref name="locale"/>, as its
+        /// current slug or as one of its redirects. Articles in other locales may use the same slug.
+        /// The article <paramref name="exceptArticleId"/> may reuse its own old slugs.
         /// </summary>
-        public async Task<bool> IsSlugTakenAsync(string slug, int? exceptArticleId, CancellationToken cancellationToken = default)
-            => await _dbSet.AnyAsync(article => article.Slug == slug && article.Id != exceptArticleId, cancellationToken)
+        public async Task<bool> IsSlugTakenAsync(string locale, string slug, int? exceptArticleId, CancellationToken cancellationToken = default)
+            => await _dbSet.AnyAsync(
+                   article => article.Locale == locale && article.Slug == slug && article.Id != exceptArticleId, cancellationToken)
                || await _context.ArticleSlugRedirects.AnyAsync(
-                   redirect => redirect.Slug == slug && redirect.ArticleId != exceptArticleId, cancellationToken);
+                   redirect => redirect.Locale == locale && redirect.Slug == slug && redirect.ArticleId != exceptArticleId, cancellationToken);
 
         /// <summary>The redirects of one article, tracked so they can be changed.</summary>
         public Task<List<ArticleSlugRedirect>> GetSlugRedirectsAsync(int articleId, CancellationToken cancellationToken = default)

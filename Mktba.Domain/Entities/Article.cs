@@ -6,9 +6,20 @@
         public string Title { get; set; } = string.Empty;
         /// <summary>
         /// URL segment of the article: lowercase Latin letters, digits and single hyphens, never
-        /// only digits. Unique across all articles for now; becomes unique per language with M-09 (#27).
+        /// only digits. Unique within the article's <see cref="Locale"/>, together with the old slugs
+        /// kept as redirects; a translation may reuse the original's slug.
         /// </summary>
         public string Slug { get; set; } = string.Empty;
+        /// <summary>
+        /// Language of the article, one of <see cref="Locales.Supported"/>. Set when the article is
+        /// created and never changed: a translation is a separate article (D6, #21).
+        /// </summary>
+        public string Locale { get; set; } = Locales.Default;
+        /// <summary>
+        /// Links an article with its translations: all language versions of one text share the id,
+        /// and a group holds at most one article per <see cref="Locale"/>. A new article starts its own group.
+        /// </summary>
+        public Guid TranslationGroupId { get; set; } = Guid.NewGuid();
         /// <summary>Publication status; new articles start as <see cref="ArticleStatus.Draft"/>.</summary>
         public ArticleStatus Status { get; set; } = ArticleStatus.Draft;
         public string? InfoboxTitle { get; set; }

@@ -71,7 +71,7 @@ namespace Mktba.Application.Services
             var article = _mapper.Map<Article>(createDto);
             ArticleTimestamps.StampCreated(article, authorId, _clock);
             article.Order = await _articleRepository.GetNextSiblingOrderAsync(article.ParentArticleId);
-            article.Slug = await new ArticleSlugAssigner(_articleRepository).GenerateUniqueAsync(article.Title, articleId: null);
+            article.Slug = await new ArticleSlugAssigner(_articleRepository).GenerateUniqueAsync(article.Title, article.Locale, articleId: null);
             await _articleRepository.AddAsync(article);
             await _articleRepository.SaveChangesAsync();
 

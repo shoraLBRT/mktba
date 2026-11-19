@@ -21,13 +21,14 @@ public sealed class ArticleSlugAssigner
     /// The slug an editor asked for, validated and checked for uniqueness — or, when they left it
     /// blank, one generated from the title.
     /// </summary>
+    /// <param name="locale">The article's locale; slugs are unique within it.</param>
     /// <param name="articleId">The article being edited; <c>null</c> for a new one.</param>
     /// <exception cref="ValidationException"><c>article_slug_invalid</c> or <c>article_slug_taken</c>.</exception>
-    public async Task<string> ChooseAsync(string? requestedSlug, string title, int? articleId)
+    public async Task<string> ChooseAsync(string? requestedSlug, string title, string locale, int? articleId)
     {
         if (string.IsNullOrWhiteSpace(requestedSlug))
         {
-            return await GenerateUniqueAsync(title, articleId);
+            return await GenerateUniqueAsync(title, locale, articleId);
         }
 
         var slug = requestedSlug.Trim().ToLowerInvariant();
@@ -36,7 +37,7 @@ public sealed class ArticleSlugAssigner
             throw new ValidationException(AppErrors.ArticleSlugInvalid);
         }
 
-        if (await _articleRepository.IsSlugTakenAsync(slug, articleId))
+        if (await _articleRepository.IsSlugTakenAsync(locale, slug, articleId))
         {
             throw new ValidationException(AppErrors.ArticleSlugTaken(slug));
         }
@@ -44,14 +45,14 @@ public sealed class ArticleSlugAssigner
         return slug;
     }
 
-    /// <summary>The slug from the title, or the first free one of slug-2, slug-3, …</summary>
-    public async Task<string> GenerateUniqueAsync(string title, int? articleId)
+    /// <summary>The slug from the title, or the first free one of slug-2, slug-3, … in <paramref name="locale"/>.</summary>
+    public async Task<string> GenerateUniqueAsync(string title, string locale, int? articleId)
     {
         var baseSlug = ArticleSlugRules.FromTitle(title);
         for (var number = 1; ; number++)
         {
             var candidate = ArticleSlugRules.WithSuffix(baseSlug, number);
-            if (!await _articleRepository.IsSlugTakenAsync(candidate, articleId))
+            if (!await _articleRepository.IsSlugTakenAsync(locale, candidate, articleId))
             {
                 return candidate;
             }
@@ -78,7 +79,7 @@ public sealed class ArticleSlugAssigner
 
         if (!string.IsNullOrEmpty(article.Slug))
         {
-            _articleRepository.AddSlugRedirect(new ArticleSlugRedirect { Slug = article.Slug, ArticleId = article.Id });
+            _articleRepository.AddSlugRedirect(new ArticleSlugRedirect { Slug = article.Slug, Locale = article.Locale, ArticleId = article.Id });
         }
 
         article.Slug = newSlug;

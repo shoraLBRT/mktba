@@ -8,10 +8,12 @@ type SlugFieldProps = {
   onChange: (value: string) => void;
   /** Fills the field from the title's transliteration. */
   onFillFromTitle: () => void;
+  /** The article's language code; shown read-only, the slug is unique within it. */
+  locale?: string;
 };
 
 /** The article's URL segment under the title in the editor, with a format check as you type. */
-export const SlugField = ({ value, disabled, onChange, onFillFromTitle }: SlugFieldProps) => {
+export const SlugField = ({ value, disabled, onChange, onFillFromTitle, locale = 'ru' }: SlugFieldProps) => {
   const t = useLocale().addArticlePage;
   const invalid = value.length > 0 && !isValidSlug(value);
 
@@ -51,6 +53,9 @@ export const SlugField = ({ value, disabled, onChange, onFillFromTitle }: SlugFi
         className={`mb-0 mt-1 text-[11px] ${invalid ? 'text-red-600' : 'text-[var(--color-ink-subtle)]'}`}
       >
         {invalid ? formatMessage(t.slugInvalid, { maxLength: SLUG_MAX_LENGTH }) : t.slugHint}
+      </p>
+      <p data-testid="article-locale" className="mb-0 mt-1 text-[11px] text-[var(--color-ink-subtle)]">
+        {formatMessage(t.localeLabel, { locale })}
       </p>
     </div>
   );

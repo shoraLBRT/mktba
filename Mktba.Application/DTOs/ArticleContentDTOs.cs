@@ -43,6 +43,10 @@
 
     /// <param name="Slug">Optional URL segment; null or blank generates one from the title.</param>
     /// <param name="EditComment">Optional note stored on the first revision (at most 500 characters).</param>
+    /// <param name="Locale">
+    /// Language of the new article: a supported code such as "ru" or "en"; null or blank means "ru".
+    /// Fixed once the article exists. An unsupported code fails with locale_unsupported.
+    /// </param>
     public record ArticleContentCreateDto(
         string Title,
         int? ParentArticleId,
@@ -52,7 +56,8 @@
         List<string>? Tags,
         List<ArticleRelatedLinkCreateDto>? RelatedLinks,
         string? Slug = null,
-        string? EditComment = null
+        string? EditComment = null,
+        string? Locale = null
     );
 
     /// <param name="Slug">
@@ -62,6 +67,8 @@
     /// <param name="PublishedAt">Read only: when the article was first published (UTC), null if never. Ignored on update.</param>
     /// <param name="UpdatedAt">Read only: when the article was last saved (UTC). Ignored on update.</param>
     /// <param name="EditComment">Write only: optional note stored on the revision this update creates (at most 500 characters). Always null on read.</param>
+    /// <param name="Locale">Read only: the article's language code ("ru", "en"); the slug is unique within it. Ignored on update.</param>
+    /// <param name="TranslationGroupId">Read only: shared by an article and its translations. Ignored on update.</param>
     public record ArticleContentDto(
         int Id,
         string Title,
@@ -73,7 +80,9 @@
         string? Slug = null,
         DateTime? PublishedAt = null,
         DateTime? UpdatedAt = null,
-        string? EditComment = null
+        string? EditComment = null,
+        string? Locale = null,
+        Guid? TranslationGroupId = null
     );
 
     /// <summary>

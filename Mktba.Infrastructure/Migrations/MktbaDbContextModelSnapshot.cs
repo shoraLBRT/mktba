@@ -116,6 +116,13 @@ namespace Mktba.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("ru");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
@@ -150,6 +157,9 @@ namespace Mktba.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("TranslationGroupId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -159,10 +169,13 @@ namespace Mktba.Infrastructure.Migrations
 
                     b.HasIndex("PublishedRevisionId");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("Locale", "Slug")
                         .IsUnique();
 
                     b.HasIndex("ParentArticleId", "Order");
+
+                    b.HasIndex("TranslationGroupId", "Locale")
+                        .IsUnique();
 
                     b.ToTable("Articles");
                 });
@@ -292,6 +305,13 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<int>("ArticleId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("ru");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -301,7 +321,7 @@ namespace Mktba.Infrastructure.Migrations
 
                     b.HasIndex("ArticleId");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("Locale", "Slug")
                         .IsUnique();
 
                     b.ToTable("ArticleSlugRedirects");
@@ -405,6 +425,30 @@ namespace Mktba.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Schools");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.SchoolTranslation", b =>
+                {
+                    b.Property<int>("SchoolId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Locale")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ShortName")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("SchoolId", "Locale");
+
+                    b.ToTable("SchoolTranslations");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.User", b =>
@@ -613,6 +657,17 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("ArticleScope");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.SchoolTranslation", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.School", "School")
+                        .WithMany("Translations")
+                        .HasForeignKey("SchoolId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("School");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Article", b =>
                 {
                     b.Navigation("ChildArticles");
@@ -645,6 +700,8 @@ namespace Mktba.Infrastructure.Migrations
             modelBuilder.Entity("Mktba.Domain.Entities.School", b =>
                 {
                     b.Navigation("OpinionSchools");
+
+                    b.Navigation("Translations");
                 });
 #pragma warning restore 612, 618
         }
