@@ -16,10 +16,35 @@
   --color-border-soft: #e2e1dc;
   --color-border-mute: #eeede8;
   --color-focus-ring: rgba(45, 106, 79, 0.2);
-  --color-mazhab-bg: #eff6fb;
-  --color-mazhab-border: #c4d9ee;
-  --color-mazhab-accent: #3b7ab8;
-  --color-mazhab-accent-soft: #dceeff;
+  /* Mazhab palette. One hue per school; the token suffix is the school slug,
+     so a palette is looked up straight from `School.slug`. Hues avoid the
+     brand green as well as success/error readings. Every school keeps its
+     short name visible in the UI, so colour is never the only signal.
+     Contrast (WCAG AA needs 4.5:1): ink-default on -bg >= 12.7:1,
+     -accent on -bg >= 4.9:1, white on -accent >= 5.3:1,
+     -accent on -accent-soft >= 4.5:1. */
+  --color-mazhab-hanafi-bg: #f4f1fa;
+  --color-mazhab-hanafi-border: #d8cfea;
+  --color-mazhab-hanafi-accent: #6b4fa8;
+  --color-mazhab-hanafi-accent-soft: #e7e0f6;
+  --color-mazhab-maliki-bg: #faf4ea;
+  --color-mazhab-maliki-border: #e8d7b8;
+  --color-mazhab-maliki-accent: #815c1c;
+  --color-mazhab-maliki-accent-soft: #f4e6cd;
+  --color-mazhab-shafii-bg: #fbf1f1;
+  --color-mazhab-shafii-border: #eccdcd;
+  --color-mazhab-shafii-accent: #a8434a;
+  --color-mazhab-shafii-accent-soft: #f7dedf;
+  --color-mazhab-hanbali-bg: #eff5fb;
+  --color-mazhab-hanbali-border: #c8dbee;
+  --color-mazhab-hanbali-accent: #2f6ba6;
+  --color-mazhab-hanbali-accent-soft: #dbe9f7;
+  /* Fallback set: opinions bound to no school, custom article-scoped schools,
+     and opinions shared by several schools at once. */
+  --color-mazhab-neutral-bg: #f6f5f2;
+  --color-mazhab-neutral-border: #e2e1dc;
+  --color-mazhab-neutral-accent: #6b6a65;
+  --color-mazhab-neutral-accent-soft: #eeede8;
   --shadow-soft: 0 20px 70px rgba(28, 27, 24, 0.08);
   --radius-card: 18px;
   --radius-pill: 999px;

@@ -5,10 +5,12 @@ import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById } from '../services/Article/articleService';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
-import { VersionedParagraphBlock } from '../components/article/VersionedParagraphBlock';
+import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
+import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
 import MarkdownContent from '../components/MarkdownContent';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
+import { formatMessage, type Locale } from '../localization';
 import {
   ARTICLE_UI_MODE_STORAGE_KEY,
   DEFAULT_ARTICLE_UI_MODE,
@@ -18,7 +20,7 @@ import {
 import { getNavigationTree } from '../services/Article/navigationService';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
-import { useMazhab } from '../context/MazhabContext';
+import { useMazhab } from '../context/mazhabContext';
 import { useTrackEvent } from '../analytics/useTrackEvent';
 
 const findArticlePathById = (
@@ -57,13 +59,69 @@ const extractHeadingTitle = (content: string): string | null => {
   return match?.[2]?.trim() ?? null;
 };
 
+/**
+ * Captions for one opinion. The chip caption is always rendered next to the
+ * colour, so the mazhab stays readable without relying on hue alone.
+ */
+const buildOpinionCaptions = (
+  schools: SchoolDto[],
+  systemSchoolIds: number[],
+  t: Locale['versionedParagraph'],
+): Pick<OpinionTab, 'shortLabel' | 'fullLabel'> => {
+  if (schools.length === 0) {
+    return { shortLabel: t.tabCommon, fullLabel: t.labelCommon };
+  }
+
+  const coversEverySystemSchool =
+    systemSchoolIds.length > 0 &&
+    systemSchoolIds.every((schoolId) => schools.some((school) => school.id === schoolId));
+
+  if (coversEverySystemSchool) {
+    return { shortLabel: t.tabConsensus, fullLabel: t.labelConsensus };
+  }
+
+  if (schools.length === 1) {
+    return {
+      shortLabel: schools[0].shortName,
+      fullLabel: formatMessage(t.label, { school: schools[0].name }),
+    };
+  }
+
+  return {
+    shortLabel: schools.map((school) => school.shortName).join(' · '),
+    fullLabel: formatMessage(t.labelSeveral, {
+      schools: schools.map((school) => school.name).join(', '),
+    }),
+  };
+};
+
 const ArticlePage: React.FC = () => {
   const locale = useLocale();
   const { id } = useParams<{ id: string }>();
   const articleId = parseInt(id || '0', 10);
   const [uiMode] = useState<ParagraphUiMode>(getInitialUiMode);
-  const [selectedAlternatives, setSelectedAlternatives] = useState<Record<number, number>>({});
   const { selectedSchoolId } = useMazhab();
+  // Per-paragraph overrides are scoped to the mazhab they were made under, so
+  // picking a different mazhab drops them without a state-resetting effect.
+  const [overrides, setOverrides] = useState<{
+    schoolId: number | null;
+    byParagraph: Record<number, number>;
+  }>({ schoolId: selectedSchoolId, byParagraph: {} });
+
+  const selectedAlternatives = useMemo(
+    () => (overrides.schoolId === selectedSchoolId ? overrides.byParagraph : {}),
+    [overrides, selectedSchoolId],
+  );
+
+  const setAlternative = (paragraphId: number, index: number) => {
+    setOverrides((current) => ({
+      schoolId: selectedSchoolId,
+      byParagraph:
+        current.schoolId === selectedSchoolId
+          ? { ...current.byParagraph, [paragraphId]: index }
+          : { [paragraphId]: index },
+    }));
+  };
 
   const { data: articleContent, isLoading, error } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, articleId],
@@ -91,10 +149,6 @@ const ArticlePage: React.FC = () => {
   const fiveMinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setSelectedAlternatives({});
-  }, [selectedSchoolId]);
-
-  useEffect(() => {
     if (!articleContent) return;
     track('article_view', { articleId });
     fiveMinTimerRef.current = setTimeout(() => {
@@ -105,12 +159,19 @@ const ArticlePage: React.FC = () => {
     };
   }, [articleId, articleContent, track]);
 
+  const tv = locale.versionedParagraph;
+
   const schoolMap = useMemo<Map<number, SchoolDto>>(() => {
     const map = new Map<number, SchoolDto>();
     for (const s of systemSchools ?? []) map.set(s.id, s);
     for (const s of articleSchools ?? []) map.set(s.id, s);
     return map;
   }, [systemSchools, articleSchools]);
+
+  const systemSchoolIds = useMemo(
+    () => (systemSchools ?? []).map((school) => school.id),
+    [systemSchools],
+  );
 
   const articlePath = useMemo(
     () => (navigationTree ? findArticlePathById(navigationTree, articleId) : []),
@@ -141,13 +202,15 @@ const ArticlePage: React.FC = () => {
         const activeOpinion = paragraph.opinions[activeIndex] ?? paragraph.opinions[0];
         const title = extractHeadingTitle(activeOpinion?.content ?? '');
 
-        const labels = paragraph.opinions.map((opinion) => {
-          if (opinion.schoolIds.length === 0) {
-            return opinion.isDefault ? 'По умолч.' : '—';
-          }
-          return opinion.schoolIds
-            .map((id) => schoolMap.get(id)?.shortName ?? String(id))
-            .join('·');
+        const tabs = paragraph.opinions.map<OpinionTab>((opinion) => {
+          const schools = opinion.schoolIds
+            .map((schoolId) => schoolMap.get(schoolId))
+            .filter((school): school is SchoolDto => school !== undefined);
+
+          return {
+            ...buildOpinionCaptions(schools, systemSchoolIds, tv),
+            paletteKey: resolvePaletteKey(schools),
+          };
         });
 
         return {
@@ -156,13 +219,13 @@ const ArticlePage: React.FC = () => {
           opinions: paragraph.opinions,
           activeIndex,
           activeOpinion,
-          labels,
+          tabs,
           hasAlternatives: paragraph.opinions.length > 1,
           anchorId: title ? `section-${paragraph.order}` : `paragraph-${paragraph.order}`,
           title,
         };
       });
-  }, [articleContent, selectedAlternatives, schoolMap, selectedSchoolId]);
+  }, [articleContent, selectedAlternatives, schoolMap, selectedSchoolId, systemSchoolIds, tv]);
 
   const tocItems = useMemo<TocItem[]>(() => {
     const items: TocItem[] = [{ id: 'article-overview', label: locale.articlePage.overview }];
@@ -183,13 +246,13 @@ const ArticlePage: React.FC = () => {
 
   const selectAlternative = (paragraphId: number, index: number, total: number) => {
     const boundedIndex = Math.max(0, Math.min(index, total - 1));
-    setSelectedAlternatives((current) => ({ ...current, [paragraphId]: boundedIndex }));
+    setAlternative(paragraphId, boundedIndex);
     track('opinion_switch', { paragraphId, index: boundedIndex });
   };
 
   const moveAlternative = (paragraphId: number, currentIndex: number, direction: -1 | 1, total: number) => {
     const nextIndex = normalizeAlternativeIndex(currentIndex + direction, total);
-    setSelectedAlternatives((current) => ({ ...current, [paragraphId]: nextIndex }));
+    setAlternative(paragraphId, nextIndex);
     track('opinion_switch', { paragraphId, index: nextIndex });
   };
 
@@ -272,9 +335,8 @@ const ArticlePage: React.FC = () => {
                   <VersionedParagraphBlock
                     order={paragraph.order}
                     activeIndex={paragraph.activeIndex}
-                    total={paragraph.opinions.length}
+                    tabs={paragraph.tabs}
                     mode={uiMode}
-                    labels={paragraph.labels}
                     onSelect={(index) => selectAlternative(paragraph.paragraphId, index, paragraph.opinions.length)}
                     onMove={(direction) => moveAlternative(paragraph.paragraphId, paragraph.activeIndex, direction, paragraph.opinions.length)}
                   >

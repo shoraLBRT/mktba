@@ -10,7 +10,7 @@ import EditArticlePage from '../pages/EditArticlePage';
 import WelcomePage from '../pages/WelcomePage';
 import { isAdminAuthenticated } from '../services/authService';
 import { ADMIN_SESSION_EXPIRED_EVENT } from '../services/authTokenStorage';
-import { MazhabProvider } from '../context/MazhabContext';
+import { MazhabProvider } from '../context/MazhabProvider';
 import { CookieConsent } from '../components/CookieConsent';
 import { getConsent, initMetrika } from '../analytics/metrika';
 
