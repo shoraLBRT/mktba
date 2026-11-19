@@ -108,6 +108,17 @@ namespace Mktba.Infrastructure.Repositories
                 .ToListAsync(cancellationToken);
 
         /// <summary>
+        /// Ids of the Published articles user <paramref name="userId"/> wrote or co-authored.
+        /// </summary>
+        public async Task<HashSet<int>> GetPublishedIdsCreditedToAsync(int userId, CancellationToken cancellationToken = default)
+            => (await _dbSet
+                .AsNoTracking()
+                .VisibleTo(ArticleViewer.Anonymous)
+                .Where(article => article.AuthorId == userId || article.CoAuthors.Any(coAuthor => coAuthor.UserId == userId))
+                .Select(article => article.Id)
+                .ToListAsync(cancellationToken)).ToHashSet();
+
+        /// <summary>
         /// One page of the articles <paramref name="viewer"/> may read, filtered and sorted by
         /// <paramref name="query"/>, and the number of matching articles. Two queries — the count and
         /// the page — and no paragraph, infobox or link rows are read.

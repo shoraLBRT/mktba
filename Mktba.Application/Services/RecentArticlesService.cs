@@ -33,26 +33,10 @@ namespace Mktba.Application.Services
             var take = Math.Clamp(limit, 1, MaxLimit);
 
             var rows = await _articleRepository.GetRecentRowsAsync(cancellationToken);
-            var byId = rows.ToDictionary(row => row.Id);
-            var reachable = new Dictionary<int, bool>();
-
-            bool IsReachable(ArticleRecentRow row)
-            {
-                if (reachable.TryGetValue(row.Id, out var known))
-                {
-                    return known;
-                }
-
-                // Marked first, so a cycle in the parent links ends as unreachable instead of looping.
-                reachable[row.Id] = false;
-                var result = row.ParentArticleId is not int parentId
-                    || (byId.TryGetValue(parentId, out var parent) && IsReachable(parent));
-                reachable[row.Id] = result;
-                return result;
-            }
+            var isReachable = ArticleReachability.Among(rows);
 
             var listed = rows
-                .Where(row => row.HasContent && row.PublishedAt is not null && row.Locale == locale && IsReachable(row))
+                .Where(row => row.HasContent && row.PublishedAt is not null && row.Locale == locale && isReachable(row))
                 .Select(row => new RecentArticleDto(row.Id, row.Title, row.Slug, row.Summary, row.PublishedAt!.Value, row.UpdatedAt))
                 .ToList();
 

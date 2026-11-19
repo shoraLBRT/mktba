@@ -65,6 +65,20 @@ public static class ProfileEndpoints
             .Produces<PublicProfileDto>()
             .ProducesApiProblem(StatusCodes.Status404NotFound);
 
+        builder.MapGet("/authors/{slug}/articles", async (
+                string slug, string? locale, int? page, int? pageSize, AuthorArticlesService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.GetAsync(
+                    slug, locale, page ?? 1, pageSize ?? AuthorArticlesService.DefaultPageSize, cancellationToken)))
+            .WithTags("Profile")
+            .WithSummary("The articles an author wrote or co-authored, for the author's public page.")
+            .WithDescription(
+                "Only articles a reader can open: Published, not under a non-Published parent, and not empty stubs; ordered by "
+                + "publishedAt, latest first. The same list for every caller; no content. The list may be empty for a public "
+                + "author. locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1; pageSize "
+                + "is 20 by default, kept within 1 to 50. Answers 404 author_not_found exactly when GET /authors/{slug} does.")
+            .Produces<AuthorArticlesDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound);
+
         return builder;
     }
 }

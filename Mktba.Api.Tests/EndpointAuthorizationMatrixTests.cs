@@ -41,6 +41,7 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         ["GET /users/{id:int}/profile"] = Policies.CanManageUsers,
         ["PUT /users/{id:int}/profile"] = Policies.CanManageUsers,
         ["GET /authors/{slug}"] = Public,
+        ["GET /authors/{slug}/articles"] = Public,
         ["GET /invites/"] = Policies.CanManageUsers,
         ["POST /invites/"] = Policies.CanManageUsers,
         ["POST /invites/{id:int}/revoke"] = Policies.CanManageUsers,
