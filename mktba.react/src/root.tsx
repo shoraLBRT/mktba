@@ -26,6 +26,13 @@ import { createQueryClient, invalidateArticleQueries } from './app/queryClient';
 import type { RouteHandle } from './app/routeHandle';
 import { SiteUrlContext } from './app/siteUrl';
 import { resolveSiteUrl } from './server/siteUrl.server';
+import {
+  APPLE_TOUCH_ICON_PATH,
+  FAVICON_ICO_PATH,
+  FAVICON_SVG_PATH,
+  THEME_COLOR,
+  WEB_MANIFEST_PATH,
+} from './shared/siteIcons';
 
 type RootData = {
   /** Public site address for canonical links and Open Graph URLs (`PUBLIC_SITE_URL`). */
@@ -46,14 +53,18 @@ export const links: LinksFunction = () => [
 /** The site address does not change while the page is open; navigation never refetches it. */
 export const shouldRevalidate = () => false;
 
-/** The HTML document around every page, rendered on the server. */
+/** The HTML document around every page (error pages included), rendered on the server. */
 export function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <head>
         <meta charSet="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="/vite.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href={FAVICON_ICO_PATH} sizes="32x32" />
+        <link rel="icon" type="image/svg+xml" href={FAVICON_SVG_PATH} />
+        <link rel="apple-touch-icon" href={APPLE_TOUCH_ICON_PATH} />
+        <link rel="manifest" href={WEB_MANIFEST_PATH} />
+        <meta name="theme-color" content={THEME_COLOR} />
         <Meta />
         <Links />
       </head>

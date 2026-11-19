@@ -83,6 +83,44 @@ test('the default social image is served', async ({ request }) => {
   expect(response.headers()['content-type']).toContain('image/png');
 });
 
+test('the server sends the icons, the manifest and the theme colour on public, admin and error pages (O-13)', async ({ request }) => {
+  for (const url of ['/', '/article/salat', '/admin/login', '/admin', '/no/such/page']) {
+    const html = await (await request.get(url)).text();
+
+    expect(html, url).toContain('<link rel="icon" href="/favicon.ico" sizes="32x32"/>');
+    expect(html, url).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>');
+    expect(html, url).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>');
+    expect(html, url).toContain('<link rel="manifest" href="/site.webmanifest"/>');
+    expect(metaContent(html, 'theme-color'), url).toBe('#2d6a4f');
+    expect(html, url).not.toContain('vite.svg');
+  }
+});
+
+test('the favicon, the manifest and its icons are served with their content types (O-13)', async ({ request }) => {
+  const ico = await request.get('/favicon.ico');
+  expect(ico.status()).toBe(200);
+  expect(ico.headers()['content-type']).toMatch(/^image\/(x-icon|vnd\.microsoft\.icon)/);
+  const icoBody = await ico.body();
+  const icoSizes = Array.from({ length: icoBody.readUInt16LE(4) }, (_, index) => icoBody.readUInt8(6 + 16 * index));
+  expect(icoSizes).toEqual(expect.arrayContaining([16, 32]));
+
+  const svg = await request.get('/favicon.svg');
+  expect(svg.headers()['content-type']).toContain('image/svg+xml');
+
+  const manifestResponse = await request.get('/site.webmanifest');
+  expect(manifestResponse.status()).toBe(200);
+  expect(manifestResponse.headers()['content-type']).toContain('application/manifest+json');
+  const manifest = (await manifestResponse.json()) as { icons: { src: string; sizes: string }[] };
+
+  for (const { src, sizes } of [...manifest.icons, { src: '/apple-touch-icon.png', sizes: '180x180' }]) {
+    const icon = await request.get(src);
+    expect(icon.status(), src).toBe(200);
+    expect(icon.headers()['content-type'], src).toContain('image/png');
+    const png = await icon.body();
+    expect(`${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`, src).toBe(sizes);
+  }
+});
+
 test('client-side navigation keeps one set of metadata tags in the head', async ({ page }) => {
   await page.goto('/no/such/page');
   await page.getByRole('link', { name: 'На главную' }).click();

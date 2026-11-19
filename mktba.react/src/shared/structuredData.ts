@@ -7,6 +7,7 @@
  * `WebSite` has no `SearchAction` until the site has a URL-addressable search (R-10, #46).
  */
 import { DEFAULT_SOCIAL_IMAGE_PATH, siteUrlFor } from './siteMeta';
+import { LOGO_ICON_PATH } from './siteIcons';
 
 /** Language of every page (`inLanguage`): the UI is Russian only. */
 export const SITE_LANGUAGE = 'ru';
@@ -76,7 +77,7 @@ export const organizationNode = ({ siteUrl, name }: SiteFacts): OrganizationNode
   '@type': 'Organization',
   name,
   url: siteRoot(siteUrl),
-  logo: { '@type': 'ImageObject', url: siteUrlFor(DEFAULT_SOCIAL_IMAGE_PATH, siteUrl) },
+  logo: { '@type': 'ImageObject', url: siteUrlFor(LOGO_ICON_PATH, siteUrl) },
 });
 
 export const webSiteNode = ({ siteUrl, name, description }: SiteFacts): WebSiteNode => ({

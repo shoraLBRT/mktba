@@ -20,7 +20,7 @@ describe('structured data builders', () => {
       '@type': 'Organization',
       name: 'mktba',
       url: 'https://mktba.ru/',
-      logo: { '@type': 'ImageObject', url: 'https://mktba.ru/og-default.png' },
+      logo: { '@type': 'ImageObject', url: 'https://mktba.ru/icon-512.png' },
     });
     expect(webSite).toMatchObject({
       '@id': 'https://mktba.ru/#website',
