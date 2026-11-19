@@ -174,6 +174,6 @@ describe('robots.txt', () => {
       'Sitemap: https://mktba.ru/sitemap.xml',
       '',
     ]);
-    expect(CLEAN_PARAMS).toContain('utm_source');
+    expect(CLEAN_PARAMS).toEqual(expect.arrayContaining(['mazhab', 'utm_source']));
   });
 });

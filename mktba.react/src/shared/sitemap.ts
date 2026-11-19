@@ -18,9 +18,13 @@ export const DEFAULT_LOCALE = 'ru';
  */
 export const SERVED_LOCALES: readonly string[] = [DEFAULT_LOCALE];
 
-/** Query parameters that never change a page's content: Yandex folds them with `Clean-param`. */
+/**
+ * Query parameters that never change a page's content: Yandex folds them with `Clean-param`.
+ * `mazhab` only picks which opinion is shown first; the HTML carries every opinion (O-03) and the
+ * canonical URL drops it.
+ */
 export const CLEAN_PARAMS: readonly string[] = [
-  'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'yclid', 'ysclid', 'gclid', 'fbclid',
+  'mazhab', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'yclid', 'ysclid', 'gclid', 'fbclid',
 ];
 
 /** Path of the n-th (1-based) file of a split sitemap. */
