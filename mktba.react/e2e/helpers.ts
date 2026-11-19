@@ -35,13 +35,13 @@ export const API_URL = 'http://localhost:5172';
  * Creates an article through the API as the e2e admin and publishes it; returns its id and slug.
  * Without paragraphs it is a stub with no content, created the way the admin tree creates one.
  */
-export const publishArticle = async (request: APIRequestContext, title: string, paragraphs: unknown[] | null) => {
+export const publishArticle = async (request: APIRequestContext, title: string, paragraphs: unknown[] | null, extra: Record<string, unknown> = {}) => {
   const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
   expect(login.ok()).toBe(true);
   const { accessToken } = await login.json() as { accessToken: string };
   const headers = { Authorization: `Bearer ${accessToken}` };
   const created = paragraphs
-    ? await request.post(`${API_URL}/articles/content`, { headers, data: { title, paragraphs } })
+    ? await request.post(`${API_URL}/articles/content`, { headers, data: { title, paragraphs, ...extra } })
     : await request.post(`${API_URL}/articles`, { headers, data: { title } });
   expect(created.status()).toBe(201);
   const article = await created.json() as { id: number; slug: string };

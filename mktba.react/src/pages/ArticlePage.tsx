@@ -328,6 +328,9 @@ const ArticlePage: React.FC = () => {
           </h1>
           <ArticleDates publishedAt={articleContent.publishedAt} updatedAt={articleContent.updatedAt} />
 
+          {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);
+              `flow-root` keeps the float inside the column. */}
+          <div className="@container flow-root">
           <div id="article-overview" className="scroll-mt-24">
             <ArticleInfoboxPanel infobox={articleContent.infobox} />
           </div>
@@ -361,10 +364,11 @@ const ArticlePage: React.FC = () => {
               );
             })
           ) : (
-            <div className="rounded-3xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-8 py-10 text-center text-[var(--color-ink-muted)] shadow-sm">
+            <div className="flow-root rounded-3xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-8 py-10 text-center text-[var(--color-ink-muted)] shadow-sm">
               {locale.articlePage.noContent}
             </div>
           )}
+          </div>
         </div>
       </article>
 

@@ -68,6 +68,8 @@
   .article-markdown h4,
   .article-markdown h5,
   .article-markdown h6 {
+    /* Next to the floated infobox the heading (and its underline) ends at the float, not under it. */
+    display: flow-root;
     margin: 32px 0 12px;
     padding-bottom: 6px;
     border-bottom: 1px solid var(--color-border-soft);
