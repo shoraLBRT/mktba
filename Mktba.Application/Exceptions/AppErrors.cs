@@ -1,4 +1,4 @@
-namespace Mktba.Application.Exceptions;
+﻿namespace Mktba.Application.Exceptions;
 
 /// <summary>
 /// The catalog of API error codes. Every code here has a Russian translation in
@@ -40,6 +40,14 @@ public static class AppErrors
         new("article_paragraph_order_not_contiguous", "Paragraph order values must form a contiguous sequence from 1 to N.");
     public static AppError ArticleParagraphForeign => new("article_paragraph_foreign", "Some paragraph ids do not belong to this article.");
     public static AppError ArticleRelatedLinkSelf => new("article_related_link_self", "An article cannot link to itself.");
+
+    public static AppError ArticleSlugInvalid => new(
+        "article_slug_invalid",
+        $"Slug must be 1-{Services.ArticleSlugRules.MaxLength} characters of a-z, 0-9 and single hyphens, and not digits only.",
+        With(("maxLength", Services.ArticleSlugRules.MaxLength)));
+
+    public static AppError ArticleSlugTaken(string slug) =>
+        new("article_slug_taken", $"Slug '{slug}' is already used by another article.", With(("slug", slug)));
 
     public static AppError ArticleSlotOpinionsRequired(int order) =>
         new("article_slot_opinions_required", $"Slot at order {order} must have at least one opinion.", With(("order", order)));

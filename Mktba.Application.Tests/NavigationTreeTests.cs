@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Mktba.Application.Services;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
@@ -40,6 +40,17 @@ public class NavigationTreeTests : IDisposable
 
         tree.Should().HaveCount(2);
         tree.Should().AllSatisfy(node => node.Children.Should().BeEmpty());
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_ArticleWithSlug_ExposesSlugForLinks()
+    {
+        _context.Articles.Add(new Article { Title = "Намаз", Slug = "namaz" });
+        await _context.SaveChangesAsync();
+
+        var tree = await _service.GetTreeAsync();
+
+        tree.Single().Slug.Should().Be("namaz");
     }
 
     [Fact]

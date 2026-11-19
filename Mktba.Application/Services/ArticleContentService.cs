@@ -1,4 +1,4 @@
-using Mktba.Application.DTOs;
+﻿using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
@@ -11,6 +11,7 @@ namespace Mktba.Application.Services
         private readonly ArticleRepository _articleRepo;
         private readonly ParagraphRepository _paragraphRepo;
         private readonly IUnitOfWork _uow;
+        private readonly ArticleSlugAssigner _slugs;
 
         public ArticleContentService(
             ArticleRepository articleRepo,
@@ -20,6 +21,7 @@ namespace Mktba.Application.Services
             _articleRepo = articleRepo;
             _paragraphRepo = paragraphRepo;
             _uow = uow;
+            _slugs = new ArticleSlugAssigner(articleRepo);
         }
 
         public async Task<ArticleContentDto> GetContentByArticleIdAsync(int articleId)
@@ -31,6 +33,26 @@ namespace Mktba.Application.Services
             }
 
             return BuildArticleContentDto(article);
+        }
+
+        /// <summary>
+        /// Looks an article up by slug, ignoring case. A current slug returns the content; an old
+        /// slug returns the current one to redirect to.
+        /// </summary>
+        /// <exception cref="NotFoundException">No article has or had this slug.</exception>
+        public async Task<ArticleSlugLookup> GetContentBySlugAsync(string requestedSlug)
+        {
+            var slug = requestedSlug.Trim().ToLowerInvariant();
+            var articleId = await _articleRepo.FindIdBySlugAsync(slug);
+            if (articleId is not null)
+            {
+                return new ArticleSlugLookup(await GetContentByArticleIdAsync(articleId.Value), null);
+            }
+
+            var currentSlug = await _articleRepo.FindRedirectTargetSlugAsync(slug);
+            return currentSlug is not null
+                ? new ArticleSlugLookup(null, currentSlug)
+                : throw new NotFoundException(AppErrors.ArticleNotFound);
         }
 
         public async Task<ArticleContentDto> CreateArticleWithContentAsync(ArticleContentCreateDto dto)
@@ -60,6 +82,8 @@ namespace Mktba.Application.Services
                 throw new ValidationException(infoboxError!);
             }
 
+            var slug = await _slugs.ChooseAsync(dto.Slug, dto.Title, articleId: null);
+
             try
             {
                 await _uow.BeginTransactionAsync();
@@ -67,6 +91,7 @@ namespace Mktba.Application.Services
                 var article = new Article
                 {
                     Title = dto.Title,
+                    Slug = slug,
                     ParentArticleId = dto.ParentArticleId,
                     InfoboxTitle = normalizedInfobox?.Title,
                     InfoboxSubtitle = normalizedInfobox?.Subtitle,
@@ -185,6 +210,19 @@ namespace Mktba.Application.Services
                 return (false, AppErrors.ArticleNotFound);
             }
 
+            string? newSlug = null;
+            if (!string.IsNullOrWhiteSpace(dto.Slug))
+            {
+                try
+                {
+                    newSlug = await _slugs.ChooseAsync(dto.Slug, dto.Title, articleId);
+                }
+                catch (ValidationException ex)
+                {
+                    return (false, ex.Error);
+                }
+            }
+
             try
             {
                 await _uow.BeginTransactionAsync();
@@ -193,6 +231,10 @@ namespace Mktba.Application.Services
                 UpdateExistingParagraphs(existingParagraphs, incomingParagraphs);
                 await AddNewParagraphsAsync(articleId, incomingParagraphs);
                 UpdateArticleMetadata(article, dto.Title, normalizedInfobox, dto.Summary, dto.Tags, incomingRelatedLinks);
+                if (newSlug is not null)
+                {
+                    await _slugs.ChangeAsync(article, newSlug);
+                }
 
                 await _uow.SaveChangesAsync();
                 await _uow.CommitAsync();
@@ -419,7 +461,8 @@ namespace Mktba.Application.Services
                 MapInfobox(article),
                 article.Summary,
                 ParseTags(article.Tags),
-                MapRelatedLinks(article));
+                MapRelatedLinks(article),
+                article.Slug);
         }
 
         private static ArticleInfoboxDto? MapInfobox(Article article)
@@ -450,7 +493,8 @@ namespace Mktba.Application.Services
                     link.Id,
                     link.RelatedArticleId,
                     link.RelatedArticle.Title,
-                    link.Order))
+                    link.Order,
+                    link.RelatedArticle.Slug))
                 .ToList();
         }
 

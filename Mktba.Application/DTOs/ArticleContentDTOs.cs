@@ -32,13 +32,16 @@
         int Order
     );
 
+    /// <param name="RelatedArticleSlug">Current slug of the related article; ignored on update.</param>
     public record ArticleRelatedLinkDto(
         int Id,
         int RelatedArticleId,
         string RelatedArticleTitle,
-        int Order
+        int Order,
+        string RelatedArticleSlug = ""
     );
 
+    /// <param name="Slug">Optional URL segment; null or blank generates one from the title.</param>
     public record ArticleContentCreateDto(
         string Title,
         int? ParentArticleId,
@@ -46,9 +49,14 @@
         ArticleInfoboxCreateDto? Infobox,
         string? Summary,
         List<string>? Tags,
-        List<ArticleRelatedLinkCreateDto>? RelatedLinks
+        List<ArticleRelatedLinkCreateDto>? RelatedLinks,
+        string? Slug = null
     );
 
+    /// <param name="Slug">
+    /// The article's URL segment. Always set on read. On update, null or blank keeps the current
+    /// slug; a new value is validated, and the old slug keeps working as a redirect.
+    /// </param>
     public record ArticleContentDto(
         int Id,
         string Title,
@@ -56,6 +64,13 @@
         ArticleInfoboxDto? Infobox,
         string? Summary,
         List<string> Tags,
-        List<ArticleRelatedLinkDto>? RelatedLinks
+        List<ArticleRelatedLinkDto>? RelatedLinks,
+        string? Slug = null
     );
+
+    /// <summary>
+    /// Result of looking an article up by slug: either its content (the slug is current) or the
+    /// current slug to redirect to (the slug is an old one).
+    /// </summary>
+    public record ArticleSlugLookup(ArticleContentDto? Content, string? RedirectToSlug);
 }

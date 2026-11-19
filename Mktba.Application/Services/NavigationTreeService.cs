@@ -20,6 +20,7 @@ namespace Mktba.Application.Services
                 {
                     Id = row.Id,
                     Title = row.Title,
+                    Slug = row.Slug,
                     ParentArticleId = row.ParentArticleId,
                     HasContent = row.HasContent,
                     Children = new List<NavigationArticleDto>()

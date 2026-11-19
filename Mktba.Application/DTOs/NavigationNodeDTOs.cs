@@ -4,6 +4,8 @@
     {
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
+        /// <summary>URL segment of the article: the reader's link is <c>/article/{slug}</c>.</summary>
+        public string Slug { get; set; } = string.Empty;
         public int? ParentArticleId { get; set; }
         public bool HasContent { get; set; }
         public List<NavigationArticleDto>? Children { get; set; }

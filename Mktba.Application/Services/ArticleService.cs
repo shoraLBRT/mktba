@@ -32,6 +32,7 @@ namespace Mktba.Application.Services
         public async Task<ArticleReadDto> CreateAsync(ArticleCreateDto createDto)
         {
             var article = _mapper.Map<Article>(createDto);
+            article.Slug = await new ArticleSlugAssigner(_articleRepository).GenerateUniqueAsync(article.Title, articleId: null);
             await _articleRepository.AddAsync(article);
             await _articleRepository.SaveChangesAsync();
 
