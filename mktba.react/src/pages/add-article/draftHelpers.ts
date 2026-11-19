@@ -203,6 +203,13 @@ const toStoredMarkdown = (block: EditorBlock): string[] => {
   return [];
 };
 
+/**
+ * A versioned block whose other opinions are empty is saved as a plain paragraph: its only opinion
+ * is common to all schools, so it is sent without school ids and as the default
+ * (the API rejects school ids on a single-opinion paragraph).
+ */
+const asPlainOpinion = <T extends OpinionCreateDto>(opinion: T): T => ({ ...opinion, isDefault: true, schoolIds: [] });
+
 export const buildParagraphCreateDtosFromBlocks = (blocks: EditorBlock[]): ParagraphCreateDto[] => {
   const paragraphs: ParagraphCreateDto[] = [];
 
@@ -217,6 +224,9 @@ export const buildParagraphCreateDtosFromBlocks = (blocks: EditorBlock[]): Parag
           isDefault: variant.isDefault,
           schoolIds: variant.schoolIds,
         }));
+      if (opinions.length === 1) {
+        opinions[0] = asPlainOpinion(opinions[0]);
+      }
 
       if (opinions.length > 0) {
         paragraphs.push({ articleId: 0, order, opinions });
@@ -252,6 +262,9 @@ export const buildParagraphUpdateDtosFromBlocks = (blocks: EditorBlock[]): Parag
           isDefault: variant.isDefault,
           schoolIds: variant.schoolIds,
         }));
+      if (opinions.length === 1) {
+        opinions[0] = asPlainOpinion(opinions[0]);
+      }
 
       if (opinions.length > 0) {
         paragraphs.push({ id: block.paragraphId ?? 0, order, opinions });
