@@ -105,7 +105,7 @@
     "inviteTokenHint": "Создавайте invite token только в момент, когда нужно пригласить нового администратора.",
     "currentMode": "Текущий режим",
     "aiStatusReady": "Настроено и доступно",
-    "aiStatusNeedsKey": "Не хватает API key",
+    "aiStatusNotConfigured": "Провайдер не настроен: нужны Base URL, модель и API key",
     "aiStatusOff": "Отключено в приложении",
     "aiConfigurationDescription": "Параметры AI-провайдера и проверка подключения.",
     "aiEnabled": "AI включен",

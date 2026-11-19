@@ -168,14 +168,14 @@ namespace Mktba.Application.Services
             AiProviderSettings settings,
             CancellationToken cancellationToken)
         {
+            if (!IsProviderConfigured(settings))
+            {
+                return AiStyleResult.Failure(AppErrors.AiProviderNotConfigured);
+            }
+
             if (!settings.IsEnabled)
             {
                 return AiStyleResult.Failure(AppErrors.AiDisabled);
-            }
-
-            if (string.IsNullOrWhiteSpace(settings.ApiKey))
-            {
-                return AiStyleResult.Failure(AppErrors.AiApiKeyMissing);
             }
 
             var payload = new
@@ -254,9 +254,19 @@ namespace Mktba.Application.Services
                 Model = settings.Model,
                 IsEnabled = settings.IsEnabled,
                 HasApiKey = !string.IsNullOrWhiteSpace(settings.ApiKey),
+                IsConfigured = IsProviderConfigured(settings),
                 MarkdownStylingSystemPrompt = settings.MarkdownStylingSystemPrompt
             };
         }
+
+        /// <summary>
+        /// A provider is configured only when an admin has set its base URL, model and API key;
+        /// there is no default to fall back on (decision D8).
+        /// </summary>
+        internal static bool IsProviderConfigured(AiProviderSettings settings) =>
+            !string.IsNullOrWhiteSpace(settings.BaseUrl)
+            && !string.IsNullOrWhiteSpace(settings.Model)
+            && !string.IsNullOrWhiteSpace(settings.ApiKey);
 
         internal static string BuildChatCompletionsEndpoint(string baseUrl)
         {

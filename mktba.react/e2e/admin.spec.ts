@@ -36,3 +36,17 @@ test('an admin creates an article and then edits it', async ({ page }) => {
   await expect(page).toHaveURL(articleUrl);
   await expect(page.getByRole('heading', { name: editedTitle, level: 1 })).toBeVisible();
 });
+
+test('without a configured AI provider the editor explains where to set it up', async ({ page }) => {
+  await logIn(page);
+  await page.getByRole('button', { name: 'Добавить статью' }).click();
+
+  await expect(page.getByRole('button', { name: 'Улучшить с ИИ' })).toBeDisabled();
+  await expect(page.getByText(/ИИ не настроен/)).toBeVisible();
+  await page.getByRole('link', { name: 'Открыть настройки ИИ' }).click();
+
+  await expect(page).toHaveURL(/\/admin\?section=aiProvider$/);
+  const baseUrl = page.locator('input[name="ai-base-url"]');
+  await expect(baseUrl).toHaveValue('');
+  await expect(baseUrl).toHaveAttribute('placeholder', 'https://api.openai.com/v1');
+});

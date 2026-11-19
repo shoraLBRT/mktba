@@ -22,6 +22,7 @@ import { EditorHelpRail } from './add-article/EditorHelpRail';
 import { InfoboxEditor } from './add-article/InfoboxEditor';
 import { EditorOutlineRail } from './add-article/EditorOutlineRail';
 import { EditorToolbar } from './add-article/EditorToolbar';
+import { getAiAvailability } from './add-article/aiAvailability';
 import {
   addVersionToBlock,
   buildDocumentPreviewMarkdown,
@@ -144,7 +145,8 @@ const AddArticlePage: React.FC = () => {
 
   const navigationTreeQuery = useNavigationTree();
 
-  const canUseAi = Boolean(aiSettingsQuery.data?.isEnabled && aiSettingsQuery.data?.hasApiKey);
+  const aiAvailability = getAiAvailability(aiSettingsQuery.data);
+  const canUseAi = aiAvailability === 'ready';
   const isLocked = isAiRunning;
   const parentOptions = useMemo(
     () => flattenNavigationTree(navigationTreeQuery.data ?? []),
@@ -540,7 +542,7 @@ const AddArticlePage: React.FC = () => {
             <EditorToolbar
               disabled={isLocked || mutation.isPending}
               isPreview={isPreview}
-              canImproveWithAi={canUseAi}
+              aiAvailability={aiAvailability}
               isAiRunning={isAiRunning}
               isSaving={mutation.isPending}
               onTogglePreview={() => setIsPreview((current) => !current)}

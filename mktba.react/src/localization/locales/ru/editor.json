@@ -104,7 +104,10 @@
       "import": "Импорт MD",
       "importTitle": "Импортировать Markdown",
       "improveWithAi": "Улучшить с ИИ",
-      "improveWithAiTitle": "Улучшить форматирование, проверить на ошибки."
+      "improveWithAiTitle": "Улучшить форматирование, проверить на ошибки.",
+      "aiNotConfiguredHint": "ИИ не настроен: укажите адрес провайдера, модель и API-ключ.",
+      "aiDisabledHint": "ИИ выключен в настройках.",
+      "aiSettingsLink": "Открыть настройки ИИ"
     },
     "bottomToolbar": {
       "addBlock": {

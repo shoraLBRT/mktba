@@ -23,7 +23,7 @@ public static class AppErrors
     public static AppError AiTextRequired => new("ai_text_required", "Text is required.");
     public static AppError AiSettingsIncomplete => new("ai_settings_incomplete", "BaseUrl and model are required.");
     public static AppError AiDisabled => new("ai_disabled", "AI styling is disabled in the settings.");
-    public static AppError AiApiKeyMissing => new("ai_api_key_missing", "AI provider API key is not configured.");
+    public static AppError AiProviderNotConfigured => new("ai_provider_not_configured", "AI provider is not configured: base URL, model and API key are required.");
     public static AppError AiProviderEmptyResponse => new("ai_provider_empty_response", "AI provider returned empty content.");
 
     public static AppError AiProviderRequestFailed(int status, string providerMessage) =>
