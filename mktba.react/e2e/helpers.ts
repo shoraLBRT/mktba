@@ -50,3 +50,33 @@ export const publishArticle = async (request: APIRequestContext, title: string, 
   }
   return { ...article, headers };
 };
+
+/**
+ * Creates and publishes many articles with one login (bulk status changes, 100 at a time): what a
+ * scenario needs to grow the navigation tree past its windowing threshold. Returns them in order,
+ * with the headers to delete them afterwards.
+ */
+export const publishArticles = async (request: APIRequestContext, titles: string[], paragraphs: unknown[], extra: Record<string, unknown> = {}) => {
+  const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
+  expect(login.ok()).toBe(true);
+  const { accessToken } = await login.json() as { accessToken: string };
+  const headers = { Authorization: `Bearer ${accessToken}` };
+
+  const articles: { id: number; slug: string }[] = [];
+  for (const title of titles) {
+    const created = await request.post(`${API_URL}/articles/content`, { headers, data: { title, paragraphs, ...extra } });
+    expect(created.status()).toBe(201);
+    articles.push(await created.json() as { id: number; slug: string });
+  }
+
+  for (const status of ['InReview', 'Published']) {
+    for (let from = 0; from < articles.length; from += 100) {
+      const ids = articles.slice(from, from + 100).map((article) => article.id);
+      const moved = await request.post(`${API_URL}/articles/bulk/status`, { headers, data: { ids, status } });
+      expect(moved.ok()).toBe(true);
+      const { results } = await moved.json() as { results: { ok: boolean }[] };
+      expect(results.every((result) => result.ok)).toBe(true);
+    }
+  }
+  return { articles, headers };
+};
