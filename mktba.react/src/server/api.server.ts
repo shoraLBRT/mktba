@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../config';
 import { ApiError } from '../shared/api-client/apiError';
-import type { ArticleContentDto, NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
+import type { ArticleContentDto, NavigationArticleDto, SchoolDto, SitemapArticleDto } from '../shared/types/ApiTypes';
 
 // Node's `process`; the app's TypeScript config has browser types only.
 declare const process: { env: Record<string, string | undefined> };
@@ -33,6 +33,7 @@ export const serverApi = {
   getArticleContentById: (id: number) => getJson<ArticleContentDto>(`/articles/${id}/content`),
   getArticleContentBySlug: (slug: string) =>
     getJson<ArticleContentDto>(`/articles/by-slug/${encodeURIComponent(slug)}/content`),
+  getSitemapArticles: () => getJson<SitemapArticleDto[]>('/articles/sitemap'),
   getSystemSchools: () => getJson<SchoolDto[]>('/schools/system'),
   getSchoolsByArticleId: (articleId: number) => getJson<SchoolDto[]>(`/schools/article/${articleId}`),
 };
