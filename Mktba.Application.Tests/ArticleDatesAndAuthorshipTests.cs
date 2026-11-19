@@ -116,7 +116,7 @@ public class ArticleDatesAndAuthorshipTests : IDisposable
         var (success, error) = await _content.UpdateContentAsync(created.Id, created with { Title = "Новое" }, authorId: null);
 
         success.Should().BeTrue(error?.Code);
-        var content = await _content.GetContentByArticleIdAsync(created.Id, includeUnpublished: true);
+        var content = await _content.GetContentByArticleIdAsync(created.Id, TestViewers.Admin);
         content.UpdatedAt.Should().Be(Start.AddDays(1));
     }
 
@@ -124,10 +124,10 @@ public class ArticleDatesAndAuthorshipTests : IDisposable
     public async Task ChangeStatusAsync_OnFirstPublish_SetsPublishedAtWithoutTouchingUpdatedAt()
     {
         var created = await _articles.CreateAsync(new ArticleCreateDto { Title = "Намаз" }, authorId: null);
-        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.InReview);
+        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.InReview, TestViewers.Admin);
         _clock.Advance(TimeSpan.FromHours(3));
 
-        var published = await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published);
+        var published = await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published, TestViewers.Admin);
 
         published.PublishedAt.Should().Be(Start.AddHours(3));
         published.UpdatedAt.Should().Be(Start);
@@ -137,16 +137,16 @@ public class ArticleDatesAndAuthorshipTests : IDisposable
     public async Task ChangeStatusAsync_WhenArchivedAndPublishedAgain_KeepsTheFirstPublicationDate()
     {
         var created = await _articles.CreateAsync(new ArticleCreateDto { Title = "Намаз" }, authorId: null);
-        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.InReview);
-        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published);
+        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.InReview, TestViewers.Admin);
+        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published, TestViewers.Admin);
 
         _clock.Advance(TimeSpan.FromDays(30));
-        var archived = await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Archived);
+        var archived = await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Archived, TestViewers.Admin);
         archived.PublishedAt.Should().Be(Start);
 
-        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Draft);
-        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.InReview);
-        var republished = await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published);
+        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Draft, TestViewers.Admin);
+        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.InReview, TestViewers.Admin);
+        var republished = await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published, TestViewers.Admin);
 
         republished.PublishedAt.Should().Be(Start);
     }

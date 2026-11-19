@@ -3,14 +3,20 @@ using Mktba.Domain.Entities;
 
 namespace Mktba.Api.Infrastructure
 {
-    /// <summary>
-    /// Whether the caller of a public reading endpoint may see articles that are not Published:
-    /// whoever may edit any article (<see cref="Policies.CanEditAnyArticle"/>). Authors seeing their
-    /// own drafts is part of U-02 (#30).
-    /// </summary>
+    /// <summary>The caller as an <see cref="ArticleViewer"/>, built from the role policies in <see cref="Policies"/>.</summary>
     public static class ReaderAccess
     {
-        public static bool CanSeeUnpublished(this ClaimsPrincipal user) =>
-            Policies.Roles[Policies.CanEditAnyArticle].Any(role => user.IsInRole(role.ToString()));
+        /// <summary>
+        /// Admin-like rights come from <see cref="Policies.CanEditAnyArticle"/> and
+        /// <see cref="Policies.CanReviewArticles"/>; ownership counts only for roles that pass
+        /// <see cref="Policies.CanEditArticles"/>. An anonymous caller is <see cref="ArticleViewer.Anonymous"/>.
+        /// </summary>
+        public static ArticleViewer ToArticleViewer(this ClaimsPrincipal user) => new(
+            UserId: user.Passes(Policies.CanEditArticles) ? user.GetUserId() : null,
+            EditsAnyArticle: user.Passes(Policies.CanEditAnyArticle),
+            ReviewsArticles: user.Passes(Policies.CanReviewArticles));
+
+        private static bool Passes(this ClaimsPrincipal user, string policy) =>
+            Policies.Roles[policy].Any(role => user.IsInRole(role.ToString()));
     }
 }

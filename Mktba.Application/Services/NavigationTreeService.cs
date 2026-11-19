@@ -1,4 +1,5 @@
 ﻿using Mktba.Application.DTOs;
+using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
 
 namespace Mktba.Application.Services
@@ -13,14 +14,15 @@ namespace Mktba.Application.Services
         }
 
         /// <summary>
-        /// Builds the article tree. Without <paramref name="includeUnpublished"/> (anonymous readers)
-        /// only Published articles are returned, and a Published article whose parent is not
-        /// Published is hidden together with its subtree. Editors get every article; an article
-        /// whose parent no longer exists becomes a root.
+        /// Builds the article tree from the articles <paramref name="viewer"/> may see
+        /// (<see cref="ArticleViewer.CanSee(Article)"/>): an article whose parent the viewer may not
+        /// see is hidden together with its subtree, unless the viewer may edit the article: then it
+        /// becomes a root, as does an article whose parent no longer exists. Each node says whether
+        /// the viewer may edit it.
         /// </summary>
-        public async Task<List<NavigationArticleDto>> GetTreeAsync(bool includeUnpublished)
+        public async Task<List<NavigationArticleDto>> GetTreeAsync(ArticleViewer viewer)
         {
-            var rows = await _articleRepository.GetNavigationRowsAsync(publishedOnly: !includeUnpublished);
+            var rows = await _articleRepository.GetNavigationRowsAsync(viewer);
             var lookup = rows
                 .Select(row => new NavigationArticleDto
                 {
@@ -30,6 +32,7 @@ namespace Mktba.Application.Services
                     ParentArticleId = row.ParentArticleId,
                     Status = row.Status,
                     HasContent = row.HasContent,
+                    CanEdit = row.CanEdit,
                     Children = new List<NavigationArticleDto>()
                 })
                 .ToDictionary(article => article.Id);
@@ -49,7 +52,7 @@ namespace Mktba.Application.Services
                     parent.Children ??= new List<NavigationArticleDto>();
                     parent.Children.Add(article);
                 }
-                else if (includeUnpublished)
+                else if (article.CanEdit)
                 {
                     roots.Add(article);
                 }

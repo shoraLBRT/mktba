@@ -14,6 +14,7 @@ import { collectValidParents } from '../shared/articleTree';
 import CreateNodeModal from './CreateNodeModal';
 import MoveNodeModal from './MoveNodeModal';
 import NavigationTree from './NavigationTree';
+import { useCurrentUser } from '../auth/useCurrentUser';
 
 type CreateNodeTarget = {
   parentId?: number;
@@ -121,7 +122,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const { data: navigationTree, isLoading, error } = useNavigationTree();
   // Positions only make sense in the whole tree, so reordering is off while a search filters it.
-  const canReorder = showArticleEditActions && !searchValue.trim() && !moveNodeMutation.isPending;
+  // Moving articles in the tree is admin-only, even for an author's own articles.
+  const canMoveArticles = useCurrentUser().can('canEditAnyArticle');
+  const canReorder = showArticleEditActions && canMoveArticles && !searchValue.trim() && !moveNodeMutation.isPending;
 
   const filteredNavigationTree = useMemo(() => {
     if (!navigationTree) {

@@ -5,25 +5,33 @@ namespace Mktba.Api.Infrastructure;
 
 /// <summary>
 /// The named authorization policies. Every protected endpoint names one of these; no endpoint checks
-/// a role itself. A policy says which roles pass it; per-object rules (an author editing only their
-/// own articles, U-02 #30) are a separate check on top and do not exist yet, so every policy that
-/// would need one is admin-only for now.
+/// a role itself. A policy says which roles pass it; per-article rules (an author editing only their
+/// own articles, U-02 #30) are a separate check on top: <see cref="ArticleAccessGuard"/>, with the
+/// rules in <see cref="ArticleViewer"/>.
 /// </summary>
 public static class Policies
 {
     /// <summary>Any signed-in user, whatever the role.</summary>
     public const string Authenticated = nameof(Authenticated);
 
-    /// <summary>Create new articles (they start as drafts, the creator is their author): Author, Admin.</summary>
+    /// <summary>
+    /// Create new articles (they start as drafts, the creator is their author), and pass the role
+    /// gate of the endpoints for one existing article, where the per-article check then lets an author
+    /// through only for articles they wrote or co-author: Author, Admin.
+    /// </summary>
     public const string CanEditArticles = nameof(CanEditArticles);
 
     /// <summary>
-    /// Change, read the drafts and history of, or delete an existing article whoever wrote it: Admin.
-    /// Authors get their own articles through the per-object check of U-02 (#30).
+    /// Change, read the drafts and history of any article whoever wrote it, and the actions no author
+    /// has even on their own article: delete, move in the tree, change authorship, the legacy
+    /// <c>/paragraph</c> endpoints: Admin.
     /// </summary>
     public const string CanEditAnyArticle = nameof(CanEditAnyArticle);
 
-    /// <summary>Move articles between statuses, publication included (D4, #20): Admin.</summary>
+    /// <summary>
+    /// Make any status move, publication included (D4, #20): Admin. Authors only submit and take back
+    /// their own articles (<see cref="ArticleStatusTransitions.IsAuthorMove"/>).
+    /// </summary>
     public const string CanReviewArticles = nameof(CanReviewArticles);
 
     /// <summary>Mark a revision as verified by a scholar (D5, #115): Scholar, Admin. No endpoint uses it yet.</summary>

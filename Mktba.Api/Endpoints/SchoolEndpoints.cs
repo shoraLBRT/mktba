@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Mktba.Api.Infrastructure;
 using Mktba.Application.DTOs;
 using Mktba.Application.Services;
@@ -24,25 +25,33 @@ public static class SchoolEndpoints
             return Results.Ok(schools);
         }).Produces<List<SchoolDto>>();
 
-        // POST /schools — create a custom school for an article (admin only)
-        group.MapPost("/", async (SchoolCreateDto dto, SchoolService service, CancellationToken ct) =>
+        // POST /schools — create a custom school for an article the caller may edit
+        group.MapPost("/", async (SchoolCreateDto dto, ClaimsPrincipal user, ArticleAccessGuard guard, SchoolService service, CancellationToken ct) =>
         {
+            if (await guard.CheckAsync(user, dto.ArticleScopeId, ArticleOperationRequirement.Edit) is { } denied)
+                return denied;
+
             var created = await service.CreateCustomSchoolAsync(dto, ct);
             return Results.Created($"/schools/{created.Id}", created);
         })
+            .WithSummary("Creates a custom school for one article: admins for any article, authors for their own.")
             .Produces<SchoolDto>(StatusCodes.Status201Created)
-            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
-            .RequireAuthorization(Policies.CanEditAnyArticle);
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound)
+            .RequireAuthorization(Policies.CanEditArticles);
 
-        // DELETE /schools/{id} — delete a custom school (admin only)
-        group.MapDelete("/{id:int}", async (int id, SchoolService service, CancellationToken ct) =>
+        // DELETE /schools/{id} — delete a custom school of an article the caller may edit
+        group.MapDelete("/{id:int}", async (int id, ClaimsPrincipal user, ArticleAccessGuard guard, SchoolService service, CancellationToken ct) =>
         {
+            if (await guard.CheckSchoolAsync(user, id) is { } denied)
+                return denied;
+
             await service.DeleteCustomSchoolAsync(id, ct);
             return Results.NoContent();
         })
+            .WithSummary("Deletes a custom school: admins any, authors those of their own articles.")
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
-            .RequireAuthorization(Policies.CanEditAnyArticle);
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound)
+            .RequireAuthorization(Policies.CanEditArticles);
 
         return builder;
     }

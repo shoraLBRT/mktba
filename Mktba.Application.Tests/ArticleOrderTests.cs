@@ -108,7 +108,7 @@ public class ArticleOrderTests : IDisposable
 
         await _articles.MoveAsync(child, new ArticleMoveDto { ParentArticleId = null });
 
-        (await _tree.GetTreeAsync(includeUnpublished: true)).Select(n => n.Title).Should().Equal("Корень", "Дочерняя");
+        (await _tree.GetTreeAsync(TestViewers.Admin)).Select(n => n.Title).Should().Equal("Корень", "Дочерняя");
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public class ArticleOrderTests : IDisposable
 
     private async Task<List<string>> TitlesUnder(int parentId)
     {
-        var tree = await _tree.GetTreeAsync(includeUnpublished: true);
+        var tree = await _tree.GetTreeAsync(TestViewers.Admin);
         return Find(tree, parentId)!.Children!.Select(node => node.Title).ToList();
     }
 

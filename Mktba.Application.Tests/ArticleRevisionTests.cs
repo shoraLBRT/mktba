@@ -57,7 +57,7 @@ public class ArticleRevisionTests : IDisposable
     private async Task<ArticleContentDto> EditAsync(int articleId, string title, string text, int? authorId, string? comment = null)
     {
         _context.ChangeTracker.Clear();
-        var current = await _content.GetContentByArticleIdAsync(articleId, includeUnpublished: true);
+        var current = await _content.GetContentByArticleIdAsync(articleId, TestViewers.Admin);
         var edited = current with
         {
             Title = title,
@@ -67,7 +67,7 @@ public class ArticleRevisionTests : IDisposable
         var (success, error) = await _content.UpdateContentAsync(articleId, edited, authorId);
         success.Should().BeTrue(error?.Code);
         _context.ChangeTracker.Clear();
-        return await _content.GetContentByArticleIdAsync(articleId, includeUnpublished: true);
+        return await _content.GetContentByArticleIdAsync(articleId, TestViewers.Admin);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class ArticleRevisionTests : IDisposable
     {
         var created = await CreateAsync(authorId: null);
         _context.ChangeTracker.Clear();
-        var current = await _content.GetContentByArticleIdAsync(created.Id, includeUnpublished: true);
+        var current = await _content.GetContentByArticleIdAsync(created.Id, TestViewers.Admin);
 
         var (success, error) = await _content.UpdateContentAsync(
             created.Id, current with { EditComment = new string('x', 501) }, authorId: null);
@@ -140,7 +140,7 @@ public class ArticleRevisionTests : IDisposable
         restored.AuthorId.Should().Be(restorerId);
         restored.Comment.Should().Be("Откат к ревизии 1");
         _context.ChangeTracker.Clear();
-        var content = await _content.GetContentByArticleIdAsync(created.Id, includeUnpublished: true);
+        var content = await _content.GetContentByArticleIdAsync(created.Id, TestViewers.Admin);
         content.Title.Should().Be("Намаз");
         content.Paragraphs.Single().Opinions.Single().Content.Should().Be("Первый текст");
         var third = await _revisions.GetAsync(created.Id, 3);
@@ -183,8 +183,8 @@ public class ArticleRevisionTests : IDisposable
     public async Task Publish_RecordsLatestRevisionAsPublished_AndLaterEditsDoNotMoveIt()
     {
         var created = await CreateAsync(authorId: null);
-        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.InReview);
-        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published);
+        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.InReview, TestViewers.Admin);
+        await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published, TestViewers.Admin);
         await EditAsync(created.Id, "Правка после публикации", "Второй текст", authorId: null);
 
         var list = await _revisions.ListAsync(created.Id);

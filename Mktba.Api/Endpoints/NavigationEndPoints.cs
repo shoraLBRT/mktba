@@ -13,7 +13,7 @@ namespace Mktba.Api.Endpoints
 
             group.MapGet("/tree", async (ClaimsPrincipal user, NavigationTreeService service) =>
             {
-                var tree = await service.GetTreeAsync(user.CanSeeUnpublished());
+                var tree = await service.GetTreeAsync(user.ToArticleViewer());
                 return Results.Ok(tree);
             })
             .WithDescription(

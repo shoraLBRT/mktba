@@ -12,6 +12,8 @@ namespace Mktba.Application.DTOs
         /// <summary>Publication status; anonymous readers only ever see Published.</summary>
         public ArticleStatus Status { get; set; }
         public bool HasContent { get; set; }
+        /// <summary>Whether the caller may edit the article: an admin any, an author their own (U-02); false for anonymous readers.</summary>
+        public bool CanEdit { get; set; }
         public List<NavigationArticleDto>? Children { get; set; }
     }
 }

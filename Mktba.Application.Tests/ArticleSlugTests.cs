@@ -55,7 +55,7 @@ public class ArticleSlugTests : IDisposable
     {
         var (success, error) = await UpdateAsync(article with { Slug = slug });
         success.Should().BeTrue(error?.Code);
-        return await _service.GetContentByArticleIdAsync(article.Id, includeUnpublished: true);
+        return await _service.GetContentByArticleIdAsync(article.Id, TestViewers.Admin);
     }
 
     [Fact]
@@ -116,10 +116,10 @@ public class ArticleSlugTests : IDisposable
         var renamed = await RenameSlugAsync(article, "salat");
 
         renamed.Slug.Should().Be("salat");
-        var byOld = await _service.GetContentBySlugAsync("namaz", includeUnpublished: true);
+        var byOld = await _service.GetContentBySlugAsync("namaz", TestViewers.Admin);
         byOld.Content.Should().BeNull();
         byOld.RedirectToSlug.Should().Be("salat");
-        var byNew = await _service.GetContentBySlugAsync("salat", includeUnpublished: true);
+        var byNew = await _service.GetContentBySlugAsync("salat", TestViewers.Admin);
         byNew.Content!.Id.Should().Be(article.Id);
     }
 
@@ -130,7 +130,7 @@ public class ArticleSlugTests : IDisposable
         await RenameSlugAsync(article, "salat");
         await RenameSlugAsync(article with { Slug = "salat" }, "salyat");
 
-        var lookup = await _service.GetContentBySlugAsync("namaz", includeUnpublished: true);
+        var lookup = await _service.GetContentBySlugAsync("namaz", TestViewers.Admin);
 
         lookup.RedirectToSlug.Should().Be("salyat");
     }
@@ -144,8 +144,8 @@ public class ArticleSlugTests : IDisposable
         var reverted = await RenameSlugAsync(article, "namaz");
 
         reverted.Slug.Should().Be("namaz");
-        (await _service.GetContentBySlugAsync("namaz", includeUnpublished: true)).Content!.Id.Should().Be(article.Id);
-        (await _service.GetContentBySlugAsync("salat", includeUnpublished: true)).RedirectToSlug.Should().Be("namaz");
+        (await _service.GetContentBySlugAsync("namaz", TestViewers.Admin)).Content!.Id.Should().Be(article.Id);
+        (await _service.GetContentBySlugAsync("salat", TestViewers.Admin)).RedirectToSlug.Should().Be("namaz");
         _context.ArticleSlugRedirects.Select(r => r.Slug).Should().BeEquivalentTo(["salat"]);
     }
 
@@ -187,7 +187,7 @@ public class ArticleSlugTests : IDisposable
     [Fact]
     public async Task GivenUnknownSlug_WhenLookingUp_ThenThrowsNotFound()
     {
-        var act = () => _service.GetContentBySlugAsync("missing", includeUnpublished: true);
+        var act = () => _service.GetContentBySlugAsync("missing", TestViewers.Admin);
 
         (await act.Should().ThrowAsync<NotFoundException>())
             .Which.Error.Code.Should().Be(AppErrors.ArticleNotFound.Code);
@@ -198,7 +198,7 @@ public class ArticleSlugTests : IDisposable
     {
         var article = await CreateAsync("Намаз");
 
-        var lookup = await _service.GetContentBySlugAsync("NAMAZ", includeUnpublished: true);
+        var lookup = await _service.GetContentBySlugAsync("NAMAZ", TestViewers.Admin);
 
         lookup.Content!.Id.Should().Be(article.Id);
     }
@@ -215,7 +215,7 @@ public class ArticleSlugTests : IDisposable
         });
         success.Should().BeTrue();
 
-        var reloaded = await _service.GetContentByArticleIdAsync(article.Id, includeUnpublished: true);
+        var reloaded = await _service.GetContentByArticleIdAsync(article.Id, TestViewers.Admin);
         reloaded.RelatedLinks!.Single().RelatedArticleSlug.Should().Be("post");
     }
 }

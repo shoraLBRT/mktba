@@ -14,7 +14,7 @@ using Mktba.Infrastructure.Data;
 namespace Mktba.Api.Tests;
 
 /// <summary>
-/// U-01 (#29): every endpoint the API maps is listed here with the policy it must require, and
+/// U-01 (#29), U-02 (#30): every endpoint the API maps is listed here with the policy it must require, and
 /// every protected endpoint is called as anonymous and as each role. A new endpoint fails these
 /// tests until it is added to <see cref="ExpectedPolicies"/>.
 /// </summary>
@@ -42,26 +42,28 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
 
         ["POST /articles/"] = Policies.CanEditArticles,
         ["POST /articles/content"] = Policies.CanEditArticles,
+        // U-02 (#30): the role gate; the per-article check (ArticleOwnershipEndpointTests) then
+        // lets an author through only for articles they wrote or co-author.
 
         ["PUT /articles/{id:int}"] = Policies.CanEditAnyArticle,
-        ["PUT /articles/{id:int}/content"] = Policies.CanEditAnyArticle,
+        ["PUT /articles/{id:int}/content"] = Policies.CanEditArticles,
         ["DELETE /articles/{id:int}"] = Policies.CanEditAnyArticle,
         ["POST /articles/{id:int}/move"] = Policies.CanEditAnyArticle,
         ["GET /articles/{id:int}/authors"] = Policies.CanEditAnyArticle,
         ["PUT /articles/{id:int}/authors"] = Policies.CanEditAnyArticle,
-        ["GET /articles/{id:int}/revisions"] = Policies.CanEditAnyArticle,
-        ["GET /articles/{id:int}/revisions/{number:int}"] = Policies.CanEditAnyArticle,
-        ["GET /articles/{id:int}/revisions/compare"] = Policies.CanEditAnyArticle,
-        ["POST /articles/{id:int}/revisions/{number:int}/restore"] = Policies.CanEditAnyArticle,
+        ["GET /articles/{id:int}/revisions"] = Policies.CanEditArticles,
+        ["GET /articles/{id:int}/revisions/{number:int}"] = Policies.CanEditArticles,
+        ["GET /articles/{id:int}/revisions/compare"] = Policies.CanEditArticles,
+        ["POST /articles/{id:int}/revisions/{number:int}/restore"] = Policies.CanEditArticles,
         ["GET /paragraph/"] = Policies.CanEditAnyArticle,
         ["GET /paragraph/{id}"] = Policies.CanEditAnyArticle,
         ["POST /paragraph/"] = Policies.CanEditAnyArticle,
         ["PUT /paragraph/{id}"] = Policies.CanEditAnyArticle,
         ["DELETE /paragraph/{id}"] = Policies.CanEditAnyArticle,
-        ["POST /schools/"] = Policies.CanEditAnyArticle,
-        ["DELETE /schools/{id:int}"] = Policies.CanEditAnyArticle,
+        ["POST /schools/"] = Policies.CanEditArticles,
+        ["DELETE /schools/{id:int}"] = Policies.CanEditArticles,
 
-        ["POST /articles/{id:int}/status"] = Policies.CanReviewArticles,
+        ["POST /articles/{id:int}/status"] = Policies.CanEditArticles,
 
         ["POST /admin/cleanup"] = Policies.CanConfigure,
         ["GET /admin/ai-settings"] = Policies.CanConfigure,
