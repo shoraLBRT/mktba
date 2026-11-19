@@ -26,6 +26,7 @@ namespace Mktba.Application
             services.AddScoped<AdminAuthService>();
             services.AddScoped<InviteService>();
             services.AddScoped<UserAdminService>();
+            services.AddScoped<UserProfileService>();
             services.AddScoped<FeedbackService>();
             services.AddScoped<FeedbackDeliveryService>();
             services.AddSingleton<IFeedbackIssueTracker, GitHubIssueClient>();

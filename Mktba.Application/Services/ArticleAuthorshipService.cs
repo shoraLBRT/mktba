@@ -73,7 +73,7 @@ namespace Mktba.Application.Services
         /// <summary>Every user, for choosing authors in the admin editor.</summary>
         public async Task<List<UserSummaryDto>> ListUsersAsync()
             => (await _users.ListOrderedByEmailAsync())
-                .Select(user => new UserSummaryDto { Id = user.Id, Email = user.Email, Role = user.Role })
+                .Select(user => new UserSummaryDto { Id = user.Id, Email = user.Email, DisplayName = user.DisplayName, Role = user.Role })
                 .ToList();
 
         private static ArticleAuthorsDto ToDto(Article article) => new()

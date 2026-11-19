@@ -25,6 +25,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<OpinionSource> OpinionSources { get; set; } = null!;
         public DbSet<AiProviderSettings> AiProviderSettings { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
+        public DbSet<UserLink> UserLinks { get; set; } = null!;
         public DbSet<Invite> Invites { get; set; } = null!;
         public DbSet<RefreshSession> RefreshSessions { get; set; } = null!;
         public DbSet<FeedbackMessage> FeedbackMessages { get; set; } = null!;
@@ -49,6 +50,24 @@ namespace Mktba.Infrastructure.Data
 
         /// <summary>Longest social image URL of an article.</summary>
         public const int SocialImageUrlMaxLength = 2048;
+
+        /// <summary>Longest display name of a user profile.</summary>
+        public const int UserDisplayNameMaxLength = 100;
+
+        /// <summary>Longest "about" text of a user profile.</summary>
+        public const int UserBioMaxLength = 1000;
+
+        /// <summary>Longest self-declared degree of a user profile.</summary>
+        public const int UserDegreeMaxLength = 150;
+
+        /// <summary>Longest self-declared institution of a user profile.</summary>
+        public const int UserInstitutionMaxLength = 200;
+
+        /// <summary>Longest label of a profile link.</summary>
+        public const int UserLinkLabelMaxLength = 60;
+
+        /// <summary>Longest address of a profile link.</summary>
+        public const int UserLinkUrlMaxLength = 2048;
 
         /// <summary>Longest title of a source.</summary>
         public const int SourceTitleMaxLength = 300;
@@ -396,6 +415,29 @@ namespace Mktba.Infrastructure.Data
                 .HasConversion<string>()
                 .HasMaxLength(16)
                 .IsRequired();
+
+            // User profile (U-07): every field optional; the slug is unique among the users who have one.
+            modelBuilder.Entity<User>(user =>
+            {
+                user.Property(u => u.DisplayName).HasMaxLength(UserDisplayNameMaxLength);
+                user.Property(u => u.Slug).HasMaxLength(ArticleSlugMaxLength);
+                user.HasIndex(u => u.Slug).IsUnique();
+                user.Property(u => u.AvatarUrl).HasMaxLength(SocialImageUrlMaxLength);
+                user.Property(u => u.Bio).HasMaxLength(UserBioMaxLength);
+                user.Property(u => u.Degree).HasMaxLength(UserDegreeMaxLength);
+                user.Property(u => u.Institution).HasMaxLength(UserInstitutionMaxLength);
+                user.HasMany(u => u.Links)
+                    .WithOne()
+                    .HasForeignKey(link => link.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<UserLink>(link =>
+            {
+                link.Property(l => l.Label).HasMaxLength(UserLinkLabelMaxLength).IsRequired();
+                link.Property(l => l.Url).HasMaxLength(UserLinkUrlMaxLength).IsRequired();
+                link.HasIndex(l => new { l.UserId, l.Order });
+            });
 
             // Invite (U-04): single-use, guarded by UsedAtUtc/RevokedAtUtc as concurrency tokens.
             modelBuilder.Entity<Invite>(invite =>

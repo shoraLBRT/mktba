@@ -34,4 +34,31 @@ public class User
     public string? ExternalId { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// The name readers see (U-07, #72); null until the user fills in their profile. A user without
+    /// one is shown nowhere in public: nothing ever falls back to the email.
+    /// </summary>
+    public string? DisplayName { get; set; }
+
+    /// <summary>
+    /// URL segment of the public profile (<c>/authors/{slug}</c>), unique; set exactly when
+    /// <see cref="DisplayName"/> is. Follows the article slug rules. A changed slug is not kept.
+    /// </summary>
+    public string? Slug { get; set; }
+
+    /// <summary>Avatar address: an absolute http(s) URL or a site-relative path. There is no upload (U-08, #73).</summary>
+    public string? AvatarUrl { get; set; }
+
+    /// <summary>A few words about the user: plain text, line breaks allowed, no markup.</summary>
+    public string? Bio { get; set; }
+
+    /// <summary>Academic degree as the user states it. Self-declared: confirming it is the verification epic's job (V-01, #117).</summary>
+    public string? Degree { get; set; }
+
+    /// <summary>Where the user studied or works, as they state it. Self-declared, like <see cref="Degree"/>.</summary>
+    public string? Institution { get; set; }
+
+    /// <summary>Labelled links to the user's pages elsewhere, in <see cref="UserLink.Order"/>.</summary>
+    public List<UserLink> Links { get; set; } = new();
 }

@@ -45,7 +45,11 @@ public static partial class ArticleSlugRules
     /// everything else collapsed into single hyphens, trimmed to <see cref="MaxLength"/>.
     /// A result of digits only gets the <c>article-</c> prefix, an empty one is <see cref="Fallback"/>.
     /// </summary>
-    public static string FromTitle(string? title)
+    /// <param name="fallback">
+    /// The word used instead of <see cref="Fallback"/> by slugs of something other than an article
+    /// (user profiles: <see cref="UserProfileRules.SlugFallback"/>).
+    /// </param>
+    public static string FromTitle(string? title, string fallback = Fallback)
     {
         var lowered = (title ?? string.Empty).ToLowerInvariant();
 
@@ -74,12 +78,12 @@ public static partial class ArticleSlugRules
         var slug = NonSlugCharacters().Replace(withoutMarks.ToString(), "-").Trim('-');
         if (slug.Length == 0)
         {
-            return Fallback;
+            return fallback;
         }
 
         if (slug.All(char.IsAsciiDigit))
         {
-            slug = $"{Fallback}-{slug}";
+            slug = $"{fallback}-{slug}";
         }
 
         return Truncate(slug, MaxLength);

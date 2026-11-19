@@ -38,6 +38,6 @@ public class UserAdminService
 
         user.Role = role;
         await _users.SaveChangesAsync();
-        return new UserSummaryDto { Id = user.Id, Email = user.Email, Role = user.Role };
+        return new UserSummaryDto { Id = user.Id, Email = user.Email, DisplayName = user.DisplayName, Role = user.Role };
     }
 }
