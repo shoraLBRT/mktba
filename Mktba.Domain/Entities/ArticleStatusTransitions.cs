@@ -1,8 +1,8 @@
 namespace Mktba.Domain.Entities
 {
     /// <summary>
-    /// The single place that says which status changes are allowed. Today every editor is an admin,
-    /// so the rules do not depend on the role; per-role rules arrive with U-01/U-02.
+    /// The single place that says which status changes exist. Who may make which of them is
+    /// <see cref="ArticleViewer.CanChangeStatus"/>: a reviewer any, an author only <see cref="IsAuthorMove"/>.
     /// </summary>
     public static class ArticleStatusTransitions
     {
@@ -24,5 +24,12 @@ namespace Mktba.Domain.Entities
             Allowed.TryGetValue(from, out var targets) ? targets : Array.Empty<ArticleStatus>();
 
         public static bool IsAllowed(ArticleStatus from, ArticleStatus to) => AllowedFrom(from).Contains(to);
+
+        /// <summary>
+        /// The moves an author may make on their own article: submit a draft for review, or take it
+        /// back to a draft while it waits. Publishing, archiving and reviving need a reviewer (D4).
+        /// </summary>
+        public static bool IsAuthorMove(ArticleStatus from, ArticleStatus to) =>
+            (from, to) is (ArticleStatus.Draft, ArticleStatus.InReview) or (ArticleStatus.InReview, ArticleStatus.Draft);
     }
 }

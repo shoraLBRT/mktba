@@ -42,7 +42,7 @@ public class ArticleSeoTests : IDisposable
     private async Task<ArticleContentDto> ReloadAsync(int id)
     {
         _context.ChangeTracker.Clear();
-        return await _content.GetContentByArticleIdAsync(id, includeUnpublished: true);
+        return await _content.GetContentByArticleIdAsync(id, TestViewers.Admin);
     }
 
     private async Task<(bool Success, AppError? Error)> UpdateSeoAsync(int id, ArticleSeoDto? seo)

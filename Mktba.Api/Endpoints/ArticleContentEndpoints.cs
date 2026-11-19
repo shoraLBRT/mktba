@@ -13,13 +13,13 @@ namespace Mktba.Api.Endpoints
 
             group.MapGet("/{id:int}/content", async (int id, ClaimsPrincipal user, ArticleContentService service) =>
             {
-                var content = await service.GetContentByArticleIdAsync(id, user.CanSeeUnpublished());
+                var content = await service.GetContentByArticleIdAsync(id, user.ToArticleViewer());
                 return Results.Ok(content);
             }).Produces<ArticleContentDto>().ProducesApiProblem(StatusCodes.Status404NotFound);
 
             group.MapGet("/by-slug/{slug}/content", async (string slug, string? locale, ClaimsPrincipal user, ArticleContentService service) =>
             {
-                var lookup = await service.GetContentBySlugAsync(slug, user.CanSeeUnpublished(), locale);
+                var lookup = await service.GetContentBySlugAsync(slug, user.ToArticleViewer(), locale);
                 return lookup.Content is not null
                     ? Results.Ok(lookup.Content)
                     : Results.Redirect(BySlugContentPath(lookup.RedirectToSlug!, locale), permanent: false);
@@ -30,7 +30,8 @@ namespace Mktba.Api.Endpoints
                 + "Location set to the current slug's URL, so clients that follow redirects get the content "
                 + "and can compare its slug with the one they asked for. The redirect is temporary on purpose: "
                 + "an old slug can become current again, and a cached permanent redirect would then loop. "
-                + "Anonymous readers get 404 for an article that is not Published. Slugs are unique per "
+                + "An article that is not Published answers 404 except to an admin or its own author or "
+                + "co-author. Slugs are unique per "
                 + "language: the optional locale query parameter (default ru) picks the language, and an "
                 + "unsupported one answers 400 locale_unsupported.")
             .Produces<ArticleContentDto>()
@@ -48,7 +49,16 @@ namespace Mktba.Api.Endpoints
             {
                 var (success, error) = await service.UpdateContentAsync(id, dto, user.GetUserId());
                 return success ? Results.NoContent() : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, error!);
-            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization(Policies.CanEditAnyArticle);
+            })
+            .WithSummary("Saves the article's content as a new revision.")
+            .WithDescription(
+                "Admins may save any article, authors only those they wrote or co-author (403 forbidden "
+                + "for a Published article of someone else, 404 article_not_found for their other drafts). "
+                + "A save of a Published article is live at once; review of such edits is D4 (#20).")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
+            .RequireAuthorization(Policies.CanEditArticles)
+            .RequireArticleAccess(ArticleOperationRequirement.Edit);
 
             MapRevisionEndpoints(group);
 
@@ -62,21 +72,24 @@ namespace Mktba.Api.Endpoints
             .WithSummary("The article's revisions, newest first.")
             .Produces<List<ArticleRevisionSummaryDto>>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(Policies.CanEditAnyArticle);
+            .RequireAuthorization(Policies.CanEditArticles)
+            .RequireArticleAccess(ArticleOperationRequirement.Edit);
 
             group.MapGet("/{id:int}/revisions/{number:int}", async (int id, int number, ArticleRevisionService service) =>
                 Results.Ok(await service.GetAsync(id, number)))
             .WithSummary("One revision with its snapshot.")
             .Produces<ArticleRevisionDto>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(Policies.CanEditAnyArticle);
+            .RequireAuthorization(Policies.CanEditArticles)
+            .RequireArticleAccess(ArticleOperationRequirement.Edit);
 
             group.MapGet("/{id:int}/revisions/compare", async (int id, int from, int to, ArticleRevisionService service) =>
                 Results.Ok(await service.CompareAsync(id, from, to)))
             .WithSummary("Two revisions with their snapshots; the client renders the difference.")
             .Produces<ArticleRevisionComparisonDto>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(Policies.CanEditAnyArticle);
+            .RequireAuthorization(Policies.CanEditArticles)
+            .RequireArticleAccess(ArticleOperationRequirement.Edit);
 
             group.MapPost("/{id:int}/revisions/{number:int}/restore", async (int id, int number, ArticleRevisionRestoreDto dto, ClaimsPrincipal user, ArticleRevisionService service) =>
                 Results.Ok(await service.RestoreAsync(id, number, dto.Comment, user.GetUserId())))
@@ -88,7 +101,8 @@ namespace Mktba.Api.Endpoints
             .Produces<ArticleRevisionSummaryDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest)
             .ProducesApiProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(Policies.CanEditAnyArticle);
+            .RequireAuthorization(Policies.CanEditArticles)
+            .RequireArticleAccess(ArticleOperationRequirement.Edit);
         }
 
         private static string BySlugContentPath(string slug, string? locale) =>

@@ -28,20 +28,21 @@ namespace Mktba.Application.Services
         }
 
         /// <summary>
-        /// The article with its content. Without <paramref name="includeUnpublished"/> (anonymous
-        /// readers) a non-Published article counts as missing and related links to non-Published
-        /// articles are left out.
+        /// The article with its content. An article <paramref name="viewer"/> may not see
+        /// (<see cref="ArticleViewer.CanSee(Article)"/>) counts as missing. Related links to
+        /// non-Published articles are shown only to those who may edit the article, so a save from
+        /// the editor keeps them.
         /// </summary>
         /// <exception cref="NotFoundException">No such article, or it is not visible.</exception>
-        public async Task<ArticleContentDto> GetContentByArticleIdAsync(int articleId, bool includeUnpublished)
+        public async Task<ArticleContentDto> GetContentByArticleIdAsync(int articleId, ArticleViewer viewer)
         {
             var article = await _articleRepo.GetByIdWithContentAsync(articleId);
-            if (article is null || !ArticleVisibility.IsVisible(article.Status, includeUnpublished))
+            if (article is null || !viewer.CanSee(article))
             {
                 throw new NotFoundException(AppErrors.ArticleNotFound);
             }
 
-            return BuildArticleContentDto(article, includeUnpublished);
+            return BuildArticleContentDto(article, includeUnpublishedLinks: viewer.CanEdit(article));
         }
 
         /// <summary>
@@ -51,7 +52,7 @@ namespace Mktba.Application.Services
         /// <param name="requestedLocale">The article's locale; null or blank means <see cref="Locales.Default"/>.</param>
         /// <exception cref="ValidationException"><c>locale_unsupported</c>.</exception>
         /// <exception cref="NotFoundException">No visible article in the locale has or had this slug.</exception>
-        public async Task<ArticleSlugLookup> GetContentBySlugAsync(string requestedSlug, bool includeUnpublished, string? requestedLocale = null)
+        public async Task<ArticleSlugLookup> GetContentBySlugAsync(string requestedSlug, ArticleViewer viewer, string? requestedLocale = null)
         {
             var locale = Locales.Normalize(requestedLocale)
                 ?? throw new ValidationException(AppErrors.LocaleUnsupported(requestedLocale!));
@@ -59,10 +60,10 @@ namespace Mktba.Application.Services
             var articleId = await _articleRepo.FindIdBySlugAsync(locale, slug);
             if (articleId is not null)
             {
-                return new ArticleSlugLookup(await GetContentByArticleIdAsync(articleId.Value, includeUnpublished), null);
+                return new ArticleSlugLookup(await GetContentByArticleIdAsync(articleId.Value, viewer), null);
             }
 
-            var currentSlug = await _articleRepo.FindRedirectTargetSlugAsync(locale, slug, publishedOnly: !includeUnpublished);
+            var currentSlug = await _articleRepo.FindRedirectTargetSlugAsync(locale, slug, viewer);
             return currentSlug is not null
                 ? new ArticleSlugLookup(null, currentSlug)
                 : throw new NotFoundException(AppErrors.ArticleNotFound);
@@ -195,7 +196,7 @@ namespace Mktba.Application.Services
                 var createdArticle = await _articleRepo.GetByIdWithContentAsync(article.Id)
                     ?? throw new NotFoundException(AppErrors.ArticleNotFound);
 
-                return BuildArticleContentDto(createdArticle, includeUnpublished: true);
+                return BuildArticleContentDto(createdArticle, includeUnpublishedLinks: true);
             }
             catch
             {
@@ -506,7 +507,7 @@ namespace Mktba.Application.Services
             return normalized.Count == 0 ? null : string.Join(",", normalized);
         }
 
-        private static ArticleContentDto BuildArticleContentDto(Article article, bool includeUnpublished)
+        private static ArticleContentDto BuildArticleContentDto(Article article, bool includeUnpublishedLinks)
         {
             var paragraphDtos = article.Paragraphs
                 .OrderBy(p => p.Order)
@@ -531,7 +532,7 @@ namespace Mktba.Application.Services
                 MapInfobox(article),
                 article.Summary,
                 ParseTags(article.Tags),
-                MapRelatedLinks(article, includeUnpublished),
+                MapRelatedLinks(article, includeUnpublishedLinks),
                 article.Slug,
                 article.PublishedAt,
                 article.UpdatedAt,
@@ -561,7 +562,7 @@ namespace Mktba.Application.Services
         private static List<ArticleRelatedLinkDto>? MapRelatedLinks(Article article, bool includeUnpublished)
         {
             var links = article.RelatedLinks
-                .Where(link => ArticleVisibility.IsVisible(link.RelatedArticle.Status, includeUnpublished))
+                .Where(link => includeUnpublished || link.RelatedArticle.Status == ArticleStatus.Published)
                 .ToList();
             if (links.Count == 0)
                 return null;

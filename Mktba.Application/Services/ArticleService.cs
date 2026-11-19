@@ -19,20 +19,20 @@ namespace Mktba.Application.Services
             _clock = clock;
         }
 
-        /// <summary>All articles; without <paramref name="includeUnpublished"/> only Published ones.</summary>
-        public async Task<IEnumerable<ArticleReadDto>> GetAllAsync(bool includeUnpublished)
+        /// <summary>The articles <paramref name="viewer"/> may see, each with the status moves the viewer may make.</summary>
+        public async Task<IEnumerable<ArticleReadDto>> GetAllAsync(ArticleViewer viewer)
         {
-            var articles = await _articleRepository.GetAllWithParagraphsAsync(publishedOnly: !includeUnpublished);
-            return _mapper.Map<IEnumerable<ArticleReadDto>>(articles);
+            var articles = await _articleRepository.GetAllWithParagraphsAsync(viewer);
+            return articles.Select(article => ToReadDto(article, viewer)).ToList();
         }
 
-        /// <summary>One article; a non-Published one counts as missing without <paramref name="includeUnpublished"/>.</summary>
-        public async Task<ArticleReadDto?> GetByIdAsync(int id, bool includeUnpublished)
+        /// <summary>One article; one <paramref name="viewer"/> may not see counts as missing.</summary>
+        public async Task<ArticleReadDto?> GetByIdAsync(int id, ArticleViewer viewer)
         {
-            var article = await _articleRepository.GetByIdAsync(id);
-            return article is null || !ArticleVisibility.IsVisible(article.Status, includeUnpublished)
+            var article = await _articleRepository.GetByIdWithCoAuthorsAsync(id);
+            return article is null || !viewer.CanSee(article)
                 ? null
-                : _mapper.Map<ArticleReadDto>(article);
+                : ToReadDto(article, viewer);
         }
 
         /// <summary>
@@ -40,12 +40,14 @@ namespace Mktba.Application.Services
         /// The first move to Published sets <see cref="Article.PublishedAt"/>; later ones keep it.
         /// Every move to Published records the latest revision in <see cref="Article.PublishedRevisionId"/>.
         /// A status change is not a content save and leaves <see cref="Article.UpdatedAt"/> alone.
+        /// Whether the caller may make the move is checked by the API before (U-02, #30);
+        /// <paramref name="viewer"/> only shapes the returned <see cref="ArticleReadDto.AllowedTransitions"/>.
         /// </summary>
         /// <exception cref="NotFoundException">The article does not exist.</exception>
         /// <exception cref="ValidationException">The transition is not allowed.</exception>
-        public async Task<ArticleReadDto> ChangeStatusAsync(int id, ArticleStatus target)
+        public async Task<ArticleReadDto> ChangeStatusAsync(int id, ArticleStatus target, ArticleViewer viewer)
         {
-            var article = await _articleRepository.GetByIdAsync(id)
+            var article = await _articleRepository.GetByIdWithCoAuthorsAsync(id)
                 ?? throw new NotFoundException(AppErrors.ArticleNotFound);
 
             if (!ArticleStatusTransitions.IsAllowed(article.Status, target))
@@ -62,7 +64,17 @@ namespace Mktba.Application.Services
 
             await _articleRepository.UpdateAsync(article);
             await _articleRepository.SaveChangesAsync();
-            return _mapper.Map<ArticleReadDto>(article);
+            return ToReadDto(article, viewer);
+        }
+
+        /// <summary>The article as <paramref name="viewer"/> sees it: only the status moves they may make are listed.</summary>
+        private ArticleReadDto ToReadDto(Article article, ArticleViewer viewer)
+        {
+            var dto = _mapper.Map<ArticleReadDto>(article);
+            var coAuthorIds = article.CoAuthors.Select(coAuthor => coAuthor.UserId).ToList();
+            dto.AllowedTransitions.RemoveAll(target =>
+                !viewer.CanChangeStatus(article.Status, target, article.AuthorId, coAuthorIds));
+            return dto;
         }
 
         /// <param name="authorId">The creating user, recorded as the article's author.</param>

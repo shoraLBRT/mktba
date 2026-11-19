@@ -16,9 +16,11 @@ namespace Mktba.Infrastructure.Repositories
                 .Include(article => article.RelatedLinks)
                 .ToListAsync(cancellationToken);
 
-        public Task<List<Article>> GetAllWithParagraphsAsync(bool publishedOnly, CancellationToken cancellationToken = default)
+        /// <summary>The articles <paramref name="viewer"/> may read, with their content rows and co-authors.</summary>
+        public Task<List<Article>> GetAllWithParagraphsAsync(ArticleViewer viewer, CancellationToken cancellationToken = default)
             => _dbSet
-                .Where(article => !publishedOnly || article.Status == ArticleStatus.Published)
+                .VisibleTo(viewer)
+                .Include(article => article.CoAuthors)
                 .Include(article => article.Paragraphs)
                 .Include(article => article.InfoboxFields)
                 .Include(article => article.RelatedLinks)
@@ -28,13 +30,16 @@ namespace Mktba.Infrastructure.Repositories
         /// Projects every article to <see cref="ArticleNavigationRow"/> in a single query, ordered by
         /// parent, then by <see cref="Article.Order"/> among siblings, then by id.
         /// Content presence is computed in SQL (EXISTS over paragraphs and infobox fields), so no
-        /// child rows are loaded. With <paramref name="publishedOnly"/> the query returns only
-        /// <see cref="ArticleStatus.Published"/> articles.
+        /// child rows are loaded. Only the articles <paramref name="viewer"/> may read are returned,
+        /// each marked with whether the viewer may edit it (<see cref="ArticleViewer.CanEdit(Article)"/>).
         /// </summary>
-        public Task<List<ArticleNavigationRow>> GetNavigationRowsAsync(bool publishedOnly, CancellationToken cancellationToken = default)
-            => _dbSet
+        public Task<List<ArticleNavigationRow>> GetNavigationRowsAsync(ArticleViewer viewer, CancellationToken cancellationToken = default)
+        {
+            var editsAny = viewer.EditsAnyArticle;
+            var userId = viewer.UserId;
+            return _dbSet
                 .AsNoTracking()
-                .Where(article => !publishedOnly || article.Status == ArticleStatus.Published)
+                .VisibleTo(viewer)
                 .OrderBy(article => article.ParentArticleId)
                 .ThenBy(article => article.Order)
                 .ThenBy(article => article.Id)
@@ -47,8 +52,29 @@ namespace Mktba.Infrastructure.Repositories
                     article.Paragraphs.Any()
                         || article.InfoboxFields.Any()
                         || !string.IsNullOrWhiteSpace(article.InfoboxTitle)
-                        || !string.IsNullOrWhiteSpace(article.InfoboxSubtitle)))
+                        || !string.IsNullOrWhiteSpace(article.InfoboxSubtitle),
+                    editsAny
+                        || (userId != null && article.AuthorId == userId)
+                        || (userId != null && article.CoAuthors.Any(coAuthor => coAuthor.UserId == userId))))
                 .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>The article's status and owners for a permission check; null if there is no such article.</summary>
+        public async Task<ArticleAccessRow?> GetAccessRowAsync(int articleId, CancellationToken cancellationToken = default)
+        {
+            var row = await _dbSet
+                .AsNoTracking()
+                .Where(article => article.Id == articleId)
+                .Select(article => new
+                {
+                    article.Id,
+                    article.Status,
+                    article.AuthorId,
+                    CoAuthorIds = article.CoAuthors.Select(coAuthor => coAuthor.UserId).ToList(),
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+            return row is null ? null : new ArticleAccessRow(row.Id, row.Status, row.AuthorId, row.CoAuthorIds);
+        }
 
         public Task<Article?> GetByIdWithContentAsync(int articleId, CancellationToken cancellationToken = default)
             => _dbSet
@@ -58,6 +84,7 @@ namespace Mktba.Infrastructure.Repositories
                 .Include(article => article.InfoboxFields)
                 .Include(article => article.RelatedLinks)
                     .ThenInclude(link => link.RelatedArticle)
+                .Include(article => article.CoAuthors)
                 .FirstOrDefaultAsync(article => article.Id == articleId, cancellationToken);
 
         /// <summary>
@@ -85,12 +112,13 @@ namespace Mktba.Infrastructure.Repositories
                 .FirstOrDefaultAsync(cancellationToken);
 
         /// <summary>The current slug of the article in <paramref name="locale"/> that used to have <paramref name="oldSlug"/>, if any.</summary>
-        public Task<string?> FindRedirectTargetSlugAsync(string locale, string oldSlug, bool publishedOnly, CancellationToken cancellationToken = default)
-            => _context.ArticleSlugRedirects
+        /// <remarks>Only articles <paramref name="viewer"/> may read are considered.</remarks>
+        public Task<string?> FindRedirectTargetSlugAsync(string locale, string oldSlug, ArticleViewer viewer, CancellationToken cancellationToken = default)
+            => _dbSet
                 .AsNoTracking()
-                .Where(redirect => redirect.Locale == locale && redirect.Slug == oldSlug)
-                .Where(redirect => !publishedOnly || redirect.Article.Status == ArticleStatus.Published)
-                .Select(redirect => redirect.Article.Slug)
+                .VisibleTo(viewer)
+                .Where(article => article.SlugRedirects.Any(redirect => redirect.Locale == locale && redirect.Slug == oldSlug))
+                .Select(article => article.Slug)
                 .FirstOrDefaultAsync(cancellationToken);
 
         /// <summary>

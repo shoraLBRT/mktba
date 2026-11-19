@@ -70,7 +70,7 @@ public class ArticleStatusTests : IDisposable
     {
         var article = await AddAsync("Намаз", "namaz", ArticleStatus.InReview);
 
-        var result = await _articles.ChangeStatusAsync(article.Id, ArticleStatus.Published);
+        var result = await _articles.ChangeStatusAsync(article.Id, ArticleStatus.Published, TestViewers.Admin);
 
         result.Status.Should().Be(ArticleStatus.Published);
         result.AllowedTransitions.Should().Equal(ArticleStatus.Archived);
@@ -82,7 +82,7 @@ public class ArticleStatusTests : IDisposable
     {
         var article = await AddAsync("Намаз", "namaz", ArticleStatus.Draft);
 
-        var act = () => _articles.ChangeStatusAsync(article.Id, ArticleStatus.Published);
+        var act = () => _articles.ChangeStatusAsync(article.Id, ArticleStatus.Published, TestViewers.Admin);
 
         (await act.Should().ThrowAsync<ValidationException>())
             .Which.Error.Code.Should().Be("article_status_transition_invalid");
@@ -92,7 +92,7 @@ public class ArticleStatusTests : IDisposable
     [Fact]
     public async Task ChangeStatusAsync_GivenMissingArticle_ThrowsNotFound()
     {
-        var act = () => _articles.ChangeStatusAsync(999, ArticleStatus.InReview);
+        var act = () => _articles.ChangeStatusAsync(999, ArticleStatus.InReview, TestViewers.Admin);
 
         await act.Should().ThrowAsync<NotFoundException>();
     }
@@ -107,7 +107,7 @@ public class ArticleStatusTests : IDisposable
         await AddAsync("Таухид", "tawhid", ArticleStatus.Published, draftParent.Id);
         await AddAsync("Архив", "archive", ArticleStatus.Archived);
 
-        var tree = await _tree.GetTreeAsync(includeUnpublished: false);
+        var tree = await _tree.GetTreeAsync(ArticleViewer.Anonymous);
 
         tree.Should().ContainSingle().Which.Title.Should().Be("Фикх");
         tree[0].Children!.Select(child => child.Title).Should().Equal("Намаз");
@@ -119,7 +119,7 @@ public class ArticleStatusTests : IDisposable
         var root = await AddAsync("Фикх", "fiqh", ArticleStatus.Published);
         await AddAsync("Пост", "post", ArticleStatus.Draft, root.Id);
 
-        var tree = await _tree.GetTreeAsync(includeUnpublished: true);
+        var tree = await _tree.GetTreeAsync(TestViewers.Admin);
 
         tree.Single().Status.Should().Be(ArticleStatus.Published);
         tree.Single().Children!.Single().Status.Should().Be(ArticleStatus.Draft);
@@ -133,7 +133,7 @@ public class ArticleStatusTests : IDisposable
     {
         await AddAsync("Намаз", "namaz", status);
 
-        var act = () => _content.GetContentBySlugAsync("namaz", includeUnpublished: false);
+        var act = () => _content.GetContentBySlugAsync("namaz", ArticleViewer.Anonymous);
 
         await act.Should().ThrowAsync<NotFoundException>();
     }
@@ -143,7 +143,7 @@ public class ArticleStatusTests : IDisposable
     {
         await AddAsync("Намаз", "namaz", ArticleStatus.Draft);
 
-        var lookup = await _content.GetContentBySlugAsync("namaz", includeUnpublished: true);
+        var lookup = await _content.GetContentBySlugAsync("namaz", TestViewers.Admin);
 
         lookup.Content!.Title.Should().Be("Намаз");
     }
@@ -155,7 +155,7 @@ public class ArticleStatusTests : IDisposable
         _context.ArticleSlugRedirects.Add(new ArticleSlugRedirect { ArticleId = article.Id, Slug = "namaz" });
         await _context.SaveChangesAsync();
 
-        var act = () => _content.GetContentBySlugAsync("namaz", includeUnpublished: false);
+        var act = () => _content.GetContentBySlugAsync("namaz", ArticleViewer.Anonymous);
 
         await act.Should().ThrowAsync<NotFoundException>();
     }
@@ -170,8 +170,8 @@ public class ArticleStatusTests : IDisposable
         article.RelatedLinks.Add(new ArticleRelatedLink { RelatedArticleId = draft.Id, Order = 2 });
         await _context.SaveChangesAsync();
 
-        var forReader = await _content.GetContentByArticleIdAsync(article.Id, includeUnpublished: false);
-        var forEditor = await _content.GetContentByArticleIdAsync(article.Id, includeUnpublished: true);
+        var forReader = await _content.GetContentByArticleIdAsync(article.Id, ArticleViewer.Anonymous);
+        var forEditor = await _content.GetContentByArticleIdAsync(article.Id, TestViewers.Admin);
 
         forReader.RelatedLinks!.Select(link => link.RelatedArticleTitle).Should().Equal("Вуду");
         forEditor.RelatedLinks.Should().HaveCount(2);
@@ -183,8 +183,8 @@ public class ArticleStatusTests : IDisposable
         await AddAsync("Намаз", "namaz", ArticleStatus.Published);
         await AddAsync("Пост", "post", ArticleStatus.Draft);
 
-        var forReader = await _articles.GetAllAsync(includeUnpublished: false);
-        var forEditor = await _articles.GetAllAsync(includeUnpublished: true);
+        var forReader = await _articles.GetAllAsync(ArticleViewer.Anonymous);
+        var forEditor = await _articles.GetAllAsync(TestViewers.Admin);
 
         forReader.Select(article => article.Title).Should().Equal("Намаз");
         forEditor.Should().HaveCount(2);

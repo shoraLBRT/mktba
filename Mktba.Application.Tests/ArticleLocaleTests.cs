@@ -120,8 +120,8 @@ public class ArticleLocaleTests : IDisposable
         var russian = await CreateAsync("Намаз", "namaz");
         var english = await CreateAsync("Prayer", "namaz", "en");
 
-        var byDefault = await _service.GetContentBySlugAsync("namaz", includeUnpublished: true);
-        var byEnglish = await _service.GetContentBySlugAsync("namaz", includeUnpublished: true, "en");
+        var byDefault = await _service.GetContentBySlugAsync("namaz", TestViewers.Admin);
+        var byEnglish = await _service.GetContentBySlugAsync("namaz", TestViewers.Admin, "en");
 
         byDefault.Content!.Id.Should().Be(russian.Id);
         byEnglish.Content!.Id.Should().Be(english.Id);
@@ -135,9 +135,9 @@ public class ArticleLocaleTests : IDisposable
 
         var english = await CreateAsync("Prayer", "namaz", "en");
 
-        var redirect = await _service.GetContentBySlugAsync("namaz", includeUnpublished: true);
+        var redirect = await _service.GetContentBySlugAsync("namaz", TestViewers.Admin);
         redirect.RedirectToSlug.Should().Be("salat");
-        var direct = await _service.GetContentBySlugAsync("namaz", includeUnpublished: true, "en");
+        var direct = await _service.GetContentBySlugAsync("namaz", TestViewers.Admin, "en");
         direct.Content!.Id.Should().Be(english.Id);
         (await _context.ArticleSlugRedirects.SingleAsync()).Locale.Should().Be("ru");
     }
@@ -147,7 +147,7 @@ public class ArticleLocaleTests : IDisposable
     {
         await CreateAsync("Намаз", "namaz");
 
-        var act = () => _service.GetContentBySlugAsync("namaz", includeUnpublished: true, "xx");
+        var act = () => _service.GetContentBySlugAsync("namaz", TestViewers.Admin, "xx");
 
         (await act.Should().ThrowAsync<ValidationException>())
             .Which.Error.Code.Should().Be("locale_unsupported");
@@ -160,7 +160,7 @@ public class ArticleLocaleTests : IDisposable
 
         await RenameSlugAsync(english with { Locale = "ru", TranslationGroupId = Guid.NewGuid() }, "salat");
 
-        var saved = await _service.GetContentByArticleIdAsync(english.Id, includeUnpublished: true);
+        var saved = await _service.GetContentByArticleIdAsync(english.Id, TestViewers.Admin);
         saved.Locale.Should().Be("en");
         saved.TranslationGroupId.Should().Be(english.TranslationGroupId);
         saved.Slug.Should().Be("salat");

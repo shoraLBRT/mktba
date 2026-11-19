@@ -100,6 +100,7 @@ builder.Services
     });
 
 builder.Services.AddAuthorizationBuilder().AddMktbaPolicies();
+builder.Services.AddArticleAccess();
 
 builder.Services.AddMktbaRateLimiting(builder.Configuration);
 
