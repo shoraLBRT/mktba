@@ -266,6 +266,50 @@
         }
       }
     },
+    "/articles/by-slug/{slug}/content": {
+      "get": {
+        "tags": [
+          "ArticleContent"
+        ],
+        "summary": "Article content by slug; an old slug redirects (302) to the current one.",
+        "description": "A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleContentDto"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Found"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/content": {
       "post": {
         "tags": [
@@ -1216,6 +1260,10 @@
               "$ref": "#/components/schemas/ArticleRelatedLinkCreateDto"
             },
             "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -1260,6 +1308,10 @@
             "items": {
               "$ref": "#/components/schemas/ArticleRelatedLinkDto"
             },
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -1387,6 +1439,7 @@
         "required": [
           "hasContent",
           "id",
+          "slug",
           "title"
         ],
         "type": "object",
@@ -1396,6 +1449,9 @@
             "format": "int32"
           },
           "title": {
+            "type": "string"
+          },
+          "slug": {
             "type": "string"
           },
           "parentArticleId": {
@@ -1432,6 +1488,7 @@
           "id",
           "order",
           "relatedArticleId",
+          "relatedArticleSlug",
           "relatedArticleTitle"
         ],
         "type": "object",
@@ -1450,6 +1507,9 @@
           "order": {
             "type": "integer",
             "format": "int32"
+          },
+          "relatedArticleSlug": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -1475,6 +1535,7 @@
         "required": [
           "hasContent",
           "id",
+          "slug",
           "title"
         ],
         "type": "object",
@@ -1484,6 +1545,9 @@
             "format": "int32"
           },
           "title": {
+            "type": "string"
+          },
+          "slug": {
             "type": "string"
           },
           "parentArticleId": {

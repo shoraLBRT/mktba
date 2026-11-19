@@ -1,19 +1,22 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MazhabProvider } from '../context/MazhabProvider';
 import { LocalizationProvider } from '../localization/provider';
-import { getArticleContentById } from '../services/Article/articleService';
+import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { getNavigationTree } from '../services/Article/navigationService';
 import { isAdminAuthenticated } from '../services/authService';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { ApiError } from '../shared/api-client/apiError';
 import { AppRoutes } from './AppRoutes';
 import { createQueryClient } from './queryClient';
+import type { ArticleContentDto } from '../shared/types/ApiTypes';
+
+const article = (slug: string): ArticleContentDto => ({ id: 7, title: 'Намаз', slug, paragraphs: [], tags: [] });
 
 vi.mock('../services/authService', () => ({ isAdminAuthenticated: vi.fn() }));
-vi.mock('../services/Article/articleService', () => ({ getArticleContentById: vi.fn() }));
+vi.mock('../services/Article/articleService', () => ({ getArticleContentById: vi.fn(), getArticleContentBySlug: vi.fn() }));
 vi.mock('../services/Article/navigationService', () => ({ getNavigationTree: vi.fn() }));
 vi.mock('../services/schoolService', () => ({ getSchoolsByArticleId: vi.fn(), getSystemSchools: vi.fn() }));
 vi.mock('../pages/AddArticlePage', () => ({ default: () => <p>add-article-page</p> }));
@@ -81,10 +84,39 @@ describe('AppRoutes', () => {
     expect(getArticleContentById).toHaveBeenCalledTimes(1);
   });
 
-  it('given a non-numeric article id, when opened, then shows the 404 page without calling the API', () => {
-    renderAt('/article/abc');
+  it('given a slug, when opened, then loads the article by slug and keeps the URL', async () => {
+    vi.mocked(getArticleContentBySlug).mockResolvedValue(article('namaz'));
 
-    expect(screen.getByRole('heading', { name: 'Страница не найдена' })).toBeTruthy();
+    renderAt('/article/namaz');
+
+    expect(await screen.findByRole('heading', { name: 'Намаз', level: 1 })).toBeTruthy();
+    expect(getArticleContentBySlug).toHaveBeenCalledWith('namaz');
     expect(getArticleContentById).not.toHaveBeenCalled();
+    expect(screen.getByTestId('path').textContent).toBe('/article/namaz');
+  });
+
+  it('given an unknown slug, when opened, then shows the 404 page', async () => {
+    vi.mocked(getArticleContentBySlug).mockRejectedValue(new ApiError('Article not found', 404));
+
+    renderAt('/article/no-such-article');
+
+    expect(await screen.findByRole('heading', { name: 'Страница не найдена' })).toBeTruthy();
+  });
+
+  it('given an old numeric id link, when opened, then replaces the URL with the slug URL', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article('namaz'));
+
+    renderAt('/article/7');
+
+    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/article/namaz'));
+    expect(getArticleContentById).toHaveBeenCalledWith(7);
+  });
+
+  it('given an old slug, when the API answers with the current one, then replaces the URL with it', async () => {
+    vi.mocked(getArticleContentBySlug).mockResolvedValue(article('salat'));
+
+    renderAt('/article/namaz');
+
+    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/article/salat'));
   });
 });

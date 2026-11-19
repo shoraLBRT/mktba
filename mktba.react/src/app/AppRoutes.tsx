@@ -30,7 +30,7 @@ export const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<WelcomePage />} />
         <Route path="/article/new" element={<Navigate to={ADD_ARTICLE_PATH} replace />} />
-        <Route path="/article/:id" element={<ArticlePage />} />
+        <Route path="/article/:slug" element={<ArticlePage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin" element={<AdminOnlyRoute><AdminPage /></AdminOnlyRoute>} />
         <Route path={ADD_ARTICLE_PATH} element={<AdminOnlyRoute><AddArticlePage /></AdminOnlyRoute>} />

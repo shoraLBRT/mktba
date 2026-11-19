@@ -313,6 +313,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/by-slug/{slug}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Article content by slug; an old slug redirects (302) to the current one.
+         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleContentDto"];
+                    };
+                };
+                /** @description Found */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/content": {
         parameters: {
             query?: never;
@@ -1188,6 +1245,7 @@ export interface components {
             summary?: string | null;
             tags?: string[] | null;
             relatedLinks?: components["schemas"]["ArticleRelatedLinkCreateDto"][] | null;
+            slug?: string | null;
         };
         ArticleContentDto: {
             /** Format: int32 */
@@ -1198,6 +1256,7 @@ export interface components {
             summary?: string | null;
             tags: string[];
             relatedLinks?: components["schemas"]["ArticleRelatedLinkDto"][] | null;
+            slug?: string | null;
         };
         ArticleCreateDto: {
             title: string;
@@ -1234,6 +1293,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             title: string;
+            slug: string;
             /** Format: int32 */
             parentArticleId?: number | null;
             hasContent: boolean;
@@ -1252,6 +1312,7 @@ export interface components {
             relatedArticleTitle: string;
             /** Format: int32 */
             order: number;
+            relatedArticleSlug: string;
         };
         ArticleUpdateDto: {
             title: string;
@@ -1262,6 +1323,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             title: string;
+            slug: string;
             /** Format: int32 */
             parentArticleId?: number | null;
             hasContent: boolean;

@@ -56,6 +56,9 @@ import {
 } from './add-article/infoboxHelpers';
 import { addRelatedLink, importRelatedLinksFromDto, moveRelatedLink, removeRelatedLink, type RelatedLinkDraft } from './add-article/metadataHelpers';
 import type { EditorBlock } from './add-article/types';
+import { SlugField } from './add-article/SlugField';
+import { formatMessage } from '../localization';
+import { SLUG_MAX_LENGTH, articleHref, isValidSlug, slugFromTitle } from '../shared/slug';
 
 type ArticleOption = {
   id: number;
@@ -127,6 +130,7 @@ const EditArticlePage: React.FC = () => {
   const editorText = locale.addArticleEditor;
 
   const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
   const [infobox, setInfobox] = useState(createEmptyInfoboxDraft);
   const [blocks, setBlocks] = useState<EditorBlock[]>([createEmptyBlock('paragraph')]);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -203,6 +207,7 @@ const EditArticlePage: React.FC = () => {
     if (articleQuery.data && !isInitialized) {
       const data = articleQuery.data;
       setTitle(data.title);
+      setSlug(data.slug ?? '');
       const imported = importBlocksFromParagraphs(data.paragraphs);
       setBlocks(imported.length > 0 ? imported : [createEmptyBlock('paragraph')]);
       if (data.infobox) {
@@ -225,10 +230,10 @@ const EditArticlePage: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: (payload: ArticleContentDto) => updateArticleContent(numericId, payload),
-    onSuccess: async () => {
+    onSuccess: async (_, payload) => {
       await invalidateArticleQueries(queryClient);
       showNotice('success', t.saved);
-      navigate(`/article/${numericId}`);
+      navigate(articleHref(payload.slug ?? String(numericId)));
     },
     onError: (error) => showNotice('error', `${t.saveError}: ${(error as Error).message}`),
   });
@@ -403,6 +408,12 @@ const EditArticlePage: React.FC = () => {
       return;
     }
 
+    const requestedSlug = slug.trim();
+    if (!isValidSlug(requestedSlug)) {
+      showNotice('warning', formatMessage(addT.slugInvalid, { maxLength: SLUG_MAX_LENGTH }));
+      return;
+    }
+
     const infoboxCreateDto = buildInfoboxCreateDto(infobox);
     const infoboxDto = infoboxCreateDto
       ? {
@@ -415,6 +426,7 @@ const EditArticlePage: React.FC = () => {
     mutation.mutate({
       id: numericId,
       title: title.trim(),
+      slug: requestedSlug,
       paragraphs: buildParagraphUpdateDtosFromBlocks(blocks),
       infobox: infoboxDto,
       summary: summary.trim() || undefined,
@@ -424,6 +436,8 @@ const EditArticlePage: React.FC = () => {
         relatedArticleId: link.articleId,
         relatedArticleTitle: link.articleTitle,
         order: index + 1,
+        // Read-only on the server: it reports the related article's current slug.
+        relatedArticleSlug: '',
       })),
     });
   };
@@ -571,6 +585,12 @@ const EditArticlePage: React.FC = () => {
                       className="h-auto border-0 bg-transparent px-0 py-0 text-3xl font-bold tracking-[-0.03em] text-[var(--color-ink-strong)] shadow-none focus:ring-0"
                     />
                   </div>
+                  <SlugField
+                    value={slug}
+                    disabled={isLocked}
+                    onChange={setSlug}
+                    onFillFromTitle={() => setSlug(slugFromTitle(title))}
+                  />
                 </div>
               </div>
 
