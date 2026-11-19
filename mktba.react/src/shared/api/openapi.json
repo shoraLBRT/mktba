@@ -349,6 +349,230 @@
         }
       }
     },
+    "/articles/{id}/revisions": {
+      "get": {
+        "tags": [
+          "ArticleContent"
+        ],
+        "summary": "The article's revisions, newest first.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleRevisionSummaryDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{id}/revisions/{number}": {
+      "get": {
+        "tags": [
+          "ArticleContent"
+        ],
+        "summary": "One revision with its snapshot.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRevisionDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{id}/revisions/compare": {
+      "get": {
+        "tags": [
+          "ArticleContent"
+        ],
+        "summary": "Two revisions with their snapshots; the client renders the difference.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRevisionComparisonDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{id}/revisions/{number}/restore": {
+      "post": {
+        "tags": [
+          "ArticleContent"
+        ],
+        "summary": "Rolls the article back to a revision by saving it as a new revision.",
+        "description": "The working copy is replaced with the revision's snapshot and a new revision is written; no revision is changed or deleted. Answers 400 when the snapshot no longer fits, e.g. its slug now belongs to another article or a related article was deleted.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleRevisionRestoreDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRevisionSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles": {
       "get": {
         "tags": [
@@ -1472,6 +1696,10 @@
           "slug": {
             "type": "string",
             "nullable": true
+          },
+          "editComment": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -1530,6 +1758,10 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "editComment": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -1759,6 +1991,255 @@
           },
           "relatedArticleSlug": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRevisionComparisonDto": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/ArticleRevisionDto"
+          },
+          "to": {
+            "$ref": "#/components/schemas/ArticleRevisionDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRevisionDto": {
+        "required": [
+          "revision",
+          "snapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "$ref": "#/components/schemas/ArticleRevisionSummaryDto"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ArticleSnapshotDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRevisionRestoreDto": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRevisionSummaryDto": {
+        "required": [
+          "createdAt",
+          "id",
+          "isPublished",
+          "number"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authorId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "authorEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPublished": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleSnapshotDto": {
+        "required": [
+          "paragraphs",
+          "relatedLinks",
+          "schemaVersion",
+          "slug",
+          "tags",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "infobox": {
+            "$ref": "#/components/schemas/ArticleSnapshotInfoboxDto"
+          },
+          "paragraphs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSnapshotParagraphDto"
+            }
+          },
+          "relatedLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSnapshotRelatedLinkDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleSnapshotInfoboxDto": {
+        "required": [
+          "fields"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSnapshotInfoboxFieldDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleSnapshotInfoboxFieldDto": {
+        "required": [
+          "key",
+          "label",
+          "order",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleSnapshotOpinionDto": {
+        "required": [
+          "content",
+          "isDefault",
+          "schoolIds"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "schoolIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleSnapshotParagraphDto": {
+        "required": [
+          "opinions",
+          "order"
+        ],
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opinions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSnapshotOpinionDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleSnapshotRelatedLinkDto": {
+        "required": [
+          "order",
+          "relatedArticleId",
+          "relatedArticleSlug",
+          "relatedArticleTitle"
+        ],
+        "type": "object",
+        "properties": {
+          "relatedArticleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "relatedArticleTitle": {
+            "type": "string"
+          },
+          "relatedArticleSlug": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

@@ -418,6 +418,215 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The article's revisions, newest first. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRevisionSummaryDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/{id}/revisions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One revision with its snapshot. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    number: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRevisionDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/{id}/revisions/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Two revisions with their snapshots; the client renders the difference. */
+        get: {
+            parameters: {
+                query: {
+                    from: number;
+                    to: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRevisionComparisonDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/{id}/revisions/{number}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rolls the article back to a revision by saving it as a new revision.
+         * @description The working copy is replaced with the revision's snapshot and a new revision is written; no revision is changed or deleted. Answers 400 when the snapshot no longer fits, e.g. its slug now belongs to another article or a related article was deleted.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    number: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleRevisionRestoreDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRevisionSummaryDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles": {
         parameters: {
             query?: never;
@@ -1445,6 +1654,7 @@ export interface components {
             tags?: string[] | null;
             relatedLinks?: components["schemas"]["ArticleRelatedLinkCreateDto"][] | null;
             slug?: string | null;
+            editComment?: string | null;
         };
         ArticleContentDto: {
             /** Format: int32 */
@@ -1460,6 +1670,7 @@ export interface components {
             publishedAt?: string | null;
             /** Format: date-time */
             updatedAt?: string | null;
+            editComment?: string | null;
         };
         ArticleCreateDto: {
             title: string;
@@ -1526,6 +1737,71 @@ export interface components {
             /** Format: int32 */
             order: number;
             relatedArticleSlug: string;
+        };
+        ArticleRevisionComparisonDto: {
+            from: components["schemas"]["ArticleRevisionDto"];
+            to: components["schemas"]["ArticleRevisionDto"];
+        };
+        ArticleRevisionDto: {
+            revision: components["schemas"]["ArticleRevisionSummaryDto"];
+            snapshot: components["schemas"]["ArticleSnapshotDto"];
+        };
+        ArticleRevisionRestoreDto: {
+            comment?: string | null;
+        };
+        ArticleRevisionSummaryDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            number: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            authorId?: number | null;
+            authorEmail?: string | null;
+            comment?: string | null;
+            isPublished: boolean;
+        };
+        ArticleSnapshotDto: {
+            /** Format: int32 */
+            schemaVersion: number;
+            title: string;
+            slug: string;
+            summary?: string | null;
+            tags: string[];
+            infobox?: components["schemas"]["ArticleSnapshotInfoboxDto"];
+            paragraphs: components["schemas"]["ArticleSnapshotParagraphDto"][];
+            relatedLinks: components["schemas"]["ArticleSnapshotRelatedLinkDto"][];
+        };
+        ArticleSnapshotInfoboxDto: {
+            title?: string | null;
+            subtitle?: string | null;
+            fields: components["schemas"]["ArticleSnapshotInfoboxFieldDto"][];
+        };
+        ArticleSnapshotInfoboxFieldDto: {
+            /** Format: int32 */
+            order: number;
+            key: string;
+            label: string;
+            value: string;
+        };
+        ArticleSnapshotOpinionDto: {
+            content: string;
+            isDefault: boolean;
+            schoolIds: number[];
+        };
+        ArticleSnapshotParagraphDto: {
+            /** Format: int32 */
+            order: number;
+            opinions: components["schemas"]["ArticleSnapshotOpinionDto"][];
+        };
+        ArticleSnapshotRelatedLinkDto: {
+            /** Format: int32 */
+            relatedArticleId: number;
+            relatedArticleTitle: string;
+            relatedArticleSlug: string;
+            /** Format: int32 */
+            order: number;
         };
         /** @enum {string} */
         ArticleStatus: "Draft" | "InReview" | "Published" | "Archived";
