@@ -44,6 +44,23 @@ dotnet build
 dotnet run --project Mktba.Api
 ```
 
+#### Ключ подписи JWT
+
+Ключ (`Auth:JwtSigningKey`) в `appsettings.json` не хранится. В Development (`dotnet run`
+с профилем запуска) используется dev-ключ из `appsettings.Development.json`. В любом другом
+окружении (Production, Staging, контейнер) API не стартует, если ключ не задан, короче
+32 байт (256 бит, минимум для HS256) или совпадает с одним из закоммиченных в репозиторий
+плейсхолдеров. Задать ключ:
+
+```bash
+# переменная окружения (прод, контейнер: docker run -e Auth__JwtSigningKey=...)
+export Auth__JwtSigningKey="$(openssl rand -base64 48)"
+# или, для локальной разработки, user-secrets
+dotnet user-secrets --project Mktba.Api set "Auth:JwtSigningKey" "$(openssl rand -base64 48)"
+```
+
+Окружение `OpenApi` (генерация контракта, `npm run gen:api`) токенов не выпускает и ключ не проверяет.
+
 ### Frontend
 
 ```bash
