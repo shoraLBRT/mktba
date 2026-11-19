@@ -160,6 +160,7 @@ app.MapSourceEndpoints();
 app.MapAdminEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
+app.MapProfileEndpoints();
 app.MapInviteEndpoints();
 app.MapSearchEndpoints();
 app.MapFeedbackEndpoints();

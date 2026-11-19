@@ -15,6 +15,7 @@ export const APP_CONSTANTS = {
     SYSTEM_SCHOOLS: 'systemSchools',
     ARTICLE_SCHOOLS: 'articleSchools',
     ADMIN_USERS: 'adminUsers',
+    MY_PROFILE: 'myProfile',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
   },

@@ -35,6 +35,42 @@ public static class AppErrors
     public static AppError SessionNotFound => new("session_not_found", "Session not found.");
     public static AppError SessionCsrfHeaderMissing => new("session_csrf_header_missing", "The request must carry the X-Requested-With header.");
 
+    // User profile (U-07)
+    public static AppError AuthorNotFound => new("author_not_found", "There is no such author page.");
+    public static AppError ProfileDisplayNameRequired => new("profile_display_name_required", "A profile address needs a display name.");
+
+    public static AppError ProfileDisplayNameInvalid(int maxLength) =>
+        new("profile_display_name_invalid", $"Display name must be one line of at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ProfileSlugInvalid => new(
+        "profile_slug_invalid",
+        $"Profile address must be 1-{Services.ArticleSlugRules.MaxLength} characters of a-z, 0-9 and single hyphens, and not digits only.",
+        With(("maxLength", Services.ArticleSlugRules.MaxLength)));
+
+    public static AppError ProfileSlugTaken(string slug) =>
+        new("profile_slug_taken", $"Profile address '{slug}' is already used by another user.", With(("slug", slug)));
+
+    public static AppError ProfileAvatarUrlInvalid =>
+        new("profile_avatar_url_invalid", "Avatar must be an absolute http(s) URL or a site-relative path.");
+
+    public static AppError ProfileBioTooLong(int maxLength) =>
+        new("profile_bio_too_long", $"The text about you must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ProfileDegreeTooLong(int maxLength) =>
+        new("profile_degree_too_long", $"Degree must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ProfileInstitutionTooLong(int maxLength) =>
+        new("profile_institution_too_long", $"Institution must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ProfileLinksTooMany(int max) =>
+        new("profile_links_too_many", $"A profile holds at most {max} links.", With(("max", max)));
+
+    public static AppError ProfileLinkLabelInvalid(int maxLength) =>
+        new("profile_link_label_invalid", $"Every link needs a label of at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ProfileLinkUrlInvalid =>
+        new("profile_link_url_invalid", "A link must be an absolute http(s) URL.");
+
     // AI styling
     public static AppError AiTextRequired => new("ai_text_required", "Text is required.");
     public static AppError AiSettingsIncomplete => new("ai_settings_incomplete", "BaseUrl and model are required.");

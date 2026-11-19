@@ -25,9 +25,10 @@ const DIGITS_ONLY = /^[0-9]+$/;
 /**
  * Turns a title into a slug: lowercase, Russian transliterated, diacritics stripped, everything
  * else collapsed into single hyphens, at most {@link SLUG_MAX_LENGTH} characters. Digits only get
- * the `article-` prefix; nothing to transliterate gives `article`.
+ * the `article-` prefix; nothing to transliterate gives `article`. Slugs of something other than
+ * an article pass their own `fallback` word (user profiles: `author`, as `UserProfileRules` does).
  */
-export const slugFromTitle = (title: string): string => {
+export const slugFromTitle = (title: string, fallback: string = FALLBACK): string => {
   const transliterated = Array.from(title.toLowerCase())
     .map((character) => CYRILLIC[character] ?? (APOSTROPHES.has(character) ? '' : character))
     .join('');
@@ -38,8 +39,8 @@ export const slugFromTitle = (title: string): string => {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  if (slug.length === 0) return FALLBACK;
-  if (DIGITS_ONLY.test(slug)) slug = `${FALLBACK}-${slug}`;
+  if (slug.length === 0) return fallback;
+  if (DIGITS_ONLY.test(slug)) slug = `${fallback}-${slug}`;
 
   return slug.length <= SLUG_MAX_LENGTH ? slug : slug.slice(0, SLUG_MAX_LENGTH).replace(/-+$/, '');
 };

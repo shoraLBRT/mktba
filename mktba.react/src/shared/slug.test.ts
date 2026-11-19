@@ -25,6 +25,12 @@ describe('slugFromTitle', () => {
     expect(slugFromTitle(title)).toBe('article');
   });
 
+  it('given another fallback word, then uses it for an empty and a digits-only result', () => {
+    expect(slugFromTitle('محمد', 'author')).toBe('author');
+    expect(slugFromTitle('1446', 'author')).toBe('author-1446');
+    expect(slugFromTitle('Иван Иванов', 'author')).toBe('ivan-ivanov');
+  });
+
   it('given a digits-only title, then prefixes it so it is not an id', () => {
     expect(slugFromTitle('1446')).toBe('article-1446');
   });

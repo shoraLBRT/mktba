@@ -42,6 +42,40 @@ public class UserRepository : GenericRepository<User>
             .Select(user => (UserRole?)user.Role)
             .FirstOrDefaultAsync(cancellationToken);
 
+    /// <summary>The user with <paramref name="id"/> and their profile links, tracked, or null.</summary>
+    public Task<User?> FindWithLinksAsync(int id, CancellationToken cancellationToken = default)
+        => _dbSet.Include(user => user.Links).FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
+
+    /// <summary>The user with <paramref name="id"/> and their profile links, read-only, or null.</summary>
+    public Task<User?> FindWithLinksReadOnlyAsync(int id, CancellationToken cancellationToken = default)
+        => _dbSet.AsNoTracking().Include(user => user.Links).FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
+
+    /// <summary>Whether a user other than <paramref name="exceptUserId"/> has the profile slug <paramref name="slug"/>.</summary>
+    public Task<bool> IsSlugTakenAsync(string slug, int exceptUserId, CancellationToken cancellationToken = default)
+        => _dbSet.AnyAsync(user => user.Slug == slug && user.Id != exceptUserId, cancellationToken);
+
+    /// <summary>
+    /// Whether the user is the author or a co-author of at least one Published article: the rule that
+    /// makes a profile with a display name public.
+    /// </summary>
+    public Task<bool> IsCreditedOnPublishedArticleAsync(int userId, CancellationToken cancellationToken = default)
+        => CreditedOnPublishedArticle().AnyAsync(user => user.Id == userId, cancellationToken);
+
+    /// <summary>
+    /// The user whose public profile lives at <paramref name="slug"/>, with links, read-only; null when
+    /// there is no such slug or the user is not credited on a Published article.
+    /// </summary>
+    public Task<User?> FindPublicBySlugAsync(string slug, CancellationToken cancellationToken = default)
+        => CreditedOnPublishedArticle()
+            .AsNoTracking()
+            .Include(user => user.Links)
+            .FirstOrDefaultAsync(user => user.Slug == slug && user.DisplayName != null, cancellationToken);
+
+    private IQueryable<User> CreditedOnPublishedArticle()
+        => _dbSet.Where(user => _context.Articles.Any(article =>
+            article.Status == ArticleStatus.Published
+            && (article.AuthorId == user.Id || article.CoAuthors.Any(coAuthor => coAuthor.UserId == user.Id))));
+
     /// <summary>How many users have <paramref name="role"/>.</summary>
     public Task<int> CountByRoleAsync(UserRole role, CancellationToken cancellationToken = default)
         => _dbSet.CountAsync(user => user.Role == role, cancellationToken);

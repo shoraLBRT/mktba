@@ -16,13 +16,16 @@ namespace Mktba.Application.DTOs
     }
 
     /// <summary>
-    /// A user as the admin sees them when choosing authors. Admin-only: users have no public
-    /// display name yet, and emails are never shown to readers.
+    /// A user as the admin sees them when choosing authors. Admin-only: emails are never shown to
+    /// readers, who get <see cref="PublicProfileDto"/> instead.
     /// </summary>
     public class UserSummaryDto
     {
         public int Id { get; set; }
         public string Email { get; set; } = string.Empty;
+
+        /// <summary>The name from the user's profile (U-07); null while they have not set one.</summary>
+        public string? DisplayName { get; set; }
 
         /// <summary>The user's current role.</summary>
         public UserRole Role { get; set; }
