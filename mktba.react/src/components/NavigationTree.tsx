@@ -220,7 +220,7 @@ const focusTargetOf = (item: Element): HTMLElement | null =>
  * Arrow keys of the WAI-ARIA tree pattern over the rows that are on screen: up/down to the
  * neighbouring row, right to expand a section or step into it, left to collapse it or step out to
  * its parent, Home/End to the ends. Tab still walks every link and button: the tree keeps the
- * native list, link and disclosure-button semantics (see README, «Дерево навигации»).
+ * native list, link and disclosure-button semantics (see CLAUDE.md, "Navigation tree").
  */
 const handleTreeKeyDown = (event: React.KeyboardEvent<HTMLUListElement>, forceExpanded: boolean) => {
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
