@@ -302,6 +302,35 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("ArticleSlugRedirects");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.DeletedArticleSlug", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Locale", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("DeletedArticleSlugs");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Invite", b =>
                 {
                     b.Property<int>("Id")

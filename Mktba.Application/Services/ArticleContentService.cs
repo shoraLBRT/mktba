@@ -33,13 +33,21 @@ namespace Mktba.Application.Services
         /// non-Published articles are shown only to those who may edit the article, so a save from
         /// the editor keeps them.
         /// </summary>
+        /// <exception cref="GoneException"><c>article_gone</c>: not visible, and Archived after it had been published.</exception>
         /// <exception cref="NotFoundException">No such article, or it is not visible.</exception>
         public async Task<ArticleContentDto> GetContentByArticleIdAsync(int articleId, ArticleViewer viewer)
         {
             var article = await _articleRepo.GetByIdWithContentAsync(articleId);
-            if (article is null || !viewer.CanSee(article))
+            if (article is null)
             {
                 throw new NotFoundException(AppErrors.ArticleNotFound);
+            }
+
+            if (!viewer.CanSee(article))
+            {
+                throw article.Status == ArticleStatus.Archived && article.PublishedAt is not null
+                    ? new GoneException(AppErrors.ArticleGone)
+                    : new NotFoundException(AppErrors.ArticleNotFound);
             }
 
             return BuildArticleContentDto(article, includeUnpublishedLinks: viewer.CanEdit(article));
@@ -51,6 +59,10 @@ namespace Mktba.Application.Services
         /// </summary>
         /// <param name="requestedLocale">The article's locale; null or blank means <see cref="Locales.Default"/>.</param>
         /// <exception cref="ValidationException"><c>locale_unsupported</c>.</exception>
+        /// <exception cref="GoneException">
+        /// <c>article_gone</c>: the slug belonged to an article that was deleted or archived after it had
+        /// been published, and no article has taken it since.
+        /// </exception>
         /// <exception cref="NotFoundException">No visible article in the locale has or had this slug.</exception>
         public async Task<ArticleSlugLookup> GetContentBySlugAsync(string requestedSlug, ArticleViewer viewer, string? requestedLocale = null)
         {
@@ -64,9 +76,14 @@ namespace Mktba.Application.Services
             }
 
             var currentSlug = await _articleRepo.FindRedirectTargetSlugAsync(locale, slug, viewer);
-            return currentSlug is not null
-                ? new ArticleSlugLookup(null, currentSlug)
-                : throw new NotFoundException(AppErrors.ArticleNotFound);
+            if (currentSlug is not null)
+            {
+                return new ArticleSlugLookup(null, currentSlug);
+            }
+
+            throw await _articleRepo.IsSlugGoneAsync(locale, slug)
+                ? new GoneException(AppErrors.ArticleGone)
+                : new NotFoundException(AppErrors.ArticleNotFound);
         }
 
         /// <param name="authorId">The creating user, recorded as the article's author.</param>

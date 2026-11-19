@@ -16,7 +16,8 @@ namespace Mktba.Application.Services
         /// <summary>
         /// The articles an anonymous reader can reach, by the navigation tree's rule: Published, with
         /// every ancestor Published too (an article under a hidden parent is hidden with its subtree).
-        /// Articles marked noindex are left out; their children are not. Ordered by id.
+        /// Articles marked noindex and stubs with no content yet are left out; their children are not.
+        /// Ordered by id.
         /// </summary>
         public async Task<List<SitemapArticleDto>> GetArticlesAsync(CancellationToken cancellationToken = default)
         {

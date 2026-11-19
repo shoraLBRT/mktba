@@ -46,13 +46,27 @@ namespace Mktba.Application.Services
         public static ArticleSeoDto From(Article article)
             => new(article.SeoTitle, article.SeoDescription, article.SocialImageUrl, article.NoIndex);
 
-        /// <summary>The effective metadata: SEO title → title; SEO description → summary → excerpt of the first paragraph.</summary>
+        /// <summary>
+        /// The effective metadata: SEO title → title; SEO description → summary → excerpt of the first
+        /// paragraph. Noindex when marked so, when not Published, or when the article is a stub.
+        /// </summary>
         public static ArticleMetaDto Resolve(Article article)
             => new(
                 article.SeoTitle ?? article.Title,
                 article.SeoDescription ?? NullIfBlank(article.Summary) ?? Excerpt(FirstParagraphText(article)),
                 article.SocialImageUrl,
-                article.NoIndex);
+                article.NoIndex || article.Status != ArticleStatus.Published || IsStub(article));
+
+        /// <summary>
+        /// A stub: no opinion, infobox or summary yet — the rule behind <c>hasContent</c> in the
+        /// article list. Expects paragraphs, opinions and infobox fields loaded.
+        /// </summary>
+        public static bool IsStub(Article article)
+            => !article.Paragraphs.Any(paragraph => paragraph.Opinions.Any())
+                && !article.InfoboxFields.Any()
+                && string.IsNullOrWhiteSpace(article.InfoboxTitle)
+                && string.IsNullOrWhiteSpace(article.InfoboxSubtitle)
+                && string.IsNullOrWhiteSpace(article.Summary);
 
         /// <summary>
         /// Plain text of Markdown/HTML, whitespace collapsed, cut on a word boundary to

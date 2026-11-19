@@ -99,7 +99,13 @@ namespace Mktba.Api.Endpoints
             {
                 await service.UpdateAsync(id, updateDto);
                 return Results.NoContent();
-            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization(Policies.CanEditAnyArticle);
+            })
+            .WithDescription(
+                "Deletes the article. If it was ever published, its current and old slugs are recorded, so "
+                + "reading them by slug answers 410 article_gone until another article takes the slug.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapPost("/{id:int}/status", async (int id, ArticleStatusChangeDto dto, ClaimsPrincipal user, ArticleService service, ArticleAccessGuard guard) =>
                 await guard.CheckAsync(user, id, ArticleOperationRequirement.ChangeStatus(dto.Status))

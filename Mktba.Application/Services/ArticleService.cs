@@ -215,12 +215,28 @@ namespace Mktba.Application.Services
             }
         }
 
+        /// <summary>
+        /// Deletes the article. If it was ever published, its current and old slugs are kept as
+        /// tombstones, so their URLs answer 410 Gone rather than 404 (O-07, #58).
+        /// </summary>
+        /// <exception cref="NotFoundException">No such article.</exception>
         public async Task DeleteAsync(int id)
         {
             var article = await _articleRepository.GetByIdAsync(id);
             if (article is null)
             {
                 throw new NotFoundException(AppErrors.ArticleNotFound);
+            }
+
+            if (article.PublishedAt is not null)
+            {
+                var redirects = await _articleRepository.GetSlugRedirectsAsync(article.Id);
+                var slugs = redirects.Select(redirect => redirect.Slug)
+                    .Append(article.Slug)
+                    .Where(slug => !string.IsNullOrEmpty(slug))
+                    .Distinct()
+                    .ToList();
+                await _articleRepository.AddDeletedSlugsAsync(article.Locale, slugs, _clock.GetUtcNow().UtcDateTime);
             }
 
             await _articleRepository.DeleteAsync(article);

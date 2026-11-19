@@ -242,6 +242,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description An article the caller may not read answers 404 article_not_found, or 410 article_gone when it was published and is now Archived. */
         get: {
             parameters: {
                 query?: never;
@@ -264,6 +265,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Gone */
+                410: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -344,7 +354,7 @@ export interface paths {
         };
         /**
          * Article content by slug; an old slug redirects (302) to the current one.
-         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop. An article that is not Published answers 404 except to an admin or its own author or co-author. Slugs are unique per language: the optional locale query parameter (default ru) picks the language, and an unsupported one answers 400 locale_unsupported.
+         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop. An article that is not Published answers 404 except to an admin or its own author or co-author. A slug, current or old, of an article that was published and then deleted or archived answers 410 article_gone, unless another article has taken it since. Slugs are unique per language: the optional locale query parameter (default ru) picks the language, and an unsupported one answers 400 locale_unsupported.
          */
         get: {
             parameters: {
@@ -386,6 +396,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Gone */
+                410: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -929,6 +948,7 @@ export interface paths {
                 };
             };
         };
+        /** @description Deletes the article. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug. */
         put: {
             parameters: {
                 query?: never;

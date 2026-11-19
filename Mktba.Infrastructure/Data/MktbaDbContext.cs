@@ -13,6 +13,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleInfoboxField> ArticleInfoboxFields { get; set; } = null!;
         public DbSet<ArticleRelatedLink> ArticleRelatedLinks { get; set; } = null!;
         public DbSet<ArticleSlugRedirect> ArticleSlugRedirects { get; set; } = null!;
+        public DbSet<DeletedArticleSlug> DeletedArticleSlugs { get; set; } = null!;
         public DbSet<ArticleCoAuthor> ArticleCoAuthors { get; set; } = null!;
         public DbSet<ArticleRevision> ArticleRevisions { get; set; } = null!;
         public DbSet<Paragraph> Paragraphs { get; set; } = null!;
@@ -95,6 +96,20 @@ namespace Mktba.Infrastructure.Data
                 .WithMany(a => a.SlugRedirects)
                 .HasForeignKey(r => r.ArticleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DeletedArticleSlug>()
+                .Property(d => d.Slug)
+                .HasMaxLength(ArticleSlugMaxLength)
+                .IsRequired();
+
+            modelBuilder.Entity<DeletedArticleSlug>()
+                .Property(d => d.Locale)
+                .HasMaxLength(Locales.MaxLength)
+                .IsRequired();
+
+            modelBuilder.Entity<DeletedArticleSlug>()
+                .HasIndex(d => new { d.Locale, d.Slug })
+                .IsUnique();
 
             // Authorship: deleting a user keeps their articles (author becomes null) and drops their co-authorships.
             modelBuilder.Entity<Article>()

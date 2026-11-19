@@ -47,6 +47,7 @@ public static class AppErrors
 
     // Articles
     public static AppError ArticleNotFound => new("article_not_found", "Article not found.");
+    public static AppError ArticleGone => new("article_gone", "The article has been removed.");
     public static AppError ArticleTitleRequired => new("article_title_required", "Title is required.");
     public static AppError ArticleIdMismatch => new("article_id_mismatch", "Article id in the body does not match the route.");
     public static AppError ArticleContentUpdateFailed => new("article_content_update_failed", "Error occurred while updating content.");
