@@ -5,6 +5,9 @@ import type { UserRole } from '../shared/types/ApiTypes';
  * The API enforces them; the UI only hides what a role cannot use. Which articles an author may
  * edit is per article (U-02): the API says so in the tree's `canEdit` and in `allowedTransitions`.
  */
+/** Every role, least privileged first: the order role selects list them in. */
+export const USER_ROLES: readonly UserRole[] = ['Reader', 'Author', 'Scholar', 'Admin'];
+
 const POLICY_ROLES = {
   /** Any signed-in user: their own profile and sessions. */
   authenticated: ['Reader', 'Author', 'Scholar', 'Admin'],

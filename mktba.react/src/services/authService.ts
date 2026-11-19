@@ -4,7 +4,6 @@ import type {
   AdminAuthStatusDto,
   AdminLoginRequestDto,
   AdminRegisterRequestDto,
-  AdminInviteTokenCreateResponseDto,
   CurrentUserDto,
   SessionDto,
 } from '../shared/types/ApiTypes';
@@ -31,11 +30,6 @@ export const adminLogin = async (payload: AdminLoginRequestDto): Promise<AdminAu
 export const adminRegister = async (payload: AdminRegisterRequestDto): Promise<AdminAuthResponseDto> => {
   const response = await apiClient.post<AdminAuthResponseDto>('/auth/register', payload, { withCredentials: true });
   setSignedIn(response.data);
-  return response.data;
-};
-
-export const generateInviteToken = async (): Promise<AdminInviteTokenCreateResponseDto> => {
-  const response = await apiClient.post<AdminInviteTokenCreateResponseDto>('/auth/invite-token');
   return response.data;
 };
 

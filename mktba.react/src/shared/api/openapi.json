@@ -1072,7 +1072,8 @@
         "tags": [
           "Auth"
         ],
-        "description": "Sets the refresh-token cookie as well.",
+        "summary": "Registers the first user as admin, then anyone with an invite, who gets the invite's role.",
+        "description": "Sets the refresh-token cookie as well. Once a user exists an invite token is required; it is single-use. Answers 400 invite_not_found, invite_expired, invite_used or invite_revoked when it cannot be used.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1385,24 +1386,102 @@
         }
       }
     },
-    "/auth/invite-token": {
-      "post": {
+    "/invites": {
+      "get": {
         "tags": [
-          "Auth"
+          "Invites"
         ],
+        "summary": "Every invite, newest first, with its status. Never carries a token.",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminInviteTokenCreateResponseDto"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InviteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Invites"
+        ],
+        "summary": "Creates a single-use invite for a role. The token is in this response only; the server keeps its hash.",
+        "description": "Answers 400 role_invalid, invite_lifetime_invalid or invite_note_too_long.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCreateRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteCreatedDto"
                 }
               }
             }
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invites/{id}/revoke": {
+      "post": {
+        "tags": [
+          "Invites"
+        ],
+        "summary": "Revokes an unused invite; revoking it again changes nothing.",
+        "description": "Answers 400 invite_used when someone already registered with it, 404 invite_not_found.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1792,7 +1871,7 @@
         "tags": [
           "Users"
         ],
-        "summary": "Every user, for choosing article authors. Admin only: it lists emails.",
+        "summary": "Every user with their role, for choosing article authors and managing roles. Admin only: it lists emails.",
         "responses": {
           "200": {
             "description": "OK",
@@ -1803,6 +1882,68 @@
                   "items": {
                     "$ref": "#/components/schemas/UserSummaryDto"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}/role": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Gives a user another role; it applies from their next request.",
+        "description": "Answers 400 last_admin_demotion when the user is the last admin, 404 user_not_found for an unknown user.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRoleUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
                 }
               }
             }
@@ -1868,23 +2009,6 @@
           },
           "message": {
             "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "AdminInviteTokenCreateResponseDto": {
-        "required": [
-          "expiresAtUtc",
-          "token"
-        ],
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string"
-          },
-          "expiresAtUtc": {
-            "type": "string",
-            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -2794,6 +2918,115 @@
         },
         "additionalProperties": false
       },
+      "InviteCreateRequestDto": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "lifetimeHours": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InviteCreatedDto": {
+        "required": [
+          "expiresAtUtc",
+          "id",
+          "role",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "token": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "expiresAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InviteDto": {
+        "required": [
+          "createdAtUtc",
+          "createdByEmail",
+          "expiresAtUtc",
+          "id",
+          "role",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/InviteStatus"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "revokedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdByEmail": {
+            "type": "string"
+          },
+          "usedByEmail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InviteStatus": {
+        "enum": [
+          "Active",
+          "Used",
+          "Revoked",
+          "Expired"
+        ],
+        "type": "string"
+      },
       "NavigationArticleDto": {
         "required": [
           "canEdit",
@@ -3157,10 +3390,23 @@
         ],
         "type": "string"
       },
+      "UserRoleUpdateDto": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          }
+        },
+        "additionalProperties": false
+      },
       "UserSummaryDto": {
         "required": [
           "email",
-          "id"
+          "id",
+          "role"
         ],
         "type": "object",
         "properties": {
@@ -3170,6 +3416,9 @@
           },
           "email": {
             "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
           }
         },
         "additionalProperties": false

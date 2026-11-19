@@ -17,9 +17,9 @@ const fetchAuthors = vi.mocked(getArticleAuthors);
 const saveAuthors = vi.mocked(setArticleAuthors);
 
 const users = [
-  { id: 1, email: 'author@mktba.ru' },
-  { id: 2, email: 'second@mktba.ru' },
-  { id: 3, email: 'third@mktba.ru' },
+  { id: 1, email: 'author@mktba.ru', role: 'Author' as const },
+  { id: 2, email: 'second@mktba.ru', role: 'Author' as const },
+  { id: 3, email: 'third@mktba.ru', role: 'Author' as const },
 ];
 
 const renderPanel = (onSaved = vi.fn(), onError = vi.fn()) => {
