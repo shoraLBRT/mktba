@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, FolderInput, Plus } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocale } from '../localization/hooks';
 import { ArticleStatusBadge } from './article/ArticleStatusBadge';
@@ -11,24 +11,65 @@ interface NavigationTreeProps {
   showArticleEditActions?: boolean;
   onNavigate?: () => void;
   onAddChild?: (parentId: number, parentTitle: string) => void;
+  /** Admin reorder: puts the article at a 0-based index among the children of parentId (null: roots). */
+  onMove?: (articleId: number, parentId: number | null, index: number) => void;
+  /** Admin: opens the parent picker for the article. */
+  onChangeParent?: (article: NavigationArticleDto, parentId: number | null) => void;
 }
 
 type NavigationItemProps = {
   article: NavigationArticleDto;
   depth: number;
+  parentId: number | null;
+  index: number;
+  siblingCount: number;
   activeArticleId?: number;
   showArticleEditActions: boolean;
   onNavigate?: () => void;
   onAddChild?: (parentId: number, parentTitle: string) => void;
+  onMove?: NavigationTreeProps['onMove'];
+  onChangeParent?: NavigationTreeProps['onChangeParent'];
 };
+
+const actionButtonClass =
+  'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[var(--color-ink-subtle)] opacity-0 transition-all hover:bg-white hover:text-[var(--color-ink-default)] focus:opacity-100 group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0';
+
+type ActionButtonProps = {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+};
+
+const ActionButton: React.FC<ActionButtonProps> = ({ label, onClick, disabled, children }) => (
+  <button
+    type="button"
+    onClick={(event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onClick();
+    }}
+    disabled={disabled}
+    className={actionButtonClass}
+    title={label}
+    aria-label={label}
+  >
+    {children}
+  </button>
+);
 
 const NavigationItem: React.FC<NavigationItemProps> = ({
   article,
   depth,
+  parentId,
+  index,
+  siblingCount,
   activeArticleId,
   showArticleEditActions,
   onNavigate,
   onAddChild,
+  onMove,
+  onChangeParent,
 }) => {
   const locale = useLocale();
   const hasChildren = (article.children?.length ?? 0) > 0;
@@ -80,34 +121,54 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
 
         {showArticleEditActions && article.status !== 'Published' ? <ArticleStatusBadge status={article.status} compact /> : null}
 
+        {onMove ? (
+          <>
+            <ActionButton
+              label={locale.navigationTree.moveUp}
+              disabled={index === 0}
+              onClick={() => onMove(article.id, parentId, index - 1)}
+            >
+              <ArrowUp size={11} />
+            </ActionButton>
+            <ActionButton
+              label={locale.navigationTree.moveDown}
+              disabled={index === siblingCount - 1}
+              onClick={() => onMove(article.id, parentId, index + 1)}
+            >
+              <ArrowDown size={11} />
+            </ActionButton>
+          </>
+        ) : null}
+
+        {onChangeParent ? (
+          <ActionButton label={locale.navigationTree.changeParent} onClick={() => onChangeParent(article, parentId)}>
+            <FolderInput size={11} />
+          </ActionButton>
+        ) : null}
+
         {onAddChild ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onAddChild(article.id, article.title);
-            }}
-            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[var(--color-ink-subtle)] opacity-0 transition-all hover:bg-white hover:text-[var(--color-ink-default)] focus:opacity-100 group-hover:opacity-100"
-            title={locale.navigationTree.addChild}
-            aria-label={locale.navigationTree.addChild}
-          >
+          <ActionButton label={locale.navigationTree.addChild} onClick={() => onAddChild(article.id, article.title)}>
             <Plus size={11} />
-          </button>
+          </ActionButton>
         ) : null}
       </div>
 
       {hasChildren && expanded ? (
         <div className="mt-0.5 space-y-px">
-          {article.children?.map((child) => (
+          {article.children?.map((child, childIndex, children) => (
             <NavigationItem
               key={child.id}
               article={child}
               depth={depth + 1}
+              parentId={article.id}
+              index={childIndex}
+              siblingCount={children.length}
               activeArticleId={activeArticleId}
               showArticleEditActions={showArticleEditActions}
               onNavigate={onNavigate}
               onAddChild={onAddChild}
+              onMove={onMove}
+              onChangeParent={onChangeParent}
             />
           ))}
         </div>
@@ -130,6 +191,8 @@ const NavigationTree: React.FC<NavigationTreeProps> = ({
   showArticleEditActions = false,
   onNavigate,
   onAddChild,
+  onMove,
+  onChangeParent,
 }) => {
   const location = useLocation();
 
@@ -148,15 +211,20 @@ const NavigationTree: React.FC<NavigationTreeProps> = ({
 
   return (
     <div className="space-y-px">
-      {navigationTree?.map((article) => (
+      {navigationTree?.map((article, index, roots) => (
         <NavigationItem
           key={article.id}
           article={article}
           depth={0}
+          parentId={null}
+          index={index}
+          siblingCount={roots.length}
           activeArticleId={activeArticleId}
           showArticleEditActions={showArticleEditActions}
           onNavigate={onNavigate}
           onAddChild={onAddChild}
+          onMove={onMove}
+          onChangeParent={onChangeParent}
         />
       ))}
     </div>
