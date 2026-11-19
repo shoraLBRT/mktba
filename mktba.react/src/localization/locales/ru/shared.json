@@ -170,6 +170,7 @@
     "feedback_text_too_long": "Сообщение — не длиннее {maxLength} символов.",
     "feedback_contact_too_long": "Контакт — не длиннее {maxLength} символов.",
     "feedback_page_url_invalid": "Не удалось определить адрес страницы. Обновите страницу и попробуйте снова.",
+    "feedback_limit_reached": "Сейчас пришло слишком много сообщений. Попробуйте отправить позже.",
     "system_school_delete_forbidden": "Системные школы удалять нельзя.",
     "article_status_transition_invalid": "Статью нельзя перевести в этот статус из текущего.",
     "article_bulk_too_many": "За один раз можно изменить не больше {max} статей.",

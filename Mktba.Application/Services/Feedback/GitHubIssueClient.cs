@@ -76,7 +76,7 @@ public sealed class GitHubIssueClient : IFeedbackIssueTracker
                 count++;
                 if (issue.TryGetProperty("body", out var body)
                     && body.ValueKind == JsonValueKind.String
-                    && body.GetString()!.Contains(marker, StringComparison.Ordinal))
+                    && FeedbackIssueFormatter.EndsWithMarker(body.GetString()!, marker))
                 {
                     return ReadIssue(issue);
                 }

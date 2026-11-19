@@ -23,6 +23,13 @@ public sealed class RateLimitingOptions
 
     /// <summary>Paid AI provider calls (<c>/admin/ai-style</c>, <c>/admin/ai-check</c>), partitioned by user id.</summary>
     public RateLimitRule Ai { get; set; } = new() { PermitLimit = 20, WindowSeconds = 3600 };
+
+    /// <summary>
+    /// Anonymous feedback (<c>POST /feedback</c>, F-03 #68), partitioned by client IP. The address
+    /// only keys the limiter's in-memory window: it is neither stored nor logged (decision D9).
+    /// The cap on all visitors together is <c>Feedback:Intake:MaxPerHour</c>.
+    /// </summary>
+    public RateLimitRule Feedback { get; set; } = new() { PermitLimit = 5, WindowSeconds = 600 };
 }
 
 public sealed class RateLimitRule
@@ -37,6 +44,7 @@ internal static class RateLimitingSetup
     public const string AuthPolicy = "auth";
     public const string SessionPolicy = "session";
     public const string AiPolicy = "ai";
+    public const string FeedbackPolicy = "feedback";
 
     public static IServiceCollection AddMktbaRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -46,8 +54,9 @@ internal static class RateLimitingSetup
         {
             limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-            // The client IP is the socket address: no forwarded-headers middleware is configured,
-            // so X-Forwarded-For is deliberately not trusted.
+            // The client IP is the socket address unless the request came through a proxy listed in
+            // the ForwardedHeaders section (ForwardedHeadersSetup): X-Forwarded-For from anyone else
+            // is not trusted.
             limiter.AddPolicy(AuthPolicy, context => FixedWindow(
                 "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 options.Auth));
@@ -55,6 +64,10 @@ internal static class RateLimitingSetup
             limiter.AddPolicy(SessionPolicy, context => FixedWindow(
                 "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 options.Session));
+
+            limiter.AddPolicy(FeedbackPolicy, context => FixedWindow(
+                "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                options.Feedback));
 
             limiter.AddPolicy(AiPolicy, context =>
             {

@@ -39,6 +39,8 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
     {
         ["RateLimiting:Auth:PermitLimit"] = "10000",
         ["RateLimiting:Ai:PermitLimit"] = "10000",
+        ["RateLimiting:Feedback:PermitLimit"] = "10000",
+        ["Feedback:Intake:MaxPerHour"] = "0",
     };
 
     public MktbaApiFactory()

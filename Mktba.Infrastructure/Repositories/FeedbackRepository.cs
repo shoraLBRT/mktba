@@ -14,6 +14,21 @@ public class FeedbackRepository : GenericRepository<FeedbackMessage>
     public Task<bool> SystemSchoolExistsAsync(string slug, CancellationToken cancellationToken = default)
         => _context.Schools.AnyAsync(s => s.IsSystem && s.Slug == slug, cancellationToken);
 
+    /// <summary>The highest message number so far; zero when there are none.</summary>
+    public async Task<int> GetLastIdAsync(CancellationToken cancellationToken = default)
+        => await _dbSet.AsNoTracking().OrderByDescending(f => f.Id).Select(f => f.Id).FirstOrDefaultAsync(cancellationToken);
+
+    /// <summary>
+    /// When the <paramref name="count"/>-th newest message arrived, or null when there are fewer:
+    /// at most <paramref name="count"/> rows are read, by the primary key, however long the table is.
+    /// </summary>
+    public async Task<DateTime?> GetArrivalOfNthNewestAsync(int count, CancellationToken cancellationToken = default)
+        => await _dbSet.AsNoTracking()
+            .OrderByDescending(f => f.Id)
+            .Skip(count - 1)
+            .Select(f => (DateTime?)f.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
     /// <summary>Ids of the pending messages whose next attempt is due, the longest-waiting first.</summary>
     public Task<List<int>> GetDueIdsAsync(DateTime nowUtc, int limit, CancellationToken cancellationToken = default)
         => _dbSet.AsNoTracking()
