@@ -168,7 +168,15 @@
       "InReview": "Отправить на проверку",
       "Published": "Опубликовать",
       "Archived": "Убрать в архив"
-    }
+    },
+    "authorsTitle": "Авторство",
+    "authorLabel": "Автор",
+    "noAuthor": "Не указан",
+    "coAuthorsLabel": "Соавторы",
+    "noOtherUsers": "Других пользователей нет",
+    "saveAuthors": "Сохранить авторов",
+    "authorsSaved": "Авторы сохранены",
+    "authorsSaveError": "Не удалось сохранить авторов"
   },
   "versionedParagraph": {
     "label": "Мнение мазхаба: {school}",

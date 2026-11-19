@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
+import { ArticleDates } from '../components/article/ArticleDates';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
 import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
@@ -323,6 +324,7 @@ const ArticlePage: React.FC = () => {
           <h1 className="mb-4 text-[28px] font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">
             {articleContent.title}
           </h1>
+          <ArticleDates publishedAt={articleContent.publishedAt} updatedAt={articleContent.updatedAt} />
 
           <div id="article-overview" className="scroll-mt-24">
             <ArticleInfoboxPanel infobox={articleContent.infobox} />

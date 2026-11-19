@@ -53,6 +53,7 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 - `School` — 4 канонические (`IsSystem=true`) + кастомные per-article (`ArticleScopeId` nullable FK).
 - `Article.Status` (`ArticleStatus`): `Draft → InReview → Published → Archived`. Allowed moves live only in `ArticleStatusTransitions` (Draft→InReview, InReview→Published/Draft, Published→Archived, Archived→Draft), changed via admin-only `POST /articles/{id}/status`. New articles are `Draft`.
 - Anonymous readers see only `Published` (`ArticleVisibility`): non-Published articles answer 404, related links to them are dropped, and the public tree hides a non-Published article together with its subtree. Admins see every status (badge in the tree, status panel in the editor).
+- `Article` dates and authorship (M-03): `CreatedAt`, `UpdatedAt` (any content/metadata/authorship save; not status changes), `PublishedAt` (first move to Published; kept through archiving and re-publishing) — UTC, set through the injected `TimeProvider`. `AuthorId` = creating user (nullable, SetNull on user delete); co-authors via `ArticleCoAuthor` (ArticleId, UserId), never the author; admin API `GET/PUT /articles/{id}/authors`, users list `GET /users`. Readers see only the dates: users have no display name yet, and emails stay admin-only.
 - `NavigationTree` exposes the article hierarchy for the sidebar.
 - `User` (ex-`AdminUser`) authenticates via JWT; `Role` currently always `Admin`; invite tokens bootstrap new admins.
 

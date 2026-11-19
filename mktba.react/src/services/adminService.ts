@@ -5,10 +5,12 @@ import type {
   AiProviderSettingsDto,
   AiStyleRequestDto,
   AiStyleResponseDto,
+  ArticleAuthorsDto,
   ArticleCreateDto,
   ArticleReadDto,
   ArticleStatus,
   UpdateAiProviderSettingsDto,
+  UserSummaryDto,
 } from '../shared/types/ApiTypes';
 
 export const getArticles = async (): Promise<ArticleReadDto[]> => {
@@ -24,6 +26,23 @@ export const getArticleById = async (id: number): Promise<ArticleReadDto> => {
 /** Moves the article to another status; the API rejects moves its transition table does not allow. */
 export const changeArticleStatus = async (id: number, status: ArticleStatus): Promise<ArticleReadDto> => {
   const response = await apiClient.post<ArticleReadDto>(`/articles/${id}/status`, { status });
+  return response.data;
+};
+
+/** Every user, for choosing article authors (admin only: the list carries emails). */
+export const getUsers = async (): Promise<UserSummaryDto[]> => {
+  const response = await apiClient.get<UserSummaryDto[]>('/users');
+  return response.data;
+};
+
+export const getArticleAuthors = async (id: number): Promise<ArticleAuthorsDto> => {
+  const response = await apiClient.get<ArticleAuthorsDto>(`/articles/${id}/authors`);
+  return response.data;
+};
+
+/** Replaces the author and co-authors; the API rejects the author listed as a co-author. */
+export const setArticleAuthors = async (id: number, dto: ArticleAuthorsDto): Promise<ArticleAuthorsDto> => {
+  const response = await apiClient.put<ArticleAuthorsDto>(`/articles/${id}/authors`, dto);
   return response.data;
 };
 

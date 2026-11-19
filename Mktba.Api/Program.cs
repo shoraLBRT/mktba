@@ -153,6 +153,7 @@ app.MapParagraphEndpoints();
 app.MapSchoolEndpoints();
 app.MapAdminEndpoints();
 app.MapAuthEndpoints();
+app.MapUserEndpoints();
 
 app.Run();
 

@@ -35,9 +35,9 @@ namespace Mktba.Api.Endpoints
             .Produces(StatusCodes.Status302Found)
             .ProducesApiProblem(StatusCodes.Status404NotFound);
 
-            group.MapPost("/content", async (ArticleContentCreateDto dto, ArticleContentService service) =>
+            group.MapPost("/content", async (ArticleContentCreateDto dto, ClaimsPrincipal user, ArticleContentService service) =>
             {
-                var article = await service.CreateArticleWithContentAsync(dto);
+                var article = await service.CreateArticleWithContentAsync(dto, user.GetUserId());
                 return Results.Created($"/articles/{article.Id}/content", article);
             }).Produces<ArticleContentDto>(StatusCodes.Status201Created).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
 
