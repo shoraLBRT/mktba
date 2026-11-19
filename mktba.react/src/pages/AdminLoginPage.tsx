@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,7 @@ const AdminLoginPage: React.FC = () => {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [formValues, setFormValues] = useState<FormValues>({ email: '', password: '', inviteToken: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const fieldId = useId();
 
   const statusQuery = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.AUTH_STATUS],
@@ -136,12 +137,13 @@ const AdminLoginPage: React.FC = () => {
 
             <form className="space-y-4" onSubmit={submit}>
               <div>
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
+                <label htmlFor={`${fieldId}-email`} className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
                   {t.emailLabel}
                 </label>
                 <div className="relative">
                   <Mail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                   <Input
+                    id={`${fieldId}-email`}
                     autoComplete="email"
                     value={formValues.email}
                     onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))}
@@ -151,12 +153,13 @@ const AdminLoginPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
+                <label htmlFor={`${fieldId}-password`} className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
                   {t.passwordLabel}
                 </label>
                 <div className="relative">
                   <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                   <Input
+                    id={`${fieldId}-password`}
                     type="password"
                     autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                     value={formValues.password}
@@ -168,10 +171,11 @@ const AdminLoginPage: React.FC = () => {
 
               {isRegisterMode && requiresInvite ? (
                 <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
+                  <label htmlFor={`${fieldId}-inviteToken`} className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
                     {t.inviteTokenLabel}
                   </label>
                   <Input
+                    id={`${fieldId}-inviteToken`}
                     value={formValues.inviteToken}
                     onChange={(event) => setFormValues((current) => ({ ...current, inviteToken: event.target.value }))}
                     className="h-12"
