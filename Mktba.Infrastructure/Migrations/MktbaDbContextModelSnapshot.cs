@@ -122,6 +122,9 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("PublishedRevisionId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -152,6 +155,8 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasIndex("AuthorId");
 
                     b.HasIndex("ParentArticleId");
+
+                    b.HasIndex("PublishedRevisionId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
@@ -233,6 +238,44 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasIndex("ArticleId", "Order");
 
                     b.ToTable("ArticleRelatedLinks");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevision", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AuthorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Snapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("ArticleId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("ArticleRevisions");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleSlugRedirect", b =>
@@ -426,9 +469,16 @@ namespace Mktba.Infrastructure.Migrations
                         .HasForeignKey("ParentArticleId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Mktba.Domain.Entities.ArticleRevision", "PublishedRevision")
+                        .WithMany()
+                        .HasForeignKey("PublishedRevisionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Author");
 
                     b.Navigation("ParentArticle");
+
+                    b.Navigation("PublishedRevision");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleCoAuthor", b =>
@@ -478,6 +528,24 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Article");
 
                     b.Navigation("RelatedArticle");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevision", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany("Revisions")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Author");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleSlugRedirect", b =>
@@ -555,6 +623,8 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Paragraphs");
 
                     b.Navigation("RelatedLinks");
+
+                    b.Navigation("Revisions");
 
                     b.Navigation("SlugRedirects");
                 });

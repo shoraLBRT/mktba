@@ -59,6 +59,14 @@ public static class AppErrors
     public static AppError ArticleSlotDefaultOpinionRequired(int order) =>
         new("article_slot_default_opinion_required", $"Each slot must have exactly one default opinion (slot order {order}).", With(("order", order)));
 
+    public static AppError RevisionNotFound(int number) =>
+        new("revision_not_found", $"Revision {number} of this article was not found.", With(("number", number)));
+
+    public static AppError RevisionCommentTooLong => new(
+        "revision_comment_too_long",
+        $"Edit comment must be at most {Infrastructure.Data.MktbaDbContext.RevisionCommentMaxLength} characters.",
+        With(("maxLength", Infrastructure.Data.MktbaDbContext.RevisionCommentMaxLength)));
+
     public static AppError ArticleCoAuthorIsAuthor =>
         new("article_coauthor_is_author", "The article's author cannot also be its co-author.");
 

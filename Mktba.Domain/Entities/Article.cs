@@ -39,5 +39,14 @@
         public User? Author { get; set; }
         /// <summary>Users credited next to the author; never includes the author.</summary>
         public ICollection<ArticleCoAuthor> CoAuthors { get; set; } = new List<ArticleCoAuthor>();
+        /// <summary>Immutable snapshots of every content save, oldest first by <see cref="ArticleRevision.Number"/>.</summary>
+        public ICollection<ArticleRevision> Revisions { get; set; } = new List<ArticleRevision>();
+        /// <summary>
+        /// The revision that was current when the article was last moved to Published; null if never
+        /// published. Hook for D4 (#20): once edits to a Published article wait for approval, readers
+        /// will be served this revision instead of the working copy.
+        /// </summary>
+        public int? PublishedRevisionId { get; set; }
+        public ArticleRevision? PublishedRevision { get; set; }
     }
 }

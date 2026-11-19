@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mktba.Application.DTOs;
@@ -113,7 +113,7 @@ public class ArticleDatesAndAuthorshipTests : IDisposable
             opinion.Id = 0;
         }
 
-        var (success, error) = await _content.UpdateContentAsync(created.Id, created with { Title = "Новое" });
+        var (success, error) = await _content.UpdateContentAsync(created.Id, created with { Title = "Новое" }, authorId: null);
 
         success.Should().BeTrue(error?.Code);
         var content = await _content.GetContentByArticleIdAsync(created.Id, includeUnpublished: true);

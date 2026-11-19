@@ -38,6 +38,7 @@ namespace Mktba.Application.Services
         /// <summary>
         /// Moves the article to <paramref name="target"/> if <see cref="ArticleStatusTransitions"/> allows it.
         /// The first move to Published sets <see cref="Article.PublishedAt"/>; later ones keep it.
+        /// Every move to Published records the latest revision in <see cref="Article.PublishedRevisionId"/>.
         /// A status change is not a content save and leaves <see cref="Article.UpdatedAt"/> alone.
         /// </summary>
         /// <exception cref="NotFoundException">The article does not exist.</exception>
@@ -56,6 +57,7 @@ namespace Mktba.Application.Services
             if (target == ArticleStatus.Published)
             {
                 article.PublishedAt ??= _clock.GetUtcNow().UtcDateTime;
+                article.PublishedRevisionId = await _articleRepository.GetLatestRevisionIdAsync(id);
             }
 
             await _articleRepository.UpdateAsync(article);

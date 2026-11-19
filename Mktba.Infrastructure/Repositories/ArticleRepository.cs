@@ -57,6 +57,22 @@ namespace Mktba.Infrastructure.Repositories
                     .ThenInclude(link => link.RelatedArticle)
                 .FirstOrDefaultAsync(article => article.Id == articleId, cancellationToken);
 
+        /// <summary>
+        /// The article with its content read fresh from the database, untracked — what a revision
+        /// snapshot is built from right after a save.
+        /// </summary>
+        public Task<Article?> GetByIdWithContentUntrackedAsync(int articleId, CancellationToken cancellationToken = default)
+            => _dbSet
+                .AsNoTracking()
+                .Include(article => article.Paragraphs)
+                    .ThenInclude(p => p.Opinions)
+                        .ThenInclude(o => o.OpinionSchools)
+                .Include(article => article.InfoboxFields)
+                .Include(article => article.RelatedLinks)
+                    .ThenInclude(link => link.RelatedArticle)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(article => article.Id == articleId, cancellationToken);
+
         /// <summary>The id of the article whose current slug is <paramref name="slug"/>, if any.</summary>
         public Task<int?> FindIdBySlugAsync(string slug, CancellationToken cancellationToken = default)
             => _dbSet
@@ -109,5 +125,38 @@ namespace Mktba.Infrastructure.Repositories
 
         public Task DeleteAllAsync(CancellationToken cancellationToken = default)
             => _dbSet.ExecuteDeleteAsync(cancellationToken);
+
+        /// <summary>Stages a new revision; revisions are never updated or removed through this repository.</summary>
+        public Task AddRevisionAsync(ArticleRevision revision, CancellationToken cancellationToken = default)
+            => _context.ArticleRevisions.AddAsync(revision, cancellationToken).AsTask();
+
+        /// <summary>The highest revision number of the article, 0 if it has none yet.</summary>
+        public async Task<int> GetLatestRevisionNumberAsync(int articleId, CancellationToken cancellationToken = default)
+            => await _context.ArticleRevisions
+                .Where(r => r.ArticleId == articleId)
+                .MaxAsync(r => (int?)r.Number, cancellationToken) ?? 0;
+
+        /// <summary>The id of the article's latest revision, null if it has none.</summary>
+        public Task<int?> GetLatestRevisionIdAsync(int articleId, CancellationToken cancellationToken = default)
+            => _context.ArticleRevisions
+                .Where(r => r.ArticleId == articleId)
+                .OrderByDescending(r => r.Number)
+                .Select(r => (int?)r.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        /// <summary>The article's revisions, newest first, with their authors.</summary>
+        public Task<List<ArticleRevision>> GetRevisionsAsync(int articleId, CancellationToken cancellationToken = default)
+            => _context.ArticleRevisions
+                .AsNoTracking()
+                .Include(r => r.Author)
+                .Where(r => r.ArticleId == articleId)
+                .OrderByDescending(r => r.Number)
+                .ToListAsync(cancellationToken);
+
+        public Task<ArticleRevision?> GetRevisionAsync(int articleId, int number, CancellationToken cancellationToken = default)
+            => _context.ArticleRevisions
+                .AsNoTracking()
+                .Include(r => r.Author)
+                .FirstOrDefaultAsync(r => r.ArticleId == articleId && r.Number == number, cancellationToken);
     }
 }

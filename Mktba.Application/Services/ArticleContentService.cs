@@ -92,6 +92,11 @@ namespace Mktba.Application.Services
                 throw new ValidationException(infoboxError!);
             }
 
+            if (CheckEditComment(dto.EditComment) is { } commentError)
+            {
+                throw new ValidationException(commentError);
+            }
+
             var slug = await _slugs.ChooseAsync(dto.Slug, dto.Title, articleId: null);
 
             try
@@ -169,6 +174,7 @@ namespace Mktba.Application.Services
                 }
 
                 await _uow.SaveChangesAsync();
+                await WriteRevisionAsync(article.Id, authorId, dto.EditComment);
                 await _uow.CommitAsync();
 
                 var createdArticle = await _articleRepo.GetByIdWithContentAsync(article.Id)
@@ -183,10 +189,17 @@ namespace Mktba.Application.Services
             }
         }
 
-        public async Task<(bool Success, AppError? Error)> UpdateContentAsync(int articleId, ArticleContentDto dto)
+        /// <summary>
+        /// Saves the working copy and, in the same transaction, a new revision with
+        /// <paramref name="authorId"/> and the DTO's edit comment.
+        /// </summary>
+        /// <param name="authorId">The saving user, recorded on the revision.</param>
+        public async Task<(bool Success, AppError? Error)> UpdateContentAsync(int articleId, ArticleContentDto dto, int? authorId)
         {
             if (!await ValidateArticleExistsAsync(articleId, dto.Id))
                 return (false, articleId != dto.Id ? AppErrors.ArticleIdMismatch : AppErrors.ArticleNotFound);
+
+            if (CheckEditComment(dto.EditComment) is { } commentError) return (false, commentError);
 
             var incomingParagraphs = dto.Paragraphs ?? new List<ParagraphDto>();
             var (valid, orderError) = ValidateOrderDto(incomingParagraphs);
@@ -248,6 +261,7 @@ namespace Mktba.Application.Services
                 }
 
                 await _uow.SaveChangesAsync();
+                await WriteRevisionAsync(articleId, authorId, dto.EditComment);
                 await _uow.CommitAsync();
                 return (true, null);
             }
@@ -256,6 +270,32 @@ namespace Mktba.Application.Services
                 await _uow.RollbackAsync();
                 return (false, AppErrors.ArticleContentUpdateFailed);
             }
+        }
+
+        private static AppError? CheckEditComment(string? comment)
+            => comment is not null && comment.Trim().Length > Infrastructure.Data.MktbaDbContext.RevisionCommentMaxLength
+                ? AppErrors.RevisionCommentTooLong
+                : null;
+
+        /// <summary>
+        /// Appends the next revision: a snapshot of the working copy as just saved. Call inside the
+        /// save's transaction, after its changes are flushed.
+        /// </summary>
+        private async Task WriteRevisionAsync(int articleId, int? authorId, string? comment)
+        {
+            var saved = await _articleRepo.GetByIdWithContentUntrackedAsync(articleId)
+                ?? throw new NotFoundException(AppErrors.ArticleNotFound);
+            var number = await _articleRepo.GetLatestRevisionNumberAsync(articleId) + 1;
+            await _articleRepo.AddRevisionAsync(new ArticleRevision
+            {
+                ArticleId = articleId,
+                Number = number,
+                CreatedAt = saved.UpdatedAt,
+                AuthorId = authorId,
+                Comment = NormalizeOptionalText(comment),
+                Snapshot = ArticleSnapshots.Serialize(ArticleSnapshots.From(saved)),
+            });
+            await _uow.SaveChangesAsync();
         }
 
         private static AppError? CheckPlainParagraphSchools(IEnumerable<List<List<int>>> paragraphsOpinionSchoolIds)
