@@ -27,6 +27,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Invite> Invites { get; set; } = null!;
         public DbSet<RefreshSession> RefreshSessions { get; set; } = null!;
+        public DbSet<FeedbackMessage> FeedbackMessages { get; set; } = null!;
 
         /// <summary>Longest stored User-Agent of a refresh session; longer values are cut.</summary>
         public const int SessionUserAgentMaxLength = 256;
@@ -431,6 +432,26 @@ namespace Mktba.Infrastructure.Data
                 session.HasOne(s => s.ReplacedBy)
                     .WithMany()
                     .HasForeignKey(s => s.ReplacedById)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // FeedbackMessage (F-02): the row is the delivery queue; Attempts guards a row against two workers.
+            modelBuilder.Entity<FeedbackMessage>(feedback =>
+            {
+                feedback.HasIndex(f => f.DeliveryKey).IsUnique();
+                feedback.HasIndex(f => new { f.DeliveryState, f.NextAttemptAtUtc });
+                feedback.Property(f => f.Type).HasConversion<string>().HasMaxLength(16).IsRequired();
+                feedback.Property(f => f.Text).HasMaxLength(FeedbackMessage.TextMaxLength).IsRequired();
+                feedback.Property(f => f.Contact).HasMaxLength(FeedbackMessage.ContactMaxLength);
+                feedback.Property(f => f.PageUrl).HasMaxLength(FeedbackMessage.PageUrlMaxLength);
+                feedback.Property(f => f.Mazhab).HasMaxLength(FeedbackMessage.MazhabMaxLength);
+                feedback.Property(f => f.DeliveryState).HasConversion<string>().HasMaxLength(16).IsRequired();
+                feedback.Property(f => f.Attempts).IsConcurrencyToken();
+                feedback.Property(f => f.LastError).HasMaxLength(FeedbackMessage.LastErrorMaxLength);
+                feedback.Property(f => f.GitHubIssueUrl).HasMaxLength(FeedbackMessage.IssueUrlMaxLength);
+                feedback.HasOne(f => f.Article)
+                    .WithMany()
+                    .HasForeignKey(f => f.ArticleId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 

@@ -139,6 +139,58 @@ IP берётся из адреса соединения: `X-Forwarded-For` не
 `ForwardedHeaders`. За обратным прокси все клиенты делят один лимит `Auth` — при развёртывании
 за прокси middleware нужно включить.
 
+#### Обратная связь и GitHub App (F-02)
+
+`POST /feedback` принимает сообщение посетителя без входа, сохраняет его в таблицу
+`FeedbackMessages` и сразу отвечает `202`. Issue в репозитории создаёт фоновый обработчик
+(`FeedbackDeliveryWorker`) от имени GitHub App — с метками `feedback` и `needs-triage`. Репозиторий
+публичный (решение D9), поэтому в issue попадают тип, текст, адрес страницы, статья и мазхаб, а
+контакт остаётся только в БД: в issue написано лишь «контакт оставлен» и номер обращения. IP и
+User-Agent не сохраняются.
+
+Пока GitHub недоступен или не принимает ключ, обращение ждёт в состоянии `Pending` и повторяется
+с растущей паузой (от `RetryBaseSeconds` до `RetryMaxSeconds`, без ограничения числа попыток);
+очередь — сама таблица, перезапуск её не теряет. Причина последней неудачи — в столбце `LastError`.
+`Failed` получает только обращение, которое GitHub отклонил как некорректное (422).
+
+**Без настройки** (так по умолчанию в разработке, CI и e2e) обращения принимаются и копятся в
+`Pending` с нулём попыток; после настройки они уйдут сами.
+
+Настройка — секция `Feedback`:
+
+| Ключ | Значение |
+| --- | --- |
+| `Feedback:GitHub:AppId` | App ID приложения (в `appsettings.json` — `5514770`, приложение `feedback-machine`) |
+| `Feedback:GitHub:Owner`, `Feedback:GitHub:Repository` | Репозиторий для issues (в `appsettings.json` — `shoraLBRT/mktba`) |
+| `Feedback:GitHub:PrivateKeyPath` | Путь к приватному ключу приложения (`.pem`) **вне репозитория** |
+| `Feedback:GitHub:PrivateKey` | Сам ключ текстом PEM — для переменной окружения; переводы строк можно записать как `\n`. Важнее пути |
+| `Feedback:GitHub:Enabled` | `false` выключает доставку, даже если ключ задан (так запускается API в e2e) |
+| `Feedback:Delivery:*` | `PollIntervalSeconds` (30), `BatchSize` (20), `RetryBaseSeconds` (60), `RetryMaxSeconds` (3600) |
+
+Локально — путь к ключу в `Mktba.Api/appsettings.local.json`:
+
+```json
+{ "Feedback": { "GitHub": { "PrivateKeyPath": "C:/keys/feedback-machine.private-key.pem" } } }
+```
+
+В продакшене — переменные окружения: `Feedback__GitHub__PrivateKeyPath=/run/secrets/feedback.pem`
+или `Feedback__GitHub__PrivateKey=...`. Ключ не кладите в репозиторий и в образ.
+
+Что нужно от GitHub:
+
+1. Приложению — права **Issues: Read and write** и **Metadata: Read-only**; оно должно быть
+   установлено на репозиторий из `Owner`/`Repository` (id установки API находит сам).
+2. В репозитории заранее создайте метки `feedback` и `needs-triage`. Если issue создан без них,
+   в логе API будет предупреждение.
+
+Проверка вживую: задайте ключ, запустите API и отправьте
+`curl -X POST http://localhost:5172/feedback -H "Content-Type: application/json" -d '{"type":"Idea","text":"проверка"}'`
+— в течение `PollIntervalSeconds` в репозитории появится issue, а в строке таблицы — `Delivered` и
+номер issue. Автотесты GitHub не вызывают.
+
+До F-03 (#68) у эндпоинта нет ограничения частоты, а текст посетителя попадает в issue без
+экранирования `@`-упоминаний и разметки — не включайте доставку на публичном сервере раньше.
+
 ### Frontend
 
 ```bash

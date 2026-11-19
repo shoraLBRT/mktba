@@ -1609,6 +1609,47 @@
         }
       }
     },
+    "/feedback": {
+      "post": {
+        "tags": [
+          "Feedback"
+        ],
+        "summary": "Accepts a visitor's message: an article error, a site problem or an idea. No sign-in.",
+        "description": "The message is stored and answered with 202 at once; an issue in the project's public GitHub repository is created in the background and retried while GitHub is unavailable, so the answer does not depend on GitHub. The contact is kept only in the site's database and is never published. Errors: feedback_type_invalid, feedback_text_required, feedback_text_too_long, feedback_contact_too_long, feedback_page_url_invalid.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackAcceptedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/invites": {
       "get": {
         "tags": [
@@ -3609,6 +3650,60 @@
           }
         },
         "additionalProperties": false
+      },
+      "FeedbackAcceptedDto": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeedbackCreateDto": {
+        "required": [
+          "text",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/FeedbackType"
+          },
+          "text": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "string",
+            "nullable": true
+          },
+          "pageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "articleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "mazhab": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeedbackType": {
+        "enum": [
+          "ArticleError",
+          "SiteProblem",
+          "Idea"
+        ],
+        "type": "string"
       },
       "InviteCreateRequestDto": {
         "required": [

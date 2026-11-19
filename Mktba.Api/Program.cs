@@ -24,6 +24,7 @@ builder.Services.AddInfrastructure();
 builder.Services.AddApplication();
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
+builder.Services.Configure<FeedbackOptions>(builder.Configuration.GetSection(FeedbackOptions.SectionName));
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddAutoMapper(
@@ -104,6 +105,12 @@ builder.Services.AddArticleAccess();
 
 builder.Services.AddMktbaRateLimiting(builder.Configuration);
 
+// The OpenApi environment has no database to deliver from.
+if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
+{
+    builder.Services.AddHostedService<FeedbackDeliveryWorker>();
+}
+
 var app = builder.Build();
 
 // The OpenApi environment only generates the OpenAPI document (see mktba.react `npm run gen:api`)
@@ -153,6 +160,7 @@ app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapInviteEndpoints();
 app.MapSearchEndpoints();
+app.MapFeedbackEndpoints();
 
 app.Run();
 

@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Mktba.Application.Services.Feedback;
 using Mktba.Infrastructure.Data;
 
 namespace Mktba.Api.Tests;
@@ -82,7 +84,26 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
                 .UseInMemoryDatabase(_databaseName)
                 .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
             services.AddSingleton<IStartupFilter, RemoteIpFromHeaderStartupFilter>();
+
+            // The developer's appsettings.local.json may hold a real GitHub App key: tests never reach GitHub.
+            services.RemoveAll<IFeedbackIssueTracker>();
+            services.AddSingleton(IssueTracker ?? new NoIssueTracker());
         });
+    }
+
+    /// <summary>A stand-in issue tracker for the feedback worker; null (the default) means none is configured.</summary>
+    internal IFeedbackIssueTracker? IssueTracker { get; init; }
+
+    /// <summary>A tracker that is never configured: feedback stays pending and nothing is sent anywhere.</summary>
+    private sealed class NoIssueTracker : IFeedbackIssueTracker
+    {
+        public bool IsConfigured => false;
+
+        public Task<FeedbackIssueRef?> FindByMarkerAsync(string marker, DateTime sinceUtc, CancellationToken cancellationToken)
+            => throw new InvalidOperationException("Tests do not deliver feedback.");
+
+        public Task<FeedbackIssueRef> CreateAsync(string title, string body, IReadOnlyList<string> labels, CancellationToken cancellationToken)
+            => throw new InvalidOperationException("Tests do not deliver feedback.");
     }
 
     private sealed class RemoteIpFromHeaderStartupFilter : IStartupFilter

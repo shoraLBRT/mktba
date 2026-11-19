@@ -1768,6 +1768,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accepts a visitor's message: an article error, a site problem or an idea. No sign-in.
+         * @description The message is stored and answered with 202 at once; an issue in the project's public GitHub repository is created in the background and retried while GitHub is unavailable, so the answer does not depend on GitHub. The contact is kept only in the site's database and is never published. Errors: feedback_type_invalid, feedback_text_required, feedback_text_too_long, feedback_contact_too_long, feedback_page_url_invalid.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["FeedbackCreateDto"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FeedbackAcceptedDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/invites": {
         parameters: {
             query?: never;
@@ -2975,6 +3027,21 @@ export interface components {
             email: string;
             role: components["schemas"]["UserRole"];
         };
+        FeedbackAcceptedDto: {
+            /** Format: int32 */
+            id: number;
+        };
+        FeedbackCreateDto: {
+            type: components["schemas"]["FeedbackType"];
+            text: string;
+            contact?: string | null;
+            pageUrl?: string | null;
+            /** Format: int32 */
+            articleId?: number | null;
+            mazhab?: string | null;
+        };
+        /** @enum {string} */
+        FeedbackType: "ArticleError" | "SiteProblem" | "Idea";
         InviteCreateRequestDto: {
             role: components["schemas"]["UserRole"];
             /** Format: int32 */
