@@ -1,11 +1,16 @@
+import { Link } from 'react-router';
 import { useLocale } from '../../localization/hooks';
+import { authorHref } from '../../shared/slug';
 import { formatRussianDate } from '../../shared/lib/formatDate';
+import type { ArticleAuthorDto } from '../../shared/types/ApiTypes';
 
 type ArticleDatesProps = {
   publishedAt?: string | null;
   updatedAt?: string | null;
   /** Estimated minutes to read the article; left out when there is nothing to read. */
   readingMinutes?: number | null;
+  /** The credited people who have a name, the author first; a slug means the author page exists. */
+  authors?: ArticleAuthorDto[] | null;
 };
 
 type DateLine = {
@@ -27,10 +32,11 @@ const DateLineView = ({ template, iso, text }: DateLine) => {
 };
 
 /**
- * «Опубликовано …», «Обновлено …» and the reading time under the article title. The update line
- * is left out when it falls on the publication day, so a fresh article shows a single date.
+ * The authors, «Опубликовано …», «Обновлено …» and the reading time under the article title. The
+ * update line is left out when it falls on the publication day, so a fresh article shows a single
+ * date. An author is a link only when their page exists; with no named author there is no line.
  */
-export const ArticleDates = ({ publishedAt, updatedAt, readingMinutes = null }: ArticleDatesProps) => {
+export const ArticleDates = ({ publishedAt, updatedAt, readingMinutes = null, authors }: ArticleDatesProps) => {
   const t = useLocale().articlePage;
   const published = publishedAt ? formatRussianDate(publishedAt) : null;
   const updated = updatedAt ? formatRussianDate(updatedAt) : null;
@@ -39,7 +45,9 @@ export const ArticleDates = ({ publishedAt, updatedAt, readingMinutes = null }: 
     updatedAt && updated && updated !== published ? { template: t.updatedOn, iso: updatedAt, text: updated } : null,
   ].filter((line): line is DateLine => line !== null);
 
-  if (lines.length === 0 && readingMinutes === null) {
+  const named = authors ?? [];
+
+  if (lines.length === 0 && readingMinutes === null && named.length === 0) {
     return null;
   }
 
@@ -47,6 +55,21 @@ export const ArticleDates = ({ publishedAt, updatedAt, readingMinutes = null }: 
 
   return (
     <p className="mb-4 flex flex-wrap gap-x-4 text-xs text-[var(--color-ink-subtle)]" data-testid="article-dates">
+      {named.length > 0 ? (
+        <span data-testid="article-authors">
+          {named.length > 1 ? t.authors : t.author}
+          {named.map(({ displayName, slug }, index) => (
+            <span key={slug ?? displayName}>
+              {index > 0 ? ', ' : ' '}
+              {slug ? (
+                <Link to={authorHref(slug)} rel="author" className="text-[var(--color-brand-forest)] underline">
+                  {displayName}
+                </Link>
+              ) : displayName}
+            </span>
+          ))}
+        </span>
+      ) : null}
       {lines.map((line) => (
         <DateLineView key={line.template} {...line} />
       ))}

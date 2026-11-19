@@ -2,9 +2,9 @@
  * Schema.org structured data (O-05, #56): typed builders for the JSON-LD `@graph` a public page
  * carries, and its safe serialization into a `<script type="application/ld+json">`.
  *
- * Authorship: the article DTO carries no author yet, so an article's author and publisher are the
- * site's `Organization`. An author page (P-01, #89) describes its `Person` (`personId` is the node
- * an article's `author` will point at, P-06 #94).
+ * Authorship (P-06, #94): an article's `author` points at the `Person` of every credited user who
+ * has a public author page (`personId`, the same node the author page describes, P-01 #89); with
+ * none it is the site's `Organization`, which is always the publisher.
  * `WebSite` names the site search (`SearchAction`, R-10 #46): the results page takes the query in its URL.
  */
 import { SEARCH_PATH, SEARCH_QUERY_PARAM } from './search';
@@ -52,7 +52,7 @@ export type ArticleNode = NodeRef & {
   inLanguage: string;
   datePublished?: string;
   dateModified?: string;
-  author: NodeRef;
+  author: NodeRef | NodeRef[];
   publisher: NodeRef;
   isPartOf: NodeRef;
 };
@@ -144,6 +144,8 @@ export type ArticleFacts = {
   image?: string | null;
   publishedAt?: string | null;
   updatedAt?: string | null;
+  /** The credited users who have a public author page; none: the site is the author. */
+  authors?: AuthorFacts[];
 };
 
 export const articleNode = (site: SiteFacts, article: ArticleFacts): ArticleNode => {
@@ -159,7 +161,9 @@ export const articleNode = (site: SiteFacts, article: ArticleFacts): ArticleNode
     inLanguage: SITE_LANGUAGE,
     ...(article.publishedAt ? { datePublished: article.publishedAt } : {}),
     ...(article.updatedAt ? { dateModified: article.updatedAt } : {}),
-    author: { '@id': organizationId(site.siteUrl) },
+    author: article.authors?.length
+      ? article.authors.map((author) => ({ '@id': personId(site.siteUrl, author.path) }))
+      : { '@id': organizationId(site.siteUrl) },
     publisher: { '@id': organizationId(site.siteUrl) },
     isPartOf: { '@id': webSiteId(site.siteUrl) },
   };

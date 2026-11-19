@@ -26,7 +26,7 @@ import { useMazhab } from '../context/mazhabContext';
 import { useTrackEvent } from '../analytics/useTrackEvent';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
-import { articleHref } from '../shared/slug';
+import { articleHref, authorHref } from '../shared/slug';
 import { feedbackHref } from '../shared/feedback';
 import { findAdjacentArticles, findArticlePath } from '../shared/articleTree';
 import { estimateReadingMinutes } from '../shared/readingTime';
@@ -293,6 +293,8 @@ const ArticlePage: React.FC = () => {
               image: articleContent.meta.socialImageUrl,
               publishedAt: articleContent.publishedAt,
               updatedAt: articleContent.updatedAt,
+              authors: (articleContent.authors ?? []).flatMap((author) =>
+                author.slug ? [{ name: author.displayName, path: authorHref(author.slug) }] : []),
             }}
             breadcrumbs={breadcrumbSteps}
           />
@@ -354,6 +356,7 @@ const ArticlePage: React.FC = () => {
             publishedAt={articleContent.publishedAt}
             updatedAt={articleContent.updatedAt}
             readingMinutes={readingMinutes}
+            authors={articleContent.authors}
           />
 
           {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);

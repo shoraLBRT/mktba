@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
 import { formatRussianDate } from '../../shared/lib/formatDate';
@@ -70,5 +71,45 @@ describe('ArticleDates', () => {
     renderDates('2026-11-01T09:00:00Z', null, null);
 
     expect(screen.queryByTestId('article-reading-time')).toBeNull();
+  });
+
+  const renderAuthors = (authors: { displayName: string; slug?: string | null }[], publishedAt: string | null = '2026-11-01T09:00:00Z') =>
+    render(
+      <MemoryRouter>
+        <LocalizationProvider>
+          <ArticleDates publishedAt={publishedAt} authors={authors} />
+        </LocalizationProvider>
+      </MemoryRouter>,
+    );
+
+  it('given one author with a page, when rendered, then the line comes first and links the name to the author page', () => {
+    renderAuthors([{ displayName: 'Ахмад Иванов', slug: 'ahmad-ivanov' }]);
+
+    const line = screen.getByTestId('article-authors');
+    expect(screen.getByTestId('article-dates').firstElementChild).toBe(line);
+    expect(line.textContent).toBe('Автор: Ахмад Иванов');
+    const link = screen.getByRole('link', { name: 'Ахмад Иванов' });
+    expect(link.getAttribute('href')).toBe('/authors/ahmad-ivanov');
+    expect(link.getAttribute('rel')).toBe('author');
+  });
+
+  it('given an author and a co-author without a page, when rendered, then both are named in order and only the first is a link', () => {
+    renderAuthors([{ displayName: 'Ахмад Иванов', slug: 'ahmad-ivanov' }, { displayName: 'Умар Петров', slug: null }]);
+
+    expect(screen.getByTestId('article-authors').textContent).toBe('Авторы: Ахмад Иванов, Умар Петров');
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('given no named author, when rendered, then there is no author line', () => {
+    renderAuthors([]);
+
+    expect(screen.queryByTestId('article-authors')).toBeNull();
+    expect(screen.getByTestId('article-dates').textContent).toMatch(/^Опубликовано/);
+  });
+
+  it('given an author and no dates, when rendered, then the author line stands alone', () => {
+    renderAuthors([{ displayName: 'Ахмад Иванов', slug: null }], null);
+
+    expect(screen.getByTestId('article-dates').textContent).toBe('Автор: Ахмад Иванов');
   });
 });

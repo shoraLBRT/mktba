@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API_URL, publishArticle } from './helpers';
+import { adminCredentials, API_URL, publishArticle } from './helpers';
 
 // Public pages are rendered on the server (O-01): their HTML carries the content before any script runs.
 
@@ -272,6 +272,12 @@ const jsonLdNodes = (html: string): JsonLdNode[] =>
     .flatMap((match) => (JSON.parse(match[1]) as { '@graph': JsonLdNode[] })['@graph']);
 
 test('the server sends an article with Article, BreadcrumbList, WebSite and Organization JSON-LD (O-05)', async ({ request }) => {
+  // The seeded article is the e2e admin's; other specs give the admin a name, which would make the
+  // author a Person (P-06). Without a name the site itself is the author.
+  const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
+  const { accessToken } = await login.json() as { accessToken: string };
+  expect((await request.put(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${accessToken}` }, data: { displayName: null } })).ok()).toBe(true);
+
   const html = await (await request.get('/article/salat')).text();
   const nodes = jsonLdNodes(html);
 
@@ -282,6 +288,7 @@ test('the server sends an article with Article, BreadcrumbList, WebSite and Orga
   expect(article.url).toMatch(/^https?:\/\/[^/]+\/article\/salat$/);
   expect(article.datePublished).toBeTruthy();
   expect(article.author).toEqual({ '@id': organization['@id'] });
+  expect(html).not.toContain('data-testid="article-authors"');
   const trail = breadcrumbs.itemListElement as Array<{ position: number; name: string; item: string }>;
   expect(trail.at(-1)).toMatchObject({ position: trail.length, name: 'Салат', item: article.url });
 });

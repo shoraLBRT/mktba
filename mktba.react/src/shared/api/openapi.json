@@ -2976,6 +2976,22 @@
         },
         "additionalProperties": false
       },
+      "ArticleAuthorDto": {
+        "required": [
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ArticleAuthorsDto": {
         "required": [
           "coAuthorIds"
@@ -3192,6 +3208,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SourceDto"
+            },
+            "nullable": true
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleAuthorDto"
             },
             "nullable": true
           }

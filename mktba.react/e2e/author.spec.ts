@@ -104,3 +104,77 @@ test('a named user without a published article and an unknown address answer 404
 
   expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).ok()).toBe(true);
 });
+
+// P-06 (#94): the article names its authors under the title and links them to their pages.
+test('an article names its author and co-author with links to their pages, in the server HTML and JSON-LD; a nameless author gets no line', async ({ page, request }) => {
+  const stamp = Date.now();
+  const title = `E2E статья с авторами ${stamp}`;
+  const article = await publishArticle(
+    request, title, [{ order: 1, opinions: [{ content: 'Текст статьи с авторами.', isDefault: true, schoolIds: [] }] }],
+  );
+  const admin = article.headers;
+  const invitee = async (key: string, displayName: string | null) => {
+    const invite = await request.post(`${API_URL}/invites`, { headers: admin, data: { role: 'Author' } });
+    const { token } = await invite.json() as { token: string };
+    const email = `${key}-${stamp}@mktba.local`;
+    const registered = await request.post(`${API_URL}/auth/register`, {
+      data: { email, password: 'E2e-author-password-1', inviteToken: token },
+    });
+    expect(registered.ok()).toBe(true);
+    const { accessToken } = await registered.json() as { accessToken: string };
+    const slug = `e2e-${key}-${stamp}`;
+    if (displayName) {
+      const saved = await request.put(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${accessToken}` }, data: { displayName, slug } });
+      expect(saved.ok()).toBe(true);
+    }
+    const users = await (await request.get(`${API_URL}/users`, { headers: admin })).json() as { id: number; email: string }[];
+    return { id: users.find((user) => user.email === email)!.id, email, slug };
+  };
+  const authorName = `E2E Главный автор ${stamp}`;
+  const coAuthorName = `E2E Соавтор ${stamp}`;
+  const author = await invitee('line-author', authorName);
+  const coAuthor = await invitee('line-coauthor', coAuthorName);
+  const nameless = await invitee('line-nameless', null);
+  const setAuthors = async (authorId: number, coAuthorIds: number[]) =>
+    expect((await request.put(`${API_URL}/articles/${article.id}/authors`, { headers: admin, data: { authorId, coAuthorIds } })).ok()).toBe(true);
+  await setAuthors(author.id, [coAuthor.id, nameless.id]);
+  const graphOf = (html: string) =>
+    [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)]
+      .flatMap((match) => (JSON.parse(match[1]) as { '@graph': Record<string, unknown>[] })['@graph']);
+
+  const html = await (await request.get(`/article/${article.slug}`)).text();
+  expect(html).toContain('data-testid="article-authors"');
+  expect(html).toMatch(new RegExp(`Авторы:.*href="/authors/${author.slug}"[^>]*>${authorName}</a>.*href="/authors/${coAuthor.slug}"[^>]*>${coAuthorName}</a>`, 's'));
+  expect(html).not.toContain('@mktba.local');
+  const nodes = graphOf(html);
+  const people = nodes.filter((node) => node['@type'] === 'Person');
+  expect(people.map((person) => person.name)).toEqual([authorName, coAuthorName]);
+  expect(String(people[0]['@id'])).toMatch(new RegExp(`/authors/${author.slug}#person$`));
+  expect(nodes.find((node) => node['@type'] === 'Article')!.author).toEqual(people.map((person) => ({ '@id': person['@id'] })));
+
+  await page.goto(`/article/${article.slug}`);
+  await expect(page.getByTestId('article-authors')).toHaveText(`Авторы: ${authorName}, ${coAuthorName}`);
+  await expect(page.getByRole('link', { name: authorName })).toHaveAttribute('rel', 'author');
+  const { violations } = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(
+    violations
+      .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+      .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`),
+  ).toEqual([]);
+  await page.setViewportSize({ width: 375, height: 700 });
+  expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);
+  await page.getByRole('link', { name: coAuthorName }).click();
+  await expect(page).toHaveURL(new RegExp(`/authors/${coAuthor.slug}$`));
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(coAuthorName);
+
+  await setAuthors(nameless.id, []);
+  const bare = await (await request.get(`/article/${article.slug}`)).text();
+  expect(bare).not.toContain('data-testid="article-authors"');
+  expect(bare).toContain('data-testid="article-dates"');
+  const bareNodes = graphOf(bare);
+  expect(bareNodes.some((node) => node['@type'] === 'Person')).toBe(false);
+  expect(bareNodes.find((node) => node['@type'] === 'Article')!.author)
+    .toEqual({ '@id': bareNodes.find((node) => node['@type'] === 'Organization')!['@id'] });
+
+  expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: admin })).ok()).toBe(true);
+});
