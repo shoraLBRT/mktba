@@ -344,3 +344,37 @@ test('the table of contents follows the scroll, headings and paragraphs have lin
     .toHaveAttribute('aria-current', 'location');
   await expect(page).toHaveURL(/\?mazhab=shafii#razdel-shafiitov$/);
 });
+
+test('the bottom of an article leads to its children and neighbours and stays accessible on a narrow screen (R-08)', async ({ page, request }) => {
+  const stamp = Date.now();
+  const text = [{ order: 1, opinions: [{ content: 'Текст', isDefault: true, schoolIds: [] }] }];
+  const section = await publishArticle(request, `Раздел перехода ${stamp}`, text);
+  const child = await publishArticle(request, `Глава перехода ${stamp}`, text, {
+    parentArticleId: section.id,
+    relatedLinks: [{ relatedArticleId: section.id, order: 1 }],
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/article/${section.slug}`);
+  await page.getByRole('navigation', { name: 'В этом разделе' }).getByRole('link', { name: `Глава перехода ${stamp}` }).click();
+  await expect(page).toHaveURL(new RegExp(`/article/${child.slug}$`));
+  await expect(page.getByRole('heading', { name: `Глава перехода ${stamp}`, level: 1 })).toBeVisible();
+
+  const related = page.getByRole('navigation', { name: 'Связанные статьи' });
+  await expect(related.getByRole('link', { name: `Раздел перехода ${stamp}` })).toBeVisible();
+
+  const { violations } = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(violations
+    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .map((violation) => violation.id)).toEqual([]);
+
+  await page.getByRole('navigation', { name: 'Соседние статьи' }).getByRole('link', { name: /Предыдущая статья/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/article/${section.slug}$`));
+  await expect(page.getByRole('heading', { name: `Раздел перехода ${stamp}`, level: 1 })).toBeVisible();
+
+  // On a wide screen the related articles live in the right sidebar only.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/article/${child.slug}`);
+  await expect(page.getByRole('navigation', { name: 'Связанные статьи' })).toHaveCount(1);
+  await expect(page.getByTestId('article-related')).toBeHidden();
+});
