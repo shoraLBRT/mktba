@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react';
 import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
@@ -21,6 +21,7 @@ const AdminLoginPage: React.FC = () => {
   const t = locale.adminLoginPage;
   const featureCards = t.featureCards as Array<[string, string]>;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [formValues, setFormValues] = useState<FormValues>({ email: '', password: '', inviteToken: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -44,6 +45,7 @@ const AdminLoginPage: React.FC = () => {
     mutationFn: adminRegister,
     onSuccess: (result) => {
       setStoredAdminToken(result.accessToken);
+      void queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.AUTH_STATUS] });
       navigate('/admin');
     },
     onError: (error) => setErrorMessage((error as Error).message),

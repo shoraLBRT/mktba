@@ -1,12 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { FileText, X } from 'lucide-react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import MarkdownContent from '../components/MarkdownContent';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { createArticleContent } from '../services/Article/articleService';
-import { getNavigationTree } from '../services/Article/navigationService';
+import { useNavigationTree } from '../hooks/useNavigationTree';
+import { invalidateArticleQueries } from '../app/queryClient';
 import { getAiProviderSettings, styleMarkdownWithAi } from '../services/adminService';
 import { Button } from '../shared/ui/Button';
 import { Card } from '../shared/ui/Card';
@@ -106,6 +107,7 @@ const flattenNavigationTree = (
 
 const AddArticlePage: React.FC = () => {
   const locale = useLocale();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const t = locale.addArticlePage;
   const editorText = locale.addArticleEditor;
@@ -140,10 +142,7 @@ const AddArticlePage: React.FC = () => {
 
   const availableSchools = systemSchoolsQuery.data ?? [];
 
-  const navigationTreeQuery = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE],
-    queryFn: getNavigationTree,
-  });
+  const navigationTreeQuery = useNavigationTree();
 
   const canUseAi = Boolean(aiSettingsQuery.data?.isEnabled && aiSettingsQuery.data?.hasApiKey);
   const isLocked = isAiRunning;
@@ -176,6 +175,7 @@ const AddArticlePage: React.FC = () => {
   const mutation = useMutation({
     mutationFn: (payload: ArticleContentCreateDto) => createArticleContent(payload),
     onSuccess: (created) => {
+      void invalidateArticleQueries(queryClient);
       showNotice('success', t.saved);
       navigate(`/article/${created.id}`);
     },
