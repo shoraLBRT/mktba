@@ -1730,6 +1730,7 @@ export interface components {
             slug?: string | null;
             editComment?: string | null;
             locale?: string | null;
+            seo?: components["schemas"]["ArticleSeoDto"];
         };
         ArticleContentDto: {
             /** Format: int32 */
@@ -1749,6 +1750,8 @@ export interface components {
             locale?: string | null;
             /** Format: uuid */
             translationGroupId?: string | null;
+            seo?: components["schemas"]["ArticleSeoDto"];
+            meta?: components["schemas"]["ArticleMetaDto"];
         };
         ArticleCreateDto: {
             title: string;
@@ -1780,6 +1783,12 @@ export interface components {
             key: string;
             label: string;
             value: string;
+        };
+        ArticleMetaDto: {
+            title: string;
+            description?: string | null;
+            socialImageUrl?: string | null;
+            noIndex: boolean;
         };
         ArticleMoveDto: {
             /** Format: int32 */
@@ -1848,6 +1857,12 @@ export interface components {
             comment?: string | null;
             isPublished: boolean;
         };
+        ArticleSeoDto: {
+            title?: string | null;
+            description?: string | null;
+            socialImageUrl?: string | null;
+            noIndex: boolean;
+        };
         ArticleSnapshotDto: {
             /** Format: int32 */
             schemaVersion: number;
@@ -1858,6 +1873,7 @@ export interface components {
             infobox?: components["schemas"]["ArticleSnapshotInfoboxDto"];
             paragraphs: components["schemas"]["ArticleSnapshotParagraphDto"][];
             relatedLinks: components["schemas"]["ArticleSnapshotRelatedLinkDto"][];
+            seo?: components["schemas"]["ArticleSeoDto"];
         };
         ArticleSnapshotInfoboxDto: {
             title?: string | null;

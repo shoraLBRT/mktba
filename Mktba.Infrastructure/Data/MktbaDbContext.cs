@@ -30,6 +30,15 @@ namespace Mktba.Infrastructure.Data
         /// <summary>Longest article slug; the slug rules in the application layer use the same limit.</summary>
         public const int ArticleSlugMaxLength = 80;
 
+        /// <summary>Longest SEO title of an article.</summary>
+        public const int SeoTitleMaxLength = 70;
+
+        /// <summary>Longest SEO description of an article.</summary>
+        public const int SeoDescriptionMaxLength = 160;
+
+        /// <summary>Longest social image URL of an article.</summary>
+        public const int SocialImageUrlMaxLength = 2048;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Article slug: unique per language (M-09, #27), so a translation may keep the original's slug.
@@ -175,6 +184,18 @@ namespace Mktba.Infrastructure.Data
             modelBuilder.Entity<Article>()
                 .Property(a => a.Tags)
                 .HasMaxLength(1000);
+
+            modelBuilder.Entity<Article>()
+                .Property(a => a.SeoTitle)
+                .HasMaxLength(SeoTitleMaxLength);
+
+            modelBuilder.Entity<Article>()
+                .Property(a => a.SeoDescription)
+                .HasMaxLength(SeoDescriptionMaxLength);
+
+            modelBuilder.Entity<Article>()
+                .Property(a => a.SocialImageUrl)
+                .HasMaxLength(SocialImageUrlMaxLength);
 
             modelBuilder.Entity<Article>()
                 .HasMany(a => a.RelatedLinks)
