@@ -119,6 +119,12 @@
     /// each once, in the order they are first cited. Always set on read. Ignored on update: citations
     /// are written on the opinions, entries through <c>/sources</c>.
     /// </param>
+    /// <param name="Authors">
+    /// Read only: who wrote the article, for the reader — the author first, then the co-authors in a
+    /// stable order; only users with a display name, so the list may be empty. Set by the content
+    /// reads (<c>GET</c> by id and by slug); null in the answer to a save. Ignored on update:
+    /// authorship is changed through <c>/articles/{id}/authors</c>.
+    /// </param>
     public record ArticleContentDto(
         int Id,
         string Title,
@@ -135,8 +141,18 @@
         Guid? TranslationGroupId = null,
         ArticleSeoDto? Seo = null,
         ArticleMetaDto? Meta = null,
-        List<SourceDto>? Sources = null
+        List<SourceDto>? Sources = null,
+        List<ArticleAuthorDto>? Authors = null
     );
+
+    /// <summary>A person credited on an article as readers see them (P-06, #94): no id, no email.</summary>
+    /// <param name="DisplayName">The name the user chose for their profile.</param>
+    /// <param name="Slug">
+    /// The profile slug when the author page <c>/authors/{slug}</c> answers now (the user is credited
+    /// on at least one Published article); null otherwise — the author of a draft seen in a preview
+    /// has no page to link to yet.
+    /// </param>
+    public record ArticleAuthorDto(string DisplayName, string? Slug);
 
     /// <summary>
     /// Result of looking an article up by slug: either its content (the slug is current) or the

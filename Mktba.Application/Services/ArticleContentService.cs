@@ -50,7 +50,10 @@ namespace Mktba.Application.Services
                     : new NotFoundException(AppErrors.ArticleNotFound);
             }
 
-            return BuildArticleContentDto(article, includeUnpublishedLinks: viewer.CanEdit(article));
+            var authors = (await _articleRepo.ListNamedCreditsAsync(article.Id))
+                .Select(credit => new ArticleAuthorDto(credit.DisplayName, credit.HasPublicPage ? credit.Slug : null))
+                .ToList();
+            return BuildArticleContentDto(article, includeUnpublishedLinks: viewer.CanEdit(article)) with { Authors = authors };
         }
 
         /// <summary>

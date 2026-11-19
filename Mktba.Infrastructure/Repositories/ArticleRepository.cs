@@ -261,6 +261,35 @@ namespace Mktba.Infrastructure.Repositories
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(article => article.Id == articleId, cancellationToken);
 
+        /// <summary>
+        /// The users credited on the article who have a display name: the author first, then the
+        /// co-authors by user id. A user without a display name is left out.
+        /// </summary>
+        public async Task<List<ArticleCreditRow>> ListNamedCreditsAsync(int articleId, CancellationToken cancellationToken = default)
+        {
+            var rows = await _context.Users
+                .AsNoTracking()
+                .Where(user => user.DisplayName != null && user.Slug != null)
+                .Select(user => new
+                {
+                    user.Id,
+                    user.DisplayName,
+                    user.Slug,
+                    IsAuthor = _dbSet.Any(article => article.Id == articleId && article.AuthorId == user.Id),
+                    IsCoAuthor = _dbSet.Any(article =>
+                        article.Id == articleId && article.CoAuthors.Any(coAuthor => coAuthor.UserId == user.Id)),
+                    HasPublicPage = _dbSet.Any(article =>
+                        article.Status == ArticleStatus.Published
+                        && (article.AuthorId == user.Id || article.CoAuthors.Any(coAuthor => coAuthor.UserId == user.Id)))
+                })
+                .Where(row => row.IsAuthor || row.IsCoAuthor)
+                .OrderByDescending(row => row.IsAuthor)
+                .ThenBy(row => row.Id)
+                .ToListAsync(cancellationToken);
+
+            return rows.Select(row => new ArticleCreditRow(row.DisplayName!, row.Slug!, row.HasPublicPage)).ToList();
+        }
+
         /// <summary>The id of the article in <paramref name="locale"/> whose current slug is <paramref name="slug"/>, if any.</summary>
         public Task<int?> FindIdBySlugAsync(string locale, string slug, CancellationToken cancellationToken = default)
             => _dbSet
