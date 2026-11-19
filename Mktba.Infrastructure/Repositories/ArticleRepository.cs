@@ -60,6 +60,25 @@ namespace Mktba.Infrastructure.Repositories
         }
 
         /// <summary>
+        /// Every article an anonymous reader may see (Published), projected to
+        /// <see cref="ArticleSitemapRow"/> in a single query with no content rows.
+        /// </summary>
+        public Task<List<ArticleSitemapRow>> GetSitemapRowsAsync(CancellationToken cancellationToken = default)
+            => _dbSet
+                .AsNoTracking()
+                .VisibleTo(ArticleViewer.Anonymous)
+                .OrderBy(article => article.Id)
+                .Select(article => new ArticleSitemapRow(
+                    article.Id,
+                    article.ParentArticleId,
+                    article.Slug,
+                    article.Locale,
+                    article.TranslationGroupId,
+                    article.NoIndex,
+                    article.UpdatedAt))
+                .ToListAsync(cancellationToken);
+
+        /// <summary>
         /// One page of the articles <paramref name="viewer"/> may read, filtered and sorted by
         /// <paramref name="query"/>, and the number of matching articles. Two queries — the count and
         /// the page — and no paragraph, infobox or link rows are read.
