@@ -1,4 +1,5 @@
-﻿using Mktba.Application.Services;
+﻿using Mktba.Application.DTOs;
+using Mktba.Application.Services;
 
 namespace Mktba.Api.Endpoints
 {
@@ -12,7 +13,7 @@ namespace Mktba.Api.Endpoints
             {
                 var tree = await service.GetTreeAsync();
                 return Results.Ok(tree);
-            });
+            }).Produces<List<NavigationArticleDto>>();
 
             return builder;
         }

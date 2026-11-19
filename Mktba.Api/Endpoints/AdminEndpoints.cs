@@ -13,13 +13,13 @@ public static class AdminEndpoints
         {
             var result = await service.CleanupDemoDataAsync(cancellationToken);
             return Results.Ok(result);
-        });
+        }).Produces<AdminCleanupResultDto>();
 
         group.MapGet("/ai-settings", async (AdminService service, CancellationToken cancellationToken) =>
         {
             var result = await service.GetAiSettingsAsync(cancellationToken);
             return Results.Ok(result);
-        });
+        }).Produces<AiProviderSettingsDto>();
 
         group.MapPut("/ai-settings", async (
             UpdateAiProviderSettingsDto request,
@@ -30,13 +30,13 @@ public static class AdminEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        });
+        }).Produces<AiProviderSettingsDto>().Produces(StatusCodes.Status400BadRequest);
 
         group.MapDelete("/ai-settings", async (AdminService service, CancellationToken cancellationToken) =>
         {
             var result = await service.ResetAiSettingsAsync(cancellationToken);
             return Results.Ok(result);
-        });
+        }).Produces<AiProviderSettingsDto>();
 
         group.MapPost("/ai-style", async (
             AiStyleRequestDto request,
@@ -47,7 +47,7 @@ public static class AdminEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        });
+        }).Produces<AiStyleResponseDto>().Produces(StatusCodes.Status400BadRequest);
 
         group.MapPost("/ai-check", async (AdminService service, CancellationToken cancellationToken) =>
         {
@@ -55,7 +55,7 @@ public static class AdminEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        });
+        }).Produces<AiConnectionCheckResultDto>().Produces(StatusCodes.Status400BadRequest);
 
         return builder;
     }

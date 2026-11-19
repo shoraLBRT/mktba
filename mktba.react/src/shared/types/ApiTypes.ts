@@ -1,182 +1,36 @@
-export interface OpinionDto {
-  id: number;
-  content: string;
-  isDefault: boolean;
-  schoolIds: number[];
-}
+// Contract types generated from the backend OpenAPI document (src/shared/api/openapi.json).
+// Do not declare DTOs by hand: run `npm run gen:api` after changing the API and alias the schema here.
+import type { components } from '../api/schema';
 
-export interface ParagraphDto {
-  id: number;
-  order: number;
-  opinions: OpinionDto[];
-}
+type Schemas = components['schemas'];
 
-export interface OpinionCreateDto {
-  content: string;
-  isDefault: boolean;
-  schoolIds: number[];
-}
-
-export interface ParagraphCreateDto {
-  articleId: number;
-  order: number;
-  opinions: OpinionCreateDto[];
-}
-
-export interface ParagraphReadDto {
-  id: number;
-  articleId: number;
-  order: number;
-  opinions: OpinionDto[];
-}
-
-export interface SchoolDto {
-  id: number;
-  slug: string;
-  name: string;
-  shortName: string;
-  isSystem: boolean;
-  articleScopeId?: number;
-}
-
-export interface ArticleInfoboxFieldDto {
-  id: number;
-  order: number;
-  key: string;
-  label: string;
-  value: string;
-}
-
-export interface ArticleInfoboxDto {
-  title?: string;
-  subtitle?: string;
-  fields: ArticleInfoboxFieldDto[];
-}
-
-export interface ArticleInfoboxFieldCreateDto {
-  order: number;
-  key: string;
-  label: string;
-  value: string;
-}
-
-export interface ArticleInfoboxCreateDto {
-  title?: string;
-  subtitle?: string;
-  fields: ArticleInfoboxFieldCreateDto[];
-}
-
-export interface ArticleRelatedLinkDto {
-  id: number;
-  relatedArticleId: number;
-  relatedArticleTitle: string;
-  order: number;
-}
-
-export interface ArticleRelatedLinkCreateDto {
-  relatedArticleId: number;
-  order: number;
-}
-
-export interface ArticleContentDto {
-  id: number;
-  title: string;
-  paragraphs: ParagraphDto[];
-  infobox?: ArticleInfoboxDto;
-  summary?: string;
-  tags: string[];
-  relatedLinks?: ArticleRelatedLinkDto[];
-}
-
-export interface ArticleContentCreateDto {
-  title: string;
-  parentArticleId?: number;
-  paragraphs: ParagraphCreateDto[];
-  infobox?: ArticleInfoboxCreateDto;
-  summary?: string;
-  tags?: string[];
-  relatedLinks?: ArticleRelatedLinkCreateDto[];
-}
-
-export interface ArticleReadDto {
-  id: number;
-  title: string;
-  parentArticleId?: number;
-  hasContent: boolean;
-}
-
-export interface ArticleCreateDto {
-  title: string;
-  parentArticleId?: number;
-}
-
-export interface AdminCleanupResultDto {
-  deletedArticles: number;
-  deletedParagraphs: number;
-  message: string;
-}
-
-export interface AiProviderSettingsDto {
-  baseUrl: string;
-  model: string;
-  isEnabled: boolean;
-  hasApiKey: boolean;
-  markdownStylingSystemPrompt?: string;
-}
-
-export interface UpdateAiProviderSettingsDto {
-  baseUrl: string;
-  model: string;
-  isEnabled: boolean;
-  apiKey?: string;
-  markdownStylingSystemPrompt?: string | null;
-}
-
-export interface AiStyleRequestDto {
-  text: string;
-}
-
-export interface AiStyleResponseDto {
-  styledText: string;
-}
-
-export interface AiConnectionCheckResultDto {
-  message: string;
-  styledText: string;
-}
-
-export interface NavigationArticleDto {
-  id: number;
-  title: string;
-  parentArticleId?: number;
-  hasContent: boolean;
-  children?: NavigationArticleDto[];
-}
+export type OpinionDto = Schemas['OpinionDto'];
+export type ParagraphDto = Schemas['ParagraphDto'];
+export type OpinionCreateDto = Schemas['OpinionCreateDto'];
+export type ParagraphCreateDto = Schemas['ParagraphCreateDto'];
+export type ParagraphReadDto = Schemas['ParagraphReadDto'];
+export type SchoolDto = Schemas['SchoolDto'];
+export type ArticleInfoboxFieldDto = Schemas['ArticleInfoboxFieldDto'];
+export type ArticleInfoboxDto = Schemas['ArticleInfoboxDto'];
+export type ArticleInfoboxFieldCreateDto = Schemas['ArticleInfoboxFieldCreateDto'];
+export type ArticleInfoboxCreateDto = Schemas['ArticleInfoboxCreateDto'];
+export type ArticleRelatedLinkDto = Schemas['ArticleRelatedLinkDto'];
+export type ArticleRelatedLinkCreateDto = Schemas['ArticleRelatedLinkCreateDto'];
+export type ArticleContentDto = Schemas['ArticleContentDto'];
+export type ArticleContentCreateDto = Schemas['ArticleContentCreateDto'];
+export type ArticleReadDto = Schemas['ArticleReadDto'];
+export type ArticleCreateDto = Schemas['ArticleCreateDto'];
+export type AdminCleanupResultDto = Schemas['AdminCleanupResultDto'];
+export type AiProviderSettingsDto = Schemas['AiProviderSettingsDto'];
+export type UpdateAiProviderSettingsDto = Schemas['UpdateAiProviderSettingsDto'];
+export type AiStyleRequestDto = Schemas['AiStyleRequestDto'];
+export type AiStyleResponseDto = Schemas['AiStyleResponseDto'];
+export type AiConnectionCheckResultDto = Schemas['AiConnectionCheckResultDto'];
+export type NavigationArticleDto = Schemas['NavigationArticleDto'];
+export type AdminAuthStatusDto = Schemas['AdminAuthStatusDto'];
+export type AdminRegisterRequestDto = Schemas['AdminRegisterRequestDto'];
+export type AdminLoginRequestDto = Schemas['AdminLoginRequestDto'];
+export type AdminAuthResponseDto = Schemas['AdminAuthResponseDto'];
+export type AdminInviteTokenCreateResponseDto = Schemas['AdminInviteTokenCreateResponseDto'];
 
 export type NavigationTreeDto = NavigationArticleDto[];
-
-export interface AdminAuthStatusDto {
-  requiresBootstrapAdmin: boolean;
-}
-
-export interface AdminRegisterRequestDto {
-  email: string;
-  password: string;
-  inviteToken?: string;
-}
-
-export interface AdminLoginRequestDto {
-  email: string;
-  password: string;
-}
-
-export interface AdminAuthResponseDto {
-  accessToken: string;
-  expiresAtUtc: string;
-  email: string;
-}
-
-export interface AdminInviteTokenCreateResponseDto {
-  token: string;
-  expiresAtUtc: string;
-}

@@ -14,7 +14,7 @@ public static class AuthEndpoints
         {
             var status = await service.GetAuthStatusAsync(cancellationToken);
             return Results.Ok(status);
-        });
+        }).Produces<AdminAuthStatusDto>();
 
         group.MapPost("/register", async (
             AdminRegisterRequestDto request,
@@ -25,7 +25,7 @@ public static class AuthEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        });
+        }).Produces<AdminAuthResponseDto>().Produces(StatusCodes.Status400BadRequest);
 
         group.MapPost("/login", async (
             AdminLoginRequestDto request,
@@ -36,7 +36,7 @@ public static class AuthEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        });
+        }).Produces<AdminAuthResponseDto>().Produces(StatusCodes.Status400BadRequest);
 
         group.MapPost("/invite-token", async (
             ClaimsPrincipal principal,
@@ -53,7 +53,7 @@ public static class AuthEndpoints
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.BadRequest(new { message = result.ErrorMessage });
-        }).RequireAuthorization("AdminOnly");
+        }).Produces<AdminInviteTokenCreateResponseDto>().Produces(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
 
         return builder;
     }

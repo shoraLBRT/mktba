@@ -13,31 +13,31 @@ namespace Mktba.Api.Endpoints
             {
                 var paragraphs = await service.GetAllAsync();
                 return Results.Ok(paragraphs);
-            });
+            }).Produces<List<ParagraphReadDto>>();
 
             group.MapGet("/{id}", async (int id, ParagraphService service) =>
             {
                 var paragraph = await service.GetByIdAsync(id);
                 return paragraph is not null ? Results.Ok(paragraph) : Results.NotFound();
-            });
+            }).Produces<ParagraphReadDto>().Produces(StatusCodes.Status404NotFound);
 
             group.MapPost("/", async (ParagraphCreateDto createDto, ParagraphService service) =>
             {
                 var createdParagraph = await service.CreateAsync(createDto);
                 return Results.Created($"/paragraph/{createdParagraph!.Id}", createdParagraph);
-            }).RequireAuthorization("AdminOnly");
+            }).Produces<ParagraphReadDto>(StatusCodes.Status201Created).RequireAuthorization("AdminOnly");
 
             group.MapPut("/{id}", async (int id, ParagraphUpdateDto updateDto, ParagraphService service) =>
             {
                 await service.UpdateAsync(id, updateDto);
                 return Results.NoContent();
-            }).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).RequireAuthorization("AdminOnly");
 
             group.MapDelete("/{id}", async (int id, ParagraphService service) =>
             {
                 await service.DeleteAsync(id);
                 return Results.NoContent();
-            }).RequireAuthorization("AdminOnly");
+            }).Produces(StatusCodes.Status204NoContent).RequireAuthorization("AdminOnly");
 
             return builder;
         }

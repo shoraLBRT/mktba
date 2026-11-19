@@ -54,6 +54,22 @@ npm run dev
 
 Dev-сервер Vite слушает `:5173`, API — `:5172`.
 
+### Контракт FE↔BE
+
+Типы DTO во фронтенде генерируются из OpenAPI-документа бэкенда, руками их не пишут.
+После изменения эндпоинтов или DTO перегенерируйте контракт и закоммитьте результат:
+
+```bash
+cd mktba.react
+npm run gen:api    # нужен .NET 8 SDK; база данных не нужна
+```
+
+Скрипт собирает `Mktba.Api`, пишет `src/shared/api/openapi.json` (Swashbuckle CLI в окружении
+`OpenApi`, без миграций и сидов) и генерирует из него `src/shared/api/schema.d.ts`
+(`openapi-typescript`). `src/shared/types/ApiTypes.ts` содержит только псевдонимы этих типов.
+CI-джоб `api-contract` падает, если закоммиченный контракт расходится с API, а `tsc` во
+фронтенд-джобе — если фронтенд не учитывает изменение контракта.
+
 ## Лицензия
 
 Open-source, MIT. См. [LICENSE](LICENSE).
