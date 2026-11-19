@@ -21,5 +21,8 @@ public class School
 
     public Article? ArticleScope { get; set; }
 
+    /// <summary>Names in languages other than Russian; at most one per locale.</summary>
+    public ICollection<SchoolTranslation> Translations { get; set; } = new List<SchoolTranslation>();
+
     public ICollection<OpinionSchool> OpinionSchools { get; set; } = new List<OpinionSchool>();
 }

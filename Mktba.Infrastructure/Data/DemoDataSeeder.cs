@@ -5,12 +5,12 @@ namespace Mktba.Infrastructure.Data;
 
 public static class DemoDataSeeder
 {
-    private static readonly (string Slug, string Name, string ShortName)[] SystemSchools =
+    private static readonly (string Slug, string Name, string ShortName, string EnName, string EnShortName)[] SystemSchools =
     [
-        ("hanafi",  "Ханафитский мазхаб",  "Хан"),
-        ("maliki",  "Маликитский мазхаб",  "Мал"),
-        ("shafii",  "Шафиитский мазхаб",   "Шаф"),
-        ("hanbali", "Ханбалитский мазхаб", "Ханб"),
+        ("hanafi",  "Ханафитский мазхаб",  "Хан",  "Hanafi madhhab",  "Han"),
+        ("maliki",  "Маликитский мазхаб",  "Мал",  "Maliki madhhab",  "Mal"),
+        ("shafii",  "Шафиитский мазхаб",   "Шаф",  "Shafi'i madhhab", "Shaf"),
+        ("hanbali", "Ханбалитский мазхаб", "Ханб", "Hanbali madhhab", "Hanb"),
     ];
 
     public static async Task SeedAsync(MktbaDbContext context)
@@ -20,19 +20,27 @@ public static class DemoDataSeeder
 
     private static async Task SeedSystemSchoolsAsync(MktbaDbContext context)
     {
-        foreach (var (slug, name, shortName) in SystemSchools)
+        foreach (var (slug, name, shortName, enName, enShortName) in SystemSchools)
         {
-            var exists = await context.Schools.AnyAsync(s => s.Slug == slug);
-            if (!exists)
+            var school = await context.Schools
+                .Include(s => s.Translations)
+                .FirstOrDefaultAsync(s => s.Slug == slug);
+            if (school is null)
             {
-                context.Schools.Add(new School
+                school = new School
                 {
                     Slug = slug,
                     Name = name,
                     ShortName = shortName,
                     IsSystem = true,
                     ArticleScopeId = null,
-                });
+                };
+                context.Schools.Add(school);
+            }
+
+            if (school.Translations.All(t => t.Locale != "en"))
+            {
+                school.Translations.Add(new SchoolTranslation { Locale = "en", Name = enName, ShortName = enShortName });
             }
         }
 

@@ -17,12 +17,12 @@ namespace Mktba.Api.Endpoints
                 return Results.Ok(content);
             }).Produces<ArticleContentDto>().ProducesApiProblem(StatusCodes.Status404NotFound);
 
-            group.MapGet("/by-slug/{slug}/content", async (string slug, ClaimsPrincipal user, ArticleContentService service) =>
+            group.MapGet("/by-slug/{slug}/content", async (string slug, string? locale, ClaimsPrincipal user, ArticleContentService service) =>
             {
-                var lookup = await service.GetContentBySlugAsync(slug, user.CanSeeUnpublished());
+                var lookup = await service.GetContentBySlugAsync(slug, user.CanSeeUnpublished(), locale);
                 return lookup.Content is not null
                     ? Results.Ok(lookup.Content)
-                    : Results.Redirect(BySlugContentPath(lookup.RedirectToSlug!), permanent: false);
+                    : Results.Redirect(BySlugContentPath(lookup.RedirectToSlug!, locale), permanent: false);
             })
             .WithSummary("Article content by slug; an old slug redirects (302) to the current one.")
             .WithDescription(
@@ -30,9 +30,12 @@ namespace Mktba.Api.Endpoints
                 + "Location set to the current slug's URL, so clients that follow redirects get the content "
                 + "and can compare its slug with the one they asked for. The redirect is temporary on purpose: "
                 + "an old slug can become current again, and a cached permanent redirect would then loop. "
-                + "Anonymous readers get 404 for an article that is not Published.")
+                + "Anonymous readers get 404 for an article that is not Published. Slugs are unique per "
+                + "language: the optional locale query parameter (default ru) picks the language, and an "
+                + "unsupported one answers 400 locale_unsupported.")
             .Produces<ArticleContentDto>()
             .Produces(StatusCodes.Status302Found)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest)
             .ProducesApiProblem(StatusCodes.Status404NotFound);
 
             group.MapPost("/content", async (ArticleContentCreateDto dto, ClaimsPrincipal user, ArticleContentService service) =>
@@ -88,6 +91,8 @@ namespace Mktba.Api.Endpoints
             .RequireAuthorization("AdminOnly");
         }
 
-        private static string BySlugContentPath(string slug) => $"/articles/by-slug/{Uri.EscapeDataString(slug)}/content";
+        private static string BySlugContentPath(string slug, string? locale) =>
+            $"/articles/by-slug/{Uri.EscapeDataString(slug)}/content"
+            + (string.IsNullOrWhiteSpace(locale) ? "" : $"?locale={Uri.EscapeDataString(locale.Trim().ToLowerInvariant())}");
     }
 }

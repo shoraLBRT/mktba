@@ -322,11 +322,13 @@ export interface paths {
         };
         /**
          * Article content by slug; an old slug redirects (302) to the current one.
-         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop. Anonymous readers get 404 for an article that is not Published.
+         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop. Anonymous readers get 404 for an article that is not Published. Slugs are unique per language: the optional locale query parameter (default ru) picks the language, and an unsupported one answers 400 locale_unsupported.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    locale?: string;
+                };
                 header?: never;
                 path: {
                     slug: string;
@@ -350,6 +352,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -1718,6 +1729,7 @@ export interface components {
             relatedLinks?: components["schemas"]["ArticleRelatedLinkCreateDto"][] | null;
             slug?: string | null;
             editComment?: string | null;
+            locale?: string | null;
         };
         ArticleContentDto: {
             /** Format: int32 */
@@ -1734,6 +1746,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             editComment?: string | null;
+            locale?: string | null;
+            /** Format: uuid */
+            translationGroupId?: string | null;
         };
         ArticleCreateDto: {
             title: string;

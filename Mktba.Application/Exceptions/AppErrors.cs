@@ -50,6 +50,10 @@ public static class AppErrors
         new("article_status_transition_invalid", $"An article cannot move from {from} to {to}.",
             With(("from", from.ToString()), ("to", to.ToString())));
 
+    public static AppError LocaleUnsupported(string locale) =>
+        new("locale_unsupported", $"Locale '{locale}' is not supported. Supported: {string.Join(", ", Domain.Entities.Locales.Supported)}.",
+            With(("locale", locale), ("supported", string.Join(", ", Domain.Entities.Locales.Supported))));
+
     public static AppError ArticleSlugTaken(string slug) =>
         new("article_slug_taken", $"Slug '{slug}' is already used by another article.", With(("slug", slug)));
 

@@ -45,20 +45,24 @@ namespace Mktba.Application.Services
         }
 
         /// <summary>
-        /// Looks an article up by slug, ignoring case. A current slug returns the content; an old
-        /// slug returns the current one to redirect to.
+        /// Looks an article up by slug within one locale, ignoring case. A current slug returns the
+        /// content; an old slug returns the current one to redirect to.
         /// </summary>
-        /// <exception cref="NotFoundException">No visible article has or had this slug.</exception>
-        public async Task<ArticleSlugLookup> GetContentBySlugAsync(string requestedSlug, bool includeUnpublished)
+        /// <param name="requestedLocale">The article's locale; null or blank means <see cref="Locales.Default"/>.</param>
+        /// <exception cref="ValidationException"><c>locale_unsupported</c>.</exception>
+        /// <exception cref="NotFoundException">No visible article in the locale has or had this slug.</exception>
+        public async Task<ArticleSlugLookup> GetContentBySlugAsync(string requestedSlug, bool includeUnpublished, string? requestedLocale = null)
         {
+            var locale = Locales.Normalize(requestedLocale)
+                ?? throw new ValidationException(AppErrors.LocaleUnsupported(requestedLocale!));
             var slug = requestedSlug.Trim().ToLowerInvariant();
-            var articleId = await _articleRepo.FindIdBySlugAsync(slug);
+            var articleId = await _articleRepo.FindIdBySlugAsync(locale, slug);
             if (articleId is not null)
             {
                 return new ArticleSlugLookup(await GetContentByArticleIdAsync(articleId.Value, includeUnpublished), null);
             }
 
-            var currentSlug = await _articleRepo.FindRedirectTargetSlugAsync(slug, publishedOnly: !includeUnpublished);
+            var currentSlug = await _articleRepo.FindRedirectTargetSlugAsync(locale, slug, publishedOnly: !includeUnpublished);
             return currentSlug is not null
                 ? new ArticleSlugLookup(null, currentSlug)
                 : throw new NotFoundException(AppErrors.ArticleNotFound);
@@ -97,7 +101,9 @@ namespace Mktba.Application.Services
                 throw new ValidationException(commentError);
             }
 
-            var slug = await _slugs.ChooseAsync(dto.Slug, dto.Title, articleId: null);
+            var locale = Locales.Normalize(dto.Locale)
+                ?? throw new ValidationException(AppErrors.LocaleUnsupported(dto.Locale!));
+            var slug = await _slugs.ChooseAsync(dto.Slug, dto.Title, locale, articleId: null);
 
             try
             {
@@ -107,6 +113,7 @@ namespace Mktba.Application.Services
                 {
                     Title = dto.Title,
                     Slug = slug,
+                    Locale = locale,
                     ParentArticleId = dto.ParentArticleId,
                     Order = await _articleRepo.GetNextSiblingOrderAsync(dto.ParentArticleId),
                     InfoboxTitle = normalizedInfobox?.Title,
@@ -240,7 +247,7 @@ namespace Mktba.Application.Services
             {
                 try
                 {
-                    newSlug = await _slugs.ChooseAsync(dto.Slug, dto.Title, articleId);
+                    newSlug = await _slugs.ChooseAsync(dto.Slug, dto.Title, article.Locale, articleId);
                 }
                 catch (ValidationException ex)
                 {
@@ -516,7 +523,9 @@ namespace Mktba.Application.Services
                 MapRelatedLinks(article, includeUnpublished),
                 article.Slug,
                 article.PublishedAt,
-                article.UpdatedAt);
+                article.UpdatedAt,
+                Locale: article.Locale,
+                TranslationGroupId: article.TranslationGroupId);
         }
 
         private static ArticleInfoboxDto? MapInfobox(Article article)
