@@ -102,7 +102,7 @@ export const VersionedParagraphBlock = ({
 
       <div className="flex items-center justify-end gap-1.5 px-3 pb-3 pt-1">
         <span className="shrink-0 text-[10px] text-[var(--color-ink-subtle)]">{t.versions}</span>
-        <div role="tablist" aria-label={t.versions} className="flex min-w-0 gap-1.5 overflow-x-auto">
+        <div role="tablist" aria-label={t.versions} className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [contain:inline-size] [scrollbar-width:none]">
           {tabs.map((tab, index) => {
             const isActive = index === activeIndex;
             const tabPalette = getSchoolPalette(tab.paletteKey);
@@ -121,7 +121,7 @@ export const VersionedParagraphBlock = ({
                 tabIndex={isActive ? 0 : -1}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
                 onClick={() => onSelect(index)}
-                className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-2 py-0.5 text-[11px] font-semibold transition-colors"
+                className={`${index === 0 ? 'ml-auto ' : ''}flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-2 py-0.5 text-[11px] font-semibold transition-colors`}
                 style={{
                   backgroundColor: isActive ? tabPalette.accent : 'var(--color-surface)',
                   color: isActive ? 'var(--color-surface)' : tabPalette.accent,
