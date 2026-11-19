@@ -1,14 +1,9 @@
 using Mktba.Application.Exceptions;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Mktba.Application.Configuration;
 using Mktba.Application.DTOs;
-using Mktba.Application.Resources;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
 
@@ -18,16 +13,19 @@ public class AdminAuthService
 {
     private readonly UserRepository _userRepository;
     private readonly AdminInviteTokenRepository _adminInviteTokenRepository;
+    private readonly SessionService _sessionService;
     private readonly AuthOptions _authOptions;
     private readonly PasswordHasher<User> _passwordHasher = new();
 
     public AdminAuthService(
         UserRepository userRepository,
         AdminInviteTokenRepository adminInviteTokenRepository,
+        SessionService sessionService,
         IOptions<AuthOptions> authOptions)
     {
         _userRepository = userRepository;
         _adminInviteTokenRepository = adminInviteTokenRepository;
+        _sessionService = sessionService;
         _authOptions = authOptions.Value;
     }
 
@@ -44,20 +42,21 @@ public class AdminAuthService
         return user is null ? null : new CurrentUserDto { Id = user.Id, Email = user.Email, Role = user.Role };
     }
 
-    public async Task<AdminService.ServiceResult<AdminAuthResponseDto>> RegisterAsync(
+    public async Task<AdminService.ServiceResult<IssuedSession>> RegisterAsync(
         AdminRegisterRequestDto request,
+        SessionClient client,
         CancellationToken cancellationToken = default)
     {
         var normalizedEmail = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(normalizedEmail) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.EmailAndPasswordRequired);
+            return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.EmailAndPasswordRequired);
         }
 
         var alreadyExists = await _userRepository.ExistsByEmailAsync(normalizedEmail, cancellationToken);
         if (alreadyExists)
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.AdminAlreadyExists);
+            return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.AdminAlreadyExists);
         }
 
         var hasAdmins = await _userRepository.AnyAsync(cancellationToken);
@@ -67,7 +66,7 @@ public class AdminAuthService
             inviteToken = await ValidateInviteTokenAsync(request.InviteToken, cancellationToken);
             if (inviteToken is null)
             {
-                return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.InviteTokenInvalid);
+                return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.InviteTokenInvalid);
             }
         }
 
@@ -84,32 +83,33 @@ public class AdminAuthService
 
         await _userRepository.SaveChangesAsync();
 
-        return AdminService.ServiceResult<AdminAuthResponseDto>.Success(CreateAuthResponse(user));
+        return AdminService.ServiceResult<IssuedSession>.Success(await _sessionService.StartAsync(user, client, cancellationToken));
     }
 
-    public async Task<AdminService.ServiceResult<AdminAuthResponseDto>> LoginAsync(
+    public async Task<AdminService.ServiceResult<IssuedSession>> LoginAsync(
         AdminLoginRequestDto request,
+        SessionClient client,
         CancellationToken cancellationToken = default)
     {
         var normalizedEmail = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(normalizedEmail) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.EmailAndPasswordRequired);
+            return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.EmailAndPasswordRequired);
         }
 
         var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
         if (user is null)
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.InvalidCredentials);
+            return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.InvalidCredentials);
         }
 
         var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verificationResult == PasswordVerificationResult.Failed)
         {
-            return AdminService.ServiceResult<AdminAuthResponseDto>.Failure(AppErrors.InvalidCredentials);
+            return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.InvalidCredentials);
         }
 
-        return AdminService.ServiceResult<AdminAuthResponseDto>.Success(CreateAuthResponse(user));
+        return AdminService.ServiceResult<IssuedSession>.Success(await _sessionService.StartAsync(user, client, cancellationToken));
     }
 
     public async Task<AdminService.ServiceResult<AdminInviteTokenCreateResponseDto>> GenerateInviteTokenAsync(
@@ -119,7 +119,7 @@ public class AdminAuthService
         var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var inviteToken = new AdminInviteToken
         {
-            TokenHash = HashToken(rawToken),
+            TokenHash = SessionService.HashToken(rawToken),
             ExpiresAtUtc = DateTime.UtcNow.AddHours(_authOptions.InviteTokenLifetimeHours),
             CreatedByUserId = createdByUserId,
         };
@@ -141,52 +141,11 @@ public class AdminAuthService
             return null;
         }
 
-        var tokenHash = HashToken(rawToken.Trim());
+        var tokenHash = SessionService.HashToken(rawToken.Trim());
         var nowUtc = DateTime.UtcNow;
 
         return await _adminInviteTokenRepository.GetActiveByHashAsync(tokenHash, nowUtc, cancellationToken);
     }
 
-    private AdminAuthResponseDto CreateAuthResponse(User user)
-    {
-        if (string.IsNullOrWhiteSpace(_authOptions.JwtSigningKey))
-        {
-            throw new InvalidOperationException(AuthMessages.SigningKeyMissing);
-        }
-
-        var expiresAtUtc = DateTime.UtcNow.AddMinutes(_authOptions.AccessTokenLifetimeMinutes);
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString()),
-            }),
-            Expires = expiresAtUtc,
-            Issuer = _authOptions.JwtIssuer,
-            Audience = _authOptions.JwtAudience,
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authOptions.JwtSigningKey)),
-                SecurityAlgorithms.HmacSha256Signature),
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return new AdminAuthResponseDto
-        {
-            AccessToken = tokenHandler.WriteToken(token),
-            ExpiresAtUtc = expiresAtUtc,
-            Email = user.Email,
-            Role = user.Role,
-        };
-    }
-
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
-
-    private static string HashToken(string rawToken)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
-        return Convert.ToHexString(bytes);
-    }
 }

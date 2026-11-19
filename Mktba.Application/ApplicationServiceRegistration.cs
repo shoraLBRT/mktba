@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mktba.Application.Services;
 
@@ -17,6 +17,7 @@ namespace Mktba.Application
             services.AddScoped<ArticleAuthorshipService>();
             services.TryAddSingleton(TimeProvider.System);
             services.AddScoped<AdminService>();
+            services.AddScoped<SessionService>();
             services.AddScoped<AdminAuthService>();
             return services;
         }

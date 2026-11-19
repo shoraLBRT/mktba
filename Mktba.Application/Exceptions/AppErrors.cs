@@ -18,6 +18,9 @@ public static class AppErrors
     public static AppError InvalidCredentials => new("invalid_credentials", "Invalid credentials.");
     public static AppError AdminAlreadyExists => new("admin_already_exists", "Admin with this email already exists.");
     public static AppError InviteTokenInvalid => new("invite_token_invalid", "Invite token is invalid or expired.");
+    public static AppError SessionInvalid => new("session_invalid", "The session has ended. Sign in again.");
+    public static AppError SessionNotFound => new("session_not_found", "Session not found.");
+    public static AppError SessionCsrfHeaderMissing => new("session_csrf_header_missing", "The request must carry the X-Requested-With header.");
 
     // AI styling
     public static AppError AiTextRequired => new("ai_text_required", "Text is required.");

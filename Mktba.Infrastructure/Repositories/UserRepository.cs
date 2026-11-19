@@ -23,9 +23,24 @@ public class UserRepository : GenericRepository<User>
     public Task<User?> FindReadOnlyAsync(int id, CancellationToken cancellationToken = default)
         => _dbSet.AsNoTracking().FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
 
-    /// <summary>The current role of the user with <paramref name="id"/>, or null when there is no such user.</summary>
-    public Task<UserRole?> GetRoleAsync(int id, CancellationToken cancellationToken = default)
-        => _dbSet.Where(user => user.Id == id).Select(user => (UserRole?)user.Role).FirstOrDefaultAsync(cancellationToken);
+    /// <summary>
+    /// The current role of the user with <paramref name="id"/> while their device session
+    /// <paramref name="sessionFamilyId"/> still has a live refresh token; null when there is no such
+    /// user or the session has ended (signed out, revoked or expired).
+    /// </summary>
+    public Task<UserRole?> GetRoleInActiveSessionAsync(
+        int id,
+        Guid sessionFamilyId,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+        => _dbSet
+            .Where(user => user.Id == id && _context.RefreshSessions.Any(session =>
+                session.UserId == id
+                && session.FamilyId == sessionFamilyId
+                && session.RevokedAtUtc == null
+                && session.ExpiresAtUtc > nowUtc))
+            .Select(user => (UserRole?)user.Role)
+            .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>All users ordered by email, read-only.</summary>
     public Task<List<User>> ListOrderedByEmailAsync(CancellationToken cancellationToken = default)
