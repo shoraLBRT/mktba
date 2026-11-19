@@ -23,6 +23,8 @@ import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolServi
 import type { NavigationArticleDto, SchoolDto } from '../shared/types/ApiTypes';
 import { useMazhab } from '../context/mazhabContext';
 import { useTrackEvent } from '../analytics/useTrackEvent';
+import { ApiError } from '../shared/api-client/apiError';
+import NotFoundPage from './NotFoundPage';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -257,6 +259,10 @@ const ArticlePage: React.FC = () => {
     );
   }
 
+  if (error instanceof ApiError && error.status === 404) {
+    return <NotFoundPage />;
+  }
+
   if (error) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -269,13 +275,7 @@ const ArticlePage: React.FC = () => {
   }
 
   if (!articleContent) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="rounded-3xl border border-[var(--color-border-soft)] bg-white px-8 py-10 text-center shadow-sm">
-          <p className="m-0 text-lg font-semibold text-[var(--color-ink-strong)]">{locale.articlePage.articleNotFound}</p>
-        </div>
-      </div>
-    );
+    return <NotFoundPage />;
   }
 
   return (

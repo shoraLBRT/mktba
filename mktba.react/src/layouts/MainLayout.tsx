@@ -28,7 +28,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { collapsed, toggleCollapsed } = useSidebar();
   const isAdmin = isAdminAuthenticated();
   const currentPath = location.pathname;
-  const isCreateRoute = location.pathname === '/article/new';
+  const isCreateRoute = location.pathname === APP_CONSTANTS.ROUTES.ADD_ARTICLE;
   const [mobileSidebarState, setMobileSidebarState] = useState({ open: false, path: currentPath });
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const isMobileSidebarOpen = mobileSidebarState.open && mobileSidebarState.path === currentPath;
@@ -110,7 +110,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <Button
                 variant={isCreateRoute ? 'primary' : 'secondary'}
                 className="hidden min-h-8 rounded-lg px-3 py-1.5 text-xs sm:inline-flex"
-                onClick={() => navigate('/article/new')}
+                onClick={() => navigate(APP_CONSTANTS.ROUTES.ADD_ARTICLE)}
               >
                 <Plus size={13} />
                 {locale.layout.menu.addArticle}

@@ -31,3 +31,13 @@ test('choosing a mazhab switches the shown opinions and is remembered', async ({
     page.getByRole('tablist', { name: 'Мазхабы:' }).first().getByRole('tab', { name: 'Мнение мазхаба: Шафиитский мазхаб' }),
   ).toHaveAttribute('aria-selected', 'true');
 });
+
+test('an unknown page and a missing article show the 404 page', async ({ page }) => {
+  await page.goto('/no/such/page');
+  await expect(page.getByRole('heading', { name: 'Страница не найдена' })).toBeVisible();
+
+  await page.goto('/article/999999999');
+  await expect(page.getByRole('heading', { name: 'Страница не найдена' })).toBeVisible();
+  await page.getByRole('link', { name: 'На главную' }).click();
+  await expect(page).toHaveURL(/\/$/);
+});
