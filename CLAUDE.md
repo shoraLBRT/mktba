@@ -44,6 +44,7 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 - `Article` contains ordered `Paragraph`s (slot).
 - Each `Paragraph` holds one or more `Opinion`s; one `Opinion` is marked default (fallback when user's mazhab has no specific opinion).
 - `Opinion` ↔ `School` is M:N through `OpinionSchool` join.
+- A plain paragraph (exactly one `Opinion`) is common to all schools and has no school links: every write path (`/paragraph`, `/articles/content`, `/articles/{id}/content`) rejects school ids on it with `paragraph_plain_schools_not_allowed`, and the editor offers school selection only in a block with two or more opinions. School links belong to versioned paragraphs (two or more opinions).
 - `School` — 4 канонические (`IsSystem=true`) + кастомные per-article (`ArticleScopeId` nullable FK).
 - `NavigationTree` exposes the article hierarchy for the sidebar.
 - `User` (ex-`AdminUser`) authenticates via JWT; `Role` currently always `Admin`; invite tokens bootstrap new admins.

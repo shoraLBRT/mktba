@@ -47,6 +47,12 @@ namespace Mktba.Application.Services
                 throw new ValidationException(orderError!);
             }
 
+            var schoolsError = CheckPlainParagraphSchools(incomingParagraphs.Select(p => p.Opinions.Select(o => o.SchoolIds).ToList()));
+            if (schoolsError is not null)
+            {
+                throw new ValidationException(schoolsError);
+            }
+
             var normalizedInfobox = NormalizeInfobox(dto.Infobox);
             var (infoboxValid, infoboxError) = ValidateInfobox(normalizedInfobox);
             if (!infoboxValid)
@@ -150,6 +156,9 @@ namespace Mktba.Application.Services
             var (valid, orderError) = ValidateOrderDto(incomingParagraphs);
             if (!valid) return (false, orderError);
 
+            var schoolsError = CheckPlainParagraphSchools(incomingParagraphs.Select(p => p.Opinions.Select(o => o.SchoolIds).ToList()));
+            if (schoolsError is not null) return (false, schoolsError);
+
             var normalizedInfobox = NormalizeInfobox(dto.Infobox is null
                 ? null
                 : new ArticleInfoboxCreateDto(
@@ -194,6 +203,17 @@ namespace Mktba.Application.Services
                 await _uow.RollbackAsync();
                 return (false, AppErrors.ArticleContentUpdateFailed);
             }
+        }
+
+        private static AppError? CheckPlainParagraphSchools(IEnumerable<List<List<int>>> paragraphsOpinionSchoolIds)
+        {
+            foreach (var opinionSchoolIds in paragraphsOpinionSchoolIds)
+            {
+                var error = ParagraphRules.CheckPlainParagraphSchools(opinionSchoolIds);
+                if (error is not null) return error;
+            }
+
+            return null;
         }
 
         private async Task<bool> ValidateArticleExistsAsync(int articleId, int dtoId)

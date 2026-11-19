@@ -4,6 +4,7 @@ import {
   buildDocumentPreviewMarkdown,
   buildParagraphCreateDtosFromBlocks,
   buildParagraphUpdateDtosFromBlocks,
+  canAssignSchools,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
   hasAnyFilledContent,
@@ -91,6 +92,46 @@ describe('setDefaultVersion and removeVersionFromBlock', () => {
     const single = versioned('s', [{ localId: 'only', content: 'text', isDefault: true }]);
 
     expect(removeVersionFromBlock([single], 's', 'only')[0]).toBe(single);
+  });
+});
+
+describe('schools on a block with a single opinion (S-14)', () => {
+  it('given a block with one opinion, when checking, then schools cannot be assigned', () => {
+    expect(canAssignSchools(versioned('s', [{ localId: 'only', content: 'text', isDefault: true }]))).toBe(false);
+  });
+
+  it('given a block with two opinions, when checking, then schools can be assigned', () => {
+    expect(
+      canAssignSchools(
+        versioned('v', [
+          { localId: 'x', content: 'a', isDefault: true },
+          { localId: 'y', content: 'b', isDefault: false },
+        ]),
+      ),
+    ).toBe(true);
+  });
+
+  it('given two opinions with schools, when one is removed, then the remaining opinion loses its schools', () => {
+    const block = versioned('v', [
+      { localId: 'x', content: 'a', isDefault: true, schoolIds: [1] },
+      { localId: 'y', content: 'b', isDefault: false, schoolIds: [2] },
+    ]);
+
+    const [next] = removeVersionFromBlock([block], 'v', 'y') as VersionedEditorBlock[];
+
+    expect(next.variants).toEqual([expect.objectContaining({ localId: 'x', schoolIds: [] })]);
+  });
+
+  it('given three opinions with schools, when one is removed, then the others keep their schools', () => {
+    const block = versioned('v', [
+      { localId: 'x', content: 'a', isDefault: true, schoolIds: [1] },
+      { localId: 'y', content: 'b', isDefault: false, schoolIds: [2] },
+      { localId: 'z', content: 'c', isDefault: false, schoolIds: [3] },
+    ]);
+
+    const [next] = removeVersionFromBlock([block], 'v', 'z') as VersionedEditorBlock[];
+
+    expect(next.variants.map((variant) => variant.schoolIds)).toEqual([[1], [2]]);
   });
 });
 

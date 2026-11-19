@@ -113,6 +113,7 @@
     "paragraph_order_too_large": "Порядковый номер абзаца не может быть больше {maxOrder}.",
     "paragraph_opinions_required": "Нужно хотя бы одно мнение.",
     "paragraph_default_opinion_required": "Ровно одно мнение должно быть отмечено как мнение по умолчанию.",
+    "paragraph_plain_schools_not_allowed": "Абзац с одним мнением общий для всех мазхабов — к нему нельзя привязать мазхабы. Добавьте второе мнение или снимите выбор мазхабов.",
     "school_not_found": "Школа не найдена.",
     "school_slug_required": "Укажите идентификатор (slug) школы.",
     "school_name_required": "Укажите название школы.",
