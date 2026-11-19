@@ -41,13 +41,51 @@ namespace Mktba.Api.Endpoints
                 return Results.Created($"/articles/{article.Id}/content", article);
             }).Produces<ArticleContentDto>(StatusCodes.Status201Created).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
 
-            group.MapPut("/{id:int}/content", async (int id, ArticleContentDto dto, ArticleContentService service) =>
+            group.MapPut("/{id:int}/content", async (int id, ArticleContentDto dto, ClaimsPrincipal user, ArticleContentService service) =>
             {
-                var (success, error) = await service.UpdateContentAsync(id, dto);
+                var (success, error) = await service.UpdateContentAsync(id, dto, user.GetUserId());
                 return success ? Results.NoContent() : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, error!);
             }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization("AdminOnly");
 
+            MapRevisionEndpoints(group);
+
             return builder;
+        }
+
+        private static void MapRevisionEndpoints(RouteGroupBuilder group)
+        {
+            group.MapGet("/{id:int}/revisions", async (int id, ArticleRevisionService service) =>
+                Results.Ok(await service.ListAsync(id)))
+            .WithSummary("The article's revisions, newest first.")
+            .Produces<List<ArticleRevisionSummaryDto>>()
+            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
+
+            group.MapGet("/{id:int}/revisions/{number:int}", async (int id, int number, ArticleRevisionService service) =>
+                Results.Ok(await service.GetAsync(id, number)))
+            .WithSummary("One revision with its snapshot.")
+            .Produces<ArticleRevisionDto>()
+            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
+
+            group.MapGet("/{id:int}/revisions/compare", async (int id, int from, int to, ArticleRevisionService service) =>
+                Results.Ok(await service.CompareAsync(id, from, to)))
+            .WithSummary("Two revisions with their snapshots; the client renders the difference.")
+            .Produces<ArticleRevisionComparisonDto>()
+            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
+
+            group.MapPost("/{id:int}/revisions/{number:int}/restore", async (int id, int number, ArticleRevisionRestoreDto dto, ClaimsPrincipal user, ArticleRevisionService service) =>
+                Results.Ok(await service.RestoreAsync(id, number, dto.Comment, user.GetUserId())))
+            .WithSummary("Rolls the article back to a revision by saving it as a new revision.")
+            .WithDescription(
+                "The working copy is replaced with the revision's snapshot and a new revision is written; "
+                + "no revision is changed or deleted. Answers 400 when the snapshot no longer fits, e.g. "
+                + "its slug now belongs to another article or a related article was deleted.")
+            .Produces<ArticleRevisionSummaryDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest)
+            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization("AdminOnly");
         }
 
         private static string BySlugContentPath(string slug) => $"/articles/by-slug/{Uri.EscapeDataString(slug)}/content";

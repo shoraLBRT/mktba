@@ -4,6 +4,7 @@ import ArticlePage from '../pages/ArticlePage';
 import AddArticlePage from '../pages/AddArticlePage';
 import AdminLoginPage from '../pages/AdminLoginPage';
 import AdminPage from '../pages/AdminPage';
+import ArticleHistoryPage from '../pages/ArticleHistoryPage';
 import EditArticlePage from '../pages/EditArticlePage';
 import NotFoundPage from '../pages/NotFoundPage';
 import WelcomePage from '../pages/WelcomePage';
@@ -37,6 +38,10 @@ export const AppRoutes = () => {
         <Route
           path="/admin/articles/:articleId/edit"
           element={<AdminOnlyRoute><EditArticlePage /></AdminOnlyRoute>}
+        />
+        <Route
+          path="/admin/articles/:articleId/history"
+          element={<AdminOnlyRoute><ArticleHistoryPage /></AdminOnlyRoute>}
         />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

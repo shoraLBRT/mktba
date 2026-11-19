@@ -13,6 +13,7 @@ export const APP_CONSTANTS = {
     ARTICLE_SCHOOLS: 'articleSchools',
     ADMIN_USERS: 'adminUsers',
     ARTICLE_AUTHORS: 'articleAuthors',
+    ARTICLE_REVISIONS: 'articleRevisions',
   },
   DIMENSIONS: {
     SIDEBAR_WIDTH: 250,

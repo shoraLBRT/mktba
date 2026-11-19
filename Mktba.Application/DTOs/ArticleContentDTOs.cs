@@ -42,6 +42,7 @@
     );
 
     /// <param name="Slug">Optional URL segment; null or blank generates one from the title.</param>
+    /// <param name="EditComment">Optional note stored on the first revision (at most 500 characters).</param>
     public record ArticleContentCreateDto(
         string Title,
         int? ParentArticleId,
@@ -50,7 +51,8 @@
         string? Summary,
         List<string>? Tags,
         List<ArticleRelatedLinkCreateDto>? RelatedLinks,
-        string? Slug = null
+        string? Slug = null,
+        string? EditComment = null
     );
 
     /// <param name="Slug">
@@ -59,6 +61,7 @@
     /// </param>
     /// <param name="PublishedAt">Read only: when the article was first published (UTC), null if never. Ignored on update.</param>
     /// <param name="UpdatedAt">Read only: when the article was last saved (UTC). Ignored on update.</param>
+    /// <param name="EditComment">Write only: optional note stored on the revision this update creates (at most 500 characters). Always null on read.</param>
     public record ArticleContentDto(
         int Id,
         string Title,
@@ -69,7 +72,8 @@
         List<ArticleRelatedLinkDto>? RelatedLinks,
         string? Slug = null,
         DateTime? PublishedAt = null,
-        DateTime? UpdatedAt = null
+        DateTime? UpdatedAt = null,
+        string? EditComment = null
     );
 
     /// <summary>

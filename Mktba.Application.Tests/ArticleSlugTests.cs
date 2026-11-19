@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NSubstitute;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
@@ -48,7 +48,7 @@ public class ArticleSlugTests : IDisposable
             opinion.Id = 0;
         }
 
-        return _service.UpdateContentAsync(article.Id, article);
+        return _service.UpdateContentAsync(article.Id, article, authorId: null);
     }
 
     private async Task<ArticleContentDto> RenameSlugAsync(ArticleContentDto article, string? slug)

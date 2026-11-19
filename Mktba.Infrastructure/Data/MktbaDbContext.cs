@@ -14,6 +14,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleRelatedLink> ArticleRelatedLinks { get; set; } = null!;
         public DbSet<ArticleSlugRedirect> ArticleSlugRedirects { get; set; } = null!;
         public DbSet<ArticleCoAuthor> ArticleCoAuthors { get; set; } = null!;
+        public DbSet<ArticleRevision> ArticleRevisions { get; set; } = null!;
         public DbSet<Paragraph> Paragraphs { get; set; } = null!;
         public DbSet<Opinion> Opinions { get; set; } = null!;
         public DbSet<School> Schools { get; set; } = null!;
@@ -21,6 +22,9 @@ namespace Mktba.Infrastructure.Data
         public DbSet<AiProviderSettings> AiProviderSettings { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<AdminInviteToken> AdminInviteTokens { get; set; } = null!;
+
+        /// <summary>Longest edit comment on a revision.</summary>
+        public const int RevisionCommentMaxLength = 500;
 
         /// <summary>Longest article slug; the slug rules in the application layer use the same limit.</summary>
         public const int ArticleSlugMaxLength = 80;
@@ -80,6 +84,40 @@ namespace Mktba.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Revisions: append-only history; deleting the article drops it, deleting a user keeps it.
+            modelBuilder.Entity<ArticleRevision>()
+                .HasOne(r => r.Article)
+                .WithMany(a => a.Revisions)
+                .HasForeignKey(r => r.ArticleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ArticleRevision>()
+                .HasIndex(r => new { r.ArticleId, r.Number })
+                .IsUnique();
+
+            modelBuilder.Entity<ArticleRevision>()
+                .HasOne(r => r.Author)
+                .WithMany()
+                .HasForeignKey(r => r.AuthorId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            modelBuilder.Entity<ArticleRevision>()
+                .Property(r => r.Comment)
+                .HasMaxLength(RevisionCommentMaxLength);
+
+            modelBuilder.Entity<ArticleRevision>()
+                .Property(r => r.Snapshot)
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            modelBuilder.Entity<Article>()
+                .HasOne(a => a.PublishedRevision)
+                .WithMany()
+                .HasForeignKey(a => a.PublishedRevisionId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
 
             // Article hierarchy
             modelBuilder.Entity<Article>()

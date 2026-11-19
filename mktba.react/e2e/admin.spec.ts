@@ -104,3 +104,42 @@ test('a new article is a draft hidden from readers until it is published', async
   await expect(reader.getByTestId('article-dates')).toContainText('Опубликовано');
   await reader.close();
 });
+
+test('an edit is kept in the history, can be compared and rolled back', async ({ page }) => {
+  const stamp = Date.now();
+  const title = `E2E история ${stamp}`;
+  await logIn(page);
+
+  await page.goto('/admin/articles/new');
+  await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
+  await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Исходный текст.');
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+
+  await page.goto('/admin');
+  await page.getByRole('complementary').getByRole('link', { name: title, exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/articles\/\d+\/edit$/);
+  const editUrl = page.url();
+  await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Испорченный текст.');
+  await page.getByRole('textbox', { name: 'Комментарий к правке' }).fill('Неудачная правка');
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page.getByText('Испорченный текст.')).toBeVisible();
+
+  await page.goto(editUrl);
+  await page.getByRole('link', { name: 'История правок' }).click();
+  await expect(page).toHaveURL(/\/admin\/articles\/\d+\/history$/);
+  await expect(page.getByText('Неудачная правка')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Сравнение ревизий 1 и 2' })).toBeVisible();
+  const paragraph = page.getByRole('region', { name: 'Абзац 1' });
+  await expect(paragraph.locator('[data-diff="removed"]')).toContainText('Исходный текст.');
+  await expect(paragraph.locator('[data-diff="added"]')).toContainText('Испорченный текст.');
+
+  const first = page.getByRole('listitem').filter({ hasText: 'Ревизия 1' });
+  await first.getByRole('button', { name: 'Откатить к этой ревизии' }).click();
+  await first.getByRole('button', { name: 'Подтвердить откат' }).click();
+  await expect(page.getByRole('status')).toContainText('сохранена как ревизия 3');
+  await expect(page.getByText('Откат к ревизии 1')).toBeVisible();
+
+  await page.goto(editUrl.replace(/\/edit$/, '').replace('/admin/articles/', '/article/'));
+  await expect(page.getByText('Исходный текст.')).toBeVisible();
+});
