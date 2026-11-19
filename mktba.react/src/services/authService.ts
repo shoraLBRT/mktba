@@ -5,6 +5,7 @@ import type {
   AdminLoginRequestDto,
   AdminRegisterRequestDto,
   AdminInviteTokenCreateResponseDto,
+  CurrentUserDto,
 } from '../shared/types/ApiTypes';
 import { getStoredAdminToken } from './authTokenStorage';
 
@@ -12,6 +13,12 @@ export const isAdminAuthenticated = (): boolean => Boolean(getStoredAdminToken()
 
 export const getAuthStatus = async (): Promise<AdminAuthStatusDto> => {
   const response = await apiClient.get<AdminAuthStatusDto>('/auth/status');
+  return response.data;
+};
+
+/** The signed-in user with their current role (read from the database, not the token). */
+export const getCurrentUser = async (): Promise<CurrentUserDto> => {
+  const response = await apiClient.get<CurrentUserDto>('/auth/me');
   return response.data;
 };
 

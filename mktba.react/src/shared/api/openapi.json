@@ -1093,6 +1093,37 @@
         }
       }
     },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "The signed-in user and their current role.",
+        "description": "The role is read from the database, so it reflects a change made after the token was issued.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/invite-token": {
       "post": {
         "tags": [
@@ -1503,7 +1534,8 @@
         "required": [
           "accessToken",
           "email",
-          "expiresAtUtc"
+          "expiresAtUtc",
+          "role"
         ],
         "type": "object",
         "properties": {
@@ -1516,6 +1548,9 @@
           },
           "email": {
             "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
           }
         },
         "additionalProperties": false
@@ -2455,6 +2490,27 @@
         },
         "additionalProperties": false
       },
+      "CurrentUserDto": {
+        "required": [
+          "email",
+          "id",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          }
+        },
+        "additionalProperties": false
+      },
       "NavigationArticleDto": {
         "required": [
           "hasContent",
@@ -2764,6 +2820,15 @@
           }
         },
         "additionalProperties": false
+      },
+      "UserRole": {
+        "enum": [
+          "Reader",
+          "Author",
+          "Scholar",
+          "Admin"
+        ],
+        "type": "string"
       },
       "UserSummaryDto": {
         "required": [

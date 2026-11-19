@@ -11,6 +11,8 @@ import {
   updateAiProviderSettings,
 } from '../services/adminService';
 import { generateInviteToken } from '../services/authService';
+import type { RolePolicy } from '../auth/roleAccess';
+import { useCurrentUser } from '../auth/useCurrentUser';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { invalidateArticleQueries } from '../app/queryClient';
 import { formatMessage } from '../localization';
@@ -26,6 +28,14 @@ import { Textarea } from '../shared/ui/Textarea';
 
 const ADMIN_SECTIONS = ['articles', 'aiProvider', 'adminAccess', 'cleanup'] as const;
 type AdminSection = (typeof ADMIN_SECTIONS)[number];
+
+/** The policy a section needs; an author sees the articles but not the AI settings or invitations. */
+const SECTION_POLICY: Record<AdminSection, RolePolicy> = {
+  articles: 'canEditArticles',
+  aiProvider: 'canConfigure',
+  adminAccess: 'canManageUsers',
+  cleanup: 'canConfigure',
+};
 
 /** Opens the section named in `?section=` (links such as the editor's AI hint use it), else the articles list. */
 const toAdminSection = (value: string | null): AdminSection =>
@@ -50,7 +60,9 @@ const AdminPage: React.FC = () => {
   const t = locale.adminPage;
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const [activeSection, setActiveSection] = useState<AdminSection>(() => toAdminSection(searchParams.get('section')));
+  const { can } = useCurrentUser();
+  const [requestedSection, setActiveSection] = useState<AdminSection>(() => toAdminSection(searchParams.get('section')));
+  const activeSection: AdminSection = can(SECTION_POLICY[requestedSection]) ? requestedSection : 'articles';
   const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
   const [cleanupConfirmation, setCleanupConfirmation] = useState('');
   const [inviteToken, setInviteToken] = useState<string | null>(null);
@@ -61,7 +73,11 @@ const AdminPage: React.FC = () => {
 
   const confirmationPhrase = t.cleanupConfirmationPhrase;
   const articlesQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES], queryFn: getArticles });
-  const aiSettingsQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_AI_SETTINGS], queryFn: getAiProviderSettings });
+  const aiSettingsQuery = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_AI_SETTINGS],
+    queryFn: getAiProviderSettings,
+    enabled: can('canConfigure'),
+  });
 
   const aiSettingsDefaults = useMemo<AiSettingsState>(
     () => ({
@@ -209,7 +225,7 @@ const AdminPage: React.FC = () => {
       {/* Sidebar */}
       <div className="w-[var(--layout-sidebar-width)] border-r border-[var(--color-border-soft)] bg-[var(--color-surface)]">
         <div className="sticky top-[var(--layout-header-height)] space-y-1 overflow-y-auto p-4">
-          {navItems.map((item) => (
+          {navItems.filter((item) => can(SECTION_POLICY[item.id])).map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveSection(item.id)}

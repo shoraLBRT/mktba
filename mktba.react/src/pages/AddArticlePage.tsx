@@ -23,6 +23,7 @@ import { InfoboxEditor } from './add-article/InfoboxEditor';
 import { EditorOutlineRail } from './add-article/EditorOutlineRail';
 import { EditorToolbar } from './add-article/EditorToolbar';
 import { getAiAvailability } from './add-article/aiAvailability';
+import { useCurrentUser } from '../auth/useCurrentUser';
 import {
   addVersionToBlock,
   buildDocumentPreviewMarkdown,
@@ -113,6 +114,8 @@ const flattenNavigationTree = (
 
 const AddArticlePage: React.FC = () => {
   const locale = useLocale();
+  // AI settings and styling are admin-only (CanConfigure); other roles keep the AI button off.
+  const canConfigure = useCurrentUser().can('canConfigure');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const t = locale.addArticlePage;
@@ -144,6 +147,7 @@ const AddArticlePage: React.FC = () => {
   const aiSettingsQuery = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_AI_SETTINGS],
     queryFn: getAiProviderSettings,
+    enabled: canConfigure,
   });
 
   const systemSchoolsQuery = useQuery({

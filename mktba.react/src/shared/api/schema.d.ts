@@ -1171,6 +1171,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in user and their current role.
+         * @description The role is read from the database, so it reflects a change made after the token was issued.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CurrentUserDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/invite-token": {
         parameters: {
             query?: never;
@@ -1660,6 +1708,7 @@ export interface components {
             /** Format: date-time */
             expiresAtUtc: string;
             email: string;
+            role: components["schemas"]["UserRole"];
         };
         AdminAuthStatusDto: {
             requiresBootstrapAdmin: boolean;
@@ -1915,6 +1964,12 @@ export interface components {
             /** Format: int32 */
             parentArticleId?: number | null;
         };
+        CurrentUserDto: {
+            /** Format: int32 */
+            id: number;
+            email: string;
+            role: components["schemas"]["UserRole"];
+        };
         NavigationArticleDto: {
             /** Format: int32 */
             id: number;
@@ -1997,6 +2052,8 @@ export interface components {
             apiKey?: string | null;
             markdownStylingSystemPrompt?: string | null;
         };
+        /** @enum {string} */
+        UserRole: "Reader" | "Author" | "Scholar" | "Admin";
         UserSummaryDto: {
             /** Format: int32 */
             id: number;
