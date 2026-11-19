@@ -64,7 +64,13 @@ export const useActiveSection = (ids: string[]): { activeId: string | null; sele
     update();
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule, { passive: true });
+    // A late web font re-wraps the text and moves the sections without a scroll event.
+    let disposed = false;
+    void document.fonts?.ready.then(() => {
+      if (!disposed) schedule();
+    });
     return () => {
+      disposed = true;
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
       if (frame !== 0) cancelAnimationFrame(frame);
