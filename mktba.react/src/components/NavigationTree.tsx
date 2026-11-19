@@ -76,8 +76,10 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
   const [expanded, setExpanded] = useState(true);
   const isActive = article.id === activeArticleId;
   // An article without content is a stub (a Published section heading, say): not a link for
-  // readers, but the admin must be able to open its editor to fill it in (see docs/backlog.md, A1).
-  const isClickable = article.hasContent || showArticleEditActions;
+  // readers, but whoever may edit it must be able to open its editor to fill it in (see
+  // docs/backlog.md, A1). The API says per article whether the caller may edit it (U-02).
+  const opensEditor = showArticleEditActions && article.canEdit;
+  const isClickable = article.hasContent || opensEditor;
 
   return (
     <div>
@@ -105,7 +107,7 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
 
         {isClickable ? (
           <Link
-            to={showArticleEditActions ? `/admin/articles/${article.id}/edit` : articleHref(article.slug)}
+            to={opensEditor ? `/admin/articles/${article.id}/edit` : articleHref(article.slug)}
             className={[
               'min-w-0 flex-1 truncate text-[12px] leading-5',
               isActive ? 'font-medium' : '',

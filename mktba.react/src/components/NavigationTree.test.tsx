@@ -6,7 +6,7 @@ import type { NavigationArticleDto } from '../shared/types/ApiTypes';
 import NavigationTree from './NavigationTree';
 
 const node = (id: number, title: string, children: NavigationArticleDto[] = []) =>
-  ({ id, title, slug: `a${id}`, status: 'Published', hasContent: true, children }) as unknown as NavigationArticleDto;
+  ({ id, title, slug: `a${id}`, status: 'Published', hasContent: true, canEdit: id !== 4, children }) as unknown as NavigationArticleDto;
 
 const tree = [node(1, 'Намаз', [node(2, 'Условия'), node(3, 'Время')]), node(4, 'Пост')];
 
@@ -65,5 +65,14 @@ describe('NavigationTree reorder controls', () => {
     );
 
     expect(screen.queryByRole('button', { name: 'Переместить выше' })).toBeNull();
+  });
+});
+
+describe('NavigationTree edit links', () => {
+  it('given an admin tree, when an article is editable, then it links to its editor, otherwise to the reader page', () => {
+    renderAdminTree();
+
+    expect(screen.getByRole('link', { name: 'Намаз' }).getAttribute('href')).toBe('/admin/articles/1/edit');
+    expect(screen.getByRole('link', { name: 'Пост' }).getAttribute('href')).not.toContain('/admin/');
   });
 });

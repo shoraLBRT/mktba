@@ -273,6 +273,10 @@ export interface paths {
                 };
             };
         };
+        /**
+         * Saves the article's content as a new revision.
+         * @description Admins may save any article, authors only those they wrote or co-author (403 forbidden for a Published article of someone else, 404 article_not_found for their other drafts). A save of a Published article is live at once; review of such edits is D4 (#20).
+         */
         put: {
             parameters: {
                 query?: never;
@@ -304,6 +308,24 @@ export interface paths {
                         "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
             };
         };
         post?: never;
@@ -322,7 +344,7 @@ export interface paths {
         };
         /**
          * Article content by slug; an old slug redirects (302) to the current one.
-         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop. Anonymous readers get 404 for an article that is not Published. Slugs are unique per language: the optional locale query parameter (default ru) picks the language, and an unsupported one answers 400 locale_unsupported.
+         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop. An article that is not Published answers 404 except to an admin or its own author or co-author. Slugs are unique per language: the optional locale query parameter (default ru) picks the language, and an unsupported one answers 400 locale_unsupported.
          */
         get: {
             parameters: {
@@ -457,6 +479,15 @@ export interface paths {
                         "application/json": components["schemas"]["ArticleRevisionSummaryDto"][];
                     };
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
                 /** @description Not Found */
                 404: {
                     headers: {
@@ -503,6 +534,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ArticleRevisionDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
                 /** @description Not Found */
@@ -553,6 +593,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ArticleRevisionComparisonDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
                 /** @description Not Found */
@@ -614,6 +663,15 @@ export interface paths {
                 };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -813,7 +871,7 @@ export interface paths {
         put?: never;
         /**
          * Moves an article to another status.
-         * @description Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, Archived → Draft. Any other move answers 400 article_status_transition_invalid.
+         * @description Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, Archived → Draft. Any other move answers 400 article_status_transition_invalid. Admins make every move; an author only Draft → InReview and InReview → Draft on an article they wrote or co-author, anything else answers 403 forbidden (404 article_not_found for someone else's draft).
          */
         post: {
             parameters: {
@@ -841,6 +899,15 @@ export interface paths {
                 };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1562,6 +1629,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Creates a custom school for one article: admins for any article, authors for their own. */
         post: {
             parameters: {
                 query?: never;
@@ -1586,6 +1654,15 @@ export interface paths {
                 };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1620,6 +1697,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** Deletes a custom school: admins any, authors those of their own articles. */
         delete: {
             parameters: {
                 query?: never;
@@ -1640,6 +1718,15 @@ export interface paths {
                 };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1979,6 +2066,7 @@ export interface components {
             parentArticleId?: number | null;
             status: components["schemas"]["ArticleStatus"];
             hasContent: boolean;
+            canEdit: boolean;
             children?: components["schemas"]["NavigationArticleDto"][] | null;
         };
         OpinionCreateDto: {

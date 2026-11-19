@@ -126,7 +126,10 @@ const getTargetValue = (blocks: EditorBlock[], target: EditorTarget): string | n
 const EditArticlePage: React.FC = () => {
   const locale = useLocale();
   // AI settings and styling are admin-only (CanConfigure); other roles keep the AI button off.
-  const canConfigure = useCurrentUser().can('canConfigure');
+  const { can } = useCurrentUser();
+  const canConfigure = can('canConfigure');
+  // Authorship and deletion stay admin-only even on an author's own article (U-02); the API enforces it.
+  const canEditAnyArticle = can('canEditAnyArticle');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { articleId } = useParams<{ articleId: string }>();
@@ -601,11 +604,13 @@ const EditArticlePage: React.FC = () => {
                     onChanged={(status) => showNotice('success', t.statusChanged.replace('{status}', locale.articleStatus[status]))}
                     onError={(message) => showNotice('error', message)}
                   />
-                  <ArticleAuthorsPanel
-                    articleId={numericId}
-                    onSaved={() => showNotice('success', t.authorsSaved)}
-                    onError={(message) => showNotice('error', message)}
-                  />
+                  {canEditAnyArticle ? (
+                    <ArticleAuthorsPanel
+                      articleId={numericId}
+                      onSaved={() => showNotice('success', t.authorsSaved)}
+                      onError={(message) => showNotice('error', message)}
+                    />
+                  ) : null}
                   <div>
                     <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
                       {addT.articleTitleLabel}
@@ -722,7 +727,7 @@ const EditArticlePage: React.FC = () => {
               onImport={() => setIsImportOpen(true)}
               onImproveAll={improveWholeArticleWithAi}
               onSave={saveArticle}
-              showDelete
+              showDelete={canEditAnyArticle}
               isDeleting={deleteMutation.isPending}
               onDelete={() => {
                 const node = findNodeInTree(navigationTreeQuery.data ?? [], numericId);
