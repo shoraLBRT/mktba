@@ -106,7 +106,8 @@ const SelfDeclared = ({ profile }: { profile: PublicProfileDto }) => {
 
 const ArticleEntry = ({ article }: { article: AuthorArticleDto }) => {
   const t = useLocale().articlePage;
-  const edited = article.updatedAt > article.publishedAt;
+  // A save on the day of publication is not news: the second date is shown from the next day on.
+  const edited = formatRussianDate(article.updatedAt) !== formatRussianDate(article.publishedAt) && article.updatedAt > article.publishedAt;
   const date = (template: string, iso: string) => {
     const [before, after = ''] = template.split('{date}');
     return (
@@ -148,7 +149,7 @@ const ArticleList = ({ slug, articles, failed, onRetry }: ArticleListProps) => {
   const titleId = useId();
 
   return (
-    <section aria-labelledby={titleId} className="space-y-4">
+    <section aria-labelledby={titleId} className="flex flex-col gap-4">
       <h2 id={titleId} className={sectionTitleClass}>
         {t.articlesTitle}
       </h2>
@@ -165,7 +166,7 @@ const ArticleList = ({ slug, articles, failed, onRetry }: ArticleListProps) => {
       {articles && articles.total > 0 && (
         <>
           <p className="m-0 text-sm text-[var(--color-ink-muted)]">{t.articlesCount.replace('{count}', String(articles.total))}</p>
-          <ul className="m-0 list-none space-y-4 p-0">
+          <ul className="m-0 flex list-none flex-col gap-4 p-0">
             {articles.items.map((article) => (
               <ArticleEntry key={article.id} article={article} />
             ))}
@@ -237,7 +238,7 @@ const AuthorPage = () => {
   const description = authorMetaDescription(profile.bio, t.metaDescription.replace('{name}', profile.displayName));
 
   return (
-    <article className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 sm:px-8">
+    <article className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-8">
       <PageMeta
         title={profile.displayName}
         description={description}
