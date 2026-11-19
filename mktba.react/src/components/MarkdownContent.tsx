@@ -1,10 +1,26 @@
-import React from 'react';
-import ReactMarkdown from 'react-markdown';
+import React, { useMemo, type ComponentProps } from 'react';
+import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
 import { gfm } from 'micromark-extension-gfm';
+import { collectHeadings, nestHeadings, type MarkdownNode } from '../shared/markdownHeadings';
+
+/** The anchor of one heading. */
+export type HeadingAnchor = {
+  /** The heading's element id. */
+  id: string;
+  /** The heading's plain text; it names the heading. */
+  text: string;
+  /** Accessible name of the heading's link to itself. */
+  linkLabel: string;
+};
 
 type MarkdownContentProps = {
   content: string;
+  /**
+   * Anchors for the content's headings, in order (see `buildArticleOutline`): each heading gets
+   * the id and a link to itself. Without it headings are rendered plain.
+   */
+  headingAnchors?: HeadingAnchor[];
 };
 
 /** The parser settings remark keeps in the processor's data (declared by `remark-parse`). */
@@ -24,62 +40,78 @@ function remarkGfmSyntax(this: { data(): object }) {
   (data.fromMarkdownExtensions ??= []).push(gfmFromMarkdown());
 }
 
-/** The part of an mdast node the heading pass reads: headings carry `depth`, parents `children`. */
-type MarkdownNode = {
-  type: string;
-  depth?: number;
-  children?: MarkdownNode[];
+/** Headings start at `h2` and never skip a level: see {@link nestHeadings}. */
+const remarkNestHeadings = () => nestHeadings;
+
+/** Gives the headings their ids, in document order — the order `parseMarkdownHeadings` lists them in. */
+const remarkHeadingIds = (anchors: HeadingAnchor[]) => () => (tree: MarkdownNode) => {
+  collectHeadings(tree).forEach((heading, index) => {
+    const anchor = anchors[index];
+    if (anchor) {
+      heading.data = { ...heading.data, hProperties: { ...heading.data?.hProperties, id: anchor.id } };
+    }
+  });
 };
 
-const collectHeadings = (node: MarkdownNode, headings: MarkdownNode[]): MarkdownNode[] => {
-  if (node.type === 'heading') {
-    headings.push(node);
-  }
-  node.children?.forEach((child) => collectHeadings(child, headings));
-  return headings;
-};
+const basePlugins = [remarkGfmSyntax, remarkNestHeadings];
+
+const HEADING_TAGS = ['h2', 'h3', 'h4', 'h5', 'h6'] as const;
 
 /**
- * Markdown is always rendered under the page's own `h1`, so its headings start at `h2`: the
- * shallowest heading in the content becomes `h2`, deeper ones keep their relative depth, and a
- * heading never goes more than one level below the one before it (`#` then `###` renders
- * `h2` then `h3`). Levels stop at `h6`.
+ * A heading with an anchor carries a link to itself after its text. The heading is named by its
+ * text alone (`aria-label`), so the link's name does not end up in the heading's.
  */
-function remarkNestHeadings() {
-  return (tree: MarkdownNode) => {
-    const headings = collectHeadings(tree, []);
-    if (headings.length === 0) {
-      return;
-    }
-    const shallowest = Math.min(...headings.map((heading) => heading.depth ?? 1));
-    let previous = 1;
-    headings.forEach((heading) => {
-      const shifted = (heading.depth ?? 1) - shallowest + 2;
-      const depth = Math.min(shifted, previous + 1, 6);
-      heading.depth = depth;
-      previous = depth;
-    });
-  };
-}
-
-const remarkPlugins = [remarkGfmSyntax, remarkNestHeadings];
-
-const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => (
-  <ReactMarkdown
-    remarkPlugins={remarkPlugins}
-    components={{
-      a: (props) => {
-        const { href } = props;
-        if (href?.startsWith('#')) {
-          return <a {...props} />;
+const anchoredHeadings = (anchors: HeadingAnchor[]): Components => {
+  const anchorById = new Map(anchors.map((anchor) => [anchor.id, anchor]));
+  return Object.fromEntries(
+    HEADING_TAGS.map((Tag) => [
+      Tag,
+      ({ children, id, ...rest }: ComponentProps<typeof Tag> & ExtraProps) => {
+        // `node` is react-markdown's own prop, not an attribute.
+        const props = { ...rest, node: undefined };
+        const anchor = id ? anchorById.get(id) : undefined;
+        if (!anchor) {
+          return <Tag id={id} {...props}>{children}</Tag>;
         }
-        return <a {...props} target="_blank" rel="noopener noreferrer" />;
+        return (
+          <Tag id={id} aria-label={anchor.text} {...props}>
+            {children}
+            <a href={`#${anchor.id}`} className="heading-anchor" aria-label={anchor.linkLabel}>
+              <span aria-hidden="true">#</span>
+            </a>
+          </Tag>
+        );
       },
-      img: (props) => <img {...props} loading="lazy" decoding="async" />,
-    }}
-  >
-    {content}
-  </ReactMarkdown>
-);
+    ]),
+  );
+};
+
+const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, headingAnchors }) => {
+  const anchors = headingAnchors?.length ? headingAnchors : null;
+  const remarkPlugins = useMemo(
+    () => (anchors ? [...basePlugins, remarkHeadingIds(anchors)] : basePlugins),
+    [anchors],
+  );
+  const headingComponents = useMemo(() => (anchors ? anchoredHeadings(anchors) : {}), [anchors]);
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={remarkPlugins}
+      components={{
+        ...headingComponents,
+        a: (props) => {
+          const { href } = props;
+          if (href?.startsWith('#')) {
+            return <a {...props} />;
+          }
+          return <a {...props} target="_blank" rel="noopener noreferrer" />;
+        },
+        img: (props) => <img {...props} loading="lazy" decoding="async" />,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+};
 
 export default MarkdownContent;

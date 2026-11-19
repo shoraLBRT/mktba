@@ -1,13 +1,17 @@
 import { Tag } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import { useLocale } from '../../localization/hooks';
 import { articleHref } from '../../shared/slug';
 import type { ArticleRelatedLinkDto } from '../../shared/types/ApiTypes';
+import { useActiveSection } from './useActiveSection';
 
 export type TocItem = {
+  /** Id of the element the entry leads to. */
   id: string;
   label: string;
+  /** Heading level of the entry: 2 for a section, 3 for a subsection (indented). */
+  depth: 2 | 3;
 };
 
 type ArticleRightSidebarProps = {
@@ -20,31 +24,17 @@ type ArticleRightSidebarProps = {
 export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: ArticleRightSidebarProps) => {
   const locale = useLocale();
   const t = locale.articleRightSidebar;
-  const [activeId, setActiveId] = useState<string>(tocItems[0]?.id ?? 'intro');
+  const tocIds = useMemo(() => tocItems.map((item) => item.id), [tocItems]);
+  const { activeId, select } = useActiveSection(tocIds);
+  const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
 
+  // In a long table of contents the current entry stays in sight.
   useEffect(() => {
-    if (tocItems.length === 0) {
-      return;
+    const link = activeLinkRef.current;
+    if (link && link.offsetParent !== null && typeof link.scrollIntoView === 'function') {
+      link.scrollIntoView({ block: 'nearest' });
     }
-
-    const handler = () => {
-      const sections = tocItems
-        .map((item) => document.getElementById(item.id))
-        .filter((element): element is HTMLElement => Boolean(element));
-
-      for (let index = sections.length - 1; index >= 0; index -= 1) {
-        const element = sections[index];
-        if (element.getBoundingClientRect().top <= 120) {
-          setActiveId(element.id);
-          break;
-        }
-      }
-    };
-
-    handler();
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
-  }, [tocItems]);
+  }, [activeId]);
 
   const hasTags = tags && tags.length > 0;
   const hasRelatedLinks = relatedLinks && relatedLinks.length > 0;
@@ -62,13 +52,16 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
               <a
                 key={item.id}
                 href={`#${item.id}`}
+                ref={activeId === item.id ? activeLinkRef : undefined}
+                aria-current={activeId === item.id ? 'location' : undefined}
                 className={[
-                  'block rounded px-2 py-1 text-[12.5px] transition-colors',
+                  'block rounded py-1 pr-2 text-[12.5px] transition-colors',
+                  item.depth === 3 ? 'pl-5' : 'pl-2',
                   activeId === item.id
                     ? 'bg-[var(--color-brand-forest-soft)] text-[var(--color-brand-forest)]'
                     : 'text-[var(--color-ink-muted)] hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)]',
                 ].join(' ')}
-                onClick={() => setActiveId(item.id)}
+                onClick={() => select(item.id)}
               >
                 {item.label}
               </a>

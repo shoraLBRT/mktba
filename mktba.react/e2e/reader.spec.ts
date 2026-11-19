@@ -272,3 +272,75 @@ test('the home page has no serious or critical accessibility violations (R-05)',
 
   expect(serious).toEqual([]);
 });
+
+test('the table of contents follows the scroll, headings and paragraphs have links, and a button leads back up (R-07)', async ({ page, request }) => {
+  const schools = await (await request.get(`${API_URL}/schools/system`)).json() as { id: number; slug: string }[];
+  const shafiiId = schools.find((school) => school.slug === 'shafii')!.id;
+  const filler = 'Текст раздела для прокрутки. '.repeat(250);
+  const article = await publishArticle(request, `Оглавление ${Date.now()}`, [
+    { order: 1, opinions: [{ content: `Вступление без заголовка. ${filler}`, isDefault: true, schoolIds: [] }] },
+    { order: 2, opinions: [{ content: `## Условия\n\n${filler}\n\n### Ният\n\n${filler}`, isDefault: true, schoolIds: [] }] },
+    {
+      order: 3,
+      opinions: [
+        { content: `## Общий раздел\n\n${filler}`, isDefault: true, schoolIds: [] },
+        { content: `## Раздел шафиитов\n\n${filler}`, isDefault: false, schoolIds: [shafiiId] },
+      ],
+    },
+    { order: 4, opinions: [{ content: `## Условия\n\n${filler}`, isDefault: true, schoolIds: [] }] },
+  ]);
+  const path = `/article/${article.slug}`;
+
+  // The anchors are in the server HTML: paragraph ids, heading slugs, a repeated heading numbered.
+  const html = await (await request.get(path)).text();
+  for (const id of ['usloviya', 'niyat', 'obshchiy-razdel', 'usloviya-2']) {
+    expect(html).toContain(`id="${id}"`);
+  }
+  expect(html).toMatch(/<section[^>]* id="p-\d+"/);
+  expect(html).not.toContain('id="razdel-shafiitov"');
+
+  await page.goto(path);
+  const toc = page.getByRole('navigation', { name: 'На этой странице' });
+  await expect(toc.getByRole('link')).toHaveText(['Общее описание', 'Условия', 'Ният', 'Общий раздел', 'Условия']);
+  await expect(toc.getByRole('link', { name: 'Общее описание' })).toHaveAttribute('aria-current', 'location');
+  await expect(page.getByRole('button', { name: 'Наверх' })).toBeHidden();
+  // A late web font re-wraps the text and moves the sections; wait it out before measuring.
+  await page.evaluate('document.fonts.ready');
+
+  // A table of contents entry jumps to its section and becomes the current one.
+  await toc.getByRole('link', { name: 'Ният' }).click();
+  await expect(page).toHaveURL(/#niyat$/);
+  await expect(page.getByRole('heading', { name: 'Ният', level: 3 })).toBeInViewport();
+  await expect(toc.getByRole('link', { name: 'Ният' })).toHaveAttribute('aria-current', 'location');
+  await expect(toc.locator('[aria-current]')).toHaveCount(1);
+
+  // Scrolling on moves the highlight; at the end of the page the last section is current.
+  await page.evaluate('window.scrollTo(0, document.documentElement.scrollHeight)');
+  await expect(toc.getByRole('link', { name: 'Условия' }).last()).toHaveAttribute('aria-current', 'location');
+
+  // The button leads back to the top and goes away there.
+  await page.getByRole('button', { name: 'Наверх' }).click();
+  await expect.poll(() => page.evaluate<number>('window.scrollY')).toBe(0);
+  await expect(page.getByRole('button', { name: 'Наверх' })).toBeHidden();
+
+  // A heading and a paragraph each carry a link to themselves.
+  await page.getByRole('link', { name: 'Ссылка на раздел «Общий раздел»' }).click();
+  await expect(page).toHaveURL(/#obshchiy-razdel$/);
+  await expect(page.getByRole('heading', { name: 'Общий раздел', exact: true })).toBeInViewport();
+  await page.getByRole('link', { name: 'Ссылка на абзац 1' }).click();
+  await expect(page).toHaveURL(/#p-\d+$/);
+  await expect(page.getByText('Вступление без заголовка.')).toBeInViewport();
+
+  const { violations } = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(violations
+    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .map((violation) => violation.id)).toEqual([]);
+
+  // A mazhab link with an anchor: the heading exists only in that mazhab's opinion, so the page
+  // goes to it once the mazhab is applied.
+  await page.goto(`${path}?mazhab=shafii#razdel-shafiitov`);
+  await expect(page.getByRole('heading', { name: 'Раздел шафиитов', exact: true })).toBeInViewport();
+  await expect(page.getByRole('navigation', { name: 'На этой странице' }).getByRole('link', { name: 'Раздел шафиитов' }))
+    .toHaveAttribute('aria-current', 'location');
+  await expect(page).toHaveURL(/\?mazhab=shafii#razdel-shafiitov$/);
+});

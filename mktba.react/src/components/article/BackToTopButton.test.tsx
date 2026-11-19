@@ -1,0 +1,60 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { LocalizationProvider } from '../../localization/provider';
+import { BackToTopButton } from './BackToTopButton';
+
+const scrollPageTo = (y: number) => {
+  Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
+  act(() => {
+    window.dispatchEvent(new Event('scroll'));
+  });
+};
+
+const renderButton = () =>
+  render(
+    <LocalizationProvider>
+      <BackToTopButton />
+    </LocalizationProvider>,
+  );
+
+const pressAfterScrolling = (reducedMotion: boolean) => {
+  const scrollTo = vi.fn();
+  vi.stubGlobal('scrollTo', scrollTo);
+  vi.stubGlobal('matchMedia', () => ({ matches: reducedMotion }));
+  renderButton();
+  scrollPageTo(900);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Наверх' }));
+  return scrollTo;
+};
+
+afterEach(() => {
+  Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+  vi.unstubAllGlobals();
+});
+
+describe('BackToTopButton', () => {
+  it('given the top of the page, when rendered, then there is no button', () => {
+    renderButton();
+
+    expect(screen.queryByRole('button', { name: 'Наверх' })).toBeNull();
+  });
+
+  it('given the reader scrolled far down, when they scroll back up, then the button shows and goes away again', () => {
+    renderButton();
+
+    scrollPageTo(900);
+    expect(screen.getByRole('button', { name: 'Наверх' })).toBeTruthy();
+
+    scrollPageTo(100);
+    expect(screen.queryByRole('button', { name: 'Наверх' })).toBeNull();
+  });
+
+  it('given the button, when pressed, then the page scrolls smoothly to the top', () => {
+    expect(pressAfterScrolling(false)).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+  });
+
+  it('given a reader who asked for reduced motion, when pressed, then the jump is instant', () => {
+    expect(pressAfterScrolling(true)).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+  });
+});

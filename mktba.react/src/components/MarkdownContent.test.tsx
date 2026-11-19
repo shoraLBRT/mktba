@@ -53,6 +53,48 @@ describe('MarkdownContent', () => {
     expect(container.querySelector('img')?.getAttribute('alt')).toBe('');
   });
 
+  it('given heading anchors, when rendered, then each heading gets its id and a link to itself', () => {
+    const { container } = render(
+      <MarkdownContent
+        content={'## Условия\n\nТекст\n\n### Ният'}
+        headingAnchors={[
+          { id: 'usloviya', text: 'Условия', linkLabel: 'Ссылка на раздел «Условия»' },
+          { id: 'niyat', text: 'Ният', linkLabel: 'Ссылка на раздел «Ният»' },
+        ]}
+      />,
+    );
+
+    const headings = [...container.querySelectorAll('h2, h3')];
+    expect(headings.map((heading) => heading.id)).toEqual(['usloviya', 'niyat']);
+    expect(headings.map((heading) => heading.getAttribute('aria-label'))).toEqual(['Условия', 'Ният']);
+    const links = [...container.querySelectorAll('a.heading-anchor')];
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(['#usloviya', '#niyat']);
+    expect(links.map((link) => link.getAttribute('aria-label'))).toEqual([
+      'Ссылка на раздел «Условия»',
+      'Ссылка на раздел «Ният»',
+    ]);
+    expect(links.every((link) => link.getAttribute('target') === null)).toBe(true);
+  });
+
+  it('given no heading anchors, when rendered, then headings carry neither an id nor a link', () => {
+    const { container } = render(<MarkdownContent content={'## Условия'} />);
+
+    expect(container.querySelector('h2')?.id).toBe('');
+    expect(container.querySelector('a')).toBeNull();
+  });
+
+  it('given fewer anchors than headings, when rendered, then the extra heading stays plain', () => {
+    const { container } = render(
+      <MarkdownContent
+        content={'## One\n\n## Two'}
+        headingAnchors={[{ id: 'one', text: 'One', linkLabel: 'Link to One' }]}
+      />,
+    );
+
+    expect([...container.querySelectorAll('h2')].map((heading) => heading.id)).toEqual(['one', '']);
+    expect(container.querySelectorAll('a.heading-anchor')).toHaveLength(1);
+  });
+
   it('renders nothing for empty content', () => {
     const { container } = render(<MarkdownContent content="" />);
 

@@ -54,7 +54,10 @@
     "breadcrumbs": "Путь к статье",
     "breadcrumbsHome": "Главная",
     "readingTime": "{minutes} мин чтения",
-    "readingTimeLabel": "Время чтения: около {minutes} мин"
+    "readingTimeLabel": "Время чтения: около {minutes} мин",
+    "headingLink": "Ссылка на раздел «{title}»",
+    "paragraphLink": "Ссылка на абзац {number}",
+    "backToTop": "Наверх"
   },
   "articleRightSidebar": {
     "onThisPage": "На этой странице",

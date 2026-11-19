@@ -79,6 +79,38 @@
     line-height: 1.3;
   }
 
+  /* An anchored heading stops below the sticky header when its link is followed. */
+  .article-markdown :is(h2, h3, h4, h5, h6)[id] {
+    scroll-margin-top: 6rem;
+  }
+
+  /* The heading's link to itself: shown on hover and keyboard focus, always on touch screens. */
+  .article-markdown .heading-anchor {
+    margin-inline-start: 6px;
+    padding-inline: 4px;
+    border-radius: 4px;
+    color: var(--color-ink-muted);
+    font-weight: 400;
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .article-markdown :is(h2, h3, h4, h5, h6):hover .heading-anchor,
+  .article-markdown .heading-anchor:focus-visible {
+    opacity: 1;
+  }
+
+  .article-markdown .heading-anchor:hover {
+    color: var(--color-brand-forest);
+  }
+
+  @media (hover: none) {
+    .article-markdown .heading-anchor {
+      opacity: 1;
+    }
+  }
+
   .article-markdown ul,
   .article-markdown ol {
     margin: 0 0 12px;
