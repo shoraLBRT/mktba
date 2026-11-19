@@ -42,6 +42,7 @@ export type AiStyleRequestDto = Schemas['AiStyleRequestDto'];
 export type AiStyleResponseDto = Schemas['AiStyleResponseDto'];
 export type AiConnectionCheckResultDto = Schemas['AiConnectionCheckResultDto'];
 export type NavigationArticleDto = Schemas['NavigationArticleDto'];
+export type SitemapArticleDto = Schemas['SitemapArticleDto'];
 export type AdminAuthStatusDto = Schemas['AdminAuthStatusDto'];
 export type AdminRegisterRequestDto = Schemas['AdminRegisterRequestDto'];
 export type AdminLoginRequestDto = Schemas['AdminLoginRequestDto'];

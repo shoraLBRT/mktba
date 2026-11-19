@@ -855,6 +855,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every article search engines are pointed at: Published, not noindex, and not under a non-Published parent. The same list for every caller; no content. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SitemapArticleDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}": {
         parameters: {
             query?: never;
@@ -2741,6 +2777,14 @@ export interface components {
             userAgent?: string | null;
             ipAddress?: string | null;
             isCurrent: boolean;
+        };
+        SitemapArticleDto: {
+            slug: string;
+            locale: string;
+            /** Format: uuid */
+            translationGroupId: string;
+            /** Format: date-time */
+            lastModified: string;
         };
         UpdateAiProviderSettingsDto: {
             baseUrl: string;

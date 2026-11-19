@@ -831,6 +831,29 @@
         }
       }
     },
+    "/articles/sitemap": {
+      "get": {
+        "tags": [
+          "Articles"
+        ],
+        "description": "Every article search engines are pointed at: Published, not noindex, and not under a non-Published parent. The same list for every caller; no content.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SitemapArticleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/{id}": {
       "get": {
         "tags": [
@@ -3642,6 +3665,32 @@
           },
           "isCurrent": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SitemapArticleDto": {
+        "required": [
+          "lastModified",
+          "locale",
+          "slug",
+          "translationGroupId"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "translationGroupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lastModified": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false

@@ -74,6 +74,13 @@ namespace Mktba.Api.Endpoints
             .ProducesApiProblem(StatusCodes.Status400BadRequest)
             .RequireAuthorization(Policies.CanEditArticles);
 
+            group.MapGet("/sitemap", async (SitemapService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.GetArticlesAsync(cancellationToken)))
+            .WithDescription(
+                "Every article search engines are pointed at: Published, not noindex, and not under a "
+                + "non-Published parent. The same list for every caller; no content.")
+            .Produces<List<SitemapArticleDto>>();
+
             group.MapGet("/{id:int}", async (int id, ClaimsPrincipal user, ArticleService service) =>
             {
                 var article = await service.GetByIdAsync(id, user.ToArticleViewer());
