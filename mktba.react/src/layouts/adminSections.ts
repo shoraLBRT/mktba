@@ -1,7 +1,7 @@
-import { Bot, FolderTree, KeyRound, LayoutDashboard, MonitorSmartphone, Trash2, type LucideIcon } from 'lucide-react';
+import { Bot, FolderTree, KeyRound, LayoutDashboard, MonitorSmartphone, Trash2, UserRound, type LucideIcon } from 'lucide-react';
 import type { RolePolicy } from '../auth/roleAccess';
 
-export type AdminSectionId = 'dashboard' | 'articles' | 'users' | 'sessions' | 'ai' | 'maintenance';
+export type AdminSectionId = 'dashboard' | 'articles' | 'users' | 'sessions' | 'profile' | 'ai' | 'maintenance';
 
 export type AdminSection = {
   id: AdminSectionId;
@@ -18,6 +18,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   { id: 'articles', path: '/admin/articles', policy: 'canEditArticles', icon: FolderTree },
   { id: 'users', path: '/admin/users', policy: 'canManageUsers', icon: KeyRound },
   { id: 'sessions', path: '/admin/sessions', policy: 'authenticated', icon: MonitorSmartphone },
+  { id: 'profile', path: '/admin/profile', policy: 'authenticated', icon: UserRound },
   { id: 'ai', path: '/admin/ai', policy: 'canConfigure', icon: Bot },
   { id: 'maintenance', path: '/admin/maintenance', policy: 'canConfigure', icon: Trash2 },
 ];

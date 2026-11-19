@@ -9,6 +9,7 @@ import AdminArticlesPage from '../pages/admin/AdminArticlesPage';
 import AdminArticleTreePage from '../pages/admin/AdminArticleTreePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminMaintenancePage from '../pages/admin/AdminMaintenancePage';
+import AdminProfilePage from '../pages/admin/AdminProfilePage';
 import AdminSessionsPage from '../pages/admin/AdminSessionsPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import AdminLayout from '../layouts/AdminLayout';
@@ -24,6 +25,7 @@ const SECTION_PAGES: Record<AdminSectionId, ReactElement> = {
   articles: <AdminArticlesPage />,
   users: <AdminUsersPage />,
   sessions: <AdminSessionsPage />,
+  profile: <AdminProfilePage />,
   ai: <AdminAiSettingsPage />,
   maintenance: <AdminMaintenancePage />,
 };

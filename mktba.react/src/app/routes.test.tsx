@@ -310,6 +310,7 @@ describe('AdminLayout', () => {
       'Статьи',
       'Пользователи и приглашения',
       'Сессии',
+      'Мой профиль',
       'ИИ-провайдер',
       'Обслуживание базы',
     ]);
@@ -328,6 +329,7 @@ describe('AdminLayout', () => {
       '/admin',
       '/admin/articles',
       '/admin/sessions',
+      '/admin/profile',
     ]);
   });
 

@@ -1971,6 +1971,127 @@
         }
       }
     },
+    "/profile": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "The signed-in user's profile.",
+        "description": "Every field is empty until the user fills it in. isPublic says whether readers can open the profile now.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Replaces the signed-in user's whole profile.",
+        "description": "A blank value clears its field. A blank slug keeps the current one or, the first time a display name is set, is derived from the name; clearing the name clears the slug. A changed slug is not kept as a redirect. Answers 400 with a profile_* code: profile_display_name_invalid, profile_display_name_required (a slug without a name), profile_slug_invalid, profile_slug_taken, profile_avatar_url_invalid, profile_bio_too_long, profile_degree_too_long, profile_institution_too_long, profile_links_too_many, profile_link_label_invalid, profile_link_url_invalid.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileWriteDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authors/{slug}": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "The public profile of an author, by slug.",
+        "description": "Only what readers may see: no email, no user id. Answers 404 author_not_found unless the user has a display name and is the author or a co-author of at least one Published article, so accounts cannot be listed through it. degree and institution are self-declared and given only for a user whose role is Scholar.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/schools/system": {
       "get": {
         "tags": [
@@ -2453,6 +2574,107 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}/profile": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Any user's profile, for an admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Replaces any user's whole profile, for an admin.",
+        "description": "The same rules as PUT /profile. Answers 400 with a profile_* code: profile_display_name_invalid, profile_display_name_required (a slug without a name), profile_slug_invalid, profile_slug_taken, profile_avatar_url_invalid, profile_bio_too_long, profile_degree_too_long, profile_institution_too_long, profile_links_too_many, profile_link_label_invalid, profile_link_url_invalid. Answers 404 user_not_found for an unknown user.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileWriteDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
                 }
               }
             }
@@ -4093,6 +4315,65 @@
         },
         "additionalProperties": false
       },
+      "ProfileLinkDto": {
+        "required": [
+          "label",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublicProfileDto": {
+        "required": [
+          "displayName",
+          "links",
+          "role",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "degree": {
+            "type": "string",
+            "nullable": true
+          },
+          "institution": {
+            "type": "string",
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileLinkDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "RecentArticleDto": {
         "required": [
           "id",
@@ -4466,6 +4747,95 @@
         },
         "additionalProperties": false
       },
+      "UserProfileDto": {
+        "required": [
+          "isPublic",
+          "links",
+          "role",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "degree": {
+            "type": "string",
+            "nullable": true
+          },
+          "institution": {
+            "type": "string",
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileLinkDto"
+            }
+          },
+          "isPublic": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserProfileWriteDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "degree": {
+            "type": "string",
+            "nullable": true
+          },
+          "institution": {
+            "type": "string",
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileLinkDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "UserRole": {
         "enum": [
           "Reader",
@@ -4501,6 +4871,10 @@
           },
           "email": {
             "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
           },
           "role": {
             "$ref": "#/components/schemas/UserRole"

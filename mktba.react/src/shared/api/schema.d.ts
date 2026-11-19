@@ -2176,6 +2176,149 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in user's profile.
+         * @description Every field is empty until the user fills it in. isPublic says whether readers can open the profile now.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfileDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        /**
+         * Replaces the signed-in user's whole profile.
+         * @description A blank value clears its field. A blank slug keeps the current one or, the first time a display name is set, is derived from the name; clearing the name clears the slug. A changed slug is not kept as a redirect. Answers 400 with a profile_* code: profile_display_name_invalid, profile_display_name_required (a slug without a name), profile_slug_invalid, profile_slug_taken, profile_avatar_url_invalid, profile_bio_too_long, profile_degree_too_long, profile_institution_too_long, profile_links_too_many, profile_link_label_invalid, profile_link_url_invalid.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UserProfileWriteDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfileDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/authors/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The public profile of an author, by slug.
+         * @description Only what readers may see: no email, no user id. Answers 404 author_not_found unless the user has a display name and is the author or a co-author of at least one Published article, so accounts cannot be listed through it. degree and institution are self-declared and given only for a user whose role is Scholar.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicProfileDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/schools/system": {
         parameters: {
             query?: never;
@@ -2713,6 +2856,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Any user's profile, for an admin. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfileDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        /**
+         * Replaces any user's whole profile, for an admin.
+         * @description The same rules as PUT /profile. Answers 400 with a profile_* code: profile_display_name_invalid, profile_display_name_required (a slug without a name), profile_slug_invalid, profile_slug_taken, profile_avatar_url_invalid, profile_bio_too_long, profile_degree_too_long, profile_institution_too_long, profile_links_too_many, profile_link_label_invalid, profile_link_url_invalid. Answers 404 user_not_found for an unknown user.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UserProfileWriteDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfileDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3152,6 +3389,20 @@ export interface components {
             order: number;
             opinions: components["schemas"]["OpinionUpdateDto"][];
         };
+        ProfileLinkDto: {
+            label: string;
+            url: string;
+        };
+        PublicProfileDto: {
+            slug: string;
+            displayName: string;
+            role: components["schemas"]["UserRole"];
+            avatarUrl?: string | null;
+            bio?: string | null;
+            degree?: string | null;
+            institution?: string | null;
+            links: components["schemas"]["ProfileLinkDto"][];
+        };
         RecentArticleDto: {
             /** Format: int32 */
             id: number;
@@ -3254,6 +3505,28 @@ export interface components {
             apiKey?: string | null;
             markdownStylingSystemPrompt?: string | null;
         };
+        UserProfileDto: {
+            /** Format: int32 */
+            userId: number;
+            role: components["schemas"]["UserRole"];
+            displayName?: string | null;
+            slug?: string | null;
+            avatarUrl?: string | null;
+            bio?: string | null;
+            degree?: string | null;
+            institution?: string | null;
+            links: components["schemas"]["ProfileLinkDto"][];
+            isPublic: boolean;
+        };
+        UserProfileWriteDto: {
+            displayName?: string | null;
+            slug?: string | null;
+            avatarUrl?: string | null;
+            bio?: string | null;
+            degree?: string | null;
+            institution?: string | null;
+            links?: components["schemas"]["ProfileLinkDto"][] | null;
+        };
         /** @enum {string} */
         UserRole: "Reader" | "Author" | "Scholar" | "Admin";
         UserRoleUpdateDto: {
@@ -3263,6 +3536,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             email: string;
+            displayName?: string | null;
             role: components["schemas"]["UserRole"];
         };
     };
