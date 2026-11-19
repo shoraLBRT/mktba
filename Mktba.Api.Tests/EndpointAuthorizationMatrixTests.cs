@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using FluentAssertions;
@@ -72,6 +72,9 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         ["DELETE /schools/{id:int}"] = Policies.CanEditArticles,
 
         ["POST /articles/{id:int}/status"] = Policies.CanEditArticles,
+        // A-02 (#34): each article is then checked like a single status move.
+        ["GET /articles/admin-list"] = Policies.CanEditArticles,
+        ["POST /articles/bulk/status"] = Policies.CanEditArticles,
 
         ["POST /admin/cleanup"] = Policies.CanConfigure,
         ["GET /admin/ai-settings"] = Policies.CanConfigure,

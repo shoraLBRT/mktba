@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Mktba.Application.Exceptions;
 using Mktba.Domain.Entities;
@@ -60,12 +60,22 @@ namespace Mktba.Api.Infrastructure
         ArticleRepository articles, SchoolRepository schools, IAuthorizationService authorization)
     {
         /// <summary>Null when <paramref name="user"/> may do <paramref name="requirement"/> on the article, else the problem to answer.</summary>
-        public async Task<IResult?> CheckAsync(ClaimsPrincipal user, int articleId, ArticleOperationRequirement requirement)
+        public async Task<IResult?> CheckAsync(ClaimsPrincipal user, int articleId, ArticleOperationRequirement requirement) =>
+            await FindRefusalAsync(user, articleId, requirement) is { } refusal
+                ? ApiProblemResults.Problem(refusal.StatusCode, refusal.Error)
+                : null;
+
+        /// <summary>
+        /// Null when <paramref name="user"/> may do <paramref name="requirement"/> on the article, else
+        /// the status and error <see cref="CheckAsync"/> answers with; bulk actions report the error per article.
+        /// </summary>
+        public async Task<(int StatusCode, AppError Error)?> FindRefusalAsync(
+            ClaimsPrincipal user, int articleId, ArticleOperationRequirement requirement)
         {
             var article = await articles.GetAccessRowAsync(articleId);
             if (article is null)
             {
-                return ApiProblemResults.Problem(StatusCodes.Status404NotFound, AppErrors.ArticleNotFound);
+                return (StatusCodes.Status404NotFound, AppErrors.ArticleNotFound);
             }
 
             if ((await authorization.AuthorizeAsync(user, article, requirement)).Succeeded)
@@ -74,8 +84,8 @@ namespace Mktba.Api.Infrastructure
             }
 
             return user.ToArticleViewer().CanSee(article.Status, article.AuthorId, article.CoAuthorIds)
-                ? ApiProblemResults.Problem(StatusCodes.Status403Forbidden, AppErrors.Forbidden)
-                : ApiProblemResults.Problem(StatusCodes.Status404NotFound, AppErrors.ArticleNotFound);
+                ? (StatusCodes.Status403Forbidden, AppErrors.Forbidden)
+                : (StatusCodes.Status404NotFound, AppErrors.ArticleNotFound);
         }
 
         /// <summary>

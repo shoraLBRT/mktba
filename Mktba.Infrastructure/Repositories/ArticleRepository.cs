@@ -59,6 +59,96 @@ namespace Mktba.Infrastructure.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// One page of the articles <paramref name="viewer"/> may read, filtered and sorted by
+        /// <paramref name="query"/>, and the number of matching articles. Two queries — the count and
+        /// the page — and no paragraph, infobox or link rows are read.
+        /// </summary>
+        public async Task<(List<ArticleListRow> Rows, int Total)> GetListPageAsync(
+            ArticleListQuery query, ArticleViewer viewer, CancellationToken cancellationToken = default)
+        {
+            var articles = _dbSet.AsNoTracking().VisibleTo(viewer);
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var term = query.Search.Trim().ToLower();
+                articles = articles.Where(article => article.Title.ToLower().Contains(term) || article.Slug.ToLower().Contains(term));
+            }
+
+            if (query.Status is ArticleStatus status)
+            {
+                articles = articles.Where(article => article.Status == status);
+            }
+
+            if (query.AuthorId is int authorId)
+            {
+                articles = articles.Where(article => article.AuthorId == authorId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Tag))
+            {
+                // Tags are stored joined by "," without spaces, so ",tag," matches one whole tag.
+                var tag = "," + query.Tag.Trim().ToLower() + ",";
+                articles = articles.Where(article => article.Tags != null && ("," + article.Tags.ToLower() + ",").Contains(tag));
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Locale))
+            {
+                var locale = query.Locale.Trim().ToLower();
+                articles = articles.Where(article => article.Locale == locale);
+            }
+
+            var total = await articles.CountAsync(cancellationToken);
+            var rows = await Sorted(articles, query.Sort, query.Direction)
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .Select(article => new ArticleListRow(
+                    article.Id,
+                    article.Title,
+                    article.Slug,
+                    article.Locale,
+                    article.Status,
+                    article.ParentArticleId,
+                    article.AuthorId,
+                    article.CoAuthors.Select(coAuthor => coAuthor.UserId).ToList(),
+                    article.Tags,
+                    article.Paragraphs.Count,
+                    article.CreatedAt,
+                    article.UpdatedAt,
+                    article.PublishedAt))
+                .ToListAsync(cancellationToken);
+            return (rows, total);
+        }
+
+        private static IOrderedQueryable<Article> Sorted(IQueryable<Article> articles, ArticleListSort sort, SortDirection direction)
+        {
+            var descending = direction == SortDirection.Desc;
+            IOrderedQueryable<Article> sorted = sort switch
+            {
+                ArticleListSort.CreatedAt => descending
+                    ? articles.OrderByDescending(article => article.CreatedAt)
+                    : articles.OrderBy(article => article.CreatedAt),
+                ArticleListSort.PublishedAt => descending
+                    ? articles.OrderBy(article => article.PublishedAt == null).ThenByDescending(article => article.PublishedAt)
+                    : articles.OrderBy(article => article.PublishedAt == null).ThenBy(article => article.PublishedAt),
+                ArticleListSort.Title => descending
+                    ? articles.OrderByDescending(article => article.Title)
+                    : articles.OrderBy(article => article.Title),
+                // Status is stored as text; sort by the workflow instead of the alphabet.
+                ArticleListSort.Status => descending
+                    ? articles.OrderByDescending(article => article.Status == ArticleStatus.Draft ? 0
+                        : article.Status == ArticleStatus.InReview ? 1
+                        : article.Status == ArticleStatus.Published ? 2 : 3)
+                    : articles.OrderBy(article => article.Status == ArticleStatus.Draft ? 0
+                        : article.Status == ArticleStatus.InReview ? 1
+                        : article.Status == ArticleStatus.Published ? 2 : 3),
+                _ => descending
+                    ? articles.OrderByDescending(article => article.UpdatedAt)
+                    : articles.OrderBy(article => article.UpdatedAt),
+            };
+            return descending ? sorted.ThenByDescending(article => article.Id) : sorted.ThenBy(article => article.Id);
+        }
+
         /// <summary>The article's status and owners for a permission check; null if there is no such article.</summary>
         public async Task<ArticleAccessRow?> GetAccessRowAsync(int articleId, CancellationToken cancellationToken = default)
         {
