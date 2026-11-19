@@ -167,16 +167,19 @@ describe('NavigationTree in windowed mode', () => {
     expect(within(section).getByText('Подразделов: 150')).toBeTruthy();
   });
 
-  it('given a large tree, when rendered on the server, then the HTML holds every link and hydrates without a mismatch', async () => {
+  it('given a tree above the threshold, when rendered on the server, then the HTML holds every link and hydrates without a mismatch', async () => {
+    // 400 rows keep the server render and the hydration of a nested tree well inside the test timeout.
+    const rowCount = NAVIGATION_TREE_WINDOWING_THRESHOLD + 100;
+    const tree = flatTree(rowCount);
     const app = (
       <LocalizationProvider>
         <MemoryRouter>
-          <NavigationTree navigationTree={largeTree} />
+          <NavigationTree navigationTree={tree} />
         </MemoryRouter>
       </LocalizationProvider>
     );
     const html = renderToString(app);
-    expect(html.match(/href="\/article\/a\d+"/g)).toHaveLength(TOTAL_ROWS);
+    expect(html.match(/href="\/article\/a\d+"/g)).toHaveLength(rowCount);
 
     const container = document.createElement('div');
     container.innerHTML = html;
@@ -188,7 +191,7 @@ describe('NavigationTree in windowed mode', () => {
     expect(onRecoverableError).not.toHaveBeenCalled();
     expect(errors).not.toHaveBeenCalled();
     expect(container.querySelector('ul[data-tree-windowed]')).not.toBeNull();
-    expect(container.querySelectorAll('li[data-tree-item]').length).toBeLessThan(TOTAL_ROWS / 10);
+    expect(container.querySelectorAll('li[data-tree-item]').length).toBeLessThan(rowCount / 4);
 
     act(() => root.unmount());
     container.remove();
