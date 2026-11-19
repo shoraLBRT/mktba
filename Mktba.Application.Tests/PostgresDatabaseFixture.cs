@@ -1,0 +1,50 @@
+using Microsoft.EntityFrameworkCore;
+using Mktba.Infrastructure.Data;
+using Npgsql;
+
+namespace Mktba.Application.Tests;
+
+/// <summary>
+/// A throwaway PostgreSQL database with every migration applied, for the tests that need what the
+/// InMemory provider does not have (full-text search, R-10 #46). The server comes from
+/// <c>MKTBA_TEST_DB_CONNECTION</c> (an Npgsql connection string; its database name is ignored) and
+/// defaults to the compose service <c>postgres</c> — <c>docker compose up -d postgres</c>. The
+/// database is created for the test class and dropped after it.
+/// </summary>
+public sealed class PostgresDatabaseFixture : IAsyncLifetime
+{
+    private const string ConnectionVariable = "MKTBA_TEST_DB_CONNECTION";
+    private const string ComposeConnection = "Host=localhost;Port=5432;Username=mktba;Password=mktba_dev";
+
+    private readonly string _databaseName = $"mktba_test_{Guid.NewGuid():N}";
+    private readonly NpgsqlConnectionStringBuilder _server;
+
+    public PostgresDatabaseFixture()
+    {
+        var configured = Environment.GetEnvironmentVariable(ConnectionVariable);
+        _server = new NpgsqlConnectionStringBuilder(string.IsNullOrWhiteSpace(configured) ? ComposeConnection : configured);
+    }
+
+    /// <summary>A new context on the throwaway database.</summary>
+    public MktbaDbContext CreateContext()
+        => new(new DbContextOptionsBuilder<MktbaDbContext>().UseNpgsql(ConnectionTo(_databaseName)).Options);
+
+    public async Task InitializeAsync()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        NpgsqlConnection.ClearAllPools();
+        await using var connection = new NpgsqlConnection(ConnectionTo("postgres"));
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"DROP DATABASE IF EXISTS \"{_databaseName}\" WITH (FORCE)";
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private string ConnectionTo(string database)
+        => new NpgsqlConnectionStringBuilder(_server.ConnectionString) { Database = database }.ConnectionString;
+}

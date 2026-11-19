@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { LocalizationProvider } from '../localization/provider';
@@ -32,6 +32,12 @@ const RECENT: RecentArticlesDto = {
   ],
 };
 
+/** Where the router is, for the tests that navigate. */
+const CurrentLocation = () => {
+  const { pathname, search } = useLocation();
+  return <span data-testid="location">{pathname + search}</span>;
+};
+
 /** The page over a cache that already holds the data, as after the server render. */
 const renderHome = (tree: NavigationArticleDto[] = TREE, recent: RecentArticlesDto = RECENT) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
@@ -43,6 +49,7 @@ const renderHome = (tree: NavigationArticleDto[] = TREE, recent: RecentArticlesD
       <LocalizationProvider>
         <MemoryRouter>
           <HomePage />
+          <CurrentLocation />
         </MemoryRouter>
       </LocalizationProvider>
     </QueryClientProvider>,
@@ -83,18 +90,15 @@ describe('HomePage', () => {
     expect(screen.queryByRole('region', { name: 'Обновлённые статьи' })).toBeNull();
   });
 
-  it('given a typed title, when it matches, then offers the article and when it does not, says so', () => {
+  it('given a typed query, when the search form is submitted, then opens the results page for it', () => {
     renderHome();
-    const input = screen.getByRole('searchbox', { name: 'Найти статью по названию' });
-    expect(screen.queryByRole('list', { name: 'Найденные статьи' })).toBeNull();
+    const form = screen.getByRole('search');
+    expect(form.getAttribute('action')).toBe('/search');
 
-    fireEvent.change(input, { target: { value: 'зак' } });
-    const results = screen.getByRole('list', { name: 'Найденные статьи' });
-    expect(within(results).getByRole('link', { name: 'Закят' }).getAttribute('href')).toBe('/article/zakyat');
+    fireEvent.change(within(form).getByRole('searchbox', { name: 'Поиск по статьям' }), { target: { value: '  условия   намаза ' } });
+    fireEvent.submit(form);
 
-    fireEvent.change(input, { target: { value: 'хадж' } });
-    expect(screen.queryByRole('list', { name: 'Найденные статьи' })).toBeNull();
-    expect(screen.getByText('Статей с таким названием нет.')).toBeTruthy();
+    expect(screen.getByTestId('location').textContent).toBe('/search?q=%D1%83%D1%81%D0%BB%D0%BE%D0%B2%D0%B8%D1%8F+%D0%BD%D0%B0%D0%BC%D0%B0%D0%B7%D0%B0');
   });
 
   it('when rendered, then has one h1 and explains what mktba is', () => {

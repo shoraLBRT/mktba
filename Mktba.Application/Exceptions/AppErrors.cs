@@ -89,6 +89,12 @@ public static class AppErrors
         new("locale_unsupported", $"Locale '{locale}' is not supported. Supported: {string.Join(", ", Domain.Entities.Locales.Supported)}.",
             With(("locale", locale), ("supported", string.Join(", ", Domain.Entities.Locales.Supported))));
 
+    public static AppError SearchQueryTooShort(int minLength) =>
+        new("search_query_too_short", $"A search query must be at least {minLength} characters long.", With(("minLength", minLength)));
+
+    public static AppError SearchQueryTooLong(int maxLength) =>
+        new("search_query_too_long", $"A search query cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
+
     public static AppError ArticleSlugTaken(string slug) =>
         new("article_slug_taken", $"Slug '{slug}' is already used by another article.", With(("slug", slug)));
 

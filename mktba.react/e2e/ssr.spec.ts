@@ -286,11 +286,14 @@ test('the server sends an article with Article, BreadcrumbList, WebSite and Orga
   expect(trail.at(-1)).toMatchObject({ position: trail.length, name: 'Салат', item: article.url });
 });
 
-test('the server sends the home page with Organization and WebSite JSON-LD and no search action (O-05)', async ({ request }) => {
+test('the server sends the home page with Organization and WebSite JSON-LD naming the site search (O-05, R-10)', async ({ request }) => {
   const nodes = jsonLdNodes(await (await request.get('/')).text());
 
   expect(nodes.map((node) => node['@type'])).toEqual(['Organization', 'WebSite']);
-  expect(nodes[1]).not.toHaveProperty('potentialAction');
+  const action = nodes[1].potentialAction as { '@type': string; target: { urlTemplate: string } };
+  expect(action['@type']).toBe('SearchAction');
+  expect(new URL(action.target.urlTemplate.replace('{search_term_string}', 'x')).pathname).toBe('/search');
+  expect(action.target.urlTemplate.endsWith('/search?q={search_term_string}')).toBe(true);
 });
 
 /** The inner HTML of one block of the article footer in raw HTML (R-08). */
@@ -341,4 +344,28 @@ test('the server sends the article footer: children, related and neighbours, wit
   expect(firstHtml).not.toContain('data-testid="article-related"');
   // The footer's headings are not part of the article's outline.
   expect(lastHtml.match(/<h1[\s>]/g)).toHaveLength(1);
+});
+
+test('the server sends the search results with the matched words marked and keeps the page out of the index (R-10)', async ({ request }) => {
+  // «столпами» is another form of the seeded article's «столпов»: the Russian morphology is at work.
+  const response = await request.get(`/search?q=${encodeURIComponent('столпами ислама')}`);
+
+  expect(response.status()).toBe(200);
+  const html = await response.text();
+  expect(html).toContain('<title>Поиск: столпами ислама — mktba</title>');
+  expect(metaContent(html, 'robots')).toBe('noindex');
+  expect(html).not.toContain('rel="canonical"');
+  expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+  expect(html).toMatch(/<ol aria-label="Результаты поиска"[\s\S]*href="\/article\/salat(#p-\d+)?"/);
+  expect(html).toMatch(/<mark[^>]*>столпов<\/mark>/);
+});
+
+test('the server says so when nothing is found and asks for a query when there is none (R-10)', async ({ request }) => {
+  const nothing = await request.get('/search?q=abrakadabraksis');
+  expect(nothing.status()).toBe(200);
+  expect(await nothing.text()).toContain('ничего не найдено');
+
+  const noQuery = await (await request.get('/search')).text();
+  expect(noQuery).toContain('Введите запрос');
+  expect(noQuery).toContain('<title>Поиск — mktba</title>');
 });

@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { API_URL, declineAnalytics, publishArticle } from './helpers';
 
 test.beforeEach(async ({ page }) => {
@@ -225,7 +225,7 @@ test('an article page has no serious or critical accessibility violations (O-10)
   expect(serious).toEqual([]);
 });
 
-test('the home page offers sections, new and updated articles and a title search (R-05)', async ({ page, request }) => {
+test('the home page offers sections, new and updated articles and the search (R-05, R-10)', async ({ page, request }) => {
   const title = `Главная новинка ${Date.now()}`;
   const article = await publishArticle(request, title, [
     { order: 1, opinions: [{ content: 'Текст новой статьи', isDefault: true, schoolIds: [] }] },
@@ -252,9 +252,11 @@ test('the home page offers sections, new and updated articles and a title search
   await expect(updated.getByRole('link', { name: title, exact: true })).toBeVisible();
   await expect(updated).toContainText('Описание, добавленное после публикации');
 
-  await main.getByRole('searchbox', { name: 'Найти статью по названию' }).fill('главная новинка');
-  await main.getByRole('list', { name: 'Найденные статьи' }).getByRole('link', { name: title, exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/article/${article.slug}$`));
+  await main.getByRole('searchbox', { name: 'Поиск по статьям' }).fill('главной новинке');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/search\?q=/);
+  await page.getByRole('list', { name: 'Результаты поиска' }).getByRole('link', { name: title, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/article/${article.slug}(#p-[0-9]+)?$`));
   await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
 });
 
@@ -440,4 +442,51 @@ test('the navigation tree remembers collapsed sections, opens the path to the cu
   const html = await (await request.get('/')).text();
   expect(html).toContain(`href="/article/${chapter.slug}"`);
   expect(html).toContain(`href="/article/${leaf.slug}"`);
+});
+
+/** Serious and critical axe violations inside `scope`. Colour contrast is R-17 (#141). */
+const seriousViolations = async (page: Page, scope: string): Promise<string[]> => {
+  const { violations } = await new AxeBuilder({ page }).include(scope).disableRules(['color-contrast']).analyze();
+  return violations
+    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
+};
+
+test('Ctrl+K opens the search, the results page marks the matches and leads to the article (R-10)', async ({ page }) => {
+  await page.goto('/article/salat');
+  await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
+
+  await page.keyboard.press('Control+K');
+  const dialog = page.getByRole('dialog', { name: 'Поиск по статьям' });
+  await expect(dialog.getByRole('searchbox')).toBeFocused();
+  expect(await seriousViolations(page, '[role="dialog"]')).toEqual([]);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole('button', { name: 'Поиск' }).click();
+  await dialog.getByRole('searchbox').fill('ритуальной молитвой');
+  await page.keyboard.press('Enter');
+
+  await expect(page).toHaveURL(/\/search\?q=/);
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveTitle('Поиск: ритуальной молитвой — mktba');
+  const results = page.getByRole('list', { name: 'Результаты поиска' });
+  await expect(results.locator('mark').first()).toBeVisible();
+  expect(await seriousViolations(page, 'main')).toEqual([]);
+
+  await results.getByRole('link', { name: 'Салат', exact: true }).click();
+  await expect(page).toHaveURL(/\/article\/salat(#p-\d+)?$/);
+  await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
+});
+
+test('the home page search field leads to the results page and an empty result is said plainly (R-10)', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('main').getByRole('searchbox', { name: 'Поиск по статьям' }).fill('abrakadabraksis');
+  await page.keyboard.press('Enter');
+
+  await expect(page).toHaveURL(/\/search\?q=abrakadabraksis$/);
+  await expect(page.getByRole('status')).toContainText('По запросу abrakadabraksis ничего не найдено.');
+  await expect(page.getByRole('searchbox', { name: 'Поиск по статьям' })).toHaveValue('abrakadabraksis');
 });

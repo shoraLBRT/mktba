@@ -44,6 +44,7 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         ["GET /articles/"] = Public,
         ["GET /articles/sitemap"] = Public,
         ["GET /articles/recent"] = Public,
+        ["GET /search/"] = Public,
         ["GET /articles/{id:int}"] = Public,
         ["GET /articles/{id:int}/content"] = Public,
         ["GET /articles/by-slug/{slug}/content"] = Public,

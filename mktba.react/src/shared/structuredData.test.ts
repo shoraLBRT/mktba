@@ -29,7 +29,11 @@ describe('structured data builders', () => {
       inLanguage: 'ru',
       publisher: { '@id': organization['@id'] },
     });
-    expect(webSite).not.toHaveProperty('potentialAction');
+    expect(webSite.potentialAction).toEqual({
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: 'https://mktba.ru/search?q={search_term_string}' },
+      'query-input': 'required name=search_term_string',
+    });
   });
 
   it('given a full article, when building Article, then it has absolute URLs, dates and the organization as author and publisher', () => {

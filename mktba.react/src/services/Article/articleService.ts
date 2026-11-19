@@ -1,5 +1,6 @@
 import apiClient from '../../shared/api-client/ApiClient';
-import type { ArticleContentCreateDto, ArticleContentDto, RecentArticlesDto } from '../../shared/types/ApiTypes';
+import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../../shared/search';
+import type { ArticleContentCreateDto, ArticleContentDto, RecentArticlesDto, SearchResultsDto } from '../../shared/types/ApiTypes';
 
 export const getArticleContentById = async (id: number): Promise<ArticleContentDto> => {
   const response = await apiClient.get<ArticleContentDto>(`/articles/${id}/content`);
@@ -21,6 +22,14 @@ export const getRecentArticles = async (): Promise<RecentArticlesDto> => {
   return response.data;
 };
 
+/** One page of the full-text search over published articles (R-10, #46). */
+export const searchArticles = async ({ query, page }: SearchRequest): Promise<SearchResultsDto> => {
+  const response = await apiClient.get<SearchResultsDto>('/search', {
+    params: { [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: page },
+  });
+  return response.data;
+};
+
 export const createArticleContent = async (payload: ArticleContentCreateDto): Promise<ArticleContentDto> => {
   const response = await apiClient.post<ArticleContentDto>('/articles/content', payload);
   return response.data;
@@ -34,6 +43,7 @@ export const articleService = {
   getArticleContentById,
   getArticleContentBySlug,
   getRecentArticles,
+  searchArticles,
   createArticleContent,
   updateArticleContent,
 };

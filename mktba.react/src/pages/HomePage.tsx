@@ -1,7 +1,7 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
 import { Link } from 'react-router';
+import { SearchForm } from '../components/search/SearchForm';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { useLocale } from '../localization/hooks';
@@ -9,8 +9,7 @@ import { getRecentArticles } from '../services/Article/articleService';
 import { formatRussianDate } from '../shared/lib/formatDate';
 import { articleHref } from '../shared/slug';
 import type { NavigationArticleDto, RecentArticleDto } from '../shared/types/ApiTypes';
-import { Input } from '../shared/ui/Input';
-import { findArticlesByTitle, homeSections } from './home/homeTree';
+import { homeSections } from './home/homeTree';
 
 const linkClass = 'text-[var(--color-brand-forest)] underline-offset-2 hover:underline';
 const sectionTitleClass = 'm-0 text-lg font-semibold text-[var(--color-ink-strong)]';
@@ -25,52 +24,6 @@ const TreeArticleLink = ({ article }: { article: NavigationArticleDto }) =>
   ) : (
     <span className="text-[var(--color-ink-muted)]">{article.title}</span>
   );
-
-/**
- * Finds articles by title in the navigation tree the page already has. Full-text search over the
- * article texts is R-10 (#46).
- */
-const TitleSearch = ({ tree }: { tree: NavigationArticleDto[] | undefined }) => {
-  const t = useLocale().homePage.search;
-  const inputId = useId();
-  const [term, setTerm] = useState('');
-  const found = useMemo(() => findArticlesByTitle(tree, term), [tree, term]);
-  const searching = term.trim() !== '';
-
-  return (
-    <div role="search" className="mx-auto mt-8 w-full max-w-xl text-left">
-      <label htmlFor={inputId} className="sr-only">
-        {t.label}
-      </label>
-      <div className="relative">
-        <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" aria-hidden="true" />
-        <Input
-          id={inputId}
-          type="search"
-          value={term}
-          onChange={(event) => setTerm(event.target.value)}
-          placeholder={t.placeholder}
-          autoComplete="off"
-          className="rounded-2xl py-3 pl-11 pr-4 text-base"
-        />
-      </div>
-      <div aria-live="polite">
-        {searching && found.length === 0 && (
-          <p className="mb-0 mt-3 text-sm text-[var(--color-ink-muted)]">{t.noResults}</p>
-        )}
-        {found.length > 0 && (
-          <ul aria-label={t.results} className={`m-0 mt-3 list-none space-y-2 ${panelClass}`}>
-            {found.map((article) => (
-              <li key={article.id}>
-                <TreeArticleLink article={article} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-};
 
 /** The top level of the tree: each section with its first nested articles. */
 const Sections = ({ tree }: { tree: NavigationArticleDto[] | undefined }) => {
@@ -164,8 +117,9 @@ const publishedAtOf = (article: RecentArticleDto) => article.publishedAt;
 const updatedAtOf = (article: RecentArticleDto) => article.updatedAt;
 
 /**
- * The home page (R-05, #41): what mktba is, a title search, the top-level sections, and the new
- * and updated articles. Popular articles wait for view statistics, full-text search for R-10 (#46).
+ * The home page (R-05, #41): what mktba is, the search field (it leads to the results page, R-10
+ * #46), the top-level sections, and the new and updated articles. Popular articles wait for view
+ * statistics.
  */
 const HomePage = () => {
   const locale = useLocale();
@@ -182,7 +136,7 @@ const HomePage = () => {
       <header className="text-center">
         <h1 className="m-0 text-3xl font-bold tracking-[-0.03em] text-[var(--color-ink-strong)] sm:text-4xl">{t.title}</h1>
         <p className="mb-0 mt-3 text-base text-[var(--color-ink-muted)] sm:text-lg">{t.lead}</p>
-        <TitleSearch tree={tree} />
+        <SearchForm className="mx-auto mt-8 w-full max-w-xl text-left" />
       </header>
 
       <Sections tree={tree} />
