@@ -87,9 +87,12 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
 
             // The developer's appsettings.local.json may hold a real GitHub App key: tests never reach GitHub.
             services.RemoveAll<IFeedbackIssueTracker>();
-            services.AddSingleton<IFeedbackIssueTracker, NoIssueTracker>();
+            services.AddSingleton(IssueTracker ?? new NoIssueTracker());
         });
     }
+
+    /// <summary>A stand-in issue tracker for the feedback worker; null (the default) means none is configured.</summary>
+    internal IFeedbackIssueTracker? IssueTracker { get; init; }
 
     /// <summary>A tracker that is never configured: feedback stays pending and nothing is sent anywhere.</summary>
     private sealed class NoIssueTracker : IFeedbackIssueTracker
