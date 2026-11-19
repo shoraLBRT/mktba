@@ -39,7 +39,7 @@ export const createQueryClient = () =>
 
 /**
  * Marks every query that shows article data as stale after an article is created, edited or
- * deleted: the navigation tree, the admin article list and article content. Mounted queries
+ * deleted: the navigation tree, the admin article list, article content and revision history. Mounted queries
  * refetch at once; the others refetch on their next mount.
  */
 export const invalidateArticleQueries = (queryClient: QueryClient) =>
@@ -47,4 +47,5 @@ export const invalidateArticleQueries = (queryClient: QueryClient) =>
     queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE] }),
     queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES] }),
     queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT] }),
+    queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_REVISIONS] }),
   ]);

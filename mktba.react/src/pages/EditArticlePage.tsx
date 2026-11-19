@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FileText, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import MarkdownContent from '../components/MarkdownContent';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
@@ -133,6 +133,7 @@ const EditArticlePage: React.FC = () => {
 
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
+  const [editComment, setEditComment] = useState('');
   const [infobox, setInfobox] = useState(createEmptyInfoboxDraft);
   const [blocks, setBlocks] = useState<EditorBlock[]>([createEmptyBlock('paragraph')]);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -431,6 +432,7 @@ const EditArticlePage: React.FC = () => {
       slug: requestedSlug,
       paragraphs: buildParagraphUpdateDtosFromBlocks(blocks),
       infobox: infoboxDto,
+      editComment: editComment.trim() || undefined,
       summary: summary.trim() || undefined,
       tags,
       relatedLinks: relatedLinks.map((link, index) => ({
@@ -574,6 +576,12 @@ const EditArticlePage: React.FC = () => {
             <div className="overflow-hidden rounded-[30px] border border-[var(--color-border-soft)] bg-white shadow-[0_28px_90px_rgba(28,27,24,0.07)]">
               <div className="border-b border-[var(--color-border-soft)] px-6 py-5 sm:px-8">
                 <div className="space-y-4">
+                  <Link
+                    to={`/admin/articles/${numericId}/history`}
+                    className="inline-block text-sm text-[var(--color-brand-forest)] hover:underline"
+                  >
+                    {t.historyLink}
+                  </Link>
                   <ArticleStatusPanel
                     articleId={numericId}
                     onChanged={(status) => showNotice('success', t.statusChanged.replace('{status}', locale.articleStatus[status]))}
@@ -603,6 +611,19 @@ const EditArticlePage: React.FC = () => {
                     onChange={setSlug}
                     onFillFromTitle={() => setSlug(slugFromTitle(title))}
                   />
+                  <div>
+                    <label htmlFor="edit-comment" className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
+                      {t.editCommentLabel}
+                    </label>
+                    <Input
+                      id="edit-comment"
+                      value={editComment}
+                      disabled={isLocked}
+                      maxLength={500}
+                      onChange={(event) => setEditComment(event.target.value)}
+                      placeholder={t.editCommentPlaceholder}
+                    />
+                  </div>
                 </div>
               </div>
 
