@@ -8,6 +8,7 @@ import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleDates } from '../components/article/ArticleDates';
 import { ArticleMeta } from '../components/article/ArticleMeta';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
+import { ArticleStructuredData } from '../components/StructuredData';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
 import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
@@ -276,16 +277,40 @@ const ArticlePage: React.FC = () => {
     track('opinion_switch', { paragraphId, index: nextIndex });
   };
 
+  // Structured data breadcrumbs (O-05): the visible trail, without the section titles that link nowhere.
+  const breadcrumbSteps = useMemo(
+    () =>
+      breadcrumbItems
+        .filter((item, index) => item.hasContent || index === breadcrumbItems.length - 1)
+        .map((item) => ({ name: item.title, path: articleHref(item.slug) })),
+    [breadcrumbItems],
+  );
+
   // The page always renders its own metadata (the route's `ownsMeta` handle): the article's, or a
-  // non-indexed placeholder while it loads or failed.
+  // non-indexed placeholder while it loads or failed. A noindex article carries no structured data.
   const documentHead = articleContent?.meta && articleContent.slug
     ? (
-      <ArticleMeta
-        meta={articleContent.meta}
-        slug={articleContent.slug}
-        publishedAt={articleContent.publishedAt}
-        updatedAt={articleContent.updatedAt}
-      />
+      <>
+        <ArticleMeta
+          meta={articleContent.meta}
+          slug={articleContent.slug}
+          publishedAt={articleContent.publishedAt}
+          updatedAt={articleContent.updatedAt}
+        />
+        {articleContent.meta.noIndex ? null : (
+          <ArticleStructuredData
+            article={{
+              path: articleHref(articleContent.slug),
+              headline: articleContent.title,
+              description: articleContent.meta.description,
+              image: articleContent.meta.socialImageUrl,
+              publishedAt: articleContent.publishedAt,
+              updatedAt: articleContent.updatedAt,
+            }}
+            breadcrumbs={breadcrumbSteps}
+          />
+        )}
+      </>
     )
     : <PageMeta noIndex />;
 
