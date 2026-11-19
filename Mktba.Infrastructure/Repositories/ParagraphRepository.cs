@@ -13,7 +13,16 @@ namespace Mktba.Infrastructure.Repositories
                 .Where(p => p.ArticleId == articleId)
                 .Include(p => p.Opinions)
                     .ThenInclude(o => o.OpinionSchools)
+                .Include(p => p.Opinions)
+                    .ThenInclude(o => o.Sources)
                 .ToListAsync(cancellationToken);
+
+        /// <summary>Which of <paramref name="sourceIds"/> are in the directory of sources.</summary>
+        public async Task<HashSet<int>> GetExistingSourceIdsAsync(IReadOnlyCollection<int> sourceIds, CancellationToken cancellationToken = default)
+            => (await _context.Sources
+                .Where(s => sourceIds.Contains(s.Id))
+                .Select(s => s.Id)
+                .ToListAsync(cancellationToken)).ToHashSet();
 
         public Task<int> CountAsync(CancellationToken cancellationToken = default)
             => _dbSet.CountAsync(cancellationToken);

@@ -219,10 +219,15 @@ namespace Mktba.Infrastructure.Repositories
                 .Include(article => article.Paragraphs)
                     .ThenInclude(p => p.Opinions)
                         .ThenInclude(o => o.OpinionSchools)
+                .Include(article => article.Paragraphs)
+                    .ThenInclude(p => p.Opinions)
+                        .ThenInclude(o => o.Sources)
+                            .ThenInclude(c => c.Source)
                 .Include(article => article.InfoboxFields)
                 .Include(article => article.RelatedLinks)
                     .ThenInclude(link => link.RelatedArticle)
                 .Include(article => article.CoAuthors)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(article => article.Id == articleId, cancellationToken);
 
         /// <summary>
@@ -235,6 +240,10 @@ namespace Mktba.Infrastructure.Repositories
                 .Include(article => article.Paragraphs)
                     .ThenInclude(p => p.Opinions)
                         .ThenInclude(o => o.OpinionSchools)
+                .Include(article => article.Paragraphs)
+                    .ThenInclude(p => p.Opinions)
+                        .ThenInclude(o => o.Sources)
+                            .ThenInclude(c => c.Source)
                 .Include(article => article.InfoboxFields)
                 .Include(article => article.RelatedLinks)
                     .ThenInclude(link => link.RelatedArticle)

@@ -11,6 +11,7 @@ namespace Mktba.Infrastructure
             services.AddScoped<ArticleSearchRepository>();
             services.AddScoped<ParagraphRepository>();
             services.AddScoped<SchoolRepository>();
+            services.AddScoped<SourceRepository>();
             services.AddScoped<AiProviderSettingsRepository>();
             services.AddScoped<UserRepository>();
             services.AddScoped<InviteRepository>();

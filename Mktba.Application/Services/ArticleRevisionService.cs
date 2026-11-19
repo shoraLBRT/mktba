@@ -47,6 +47,8 @@ namespace Mktba.Application.Services
         /// <summary>
         /// Rolls the working copy back to revision <paramref name="number"/> by saving its snapshot as
         /// a new revision. Every existing revision, including the ones after <paramref name="number"/>, stays.
+        /// Citations are re-linked to the directory of sources as it is now: an entry edited since shows
+        /// its current text, and a citation whose entry was deleted since is left out.
         /// </summary>
         /// <returns>The new revision.</returns>
         /// <exception cref="NotFoundException">No such article or revision.</exception>
@@ -63,7 +65,7 @@ namespace Mktba.Application.Services
             var snapshot = ArticleSnapshots.Deserialize(revision.Snapshot);
             var editComment = string.IsNullOrWhiteSpace(comment) ? $"Откат к ревизии {number}" : comment;
             var (success, error) = await _content.UpdateContentAsync(
-                articleId, ArticleSnapshots.ToUpdate(articleId, snapshot, editComment), authorId);
+                articleId, ArticleSnapshots.ToUpdate(articleId, snapshot, editComment), authorId, dropMissingSources: true);
             if (!success)
             {
                 throw new ValidationException(error!);

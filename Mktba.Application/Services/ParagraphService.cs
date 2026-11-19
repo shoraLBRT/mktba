@@ -61,6 +61,11 @@ namespace Mktba.Application.Services
                 throw new ValidationException(schoolsError);
             }
 
+            if (await OpinionCitations.CheckAsync(createDto.Opinions.Select(o => o.Sources), _repository) is { } sourcesError)
+            {
+                throw new ValidationException(sourcesError);
+            }
+
             // Shift existing paragraphs at or after the new order
             var existingAtOrder = existingParagraphs.FirstOrDefault(p => p.Order == createDto.Order);
             if (existingAtOrder != null)
@@ -88,6 +93,7 @@ namespace Mktba.Application.Services
                 {
                     opinion.OpinionSchools.Add(new OpinionSchool { SchoolId = schoolId });
                 }
+                OpinionCitations.AddTo(opinion, opinionDto.Sources);
                 paragraph.Opinions.Add(opinion);
             }
 
@@ -119,6 +125,11 @@ namespace Mktba.Application.Services
             if (schoolsError is not null)
             {
                 throw new ValidationException(schoolsError);
+            }
+
+            if (await OpinionCitations.CheckAsync(updateDto.Opinions.Select(o => o.Sources), _repository) is { } sourcesError)
+            {
+                throw new ValidationException(sourcesError);
             }
 
             if (paragraph.Order != updateDto.Order)
@@ -157,6 +168,7 @@ namespace Mktba.Application.Services
                 {
                     opinion.OpinionSchools.Add(new OpinionSchool { SchoolId = schoolId });
                 }
+                OpinionCitations.AddTo(opinion, opinionDto.Sources);
                 paragraph.Opinions.Add(opinion);
             }
 

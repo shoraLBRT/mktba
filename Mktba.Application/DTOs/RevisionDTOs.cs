@@ -7,7 +7,8 @@
     /// </summary>
     /// <param name="SchemaVersion">
     /// Shape of this snapshot; <see cref="CurrentSchemaVersion"/> for new ones. Readers must handle
-    /// every older version. 1: no SEO fields. 2: adds <paramref name="Seo"/>.
+    /// every older version. 1: no SEO fields. 2: adds <paramref name="Seo"/>. 3: opinions carry
+    /// the sources they cite (<see cref="ArticleSnapshotOpinionDto.Sources"/>).
     /// </param>
     /// <param name="Seo">SEO overrides at save time; null in version 1 snapshots, which predate them (restoring one clears the overrides).</param>
     public record ArticleSnapshotDto(
@@ -22,7 +23,7 @@
         ArticleSeoDto? Seo = null)
     {
         /// <summary>The schema version new snapshots are written with.</summary>
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
     }
 
     public record ArticleSnapshotInfoboxDto(
@@ -36,7 +37,30 @@
     public record ArticleSnapshotParagraphDto(int Order, List<ArticleSnapshotOpinionDto> Opinions);
 
     /// <param name="SchoolIds">Schools the opinion is linked to; empty for a paragraph common to all schools.</param>
-    public record ArticleSnapshotOpinionDto(string Content, bool IsDefault, List<int> SchoolIds);
+    /// <param name="Sources">
+    /// The citations of the opinion in order; null in version 1 and 2 snapshots, which predate
+    /// sources (restoring one leaves the opinions without citations).
+    /// </param>
+    public record ArticleSnapshotOpinionDto(
+        string Content,
+        bool IsDefault,
+        List<int> SchoolIds,
+        List<ArticleSnapshotSourceDto>? Sources = null);
+
+    /// <summary>
+    /// One citation with the directory entry as it was when the revision was saved, so the revision
+    /// reads the same after the entry is edited or deleted. A restore re-links
+    /// <paramref name="SourceId"/> with <paramref name="Locator"/> to the entry as it is now, and
+    /// drops the citation when the entry no longer exists.
+    /// </summary>
+    public record ArticleSnapshotSourceDto(
+        int SourceId,
+        string? Locator,
+        Mktba.Domain.Entities.SourceKind Kind,
+        string Title,
+        string? Author,
+        string? Details,
+        string? Url);
 
     /// <param name="RelatedArticleTitle">Title of the related article when the revision was saved.</param>
     /// <param name="RelatedArticleSlug">Slug of the related article when the revision was saved.</param>

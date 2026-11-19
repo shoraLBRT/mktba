@@ -114,6 +114,11 @@
     /// null clears every override and the noindex flag.
     /// </param>
     /// <param name="Meta">Read only: effective page metadata with the fallbacks applied. Ignored on update.</param>
+    /// <param name="Sources">
+    /// Read only: the directory entries the opinions of the article cite (<c>opinions[].sources[].sourceId</c>),
+    /// each once, in the order they are first cited. Always set on read. Ignored on update: citations
+    /// are written on the opinions, entries through <c>/sources</c>.
+    /// </param>
     public record ArticleContentDto(
         int Id,
         string Title,
@@ -129,7 +134,8 @@
         string? Locale = null,
         Guid? TranslationGroupId = null,
         ArticleSeoDto? Seo = null,
-        ArticleMetaDto? Meta = null
+        ArticleMetaDto? Meta = null,
+        List<SourceDto>? Sources = null
     );
 
     /// <summary>

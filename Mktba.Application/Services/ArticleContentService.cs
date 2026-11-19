@@ -107,6 +107,11 @@ namespace Mktba.Application.Services
                 throw new ValidationException(schoolsError);
             }
 
+            if (await OpinionCitations.CheckAsync(incomingParagraphs.SelectMany(p => p.Opinions).Select(o => o.Sources), _paragraphRepo) is { } sourcesError)
+            {
+                throw new ValidationException(sourcesError);
+            }
+
             var normalizedInfobox = NormalizeInfobox(dto.Infobox);
             var (infoboxValid, infoboxError) = ValidateInfobox(normalizedInfobox);
             if (!infoboxValid)
@@ -172,6 +177,7 @@ namespace Mktba.Application.Services
                             opinion.OpinionSchools.Add(new OpinionSchool { SchoolId = schoolId });
                         }
 
+                        OpinionCitations.AddTo(opinion, opinionDto.Sources);
                         paragraph.Opinions.Add(opinion);
                     }
 
@@ -227,7 +233,13 @@ namespace Mktba.Application.Services
         /// <paramref name="authorId"/> and the DTO's edit comment.
         /// </summary>
         /// <param name="authorId">The saving user, recorded on the revision.</param>
-        public async Task<(bool Success, AppError? Error)> UpdateContentAsync(int articleId, ArticleContentDto dto, int? authorId)
+        /// <param name="dropMissingSources">
+        /// False (a save from the editor): a citation of a source that is not in the directory fails
+        /// with <c>source_not_found</c>. True (restoring a revision): such citations are left out, so a
+        /// source deleted since does not block the rollback.
+        /// </param>
+        public async Task<(bool Success, AppError? Error)> UpdateContentAsync(
+            int articleId, ArticleContentDto dto, int? authorId, bool dropMissingSources = false)
         {
             if (!await ValidateArticleExistsAsync(articleId, dto.Id))
                 return (false, articleId != dto.Id ? AppErrors.ArticleIdMismatch : AppErrors.ArticleNotFound);
@@ -243,6 +255,15 @@ namespace Mktba.Application.Services
 
             var schoolsError = CheckPlainParagraphSchools(incomingParagraphs.Select(p => p.Opinions.Select(o => o.SchoolIds).ToList()));
             if (schoolsError is not null) return (false, schoolsError);
+
+            if (dropMissingSources)
+            {
+                await DropMissingSourcesAsync(incomingParagraphs);
+            }
+
+            var sourcesError = await OpinionCitations.CheckAsync(
+                incomingParagraphs.SelectMany(p => p.Opinions).Select(o => o.Sources), _paragraphRepo);
+            if (sourcesError is not null) return (false, sourcesError);
 
             var normalizedInfobox = NormalizeInfobox(dto.Infobox is null
                 ? null
@@ -306,6 +327,19 @@ namespace Mktba.Application.Services
             {
                 await _uow.RollbackAsync();
                 return (false, AppErrors.ArticleContentUpdateFailed);
+            }
+        }
+
+        private async Task DropMissingSourcesAsync(List<ParagraphDto> paragraphs)
+        {
+            var opinions = paragraphs.SelectMany(p => p.Opinions).ToList();
+            var ids = opinions.SelectMany(o => o.Sources).Select(c => c.SourceId).Distinct().ToList();
+            if (ids.Count == 0) return;
+
+            var existing = await _paragraphRepo.GetExistingSourceIdsAsync(ids);
+            foreach (var opinion in opinions)
+            {
+                opinion.Sources = opinion.Sources.Where(c => existing.Contains(c.SourceId)).ToList();
             }
         }
 
@@ -537,9 +571,19 @@ namespace Mktba.Application.Services
                         Id = o.Id,
                         Content = o.Content,
                         IsDefault = o.IsDefault,
-                        SchoolIds = o.OpinionSchools.Select(os => os.SchoolId).ToList()
+                        SchoolIds = o.OpinionSchools.Select(os => os.SchoolId).ToList(),
+                        Sources = OpinionCitations.ToDto(o)
                     }).ToList()
                 })
+                .ToList();
+
+            var citedSources = article.Paragraphs
+                .OrderBy(p => p.Order)
+                .SelectMany(p => p.Opinions)
+                .SelectMany(o => o.Sources.OrderBy(c => c.Order).ThenBy(c => c.Id))
+                .Select(c => c.Source)
+                .DistinctBy(s => s.Id)
+                .Select(SourceService.ToDto)
                 .ToList();
 
             return new ArticleContentDto(
@@ -556,7 +600,8 @@ namespace Mktba.Application.Services
                 Locale: article.Locale,
                 TranslationGroupId: article.TranslationGroupId,
                 Seo: ArticleSeo.From(article),
-                Meta: ArticleSeo.Resolve(article));
+                Meta: ArticleSeo.Resolve(article),
+                Sources: citedSources);
         }
 
         private static ArticleInfoboxDto? MapInfobox(Article article)
@@ -625,6 +670,7 @@ namespace Mktba.Application.Services
                     {
                         opinion.OpinionSchools.Add(new OpinionSchool { SchoolId = schoolId });
                     }
+                    OpinionCitations.AddTo(opinion, opinionDto.Sources);
                     entity.Opinions.Add(opinion);
                 }
             }
@@ -651,6 +697,7 @@ namespace Mktba.Application.Services
                     {
                         opinion.OpinionSchools.Add(new OpinionSchool { SchoolId = schoolId });
                     }
+                    OpinionCitations.AddTo(opinion, opinionDto.Sources);
                     paragraph.Opinions.Add(opinion);
                 }
 

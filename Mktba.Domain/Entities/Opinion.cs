@@ -18,4 +18,7 @@ public class Opinion
     public bool IsDefault { get; set; }
 
     public ICollection<OpinionSchool> OpinionSchools { get; set; } = new List<OpinionSchool>();
+
+    /// <summary>The sources this opinion cites, in <see cref="OpinionSource.Order"/> (M-07, #71).</summary>
+    public ICollection<OpinionSource> Sources { get; set; } = new List<OpinionSource>();
 }

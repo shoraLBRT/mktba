@@ -425,6 +425,36 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("OpinionSchools");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.OpinionSource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Locator")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("OpinionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SourceId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OpinionId");
+
+                    b.HasIndex("SourceId");
+
+                    b.ToTable("OpinionSources");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Paragraph", b =>
                 {
                     b.Property<int>("Id")
@@ -563,6 +593,41 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasKey("SchoolId", "Locale");
 
                     b.ToTable("SchoolTranslations");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.Source", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Author")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Sources");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.User", b =>
@@ -752,6 +817,25 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("School");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.OpinionSource", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Opinion", "Opinion")
+                        .WithMany("Sources")
+                        .HasForeignKey("OpinionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.Source", "Source")
+                        .WithMany("Citations")
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Opinion");
+
+                    b.Navigation("Source");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Paragraph", b =>
                 {
                     b.HasOne("Mktba.Domain.Entities.Article", "Article")
@@ -824,6 +908,8 @@ namespace Mktba.Infrastructure.Migrations
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>
                 {
                     b.Navigation("OpinionSchools");
+
+                    b.Navigation("Sources");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.Paragraph", b =>
@@ -836,6 +922,11 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("OpinionSchools");
 
                     b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.Source", b =>
+                {
+                    b.Navigation("Citations");
                 });
 #pragma warning restore 612, 618
         }
