@@ -78,6 +78,30 @@ npm run gen:api    # нужен .NET 8 SDK; база данных не нужн�
 CI-джоб `api-contract` падает, если закоммиченный контракт расходится с API, а `tsc` во
 фронтенд-джобе — если фронтенд не учитывает изменение контракта.
 
+### E2E-дым (Playwright)
+
+Сценарии в `mktba.react/e2e`: открыть статью, сменить мазхаб, войти, создать и отредактировать
+статью. Тесты гоняются против настоящего API и **отдельной одноразовой БД** — не направляйте их на
+базу, данные которой нужны: тест создаёт админа и статьи.
+
+```bash
+docker compose up -d postgres
+cd mktba.react
+npx playwright install chromium          # один раз
+export E2E_ADMIN_PASSWORD="$(node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))")"
+npm run test:e2e
+docker exec mktba_postgres psql -U mktba -d postgres -c "DROP DATABASE mktba_e2e WITH (FORCE);"
+```
+
+Playwright сам поднимает API (`dotnet run`, `:5172`, БД `mktba_e2e`, миграции при старте,
+случайный JWT-ключ на прогон) и Vite (`:5173`). Порт `:5172` должен быть свободен: уже запущенный
+API не переиспользуется, чтобы тест не попал в базу с нужными данными; Vite переиспользуется. Проект `setup` (`e2e/setup.mjs`) регистрирует первого админа
+(`E2E_ADMIN_EMAIL`, по умолчанию `e2e@mktba.local`, пароль `E2E_ADMIN_PASSWORD`) или входит им,
+если он уже есть, и заливает `scripts/demo-content.json`, если дерево статей пустое, поэтому
+повторный прогон по той же БД работает с тем же паролем. Другая БД — `E2E_DB_CONNECTION`
+(строка подключения Npgsql). В CI это джоб `e2e`; при падении HTML-отчёт лежит в артефакте
+`playwright-report`.
+
 ## Лицензия
 
 Open-source, MIT. См. [LICENSE](LICENSE).
