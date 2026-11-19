@@ -77,6 +77,38 @@ test('an admin creates an article and then edits it', async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/article/${editedSlug}$`));
 });
 
+test('an admin finds a draft in the article table and submits it for review in bulk', async ({ page }) => {
+  const stamp = Date.now();
+  const title = `E2E таблица ${stamp}`;
+  await logIn(page);
+
+  await page.getByRole('button', { name: 'Добавить статью' }).click();
+  await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
+  await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Абзац для таблицы статей.');
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+
+  await page.goto('/admin/articles');
+  await page.getByLabel('Поиск').fill(String(stamp));
+  await page.getByLabel('Статус').selectOption('Draft');
+  await expect(page).toHaveURL(new RegExp(`search=${stamp}`));
+  await expect(page).toHaveURL(/status=Draft/);
+  const table = page.getByRole('table', { name: 'Список статей' });
+  const row = table.getByRole('row').filter({ hasText: title });
+  await expect(row).toHaveCount(1);
+  await expect(row.getByText('Черновик')).toBeVisible();
+
+  await row.getByRole('checkbox').check();
+  await page.getByRole('region', { name: 'Действия с выбранными' }).getByRole('button', { name: 'Отправить на проверку' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Применить' }).click();
+  await expect(page.getByRole('status')).toContainText('Статус изменён: 1 из 1.');
+
+  // The draft filter no longer matches; the same search under InReview does.
+  await expect(page.getByText('Статей с такими условиями нет.')).toBeVisible();
+  await page.getByLabel('Статус').selectOption('InReview');
+  await expect(table.getByRole('row').filter({ hasText: title }).getByText('На проверке')).toBeVisible();
+});
+
 test('without a configured AI provider the editor explains where to set it up', async ({ page }) => {
   await logIn(page);
   await page.getByRole('button', { name: 'Добавить статью' }).click();
