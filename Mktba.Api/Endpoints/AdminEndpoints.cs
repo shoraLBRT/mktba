@@ -30,8 +30,8 @@ public static class AdminEndpoints
             var result = await service.UpdateAiSettingsAsync(request, cancellationToken);
             return result.IsSuccess
                 ? Results.Ok(result.Value)
-                : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AiProviderSettingsDto>().Produces(StatusCodes.Status400BadRequest);
+                : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, result.Error!);
+        }).Produces<AiProviderSettingsDto>().ProducesApiProblem(StatusCodes.Status400BadRequest);
 
         group.MapDelete("/ai-settings", async (AdminService service, CancellationToken cancellationToken) =>
         {
@@ -47,8 +47,8 @@ public static class AdminEndpoints
             var result = await service.StyleMarkdownAsync(request.Text, cancellationToken);
             return result.IsSuccess
                 ? Results.Ok(result.Value)
-                : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AiStyleResponseDto>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status429TooManyRequests)
+                : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, result.Error!);
+        }).Produces<AiStyleResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
         .RequireRateLimiting(RateLimitingSetup.AiPolicy);
 
         group.MapPost("/ai-check", async (AdminService service, CancellationToken cancellationToken) =>
@@ -56,8 +56,8 @@ public static class AdminEndpoints
             var result = await service.CheckAiConnectionAsync(cancellationToken);
             return result.IsSuccess
                 ? Results.Ok(result.Value)
-                : Results.BadRequest(new { message = result.ErrorMessage });
-        }).Produces<AiConnectionCheckResultDto>().Produces(StatusCodes.Status400BadRequest).Produces(StatusCodes.Status429TooManyRequests)
+                : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, result.Error!);
+        }).Produces<AiConnectionCheckResultDto>().ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
         .RequireRateLimiting(RateLimitingSetup.AiPolicy);
 
         return builder;

@@ -73,7 +73,7 @@ public class ArticleContentValidationTests : IDisposable
         var (isValid, error) = _service.ValidateOrder(new List<ParagraphCreateDto>());
 
         isValid.Should().BeFalse();
-        error.Should().Contain("At least one paragraph");
+        error!.Code.Should().Be("article_paragraphs_required");
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class ArticleContentValidationTests : IDisposable
         var (isValid, error) = _service.ValidateOrder(paragraphs);
 
         isValid.Should().BeFalse();
-        error.Should().Contain("contiguous");
+        error!.Code.Should().Be("article_paragraph_order_not_contiguous");
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public class ArticleContentValidationTests : IDisposable
         var (isValid, error) = _service.ValidateOrder(paragraphs);
 
         isValid.Should().BeFalse();
-        error.Should().Contain(">= 1");
+        error!.Code.Should().Be("article_paragraph_order_invalid");
     }
 
     [Fact]
@@ -125,7 +125,8 @@ public class ArticleContentValidationTests : IDisposable
         var (isValid, error) = _service.ValidateOrder(new List<ParagraphCreateDto> { slot });
 
         isValid.Should().BeFalse();
-        error.Should().Contain("default opinion");
+        error!.Code.Should().Be("article_slot_default_opinion_required");
+        error.Params.Should().Contain("order", 1);
     }
 
     [Fact]
@@ -136,7 +137,7 @@ public class ArticleContentValidationTests : IDisposable
         var (isValid, error) = _service.ValidateOrder(new List<ParagraphCreateDto> { slot });
 
         isValid.Should().BeFalse();
-        error.Should().Contain("opinion");
+        error!.Code.Should().Be("article_slot_opinions_required");
     }
 
     #endregion
@@ -189,7 +190,7 @@ public class ArticleContentValidationTests : IDisposable
         var (isValid, error) = _service.ValidateInfobox(infobox);
 
         isValid.Should().BeFalse();
-        error.Should().Contain("contiguous");
+        error!.Code.Should().Be("infobox_field_order_not_contiguous");
     }
 
     [Fact]
@@ -204,7 +205,7 @@ public class ArticleContentValidationTests : IDisposable
         var (isValid, error) = _service.ValidateInfobox(infobox);
 
         isValid.Should().BeFalse();
-        error.Should().Contain("key");
+        error!.Code.Should().Be("infobox_field_key_required");
     }
 
     [Fact]
@@ -219,7 +220,7 @@ public class ArticleContentValidationTests : IDisposable
         var (isValid, error) = _service.ValidateInfobox(infobox);
 
         isValid.Should().BeFalse();
-        error.Should().Contain("label");
+        error!.Code.Should().Be("infobox_field_label_required");
     }
 
     #endregion

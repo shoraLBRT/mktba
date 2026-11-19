@@ -1,9 +1,9 @@
-﻿namespace Mktba.Application.Exceptions;
+namespace Mktba.Application.Exceptions;
 
 public sealed class ValidationException : AppException
 {
-    public ValidationException(string message, string code = "validation_error")
-        : base(message, 400, code)
+    public ValidationException(AppError error)
+        : base(error, 400)
     {
     }
 }

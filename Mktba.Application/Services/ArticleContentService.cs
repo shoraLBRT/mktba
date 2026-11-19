@@ -27,7 +27,7 @@ namespace Mktba.Application.Services
             var article = await _articleRepo.GetByIdWithContentAsync(articleId);
             if (article is null)
             {
-                throw new NotFoundException("Article not found");
+                throw new NotFoundException(AppErrors.ArticleNotFound);
             }
 
             return BuildArticleContentDto(article);
@@ -37,21 +37,21 @@ namespace Mktba.Application.Services
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
             {
-                throw new ValidationException("Title is required.");
+                throw new ValidationException(AppErrors.ArticleTitleRequired);
             }
 
             var incomingParagraphs = dto.Paragraphs ?? new List<ParagraphCreateDto>();
-            var (valid, errorMessage) = ValidateOrder(incomingParagraphs);
+            var (valid, orderError) = ValidateOrder(incomingParagraphs);
             if (!valid)
             {
-                throw new ValidationException(errorMessage ?? "Invalid paragraph order.");
+                throw new ValidationException(orderError!);
             }
 
             var normalizedInfobox = NormalizeInfobox(dto.Infobox);
-            var (infoboxValid, infoboxErrorMessage) = ValidateInfobox(normalizedInfobox);
+            var (infoboxValid, infoboxError) = ValidateInfobox(normalizedInfobox);
             if (!infoboxValid)
             {
-                throw new ValidationException(infoboxErrorMessage ?? "Invalid infobox.");
+                throw new ValidationException(infoboxError!);
             }
 
             try
@@ -113,7 +113,7 @@ namespace Mktba.Application.Services
                 var (relatedLinksValid, relatedLinksError) = await ValidateRelatedLinksAsync(dto.RelatedLinks, article.Id);
                 if (!relatedLinksValid)
                 {
-                    throw new ValidationException(relatedLinksError ?? "Invalid related links.");
+                    throw new ValidationException(relatedLinksError!);
                 }
 
                 foreach (var link in dto.RelatedLinks ?? Enumerable.Empty<ArticleRelatedLinkCreateDto>())
@@ -130,7 +130,7 @@ namespace Mktba.Application.Services
                 await _uow.CommitAsync();
 
                 var createdArticle = await _articleRepo.GetByIdWithContentAsync(article.Id)
-                    ?? throw new NotFoundException("Article not found after creation");
+                    ?? throw new NotFoundException(AppErrors.ArticleNotFound);
 
                 return BuildArticleContentDto(createdArticle);
             }
@@ -141,14 +141,14 @@ namespace Mktba.Application.Services
             }
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> UpdateContentAsync(int articleId, ArticleContentDto dto)
+        public async Task<(bool Success, AppError? Error)> UpdateContentAsync(int articleId, ArticleContentDto dto)
         {
             if (!await ValidateArticleExistsAsync(articleId, dto.Id))
-                return (false, "Article id mismatch or not found.");
+                return (false, articleId != dto.Id ? AppErrors.ArticleIdMismatch : AppErrors.ArticleNotFound);
 
             var incomingParagraphs = dto.Paragraphs ?? new List<ParagraphDto>();
-            var (valid, errorMessage) = ValidateOrderDto(incomingParagraphs);
-            if (!valid) return (false, errorMessage);
+            var (valid, orderError) = ValidateOrderDto(incomingParagraphs);
+            if (!valid) return (false, orderError);
 
             var normalizedInfobox = NormalizeInfobox(dto.Infobox is null
                 ? null
@@ -156,13 +156,13 @@ namespace Mktba.Application.Services
                     dto.Infobox.Title,
                     dto.Infobox.Subtitle,
                     dto.Infobox.Fields.Select(f => new ArticleInfoboxFieldCreateDto(f.Order, f.Key, f.Label, f.Value)).ToList()));
-            var (infoboxValid, infoboxErrorMessage) = ValidateInfobox(normalizedInfobox);
-            if (!infoboxValid) return (false, infoboxErrorMessage);
+            var (infoboxValid, infoboxError) = ValidateInfobox(normalizedInfobox);
+            if (!infoboxValid) return (false, infoboxError);
 
             var existingParagraphs = (await _paragraphRepo.GetParagraphsByArticleAsync(articleId)).ToList();
             var existingIdsSet = existingParagraphs.Select(p => p.Id).ToHashSet();
             if (!ValidateIncomingIds(incomingParagraphs, existingIdsSet))
-                return (false, "Some paragraph ids do not belong to this article.");
+                return (false, AppErrors.ArticleParagraphForeign);
 
             var incomingRelatedLinks = dto.RelatedLinks?
                 .Select(l => new ArticleRelatedLinkCreateDto(l.RelatedArticleId, l.Order))
@@ -173,7 +173,7 @@ namespace Mktba.Application.Services
             var article = await _articleRepo.GetByIdWithContentAsync(articleId);
             if (article is null)
             {
-                return (false, "Article not found.");
+                return (false, AppErrors.ArticleNotFound);
             }
 
             try
@@ -192,7 +192,7 @@ namespace Mktba.Application.Services
             catch
             {
                 await _uow.RollbackAsync();
-                return (false, "Error occurred while updating content.");
+                return (false, AppErrors.ArticleContentUpdateFailed);
             }
         }
 
@@ -203,18 +203,18 @@ namespace Mktba.Application.Services
         }
 
         /// <summary>Validates paragraphs coming in as create DTOs.</summary>
-        internal (bool IsValid, string? ErrorMessage) ValidateOrder(List<ParagraphCreateDto> paragraphs)
+        internal (bool IsValid, AppError? Error) ValidateOrder(List<ParagraphCreateDto> paragraphs)
         {
             if (!paragraphs.Any())
-                return (false, "At least one paragraph is required.");
+                return (false, AppErrors.ArticleParagraphsRequired);
 
             var orders = paragraphs.Select(p => p.Order).Distinct().OrderBy(o => o).ToList();
 
             if (orders.Any(o => o < 1))
-                return (false, "Order must be >= 1.");
+                return (false, AppErrors.ArticleParagraphOrderInvalid);
 
             if (orders.Count != (orders.Any() ? orders.Max() : 0))
-                return (false, "Order values must form a contiguous sequence from 1 to N.");
+                return (false, AppErrors.ArticleParagraphOrderNotContiguous);
 
             // Each order slot must have exactly one IsDefault=true opinion
             var slotGroups = paragraphs.GroupBy(p => p.Order);
@@ -222,38 +222,38 @@ namespace Mktba.Application.Services
             {
                 var allOpinions = slot.SelectMany(p => p.Opinions).ToList();
                 if (!allOpinions.Any())
-                    return (false, $"Slot at order {slot.Key} must have at least one opinion.");
+                    return (false, AppErrors.ArticleSlotOpinionsRequired(slot.Key));
 
                 var defaultCount = allOpinions.Count(o => o.IsDefault);
                 if (defaultCount != 1)
-                    return (false, $"Each slot must have exactly one default opinion (slot order {slot.Key}).");
+                    return (false, AppErrors.ArticleSlotDefaultOpinionRequired(slot.Key));
             }
 
             return (true, null);
         }
 
         /// <summary>Validates paragraphs coming in as read/update DTOs.</summary>
-        internal (bool IsValid, string? ErrorMessage) ValidateOrderDto(List<ParagraphDto> paragraphs)
+        internal (bool IsValid, AppError? Error) ValidateOrderDto(List<ParagraphDto> paragraphs)
         {
             if (!paragraphs.Any())
-                return (false, "At least one paragraph is required.");
+                return (false, AppErrors.ArticleParagraphsRequired);
 
             var orders = paragraphs.Select(p => p.Order).Distinct().OrderBy(o => o).ToList();
 
             if (orders.Any(o => o < 1))
-                return (false, "Order must be >= 1.");
+                return (false, AppErrors.ArticleParagraphOrderInvalid);
 
             if (orders.Count != (orders.Any() ? orders.Max() : 0))
-                return (false, "Order values must form a contiguous sequence from 1 to N.");
+                return (false, AppErrors.ArticleParagraphOrderNotContiguous);
 
             foreach (var slot in paragraphs)
             {
                 if (!slot.Opinions.Any())
-                    return (false, $"Slot at order {slot.Order} must have at least one opinion.");
+                    return (false, AppErrors.ArticleSlotOpinionsRequired(slot.Order));
 
                 var defaultCount = slot.Opinions.Count(o => o.IsDefault);
                 if (defaultCount != 1)
-                    return (false, $"Each slot must have exactly one default opinion (slot order {slot.Order}).");
+                    return (false, AppErrors.ArticleSlotDefaultOpinionRequired(slot.Order));
             }
 
             return (true, null);
@@ -265,25 +265,25 @@ namespace Mktba.Application.Services
             return incomingExistingIds.All(id => existingIdsSet.Contains(id));
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRelatedLinksAsync(
+        private async Task<(bool IsValid, AppError? Error)> ValidateRelatedLinksAsync(
             List<ArticleRelatedLinkCreateDto>? links, int articleId)
         {
             if (links is null || links.Count == 0)
                 return (true, null);
 
             if (links.Any(l => l.RelatedArticleId == articleId))
-                return (false, "An article cannot link to itself.");
+                return (false, AppErrors.ArticleRelatedLinkSelf);
 
             foreach (var link in links)
             {
                 if (await _articleRepo.GetByIdAsync(link.RelatedArticleId) is null)
-                    return (false, $"Related article with id {link.RelatedArticleId} does not exist.");
+                    return (false, AppErrors.RelatedArticleNotFound(link.RelatedArticleId));
             }
 
             return (true, null);
         }
 
-        internal (bool IsValid, string? ErrorMessage) ValidateInfobox(ArticleInfoboxCreateDto? infobox)
+        internal (bool IsValid, AppError? Error) ValidateInfobox(ArticleInfoboxCreateDto? infobox)
         {
             if (infobox is null)
             {
@@ -300,28 +300,28 @@ namespace Mktba.Application.Services
             var orders = fields.Select(field => field.Order).ToList();
             if (orders.Any(order => order < 1))
             {
-                return (false, "Infobox field order must be >= 1.");
+                return (false, AppErrors.InfoboxFieldOrderInvalid);
             }
 
             var distinctOrders = orders.Distinct().OrderBy(order => order).ToList();
             if (distinctOrders.Count != (distinctOrders.Any() ? distinctOrders.Max() : 0))
             {
-                return (false, "Infobox field order must form a contiguous sequence from 1 to N.");
+                return (false, AppErrors.InfoboxFieldOrderNotContiguous);
             }
 
             if (fields.Any(field => string.IsNullOrWhiteSpace(field.Key)))
             {
-                return (false, "Each infobox field must contain a key.");
+                return (false, AppErrors.InfoboxFieldKeyRequired);
             }
 
             if (fields.Any(field => string.IsNullOrWhiteSpace(field.Label)))
             {
-                return (false, "Each infobox field must contain a label.");
+                return (false, AppErrors.InfoboxFieldLabelRequired);
             }
 
             if (fields.Any(field => string.IsNullOrWhiteSpace(field.Value)))
             {
-                return (false, "Each infobox field must contain a value.");
+                return (false, AppErrors.InfoboxFieldValueRequired);
             }
 
             return (true, null);

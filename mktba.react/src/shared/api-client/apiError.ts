@@ -1,33 +1,31 @@
-import axios, { AxiosError } from 'axios';
-import { locale } from '../../localization';
+import axios from 'axios';
+import { formatMessage, locale } from '../../localization';
 
 type ProblemPayload = {
-  title?: unknown;
-  message?: unknown;
-  error?: unknown;
   code?: unknown;
+  params?: unknown;
   traceId?: unknown;
 };
+
+type MessageParams = Record<string, string | number>;
 
 export class ApiError extends Error {
   readonly status?: number;
   readonly code?: string;
+  readonly params?: MessageParams;
   readonly traceId?: string;
 
-  constructor(message: string, status?: number, code?: string, traceId?: string) {
+  constructor(message: string, status?: number, code?: string, traceId?: string, params?: MessageParams) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.params = params;
     this.traceId = traceId;
   }
 }
 
-type ApiProblemDetails = {
-  message: string | null;
-  code?: string;
-  traceId?: string;
-};
+const apiErrorMessages: Record<string, string> = locale.apiErrors;
 
 const extractString = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
@@ -38,34 +36,25 @@ const extractString = (value: unknown): string | undefined => {
   return normalized.length > 0 ? normalized : undefined;
 };
 
-const extractProblemDetails = (payload: unknown): ApiProblemDetails => {
-  if (!payload || typeof payload !== 'object') {
-    return { message: null };
+const extractParams = (value: unknown): MessageParams | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
   }
 
-  const candidate = payload as ProblemPayload;
-  const value = candidate.title ?? candidate.message ?? candidate.error;
-  return {
-    message: extractString(value) ?? null,
-    code: extractString(candidate.code),
-    traceId: extractString(candidate.traceId),
-  };
+  const entries = Object.entries(value).filter(
+    (entry): entry is [string, string | number] => typeof entry[1] === 'string' || typeof entry[1] === 'number',
+  );
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 };
 
-export const extractApiErrorMessage = (error: unknown): string => {
-  if (error instanceof ApiError) {
-    return error.message;
-  }
-
-  if (error instanceof AxiosError) {
-    return extractProblemDetails(error.response?.data).message ?? error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return locale.common.unknownError;
+/**
+ * The Russian message for an API error code (see `apiErrors` in locales/ru/shared.json).
+ * Unknown or missing codes get a generic message: server text is never shown to users.
+ */
+export const translateApiError = (code: string | undefined, params?: MessageParams): string => {
+  const template =
+    code && Object.hasOwn(apiErrorMessages, code) ? apiErrorMessages[code] : apiErrorMessages.fallback;
+  return params ? formatMessage(template, params) : template;
 };
 
 export const toApiError = (error: unknown): ApiError => {
@@ -74,13 +63,28 @@ export const toApiError = (error: unknown): ApiError => {
   }
 
   if (axios.isAxiosError(error)) {
-    const status = error.response?.status;
-    const details = extractProblemDetails(error.response?.data);
-    // The rate limiter answers in English; the UI shows its own Russian text instead.
-    const message =
-      status === 429 ? locale.common.tooManyRequests : (details.message ?? extractApiErrorMessage(error));
-    return new ApiError(message, status, details.code, details.traceId);
+    if (!error.response) {
+      return new ApiError(locale.apiErrors.network);
+    }
+
+    const payload: ProblemPayload =
+      error.response.data && typeof error.response.data === 'object' ? (error.response.data as ProblemPayload) : {};
+    const code = extractString(payload.code);
+    const params = extractParams(payload.params);
+    return new ApiError(
+      translateApiError(code, params),
+      error.response.status,
+      code,
+      extractString(payload.traceId),
+      params,
+    );
   }
 
-  return new ApiError(extractApiErrorMessage(error));
+  if (error instanceof Error) {
+    return new ApiError(error.message);
+  }
+
+  return new ApiError(locale.common.unknownError);
 };
+
+export const extractApiErrorMessage = (error: unknown): string => toApiError(error).message;

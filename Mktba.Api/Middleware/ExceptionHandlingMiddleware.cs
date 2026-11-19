@@ -29,10 +29,12 @@ public sealed class ExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        var (statusCode, code, title) = exception switch
+        var (statusCode, error) = exception switch
         {
-            AppException appException => (appException.StatusCode, appException.Code, appException.Message),
-            _ => (StatusCodes.Status500InternalServerError, "internal_error", "Internal server error"),
+            AppException appException => (appException.StatusCode, appException.Error),
+            // Unreadable request bodies and route values; RouteHandlerOptions.ThrowOnBadRequest routes them here.
+            BadHttpRequestException badRequest => (badRequest.StatusCode, AppErrors.BadRequest),
+            _ => (StatusCodes.Status500InternalServerError, AppErrors.InternalError),
         };
 
         if (statusCode >= StatusCodes.Status500InternalServerError)
@@ -68,7 +70,7 @@ public sealed class ExceptionHandlingMiddleware
             return;
         }
 
-        await ProblemHttpResponseWriter.WriteAsync(context, statusCode, code, title);
+        await ProblemHttpResponseWriter.WriteAsync(context, statusCode, error);
     }
 
     private static string? GetUserId(HttpContext context)

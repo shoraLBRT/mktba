@@ -93,7 +93,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -159,14 +161,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
                 /** @description Too Many Requests */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -208,14 +214,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
                 /** @description Too Many Requests */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -252,6 +262,15 @@ export interface paths {
                         "application/json": components["schemas"]["ArticleContentDto"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
             };
         };
         put: {
@@ -281,7 +300,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -321,6 +342,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ArticleContentDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
             };
@@ -421,7 +451,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -447,6 +479,15 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
             };
         };
         post?: never;
@@ -467,6 +508,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -546,14 +596,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
                 /** @description Too Many Requests */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -599,14 +653,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
                 /** @description Too Many Requests */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -648,7 +706,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -743,6 +803,15 @@ export interface paths {
                         "application/json": components["schemas"]["ParagraphReadDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -783,7 +852,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -809,6 +880,24 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
             };
         };
         post?: never;
@@ -829,6 +918,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -945,14 +1043,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -995,14 +1097,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
             };
         };
@@ -1061,6 +1167,16 @@ export interface components {
         };
         AiStyleResponseDto: {
             styledText: string;
+        };
+        ApiProblemDetails: {
+            title: string;
+            /** Format: int32 */
+            status: number;
+            code: string;
+            params?: {
+                [key: string]: unknown;
+            } | null;
+            traceId: string;
         };
         ArticleContentCreateDto: {
             title: string;

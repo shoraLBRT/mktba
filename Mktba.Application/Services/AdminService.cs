@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using Mktba.Application.Exceptions;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -86,7 +87,7 @@ namespace Mktba.Application.Services
         {
             if (string.IsNullOrWhiteSpace(request.BaseUrl) || string.IsNullOrWhiteSpace(request.Model))
             {
-                return ServiceResult<AiProviderSettingsDto>.Failure(AdminMessages.BaseUrlAndModelRequiredMessage);
+                return ServiceResult<AiProviderSettingsDto>.Failure(AppErrors.AiSettingsIncomplete);
             }
 
             var settings = await GetOrCreateAiSettingsAsync(cancellationToken);
@@ -127,7 +128,7 @@ namespace Mktba.Application.Services
         {
             if (string.IsNullOrWhiteSpace(text))
             {
-                return ServiceResult<AiStyleResponseDto>.Failure(AdminMessages.TextRequiredMessage);
+                return ServiceResult<AiStyleResponseDto>.Failure(AppErrors.AiTextRequired);
             }
 
             var settings = await GetOrCreateAiSettingsAsync(cancellationToken);
@@ -135,7 +136,7 @@ namespace Mktba.Application.Services
 
             if (!styleResult.IsSuccess)
             {
-                return ServiceResult<AiStyleResponseDto>.Failure(styleResult.ErrorMessage);
+                return ServiceResult<AiStyleResponseDto>.Failure(styleResult.Error!);
             }
 
             return ServiceResult<AiStyleResponseDto>.Success(new AiStyleResponseDto
@@ -151,7 +152,7 @@ namespace Mktba.Application.Services
 
             if (!styleResult.IsSuccess)
             {
-                return ServiceResult<AiConnectionCheckResultDto>.Failure(styleResult.ErrorMessage);
+                return ServiceResult<AiConnectionCheckResultDto>.Failure(styleResult.Error!);
             }
 
             return ServiceResult<AiConnectionCheckResultDto>.Success(new AiConnectionCheckResultDto
@@ -168,12 +169,12 @@ namespace Mktba.Application.Services
         {
             if (!settings.IsEnabled)
             {
-                return AiStyleResult.Failure(AdminMessages.AiDisabledMessage);
+                return AiStyleResult.Failure(AppErrors.AiDisabled);
             }
 
             if (string.IsNullOrWhiteSpace(settings.ApiKey))
             {
-                return AiStyleResult.Failure(AdminMessages.ApiKeyRequiredMessage);
+                return AiStyleResult.Failure(AppErrors.AiApiKeyMissing);
             }
 
             var payload = new
@@ -201,15 +202,15 @@ namespace Mktba.Application.Services
                     (int)response.StatusCode,
                     error);
 
-                var detailedMessage = $"AI provider request failed ({(int)response.StatusCode}): {ExtractProviderErrorMessage(error)}";
-                return AiStyleResult.Failure(detailedMessage);
+                return AiStyleResult.Failure(
+                    AppErrors.AiProviderRequestFailed((int)response.StatusCode, ExtractProviderErrorMessage(error)));
             }
 
             using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
             var styledText = TryExtractContent(json.RootElement);
             if (string.IsNullOrWhiteSpace(styledText))
             {
-                return AiStyleResult.Failure(AdminMessages.EmptyProviderResponseMessage);
+                return AiStyleResult.Failure(AppErrors.AiProviderEmptyResponse);
             }
 
             return AiStyleResult.Success(styledText);
@@ -343,16 +344,16 @@ namespace Mktba.Application.Services
             return string.Concat(parts);
         }
 
-        public sealed record ServiceResult<T>(bool IsSuccess, T? Value, string? ErrorMessage)
+        public sealed record ServiceResult<T>(bool IsSuccess, T? Value, AppError? Error)
         {
             public static ServiceResult<T> Success(T value) => new(true, value, null);
-            public static ServiceResult<T> Failure(string errorMessage) => new(false, default, errorMessage);
+            public static ServiceResult<T> Failure(AppError error) => new(false, default, error);
         }
 
-        private sealed record AiStyleResult(bool IsSuccess, string? StyledText, string? ErrorMessage)
+        private sealed record AiStyleResult(bool IsSuccess, string? StyledText, AppError? Error)
         {
             public static AiStyleResult Success(string styledText) => new(true, styledText, null);
-            public static AiStyleResult Failure(string errorMessage) => new(false, null, errorMessage);
+            public static AiStyleResult Failure(AppError error) => new(false, null, error);
         }
     }
 }

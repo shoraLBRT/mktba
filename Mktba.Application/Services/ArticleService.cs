@@ -43,7 +43,7 @@ namespace Mktba.Application.Services
             var article = await _articleRepository.GetByIdAsync(id);
             if (article is null)
             {
-                throw new NotFoundException("Article not found");
+                throw new NotFoundException(AppErrors.ArticleNotFound);
             }
 
             _mapper.Map(updateDto, article);
@@ -56,7 +56,7 @@ namespace Mktba.Application.Services
             var article = await _articleRepository.GetByIdAsync(id);
             if (article is null)
             {
-                throw new NotFoundException("Article not found");
+                throw new NotFoundException(AppErrors.ArticleNotFound);
             }
 
             await _articleRepository.DeleteAsync(article);

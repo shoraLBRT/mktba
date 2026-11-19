@@ -1,5 +1,5 @@
+using Mktba.Api.Infrastructure;
 using Mktba.Application.DTOs;
-using Mktba.Application.Exceptions;
 using Mktba.Application.Services;
 
 namespace Mktba.Api.Endpoints;
@@ -27,45 +27,21 @@ public static class SchoolEndpoints
         // POST /schools — create a custom school for an article (admin only)
         group.MapPost("/", async (SchoolCreateDto dto, SchoolService service, CancellationToken ct) =>
         {
-            try
-            {
-                var created = await service.CreateCustomSchoolAsync(dto, ct);
-                return Results.Created($"/schools/{created.Id}", created);
-            }
-            catch (ValidationException ex)
-            {
-                return Results.BadRequest(new { message = ex.Message });
-            }
-            catch (NotFoundException ex)
-            {
-                return Results.NotFound(new { message = ex.Message });
-            }
+            var created = await service.CreateCustomSchoolAsync(dto, ct);
+            return Results.Created($"/schools/{created.Id}", created);
         })
             .Produces<SchoolDto>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status404NotFound)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
             .RequireAuthorization("AdminOnly");
 
         // DELETE /schools/{id} — delete a custom school (admin only)
         group.MapDelete("/{id:int}", async (int id, SchoolService service, CancellationToken ct) =>
         {
-            try
-            {
-                await service.DeleteCustomSchoolAsync(id, ct);
-                return Results.NoContent();
-            }
-            catch (ValidationException ex)
-            {
-                return Results.BadRequest(new { message = ex.Message });
-            }
-            catch (NotFoundException)
-            {
-                return Results.NotFound();
-            }
+            await service.DeleteCustomSchoolAsync(id, ct);
+            return Results.NoContent();
         })
             .Produces(StatusCodes.Status204NoContent)
-            .Produces(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status404NotFound)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
             .RequireAuthorization("AdminOnly");
 
         return builder;

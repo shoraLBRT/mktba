@@ -33,7 +33,7 @@ namespace Mktba.Application.Services
         {
             if (createDto.Order < 1)
             {
-                throw new ValidationException("Order must be greater than or equal to 1");
+                throw new ValidationException(AppErrors.ParagraphOrderInvalid);
             }
 
             var existingParagraphs = await _repository.GetParagraphsByArticleAsync(createDto.ArticleId);
@@ -41,18 +41,18 @@ namespace Mktba.Application.Services
 
             if (createDto.Order > maxOrder + 1)
             {
-                throw new ValidationException($"Order cannot be greater than {maxOrder + 1}");
+                throw new ValidationException(AppErrors.ParagraphOrderTooLarge(maxOrder + 1));
             }
 
             if (!createDto.Opinions.Any())
             {
-                throw new ValidationException("At least one opinion is required.");
+                throw new ValidationException(AppErrors.ParagraphOpinionsRequired);
             }
 
             var defaultCount = createDto.Opinions.Count(o => o.IsDefault);
             if (defaultCount != 1)
             {
-                throw new ValidationException("Exactly one opinion must be marked as default.");
+                throw new ValidationException(AppErrors.ParagraphDefaultOpinionRequired);
             }
 
             // Shift existing paragraphs at or after the new order
@@ -95,18 +95,18 @@ namespace Mktba.Application.Services
             var paragraph = await _repository.GetByIdAsync(id);
             if (paragraph is null)
             {
-                throw new NotFoundException("Paragraph not found");
+                throw new NotFoundException(AppErrors.ParagraphNotFound);
             }
 
             if (!updateDto.Opinions.Any())
             {
-                throw new ValidationException("At least one opinion is required.");
+                throw new ValidationException(AppErrors.ParagraphOpinionsRequired);
             }
 
             var defaultCount = updateDto.Opinions.Count(o => o.IsDefault);
             if (defaultCount != 1)
             {
-                throw new ValidationException("Exactly one opinion must be marked as default.");
+                throw new ValidationException(AppErrors.ParagraphDefaultOpinionRequired);
             }
 
             if (paragraph.Order != updateDto.Order)
@@ -157,7 +157,7 @@ namespace Mktba.Application.Services
             var paragraph = await _repository.GetByIdAsync(id);
             if (paragraph is null)
             {
-                throw new NotFoundException("Paragraph not found");
+                throw new NotFoundException(AppErrors.ParagraphNotFound);
             }
 
             await _repository.DeleteAsync(paragraph);
