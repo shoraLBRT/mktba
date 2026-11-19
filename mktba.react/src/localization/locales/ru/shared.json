@@ -96,7 +96,12 @@
     "email_and_password_required": "Укажите email и пароль.",
     "invalid_credentials": "Неверный email или пароль.",
     "admin_already_exists": "Администратор с таким email уже существует.",
-    "invite_token_invalid": "Код приглашения недействителен или истёк.",
+    "invite_not_found": "Приглашение не найдено. Проверьте код, который вам передали.",
+    "invite_expired": "Срок действия приглашения истёк. Попросите новое.",
+    "invite_used": "Это приглашение уже использовано.",
+    "invite_revoked": "Приглашение отозвано.",
+    "invite_lifetime_invalid": "Срок действия приглашения — от 1 до {maxHours} часов.",
+    "invite_note_too_long": "Пометка не может быть длиннее {maxLength} символов.",
     "session_invalid": "Сессия завершена. Войдите снова.",
     "session_not_found": "Сессия не найдена.",
     "session_csrf_header_missing": "Запрос отклонён: нет заголовка защиты от подделки запросов.",
@@ -147,12 +152,26 @@
     "article_coauthor_is_author": "Автор статьи не может быть одновременно её соавтором.",
     "article_move_cycle": "Статью нельзя переместить внутрь неё самой или её подстатьи.",
     "article_parent_not_found": "Родительская статья не найдена.",
-    "user_not_found": "Пользователь не найден."
+    "user_not_found": "Пользователь не найден.",
+    "role_invalid": "Неизвестная роль.",
+    "last_admin_demotion": "Нельзя сменить роль последнего администратора."
   },
   "articleStatus": {
     "Draft": "Черновик",
     "InReview": "На проверке",
     "Published": "Опубликована",
     "Archived": "В архиве"
+  },
+  "userRole": {
+    "Reader": "Читатель",
+    "Author": "Автор",
+    "Scholar": "Учёный",
+    "Admin": "Администратор"
+  },
+  "inviteStatus": {
+    "Active": "Действует",
+    "Used": "Использовано",
+    "Revoked": "Отозвано",
+    "Expired": "Истекло"
   }
 }

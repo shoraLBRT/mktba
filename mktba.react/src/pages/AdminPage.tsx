@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bot, Check, Copy, Database, FileText, HelpCircle, KeyRound, MonitorSmartphone, Sparkles, Trash2, X } from 'lucide-react';
+import { Bot, Check, Database, FileText, HelpCircle, KeyRound, MonitorSmartphone, Sparkles, Trash2, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   checkAiConnection,
@@ -10,10 +10,11 @@ import {
   resetAiSettings,
   updateAiProviderSettings,
 } from '../services/adminService';
-import { generateInviteToken } from '../services/authService';
 import type { RolePolicy } from '../auth/roleAccess';
 import { useCurrentUser } from '../auth/useCurrentUser';
+import { InvitesPanel } from '../components/InvitesPanel';
 import { SessionsPanel } from '../components/SessionsPanel';
+import { UsersPanel } from '../components/UsersPanel';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { invalidateArticleQueries } from '../app/queryClient';
 import { formatMessage } from '../localization';
@@ -67,7 +68,6 @@ const AdminPage: React.FC = () => {
   const activeSection: AdminSection = can(SECTION_POLICY[requestedSection]) ? requestedSection : 'articles';
   const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
   const [cleanupConfirmation, setCleanupConfirmation] = useState('');
-  const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [aiCheckResult, setAiCheckResult] = useState<{ message: string; styledText: string } | null>(null);
   const [aiSettingsFormOverride, setAiSettingsFormOverride] = useState<AiSettingsState | null>(null);
@@ -131,15 +131,6 @@ const AdminPage: React.FC = () => {
       await queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_AI_SETTINGS] });
     },
     onError: (error) => showNotice('error', `${t.aiSettingsUpdateFailed}: ${(error as Error).message}`),
-  });
-
-  const inviteTokenMutation = useMutation({
-    mutationFn: generateInviteToken,
-    onSuccess: (result) => {
-      setInviteToken(result.token);
-      showNotice('success', t.inviteTokenGenerated);
-    },
-    onError: (error) => showNotice('error', `${t.inviteTokenGenerateFailed}: ${(error as Error).message}`),
   });
 
   const aiConnectionCheckMutation = useMutation({
@@ -210,9 +201,9 @@ const AdminPage: React.FC = () => {
     },
     {
       id: 'adminAccess',
-      label: t.inviteTokenTitle,
+      label: t.accessTab,
       icon: <KeyRound size={18} />,
-      description: 'Admin invitations',
+      description: t.accessTabDescription,
     },
     {
       id: 'sessions',
@@ -555,40 +546,10 @@ const AdminPage: React.FC = () => {
             </div>
           ) : null}
 
-          {/* Admin Access Section */}
           {activeSection === 'adminAccess' ? (
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink-strong)]">{t.inviteTokenTitle}</h1>
-                <p className="mt-2 text-sm text-[var(--color-ink-muted)]">Generate tokens to invite new administrators.</p>
-              </div>
-              <Card className="p-6">
-                <p className="mb-4 text-sm text-[var(--color-ink-muted)]">{t.inviteTokenHint}</p>
-
-                <Button onClick={() => inviteTokenMutation.mutate()} disabled={inviteTokenMutation.isPending} variant="primary">
-                  <KeyRound size={14} />
-                  {inviteTokenMutation.isPending ? '...' : t.generateInviteToken}
-                </Button>
-
-                {inviteToken ? (
-                  <div className="mt-6 rounded-lg border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] p-4">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
-                      {t.inviteTokenValueLabel}
-                    </p>
-                    <code className="mb-3 block break-all text-sm text-[var(--color-ink-strong)]">{inviteToken}</code>
-                    <Button
-                      variant="secondary"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(inviteToken);
-                        showNotice('success', t.inviteTokenCopied);
-                      }}
-                    >
-                      <Copy size={14} />
-                      {locale.common.copy}
-                    </Button>
-                  </div>
-                ) : null}
-              </Card>
+            <div className="space-y-8">
+              <InvitesPanel onNotice={showNotice} />
+              <UsersPanel onNotice={showNotice} />
             </div>
           ) : null}
 

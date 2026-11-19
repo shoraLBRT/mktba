@@ -13,14 +13,14 @@
 * **AI-помощник** (опционально) для стилизации markdown.
   Провайдера по умолчанию нет: пока в админке (`/admin?section=aiProvider`) не заданы адрес,
   модель и API-ключ, функции ИИ выключены, а API отвечает `ai_provider_not_configured`.
-* **Админ-панель** — управление статьями, системными школами, AI-настройками, invite-токенами.
+* **Админ-панель** — управление статьями, системными школами, AI-настройками, приглашениями с ролью (одноразовые, со сроком, отзываемые) и ролями пользователей.
 
 ## Стек
 
 * **Backend**: ASP.NET Core 8 Minimal API, Clean DDD.
 * **База данных**: PostgreSQL 16 + EF Core 8.
 * **Frontend**: React 19 + TypeScript + React Router v7 + React Query v5 + Tailwind CSS v4 + Vite.
-* **Auth**: короткий JWT Bearer в памяти + ротируемый refresh-токен в `httpOnly`-cookie, invite-токены для регистрации админов.
+* **Auth**: короткий JWT Bearer в памяти + ротируемый refresh-токен в `httpOnly`-cookie, одноразовые приглашения с ролью (Reader/Author/Scholar/Admin) для регистрации.
 
 ## Структура репозитория
 

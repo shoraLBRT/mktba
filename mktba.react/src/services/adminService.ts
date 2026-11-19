@@ -30,7 +30,7 @@ export const changeArticleStatus = async (id: number, status: ArticleStatus): Pr
   return response.data;
 };
 
-/** Every user, for choosing article authors (admin only: the list carries emails). */
+/** Every user with their role, for choosing article authors and managing roles (admin only: the list carries emails). */
 export const getUsers = async (): Promise<UserSummaryDto[]> => {
   const response = await apiClient.get<UserSummaryDto[]>('/users');
   return response.data;

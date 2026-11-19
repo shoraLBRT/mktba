@@ -22,7 +22,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<OpinionSchool> OpinionSchools { get; set; } = null!;
         public DbSet<AiProviderSettings> AiProviderSettings { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
-        public DbSet<AdminInviteToken> AdminInviteTokens { get; set; } = null!;
+        public DbSet<Invite> Invites { get; set; } = null!;
         public DbSet<RefreshSession> RefreshSessions { get; set; } = null!;
 
         /// <summary>Longest stored User-Agent of a refresh session; longer values are cut.</summary>
@@ -340,26 +340,24 @@ namespace Mktba.Infrastructure.Data
                 .HasMaxLength(16)
                 .IsRequired();
 
-            // AdminInviteToken
-            modelBuilder.Entity<AdminInviteToken>()
-                .HasIndex(t => t.TokenHash)
-                .IsUnique();
-
-            modelBuilder.Entity<AdminInviteToken>()
-                .Property(t => t.TokenHash)
-                .HasMaxLength(128);
-
-            modelBuilder.Entity<AdminInviteToken>()
-                .HasOne(t => t.CreatedByUser)
-                .WithMany()
-                .HasForeignKey(t => t.CreatedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<AdminInviteToken>()
-                .HasOne(t => t.UsedByUser)
-                .WithMany()
-                .HasForeignKey(t => t.UsedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Invite (U-04): single-use, guarded by UsedAtUtc/RevokedAtUtc as concurrency tokens.
+            modelBuilder.Entity<Invite>(invite =>
+            {
+                invite.HasIndex(i => i.TokenHash).IsUnique();
+                invite.Property(i => i.TokenHash).HasMaxLength(128).IsRequired();
+                invite.Property(i => i.Role).HasConversion<string>().HasMaxLength(16).IsRequired();
+                invite.Property(i => i.Note).HasMaxLength(Invite.NoteMaxLength);
+                invite.Property(i => i.UsedAtUtc).IsConcurrencyToken();
+                invite.Property(i => i.RevokedAtUtc).IsConcurrencyToken();
+                invite.HasOne(i => i.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(i => i.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                invite.HasOne(i => i.UsedByUser)
+                    .WithMany()
+                    .HasForeignKey(i => i.UsedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             // RefreshSession (U-03): a deleted user takes their sessions with them.
             modelBuilder.Entity<RefreshSession>(session =>

@@ -11,8 +11,15 @@ public static class UserEndpoints
         var group = builder.MapGroup("/users").WithTags("Users").RequireAuthorization(Policies.CanManageUsers);
 
         group.MapGet("/", async (ArticleAuthorshipService service) => Results.Ok(await service.ListUsersAsync()))
-            .WithSummary("Every user, for choosing article authors. Admin only: it lists emails.")
+            .WithSummary("Every user with their role, for choosing article authors and managing roles. Admin only: it lists emails.")
             .Produces<List<UserSummaryDto>>();
+
+        group.MapPut("/{id:int}/role", async (int id, UserRoleUpdateDto dto, UserAdminService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.ChangeRoleAsync(id, dto.Role, cancellationToken)))
+            .WithSummary("Gives a user another role; it applies from their next request.")
+            .WithDescription("Answers 400 last_admin_demotion when the user is the last admin, 404 user_not_found for an unknown user.")
+            .Produces<UserSummaryDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound);
 
         return builder;
     }

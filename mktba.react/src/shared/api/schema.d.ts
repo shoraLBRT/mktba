@@ -1133,7 +1133,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Sets the refresh-token cookie as well. */
+        /**
+         * Registers the first user as admin, then anyone with an invite, who gets the invite's role.
+         * @description Sets the refresh-token cookie as well. Once a user exists an invite token is required; it is single-use. Answers 400 invite_not_found, invite_expired, invite_used or invite_revoked when it cannot be used.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -1557,16 +1560,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/invite-token": {
+    "/invites": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        post: {
+        /** Every invite, newest first, with its status. Never carries a token. */
+        get: {
             parameters: {
                 query?: never;
                 header?: never;
@@ -1581,11 +1583,97 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AdminInviteTokenCreateResponseDto"];
+                        "application/json": components["schemas"]["InviteDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Creates a single-use invite for a role. The token is in this response only; the server keeps its hash.
+         * @description Answers 400 role_invalid, invite_lifetime_invalid or invite_note_too_long.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InviteCreateRequestDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InviteCreatedDto"];
                     };
                 };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invites/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revokes an unused invite; revoking it again changes nothing.
+         * @description Answers 400 invite_used when someone already registered with it, 404 invite_not_found.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2028,7 +2116,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Every user, for choosing article authors. Admin only: it lists emails. */
+        /** Every user with their role, for choosing article authors and managing roles. Admin only: it lists emails. */
         get: {
             parameters: {
                 query?: never;
@@ -2057,6 +2145,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Gives a user another role; it applies from their next request.
+         * @description Answers 400 last_admin_demotion when the user is the last admin, 404 user_not_found for an unknown user.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UserRoleUpdateDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserSummaryDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2077,11 +2228,6 @@ export interface components {
             /** Format: int32 */
             deletedParagraphs: number;
             message: string;
-        };
-        AdminInviteTokenCreateResponseDto: {
-            token: string;
-            /** Format: date-time */
-            expiresAtUtc: string;
         };
         AdminLoginRequestDto: {
             email: string;
@@ -2328,6 +2474,39 @@ export interface components {
             email: string;
             role: components["schemas"]["UserRole"];
         };
+        InviteCreateRequestDto: {
+            role: components["schemas"]["UserRole"];
+            /** Format: int32 */
+            lifetimeHours?: number | null;
+            note?: string | null;
+        };
+        InviteCreatedDto: {
+            /** Format: int32 */
+            id: number;
+            token: string;
+            role: components["schemas"]["UserRole"];
+            /** Format: date-time */
+            expiresAtUtc: string;
+        };
+        InviteDto: {
+            /** Format: int32 */
+            id: number;
+            role: components["schemas"]["UserRole"];
+            note?: string | null;
+            status: components["schemas"]["InviteStatus"];
+            /** Format: date-time */
+            createdAtUtc: string;
+            /** Format: date-time */
+            expiresAtUtc: string;
+            /** Format: date-time */
+            usedAtUtc?: string | null;
+            /** Format: date-time */
+            revokedAtUtc?: string | null;
+            createdByEmail: string;
+            usedByEmail?: string | null;
+        };
+        /** @enum {string} */
+        InviteStatus: "Active" | "Used" | "Revoked" | "Expired";
         NavigationArticleDto: {
             /** Format: int32 */
             id: number;
@@ -2426,10 +2605,14 @@ export interface components {
         };
         /** @enum {string} */
         UserRole: "Reader" | "Author" | "Scholar" | "Admin";
+        UserRoleUpdateDto: {
+            role: components["schemas"]["UserRole"];
+        };
         UserSummaryDto: {
             /** Format: int32 */
             id: number;
             email: string;
+            role: components["schemas"]["UserRole"];
         };
     };
     responses: never;

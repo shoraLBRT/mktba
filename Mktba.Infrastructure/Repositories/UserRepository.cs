@@ -42,6 +42,10 @@ public class UserRepository : GenericRepository<User>
             .Select(user => (UserRole?)user.Role)
             .FirstOrDefaultAsync(cancellationToken);
 
+    /// <summary>How many users have <paramref name="role"/>.</summary>
+    public Task<int> CountByRoleAsync(UserRole role, CancellationToken cancellationToken = default)
+        => _dbSet.CountAsync(user => user.Role == role, cancellationToken);
+
     /// <summary>All users ordered by email, read-only.</summary>
     public Task<List<User>> ListOrderedByEmailAsync(CancellationToken cancellationToken = default)
         => _dbSet.AsNoTracking().OrderBy(user => user.Email).ToListAsync(cancellationToken);

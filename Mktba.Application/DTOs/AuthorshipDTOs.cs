@@ -1,3 +1,5 @@
+using Mktba.Domain.Entities;
+
 namespace Mktba.Application.DTOs
 {
     /// <summary>
@@ -21,5 +23,14 @@ namespace Mktba.Application.DTOs
     {
         public int Id { get; set; }
         public string Email { get; set; } = string.Empty;
+
+        /// <summary>The user's current role.</summary>
+        public UserRole Role { get; set; }
+    }
+
+    /// <summary>A new role for a user (U-04). The last admin cannot be given another role.</summary>
+    public class UserRoleUpdateDto
+    {
+        public UserRole Role { get; set; }
     }
 }

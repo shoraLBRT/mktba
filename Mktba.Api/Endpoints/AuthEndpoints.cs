@@ -27,7 +27,10 @@ public static class AuthEndpoints
             var result = await service.RegisterAsync(request, RefreshCookie.Client(context), cancellationToken);
             return SignedIn(context, result, StatusCodes.Status400BadRequest);
         })
-        .WithDescription("Sets the refresh-token cookie as well.")
+        .WithSummary("Registers the first user as admin, then anyone with an invite, who gets the invite's role.")
+        .WithDescription(
+            "Sets the refresh-token cookie as well. Once a user exists an invite token is required; it is single-use. "
+            + "Answers 400 invite_not_found, invite_expired, invite_used or invite_revoked when it cannot be used.")
         .Produces<AdminAuthResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
         .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
 
@@ -142,23 +145,6 @@ public static class AuthEndpoints
         .Produces<CurrentUserDto>()
         .ProducesApiProblem(StatusCodes.Status401Unauthorized)
         .RequireAuthorization(Policies.Authenticated);
-
-        group.MapPost("/invite-token", async (
-            ClaimsPrincipal principal,
-            AdminAuthService service,
-            CancellationToken cancellationToken) =>
-        {
-            var adminIdClaim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(adminIdClaim, out var adminId))
-            {
-                return ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized);
-            }
-
-            var result = await service.GenerateInviteTokenAsync(adminId, cancellationToken);
-            return result.IsSuccess
-                ? Results.Ok(result.Value)
-                : ApiProblemResults.Problem(StatusCodes.Status400BadRequest, result.Error!);
-        }).Produces<AdminInviteTokenCreateResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization(Policies.CanManageUsers);
 
         return builder;
     }

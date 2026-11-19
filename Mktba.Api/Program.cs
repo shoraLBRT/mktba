@@ -150,6 +150,7 @@ app.MapSchoolEndpoints();
 app.MapAdminEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
+app.MapInviteEndpoints();
 
 app.Run();
 
