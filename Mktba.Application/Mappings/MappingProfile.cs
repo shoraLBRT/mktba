@@ -15,7 +15,9 @@ namespace Mktba.Application.Mappings
                     || src.InfoboxFields.Any()
                     || !string.IsNullOrWhiteSpace(src.InfoboxTitle)
                     || !string.IsNullOrWhiteSpace(src.InfoboxSubtitle)
-                    || !string.IsNullOrWhiteSpace(src.Summary)));
+                    || !string.IsNullOrWhiteSpace(src.Summary)))
+                .ForMember(dest => dest.AllowedTransitions, opt => opt.MapFrom(src =>
+                    ArticleStatusTransitions.AllowedFrom(src.Status).ToList()));
             CreateMap<ArticleCreateDto, Article>();
             CreateMap<ArticleUpdateDto, Article>();
 

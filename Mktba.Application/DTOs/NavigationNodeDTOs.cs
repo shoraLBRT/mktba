@@ -1,4 +1,6 @@
-﻿namespace Mktba.Application.DTOs
+﻿using Mktba.Domain.Entities;
+
+namespace Mktba.Application.DTOs
 {
     public class NavigationArticleDto
     {
@@ -7,6 +9,8 @@
         /// <summary>URL segment of the article: the reader's link is <c>/article/{slug}</c>.</summary>
         public string Slug { get; set; } = string.Empty;
         public int? ParentArticleId { get; set; }
+        /// <summary>Publication status; anonymous readers only ever see Published.</summary>
+        public ArticleStatus Status { get; set; }
         public bool HasContent { get; set; }
         public List<NavigationArticleDto>? Children { get; set; }
     }

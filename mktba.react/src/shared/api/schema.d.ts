@@ -322,7 +322,7 @@ export interface paths {
         };
         /**
          * Article content by slug; an old slug redirects (302) to the current one.
-         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop.
+         * @description A current slug returns the content. A slug the article used before answers 302 Found with Location set to the current slug's URL, so clients that follow redirects get the content and can compare its slug with the one they asked for. The redirect is temporary on purpose: an old slug can become current again, and a cached permanent redirect would then loop. Anonymous readers get 404 for an article that is not Published.
          */
         get: {
             parameters: {
@@ -582,6 +582,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Moves an article to another status.
+         * @description Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, Archived → Draft. Any other move answers 400 article_status_transition_invalid.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleStatusChangeDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleReadDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/status": {
         parameters: {
             query?: never;
@@ -782,6 +845,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Anonymous readers get only Published articles; a Published article under a non-Published parent is hidden with its subtree. Admins get every article with its status. */
         get: {
             parameters: {
                 query?: never;
@@ -1296,6 +1360,8 @@ export interface components {
             slug: string;
             /** Format: int32 */
             parentArticleId?: number | null;
+            status: components["schemas"]["ArticleStatus"];
+            allowedTransitions: components["schemas"]["ArticleStatus"][];
             hasContent: boolean;
         };
         ArticleRelatedLinkCreateDto: {
@@ -1314,6 +1380,11 @@ export interface components {
             order: number;
             relatedArticleSlug: string;
         };
+        /** @enum {string} */
+        ArticleStatus: "Draft" | "InReview" | "Published" | "Archived";
+        ArticleStatusChangeDto: {
+            status: components["schemas"]["ArticleStatus"];
+        };
         ArticleUpdateDto: {
             title: string;
             /** Format: int32 */
@@ -1326,6 +1397,7 @@ export interface components {
             slug: string;
             /** Format: int32 */
             parentArticleId?: number | null;
+            status: components["schemas"]["ArticleStatus"];
             hasContent: boolean;
             children?: components["schemas"]["NavigationArticleDto"][] | null;
         };

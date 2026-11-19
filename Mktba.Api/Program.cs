@@ -39,7 +39,12 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    // Enums travel as their names ("Published"), not numbers.
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
+// Swagger reads the MVC JSON options, so the OpenAPI contract shows enums as names too.
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddCors(options =>
 {

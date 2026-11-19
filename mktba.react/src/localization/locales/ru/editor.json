@@ -159,7 +159,16 @@
     "deleteModalConfirm": "Удалить статью",
     "deleted": "Статья удалена",
     "deleteError": "Ошибка удаления",
-    "deleteBlockedByChildren": "У этой статьи есть дочерние статьи. Сначала удалите или переместите их, а затем удалите эту статью."
+    "deleteBlockedByChildren": "У этой статьи есть дочерние статьи. Сначала удалите или переместите их, а затем удалите эту статью.",
+    "statusLabel": "Статус",
+    "statusChanged": "Статус изменён: {status}",
+    "statusChangeError": "Не удалось изменить статус",
+    "statusActions": {
+      "Draft": "Вернуть в черновики",
+      "InReview": "Отправить на проверку",
+      "Published": "Опубликовать",
+      "Archived": "Убрать в архив"
+    }
   },
   "versionedParagraph": {
     "label": "Мнение мазхаба: {school}",

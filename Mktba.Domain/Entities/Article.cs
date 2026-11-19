@@ -9,6 +9,8 @@
         /// only digits. Unique across all articles for now; becomes unique per language with M-09 (#27).
         /// </summary>
         public string Slug { get; set; } = string.Empty;
+        /// <summary>Publication status; new articles start as <see cref="ArticleStatus.Draft"/>.</summary>
+        public ArticleStatus Status { get; set; } = ArticleStatus.Draft;
         public string? InfoboxTitle { get; set; }
         public string? InfoboxSubtitle { get; set; }
         public int? ParentArticleId { get; set; }

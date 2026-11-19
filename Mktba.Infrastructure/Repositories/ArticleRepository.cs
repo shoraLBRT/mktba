@@ -16,8 +16,9 @@ namespace Mktba.Infrastructure.Repositories
                 .Include(article => article.RelatedLinks)
                 .ToListAsync(cancellationToken);
 
-        public Task<List<Article>> GetAllWithParagraphsAsync(CancellationToken cancellationToken = default)
+        public Task<List<Article>> GetAllWithParagraphsAsync(bool publishedOnly, CancellationToken cancellationToken = default)
             => _dbSet
+                .Where(article => !publishedOnly || article.Status == ArticleStatus.Published)
                 .Include(article => article.Paragraphs)
                 .Include(article => article.InfoboxFields)
                 .Include(article => article.RelatedLinks)
@@ -26,17 +27,20 @@ namespace Mktba.Infrastructure.Repositories
         /// <summary>
         /// Projects every article to <see cref="ArticleNavigationRow"/> in a single query, ordered by id.
         /// Content presence is computed in SQL (EXISTS over paragraphs and infobox fields), so no
-        /// child rows are loaded.
+        /// child rows are loaded. With <paramref name="publishedOnly"/> the query returns only
+        /// <see cref="ArticleStatus.Published"/> articles.
         /// </summary>
-        public Task<List<ArticleNavigationRow>> GetNavigationRowsAsync(CancellationToken cancellationToken = default)
+        public Task<List<ArticleNavigationRow>> GetNavigationRowsAsync(bool publishedOnly, CancellationToken cancellationToken = default)
             => _dbSet
                 .AsNoTracking()
+                .Where(article => !publishedOnly || article.Status == ArticleStatus.Published)
                 .OrderBy(article => article.Id)
                 .Select(article => new ArticleNavigationRow(
                     article.Id,
                     article.Title,
                     article.Slug,
                     article.ParentArticleId,
+                    article.Status,
                     article.Paragraphs.Any()
                         || article.InfoboxFields.Any()
                         || !string.IsNullOrWhiteSpace(article.InfoboxTitle)
@@ -62,10 +66,11 @@ namespace Mktba.Infrastructure.Repositories
                 .FirstOrDefaultAsync(cancellationToken);
 
         /// <summary>The current slug of the article that used to have <paramref name="oldSlug"/>, if any.</summary>
-        public Task<string?> FindRedirectTargetSlugAsync(string oldSlug, CancellationToken cancellationToken = default)
+        public Task<string?> FindRedirectTargetSlugAsync(string oldSlug, bool publishedOnly, CancellationToken cancellationToken = default)
             => _context.ArticleSlugRedirects
                 .AsNoTracking()
                 .Where(redirect => redirect.Slug == oldSlug)
+                .Where(redirect => !publishedOnly || redirect.Article.Status == ArticleStatus.Published)
                 .Select(redirect => redirect.Article.Slug)
                 .FirstOrDefaultAsync(cancellationToken);
 

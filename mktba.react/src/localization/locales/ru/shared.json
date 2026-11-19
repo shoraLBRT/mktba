@@ -121,6 +121,13 @@
     "school_name_required": "Укажите название школы.",
     "school_short_name_required": "Укажите краткое название школы.",
     "school_slug_taken": "Школа с идентификатором «{slug}» уже существует.",
-    "system_school_delete_forbidden": "Системные школы удалять нельзя."
+    "system_school_delete_forbidden": "Системные школы удалять нельзя.",
+    "article_status_transition_invalid": "Статью нельзя перевести в этот статус из текущего."
+  },
+  "articleStatus": {
+    "Draft": "Черновик",
+    "InReview": "На проверке",
+    "Published": "Опубликована",
+    "Archived": "В архиве"
   }
 }

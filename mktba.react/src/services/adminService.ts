@@ -7,11 +7,23 @@ import type {
   AiStyleResponseDto,
   ArticleCreateDto,
   ArticleReadDto,
+  ArticleStatus,
   UpdateAiProviderSettingsDto,
 } from '../shared/types/ApiTypes';
 
 export const getArticles = async (): Promise<ArticleReadDto[]> => {
   const response = await apiClient.get<ArticleReadDto[]>('/articles');
+  return response.data;
+};
+
+export const getArticleById = async (id: number): Promise<ArticleReadDto> => {
+  const response = await apiClient.get<ArticleReadDto>(`/articles/${id}`);
+  return response.data;
+};
+
+/** Moves the article to another status; the API rejects moves its transition table does not allow. */
+export const changeArticleStatus = async (id: number, status: ArticleStatus): Promise<ArticleReadDto> => {
+  const response = await apiClient.post<ArticleReadDto>(`/articles/${id}/status`, { status });
   return response.data;
 };
 

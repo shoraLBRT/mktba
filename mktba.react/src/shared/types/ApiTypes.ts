@@ -19,6 +19,7 @@ export type ArticleRelatedLinkCreateDto = Schemas['ArticleRelatedLinkCreateDto']
 export type ArticleContentDto = Schemas['ArticleContentDto'];
 export type ArticleContentCreateDto = Schemas['ArticleContentCreateDto'];
 export type ArticleReadDto = Schemas['ArticleReadDto'];
+export type ArticleStatus = Schemas['ArticleStatus'];
 export type ArticleCreateDto = Schemas['ArticleCreateDto'];
 export type AdminCleanupResultDto = Schemas['AdminCleanupResultDto'];
 export type AiProviderSettingsDto = Schemas['AiProviderSettingsDto'];

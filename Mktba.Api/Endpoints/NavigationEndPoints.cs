@@ -1,4 +1,6 @@
-﻿using Mktba.Application.DTOs;
+﻿using System.Security.Claims;
+using Mktba.Api.Infrastructure;
+using Mktba.Application.DTOs;
 using Mktba.Application.Services;
 
 namespace Mktba.Api.Endpoints
@@ -9,11 +11,15 @@ namespace Mktba.Api.Endpoints
         {
             var group = builder.MapGroup("/navigationTree").WithTags("Navigation");
 
-            group.MapGet("/tree", async (NavigationTreeService service) =>
+            group.MapGet("/tree", async (ClaimsPrincipal user, NavigationTreeService service) =>
             {
-                var tree = await service.GetTreeAsync();
+                var tree = await service.GetTreeAsync(user.CanSeeUnpublished());
                 return Results.Ok(tree);
-            }).Produces<List<NavigationArticleDto>>();
+            })
+            .WithDescription(
+                "Anonymous readers get only Published articles; a Published article under a non-Published "
+                + "parent is hidden with its subtree. Admins get every article with its status.")
+            .Produces<List<NavigationArticleDto>>();
 
             return builder;
         }

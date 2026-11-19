@@ -15,7 +15,9 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import { invalidateArticleQueries } from '../app/queryClient';
 import { formatMessage } from '../localization';
 import { useLocale } from '../localization/hooks';
+import { ArticleStatusBadge } from '../components/article/ArticleStatusBadge';
 import { cn } from '../shared/lib/cn';
+import type { ArticleStatus } from '../shared/types/ApiTypes';
 import { Button } from '../shared/ui/Button';
 import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
@@ -166,6 +168,8 @@ const AdminPage: React.FC = () => {
   const articleCount = articles.length;
   const articlesWithContent = articles.filter((a) => a.hasContent).length;
   const emptyArticles = articleCount - articlesWithContent;
+  const articleStatuses: ArticleStatus[] = ['Draft', 'InReview', 'Published', 'Archived'];
+  const countByStatus = (status: ArticleStatus) => articles.filter((a) => a.status === status).length;
   const aiStatusHint = aiSettingsQuery.isLoading
     ? t.aiConfigurationDescription
     : !aiSettingsQuery.data?.isConfigured
@@ -304,6 +308,22 @@ const AdminPage: React.FC = () => {
                   </div>
                 </Card>
               </div>
+
+              <Card className="p-6">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
+                  {t.statusBreakdownTitle}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-4" data-testid="article-status-breakdown">
+                  {articleStatuses.map((status) => (
+                    <div key={status} className="flex items-center gap-2">
+                      <ArticleStatusBadge status={status} />
+                      <span className="text-lg font-semibold text-[var(--color-ink-strong)]">
+                        {articlesQuery.isLoading ? '...' : countByStatus(status)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
             </div>
           ) : null}
 

@@ -95,7 +95,7 @@ public sealed class ArticleSlugEndpointTests : IClassFixture<MktbaApiFactory>
         var admin = await CreateAdminClientAsync();
         var created = await CreateArticleAsync(admin, "Узел дерева");
 
-        var tree = await _factory.CreateClient().GetFromJsonAsync<List<NavigationArticleDto>>("/navigationTree/tree");
+        var tree = await _factory.CreateClient().GetFromJsonAsync<List<NavigationArticleDto>>("/navigationTree/tree", ApiJson.Options);
 
         tree!.Should().Contain(node => node.Id == created.Id && node.Slug == "uzel-dereva");
     }
@@ -117,11 +117,14 @@ public sealed class ArticleSlugEndpointTests : IClassFixture<MktbaApiFactory>
     private static ArticleContentCreateDto NewArticle(string title, string? slug = null) =>
         new(title, null, [new ParagraphCreateDto { Order = 1, Opinions = [new OpinionCreateDto("Текст", true, [])] }], null, null, null, null, slug);
 
+    /// <summary>Creates an article and publishes it, so anonymous readers can reach it by slug.</summary>
     private static async Task<ArticleContentDto> CreateArticleAsync(HttpClient admin, string title)
     {
         var response = await admin.PostAsJsonAsync("/articles/content", NewArticle(title));
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        return (await response.Content.ReadFromJsonAsync<ArticleContentDto>())!;
+        var created = (await response.Content.ReadFromJsonAsync<ArticleContentDto>())!;
+        await ApiJson.PublishAsync(admin, created.Id);
+        return created;
     }
 
     private async Task<HttpClient> CreateAdminClientAsync()

@@ -33,6 +33,12 @@ namespace Mktba.Infrastructure.Data
                 .IsRequired();
 
             modelBuilder.Entity<Article>()
+                .Property(a => a.Status)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .IsRequired();
+
+            modelBuilder.Entity<Article>()
                 .HasIndex(a => a.Slug)
                 .IsUnique();
 

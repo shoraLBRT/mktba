@@ -169,6 +169,13 @@ const attachCustomSchools = async (article, articleId, schoolMap) => {
   });
 };
 
+// Новая статья — черновик (Draft); на публичном сайте её видно только после
+// Draft → InReview → Published.
+const publish = async (articleId) => {
+  await call('POST', `/articles/${articleId}/status`, { status: 'InReview' });
+  await call('POST', `/articles/${articleId}/status`, { status: 'Published' });
+};
+
 const main = async () => {
   const raw = await readFile(join(HERE, 'demo-content.json'), 'utf-8');
   const { articles, placeholders = [] } = JSON.parse(raw);
@@ -195,6 +202,8 @@ const main = async () => {
       if (article.customSchools?.length) {
         await attachCustomSchools(article, result.id, schoolMap);
       }
+
+      await publish(result.id);
 
       const opinions = article.paragraphs.reduce((sum, p) => sum + p.opinions.length, 0);
       console.log(c.ok(`✓ id ${result.id}, ${article.paragraphs.length} слотов, ${opinions} мнений`));

@@ -17,16 +17,41 @@ namespace Mktba.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<ArticleReadDto>> GetAllAsync()
+        /// <summary>All articles; without <paramref name="includeUnpublished"/> only Published ones.</summary>
+        public async Task<IEnumerable<ArticleReadDto>> GetAllAsync(bool includeUnpublished)
         {
-            var articles = await _articleRepository.GetAllWithParagraphsAsync();
+            var articles = await _articleRepository.GetAllWithParagraphsAsync(publishedOnly: !includeUnpublished);
             return _mapper.Map<IEnumerable<ArticleReadDto>>(articles);
         }
 
-        public async Task<ArticleReadDto?> GetByIdAsync(int id)
+        /// <summary>One article; a non-Published one counts as missing without <paramref name="includeUnpublished"/>.</summary>
+        public async Task<ArticleReadDto?> GetByIdAsync(int id, bool includeUnpublished)
         {
             var article = await _articleRepository.GetByIdAsync(id);
-            return article == null ? null : _mapper.Map<ArticleReadDto>(article);
+            return article is null || !ArticleVisibility.IsVisible(article.Status, includeUnpublished)
+                ? null
+                : _mapper.Map<ArticleReadDto>(article);
+        }
+
+        /// <summary>
+        /// Moves the article to <paramref name="target"/> if <see cref="ArticleStatusTransitions"/> allows it.
+        /// </summary>
+        /// <exception cref="NotFoundException">The article does not exist.</exception>
+        /// <exception cref="ValidationException">The transition is not allowed.</exception>
+        public async Task<ArticleReadDto> ChangeStatusAsync(int id, ArticleStatus target)
+        {
+            var article = await _articleRepository.GetByIdAsync(id)
+                ?? throw new NotFoundException(AppErrors.ArticleNotFound);
+
+            if (!ArticleStatusTransitions.IsAllowed(article.Status, target))
+            {
+                throw new ValidationException(AppErrors.ArticleStatusTransitionInvalid(article.Status, target));
+            }
+
+            article.Status = target;
+            await _articleRepository.UpdateAsync(article);
+            await _articleRepository.SaveChangesAsync();
+            return _mapper.Map<ArticleReadDto>(article);
         }
 
         public async Task<ArticleReadDto> CreateAsync(ArticleCreateDto createDto)

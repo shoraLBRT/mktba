@@ -68,3 +68,37 @@ test('without a configured AI provider the editor explains where to set it up', 
   await expect(baseUrl).toHaveValue('');
   await expect(baseUrl).toHaveAttribute('placeholder', 'https://api.openai.com/v1');
 });
+
+test('a new article is a draft hidden from readers until it is published', async ({ page, browser }) => {
+  const stamp = Date.now();
+  const title = `E2E черновик ${stamp}`;
+  const slug = `e2e-chernovik-${stamp}`;
+  await logIn(page);
+
+  await page.getByRole('button', { name: 'Добавить статью' }).click();
+  await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
+  await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Текст черновика.');
+  await page.getByRole('button', { name: 'Сохранить' }).click();
+  await expect(page).toHaveURL(new RegExp(`/article/${slug}$`));
+
+  const reader = await browser.newPage();
+  await declineAnalytics(reader);
+  await reader.goto(`/article/${slug}`);
+  await expect(reader.getByText('Страница не найдена')).toBeVisible();
+  await expect(reader.getByText('Текст черновика.')).toHaveCount(0);
+  await expect(reader.getByRole('complementary').getByRole('link', { name: title, exact: true })).toHaveCount(0);
+
+  await page.goto('/admin');
+  await page.getByRole('complementary').getByRole('link', { name: title, exact: true }).click();
+  const statusPanel = page.getByTestId('article-status-panel');
+  await expect(statusPanel.getByText('Черновик')).toBeVisible();
+  await statusPanel.getByRole('button', { name: 'Отправить на проверку' }).click();
+  await expect(statusPanel.getByText('На проверке')).toBeVisible();
+  await statusPanel.getByRole('button', { name: 'Опубликовать' }).click();
+  await expect(statusPanel.getByText('Опубликована')).toBeVisible();
+
+  await reader.goto(`/article/${slug}`);
+  await expect(reader.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+  await expect(reader.getByText('Текст черновика.')).toBeVisible();
+  await reader.close();
+});
