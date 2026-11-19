@@ -81,6 +81,9 @@ public static class AppErrors
         new("article_status_transition_invalid", $"An article cannot move from {from} to {to}.",
             With(("from", from.ToString()), ("to", to.ToString())));
 
+    public static AppError ArticleBulkTooMany(int max) =>
+        new("article_bulk_too_many", $"A bulk action takes at most {max} articles.", With(("max", max)));
+
     public static AppError LocaleUnsupported(string locale) =>
         new("locale_unsupported", $"Locale '{locale}' is not supported. Supported: {string.Join(", ", Domain.Entities.Locales.Supported)}.",
             With(("locale", locale), ("supported", string.Join(", ", Domain.Entities.Locales.Supported))));

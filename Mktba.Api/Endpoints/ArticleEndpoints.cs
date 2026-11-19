@@ -4,6 +4,7 @@ using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
 using Mktba.Application.Services;
 using Mktba.Domain.Entities;
+using Mktba.Infrastructure.Repositories;
 
 namespace Mktba.Api.Endpoints
 {
@@ -18,6 +19,60 @@ namespace Mktba.Api.Endpoints
                 var articles = await service.GetAllAsync(user.ToArticleViewer());
                 return Results.Ok(articles);
             }).Produces<List<ArticleReadDto>>();
+
+            group.MapGet("/admin-list", async (
+                ClaimsPrincipal user,
+                ArticleService service,
+                string? search,
+                ArticleStatus? status,
+                int? authorId,
+                string? tag,
+                string? locale,
+                ArticleListSort? sort,
+                SortDirection? dir,
+                int? page,
+                int? pageSize) =>
+                Results.Ok(await service.GetListAsync(
+                    new ArticleListQuery(
+                        search, status, authorId, tag, locale,
+                        sort ?? ArticleListSort.UpdatedAt, dir ?? SortDirection.Desc,
+                        page ?? 1, pageSize ?? ArticleService.DefaultPageSize),
+                    user.ToArticleViewer())))
+            .WithSummary("One page of the admin article list, filtered and sorted.")
+            .WithDescription(
+                "Lists the articles the caller may see (an author: Published ones plus their own), without "
+                + "their content. search matches the title or slug case-insensitively; status, authorId, tag "
+                + "(one whole tag) and locale filter exactly. sort is UpdatedAt (default), CreatedAt, "
+                + "PublishedAt (never-published last), Title or Status (workflow order); dir is Desc (default) "
+                + "or Asc; enum values are case-sensitive names. page is 1-based; pageSize defaults to 20 and is kept within 1 to 100.")
+            .Produces<ArticleListPageDto>()
+            .RequireAuthorization(Policies.CanEditArticles);
+
+            group.MapPost("/bulk/status", async (ArticleBulkStatusDto dto, ClaimsPrincipal user, ArticleService service, ArticleAccessGuard guard) =>
+            {
+                var ids = dto.Ids.Distinct().ToList();
+                if (ids.Count > ArticleService.MaxPageSize)
+                {
+                    return ApiProblemResults.Problem(StatusCodes.Status400BadRequest, AppErrors.ArticleBulkTooMany(ArticleService.MaxPageSize));
+                }
+
+                var result = new ArticleBulkResultDto();
+                foreach (var id in ids)
+                {
+                    result.Results.Add(await ChangeStatusOfOneAsync(id, dto.Status, user, service, guard));
+                }
+
+                return Results.Ok(result);
+            })
+            .WithSummary("Moves several articles to one status, each checked like a single move.")
+            .WithDescription(
+                "Applies POST /articles/{id}/status to each id in turn and saves each move on its own, so "
+                + "some may succeed while others fail. Each result carries ok, or the error code the single "
+                + "move would answer: article_not_found, forbidden or article_status_transition_invalid. "
+                + "More than 100 distinct ids answers 400 article_bulk_too_many.")
+            .Produces<ArticleBulkResultDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(Policies.CanEditArticles);
 
             group.MapGet("/{id:int}", async (int id, ClaimsPrincipal user, ArticleService service) =>
             {
@@ -89,6 +144,25 @@ namespace Mktba.Api.Endpoints
             }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization(Policies.CanEditAnyArticle);
 
             return builder;
+        }
+
+        private static async Task<ArticleBulkItemResultDto> ChangeStatusOfOneAsync(
+            int id, ArticleStatus target, ClaimsPrincipal user, ArticleService service, ArticleAccessGuard guard)
+        {
+            if (await guard.FindRefusalAsync(user, id, ArticleOperationRequirement.ChangeStatus(target)) is { } refusal)
+            {
+                return new ArticleBulkItemResultDto { Id = id, Ok = false, Code = refusal.Error.Code };
+            }
+
+            try
+            {
+                await service.ChangeStatusAsync(id, target, user.ToArticleViewer());
+                return new ArticleBulkItemResultDto { Id = id, Ok = true };
+            }
+            catch (AppException failure)
+            {
+                return new ArticleBulkItemResultDto { Id = id, Ok = false, Code = failure.Error.Code };
+            }
         }
     }
 }

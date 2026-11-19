@@ -23,8 +23,8 @@ export const logIn = async (page: Page) => {
   await expect(page.getByRole('heading', { name: 'Обзор', level: 1 })).toBeVisible();
 };
 
-// The admin article tree on /admin/articles, whose titles open the editor.
+// The admin article tree on /admin/articles/tree, whose titles open the editor.
 export const openAdminArticleTree = async (page: Page) => {
-  await page.goto('/admin/articles');
+  await page.goto('/admin/articles/tree');
   return page.getByRole('region', { name: 'Дерево статей' });
 };

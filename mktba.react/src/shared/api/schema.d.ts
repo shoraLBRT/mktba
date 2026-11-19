@@ -754,6 +754,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/admin-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One page of the admin article list, filtered and sorted.
+         * @description Lists the articles the caller may see (an author: Published ones plus their own), without their content. search matches the title or slug case-insensitively; status, authorId, tag (one whole tag) and locale filter exactly. sort is UpdatedAt (default), CreatedAt, PublishedAt (never-published last), Title or Status (workflow order); dir is Desc (default) or Asc; enum values are case-sensitive names. page is 1-based; pageSize defaults to 20 and is kept within 1 to 100.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                    status?: string;
+                    authorId?: number;
+                    tag?: string;
+                    locale?: string;
+                    sort?: string;
+                    dir?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleListPageDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/bulk/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Moves several articles to one status, each checked like a single move.
+         * @description Applies POST /articles/{id}/status to each id in turn and saves each move on its own, so some may succeed while others fail. Each result carries ok, or the error code the single move would answer: article_not_found, forbidden or article_status_transition_invalid. More than 100 distinct ids answers 400 article_bulk_too_many.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleBulkStatusDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleBulkResultDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}": {
         parameters: {
             query?: never;
@@ -2271,6 +2372,19 @@ export interface components {
             authorId?: number | null;
             coAuthorIds: number[];
         };
+        ArticleBulkItemResultDto: {
+            /** Format: int32 */
+            id: number;
+            ok: boolean;
+            code?: string | null;
+        };
+        ArticleBulkResultDto: {
+            results: components["schemas"]["ArticleBulkItemResultDto"][];
+        };
+        ArticleBulkStatusDto: {
+            ids: number[];
+            status: components["schemas"]["ArticleStatus"];
+        };
         ArticleContentCreateDto: {
             title: string;
             /** Format: int32 */
@@ -2336,6 +2450,38 @@ export interface components {
             key: string;
             label: string;
             value: string;
+        };
+        ArticleListItemDto: {
+            /** Format: int32 */
+            id: number;
+            title: string;
+            slug: string;
+            locale: string;
+            status: components["schemas"]["ArticleStatus"];
+            allowedTransitions: components["schemas"]["ArticleStatus"][];
+            /** Format: int32 */
+            parentArticleId?: number | null;
+            /** Format: int32 */
+            authorId?: number | null;
+            tags: string[];
+            /** Format: int32 */
+            paragraphCount: number;
+            canEdit: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+        };
+        ArticleListPageDto: {
+            items: components["schemas"]["ArticleListItemDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
         };
         ArticleMetaDto: {
             title: string;

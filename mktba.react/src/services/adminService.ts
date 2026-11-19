@@ -6,13 +6,17 @@ import type {
   AiStyleRequestDto,
   AiStyleResponseDto,
   ArticleAuthorsDto,
+  ArticleBulkResultDto,
+  ArticleBulkStatusDto,
   ArticleCreateDto,
+  ArticleListPageDto,
   ArticleMoveDto,
   ArticleReadDto,
   ArticleStatus,
   UpdateAiProviderSettingsDto,
   UserSummaryDto,
 } from '../shared/types/ApiTypes';
+import type { ArticleListParams } from '../shared/articleListParams';
 
 export const getArticles = async (): Promise<ArticleReadDto[]> => {
   const response = await apiClient.get<ArticleReadDto[]>('/articles');
@@ -58,6 +62,30 @@ export const createArticle = async (dto: ArticleCreateDto): Promise<ArticleReadD
  */
 export const moveArticle = async (id: number, dto: ArticleMoveDto): Promise<ArticleReadDto> => {
   const response = await apiClient.post<ArticleReadDto>(`/articles/${id}/move`, dto);
+  return response.data;
+};
+
+/** One page of the admin article list; only the filters that are set are sent. */
+export const getArticleList = async (params: ArticleListParams): Promise<ArticleListPageDto> => {
+  const response = await apiClient.get<ArticleListPageDto>('/articles/admin-list', {
+    params: {
+      search: params.search || undefined,
+      status: params.status ?? undefined,
+      authorId: params.authorId ?? undefined,
+      tag: params.tag || undefined,
+      locale: params.locale || undefined,
+      sort: params.sort,
+      dir: params.dir,
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+  });
+  return response.data;
+};
+
+/** Moves each article to the status on its own; the result says per article whether it moved and, if not, why. */
+export const bulkChangeArticleStatus = async (dto: ArticleBulkStatusDto): Promise<ArticleBulkResultDto> => {
+  const response = await apiClient.post<ArticleBulkResultDto>('/articles/bulk/status', dto);
   return response.data;
 };
 

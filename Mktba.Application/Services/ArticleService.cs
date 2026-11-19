@@ -26,6 +26,54 @@ namespace Mktba.Application.Services
             return articles.Select(article => ToReadDto(article, viewer)).ToList();
         }
 
+        /// <summary>The largest page of the admin article list, and the most articles one bulk action takes.</summary>
+        public const int MaxPageSize = 100;
+
+        /// <summary>The page size of the admin article list when the request gives none.</summary>
+        public const int DefaultPageSize = 20;
+
+        /// <summary>
+        /// One page of the admin article list (A-02, #34): only the articles <paramref name="viewer"/>
+        /// may see, each with the status moves the viewer may make. A page below 1 is the first, the
+        /// page size is kept within 1 to <see cref="MaxPageSize"/>; a page past the end is empty.
+        /// </summary>
+        public async Task<ArticleListPageDto> GetListAsync(ArticleListQuery query, ArticleViewer viewer)
+        {
+            var bounded = query with
+            {
+                Page = Math.Max(query.Page, 1),
+                PageSize = Math.Clamp(query.PageSize, 1, MaxPageSize),
+            };
+            var (rows, total) = await _articleRepository.GetListPageAsync(bounded, viewer);
+            return new ArticleListPageDto
+            {
+                Items = rows.Select(row => ToListItemDto(row, viewer)).ToList(),
+                Total = total,
+                Page = bounded.Page,
+                PageSize = bounded.PageSize,
+            };
+        }
+
+        private static ArticleListItemDto ToListItemDto(ArticleListRow row, ArticleViewer viewer) => new()
+        {
+            Id = row.Id,
+            Title = row.Title,
+            Slug = row.Slug,
+            Locale = row.Locale,
+            Status = row.Status,
+            AllowedTransitions = ArticleStatusTransitions.AllowedFrom(row.Status)
+                .Where(target => viewer.CanChangeStatus(row.Status, target, row.AuthorId, row.CoAuthorIds))
+                .ToList(),
+            ParentArticleId = row.ParentArticleId,
+            AuthorId = row.AuthorId,
+            Tags = row.Tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList() ?? new List<string>(),
+            ParagraphCount = row.ParagraphCount,
+            CanEdit = viewer.CanEdit(row.AuthorId, row.CoAuthorIds),
+            CreatedAt = row.CreatedAt,
+            UpdatedAt = row.UpdatedAt,
+            PublishedAt = row.PublishedAt,
+        };
+
         /// <summary>One article; one <paramref name="viewer"/> may not see counts as missing.</summary>
         public async Task<ArticleReadDto?> GetByIdAsync(int id, ArticleViewer viewer)
         {
