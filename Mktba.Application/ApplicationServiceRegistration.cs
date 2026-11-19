@@ -19,6 +19,8 @@ namespace Mktba.Application
             services.AddScoped<AdminService>();
             services.AddScoped<SessionService>();
             services.AddScoped<AdminAuthService>();
+            services.AddScoped<InviteService>();
+            services.AddScoped<UserAdminService>();
             return services;
         }
     }

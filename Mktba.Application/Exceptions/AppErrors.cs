@@ -17,7 +17,20 @@ public static class AppErrors
     public static AppError EmailAndPasswordRequired => new("email_and_password_required", "Email and password are required.");
     public static AppError InvalidCredentials => new("invalid_credentials", "Invalid credentials.");
     public static AppError AdminAlreadyExists => new("admin_already_exists", "Admin with this email already exists.");
-    public static AppError InviteTokenInvalid => new("invite_token_invalid", "Invite token is invalid or expired.");
+    public static AppError InviteNotFound => new("invite_not_found", "Invite not found. Check the code you were given.");
+    public static AppError InviteExpired => new("invite_expired", "The invite has expired.");
+    public static AppError InviteUsed => new("invite_used", "The invite has already been used.");
+    public static AppError InviteRevoked => new("invite_revoked", "The invite has been revoked.");
+
+    public static AppError InviteLifetimeInvalid(int maxHours) =>
+        new("invite_lifetime_invalid", $"Invite lifetime must be from 1 to {maxHours} hours.", With(("maxHours", maxHours)));
+
+    public static AppError InviteNoteTooLong(int maxLength) =>
+        new("invite_note_too_long", $"Invite note cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
+
+    // Users
+    public static AppError RoleInvalid => new("role_invalid", "Unknown role.");
+    public static AppError LastAdminDemotion => new("last_admin_demotion", "The last admin cannot be given another role.");
     public static AppError SessionInvalid => new("session_invalid", "The session has ended. Sign in again.");
     public static AppError SessionNotFound => new("session_not_found", "Session not found.");
     public static AppError SessionCsrfHeaderMissing => new("session_csrf_header_missing", "The request must carry the X-Requested-With header.");

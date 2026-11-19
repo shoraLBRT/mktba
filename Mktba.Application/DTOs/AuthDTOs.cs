@@ -72,10 +72,3 @@ public class SessionDto
     /// <summary>Whether this is the session of the request's own access token.</summary>
     public bool IsCurrent { get; set; }
 }
-
-public class AdminInviteTokenCreateResponseDto
-{
-    public string Token { get; set; } = string.Empty;
-
-    public DateTime ExpiresAtUtc { get; set; }
-}

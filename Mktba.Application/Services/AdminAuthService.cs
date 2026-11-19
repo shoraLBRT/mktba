@@ -1,8 +1,6 @@
 using Mktba.Application.Exceptions;
-using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
-using Mktba.Application.Configuration;
 using Mktba.Application.DTOs;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
@@ -12,21 +10,21 @@ namespace Mktba.Application.Services;
 public class AdminAuthService
 {
     private readonly UserRepository _userRepository;
-    private readonly AdminInviteTokenRepository _adminInviteTokenRepository;
+    private readonly InviteRepository _invites;
     private readonly SessionService _sessionService;
-    private readonly AuthOptions _authOptions;
+    private readonly TimeProvider _clock;
     private readonly PasswordHasher<User> _passwordHasher = new();
 
     public AdminAuthService(
         UserRepository userRepository,
-        AdminInviteTokenRepository adminInviteTokenRepository,
+        InviteRepository invites,
         SessionService sessionService,
-        IOptions<AuthOptions> authOptions)
+        TimeProvider clock)
     {
         _userRepository = userRepository;
-        _adminInviteTokenRepository = adminInviteTokenRepository;
+        _invites = invites;
         _sessionService = sessionService;
-        _authOptions = authOptions.Value;
+        _clock = clock;
     }
 
     public async Task<AdminAuthStatusDto> GetAuthStatusAsync(CancellationToken cancellationToken = default)
@@ -59,29 +57,42 @@ public class AdminAuthService
             return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.AdminAlreadyExists);
         }
 
-        var hasAdmins = await _userRepository.AnyAsync(cancellationToken);
-        AdminInviteToken? inviteToken = null;
-        if (hasAdmins)
+        var nowUtc = _clock.GetUtcNow().UtcDateTime;
+        Invite? invite = null;
+        if (await _userRepository.AnyAsync(cancellationToken))
         {
-            inviteToken = await ValidateInviteTokenAsync(request.InviteToken, cancellationToken);
-            if (inviteToken is null)
+            invite = string.IsNullOrWhiteSpace(request.InviteToken)
+                ? null
+                : await _invites.GetByHashAsync(SessionService.HashToken(request.InviteToken.Trim()), cancellationToken);
+            var inviteError = invite is null ? AppErrors.InviteNotFound : InviteError(invite.StatusAt(nowUtc));
+            if (inviteError is not null)
             {
-                return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.InviteTokenInvalid);
+                return AdminService.ServiceResult<IssuedSession>.Failure(inviteError);
             }
         }
 
-        // The first user and every invited user are admins; choosing the role of an invite is U-04 (#32).
-        var user = new User { Email = normalizedEmail, Role = UserRole.Admin };
+        // The first user bootstraps the platform as its admin; everyone else gets the invite's role.
+        var user = new User { Email = normalizedEmail, Role = invite?.Role ?? UserRole.Admin };
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         await _userRepository.AddAsync(user);
 
-        if (inviteToken is not null)
+        if (invite is not null)
         {
-            inviteToken.UsedAtUtc = DateTime.UtcNow;
-            inviteToken.UsedByUser = user;
+            invite.UsedAtUtc = nowUtc;
+            invite.UsedByUser = user;
         }
 
-        await _userRepository.SaveChangesAsync();
+        try
+        {
+            // One SaveChanges, so one transaction: the user and the used invite are stored together. The
+            // invite's update only matches while UsedAtUtc and RevokedAtUtc are still null (concurrency
+            // tokens), so of two registrations racing for one invite only the first succeeds.
+            await _userRepository.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.InviteUsed);
+        }
 
         return AdminService.ServiceResult<IssuedSession>.Success(await _sessionService.StartAsync(user, client, cancellationToken));
     }
@@ -112,40 +123,14 @@ public class AdminAuthService
         return AdminService.ServiceResult<IssuedSession>.Success(await _sessionService.StartAsync(user, client, cancellationToken));
     }
 
-    public async Task<AdminService.ServiceResult<AdminInviteTokenCreateResponseDto>> GenerateInviteTokenAsync(
-        int createdByUserId,
-        CancellationToken cancellationToken = default)
+    /// <summary>Why an invite with <paramref name="status"/> cannot be used, or null when it can.</summary>
+    private static AppError? InviteError(InviteStatus status) => status switch
     {
-        var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        var inviteToken = new AdminInviteToken
-        {
-            TokenHash = SessionService.HashToken(rawToken),
-            ExpiresAtUtc = DateTime.UtcNow.AddHours(_authOptions.InviteTokenLifetimeHours),
-            CreatedByUserId = createdByUserId,
-        };
-
-        await _adminInviteTokenRepository.AddAsync(inviteToken);
-        await _adminInviteTokenRepository.SaveChangesAsync();
-
-        return AdminService.ServiceResult<AdminInviteTokenCreateResponseDto>.Success(new AdminInviteTokenCreateResponseDto
-        {
-            Token = rawToken,
-            ExpiresAtUtc = inviteToken.ExpiresAtUtc,
-        });
-    }
-
-    private async Task<AdminInviteToken?> ValidateInviteTokenAsync(string? rawToken, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(rawToken))
-        {
-            return null;
-        }
-
-        var tokenHash = SessionService.HashToken(rawToken.Trim());
-        var nowUtc = DateTime.UtcNow;
-
-        return await _adminInviteTokenRepository.GetActiveByHashAsync(tokenHash, nowUtc, cancellationToken);
-    }
+        InviteStatus.Active => null,
+        InviteStatus.Used => AppErrors.InviteUsed,
+        InviteStatus.Revoked => AppErrors.InviteRevoked,
+        _ => AppErrors.InviteExpired,
+    };
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 }

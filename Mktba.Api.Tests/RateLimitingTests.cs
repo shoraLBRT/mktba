@@ -140,8 +140,8 @@ public sealed class RateLimitingTests
 
     private static async Task<HttpClient> RegisterInvitedAdminAsync(MktbaApiFactory factory, HttpClient inviter)
     {
-        var inviteResponse = await inviter.PostAsync("/auth/invite-token", null);
-        var invite = await inviteResponse.Content.ReadFromJsonAsync<AdminInviteTokenCreateResponseDto>();
+        var inviteResponse = await inviter.PostAsJsonAsync("/invites/", new { Role = "Admin" });
+        var invite = await inviteResponse.Content.ReadFromJsonAsync<InviteCreatedDto>(ApiJson.Options);
         var client = CreateClientFromIp(factory, "10.0.0.9");
         var response = await client.PostAsJsonAsync("/auth/register", new
         {
