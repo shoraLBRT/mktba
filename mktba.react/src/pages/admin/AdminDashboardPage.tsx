@@ -29,7 +29,7 @@ const AdminDashboardPage: React.FC = () => {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink-strong)]">{locale.adminLayout.dashboardTitle}</h1>
-        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">Overview of your article structure and content distribution.</p>
+        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t.dashboardDescription}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -37,7 +37,7 @@ const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
-                Total Articles
+                {t.totalArticles}
               </p>
               <p className="mt-2 text-3xl font-bold text-[var(--color-ink-strong)]">{shown(articleCount)}</p>
             </div>
@@ -49,7 +49,7 @@ const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
-                With Content
+                {t.articlesWithContent}
               </p>
               <p className="mt-2 text-3xl font-bold text-[var(--color-brand-forest)]">{shown(articlesWithContent)}</p>
               <p className="mt-1 text-xs text-[var(--color-ink-muted)]">{share(articlesWithContent, articleCount)}</p>
@@ -62,7 +62,7 @@ const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
-                Empty (Placeholders)
+                {t.emptyArticles}
               </p>
               <p className="mt-2 text-3xl font-bold text-[var(--color-ink-muted)]">{shown(emptyArticles)}</p>
               <p className="mt-1 text-xs text-[var(--color-ink-muted)]">{share(emptyArticles, articleCount)}</p>

@@ -160,7 +160,15 @@
     "customPrompt": "Пользовательский (из админ-панели)",
     "defaultPrompt": "Промпт по умолчанию",
     "promptReplacementWarning": "Если вы установите пользовательский промпт, он заменит (а не дополнит) поведение по умолчанию. Убедитесь, что ваш пользовательский промпт включает те же ограничения и правила, которые вы хотите применить.",
-    "statusBreakdownTitle": "Статьи по статусам"
+    "statusBreakdownTitle": "Статьи по статусам",
+    "dashboardDescription": "Обзор структуры статей и наполненности контентом.",
+    "totalArticles": "Всего статей",
+    "articlesWithContent": "С контентом",
+    "emptyArticles": "Пустые (заглушки)",
+    "aiPageDescription": "Подключение AI-провайдера и настройка стилизации Markdown.",
+    "aiStatusLabel": "Статус",
+    "maintenanceIrreversible": "Это действие необратимо.",
+    "maintenanceWarning": "Внимание"
   },
   "adminLoginPage": {
     "registerTitle": "Регистрация",
