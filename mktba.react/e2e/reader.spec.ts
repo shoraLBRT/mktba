@@ -378,3 +378,66 @@ test('the bottom of an article leads to its children and neighbours and stays ac
   await expect(page.getByRole('navigation', { name: 'Связанные статьи' })).toHaveCount(1);
   await expect(page.getByTestId('article-related')).toBeHidden();
 });
+
+test('the navigation tree remembers collapsed sections, opens the path to the current article and follows the arrow keys (R-09)', async ({ page, request }) => {
+  const stamp = Date.now();
+  const text = [{ order: 1, opinions: [{ content: 'Текст', isDefault: true, schoolIds: [] }] }];
+  const section = await publishArticle(request, `Раздел дерева ${stamp}`, text);
+  const chapter = await publishArticle(request, `Глава дерева ${stamp}`, text, { parentArticleId: section.id });
+  const leaf = await publishArticle(request, `Параграф дерева ${stamp}`, text, { parentArticleId: chapter.id });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const tree = page.getByRole('complementary').getByRole('navigation', { name: 'Статьи' });
+  const link = (title: string) => tree.getByRole('link', { name: title, exact: true });
+  const sectionLink = link(`Раздел дерева ${stamp}`);
+  const chapterLink = link(`Глава дерева ${stamp}`);
+  const leafLink = link(`Параграф дерева ${stamp}`);
+  const sectionRow = sectionLink.locator('..');
+
+  await expect(leafLink).toBeVisible();
+  await expect(sectionRow.getByText('Подразделов: 1')).toBeAttached();
+
+  // The toggle answers once the page is hydrated.
+  await expect(async () => {
+    await sectionRow.getByRole('button', { name: 'Свернуть раздел' }).click({ timeout: 1000 });
+    await expect(chapterLink).toBeHidden({ timeout: 1000 });
+  }).toPass();
+
+  await page.reload();
+  await expect(sectionRow.getByRole('button', { name: 'Развернуть раздел' })).toHaveAttribute('aria-expanded', 'false');
+  await expect(chapterLink).toBeHidden();
+
+  // Arrow keys: right expands and steps in, down walks on, left collapses and steps out.
+  await sectionLink.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(chapterLink).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+  await expect(chapterLink).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(leafLink).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(chapterLink).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(leafLink).toBeHidden();
+  await page.keyboard.press('ArrowLeft');
+  await expect(sectionLink).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(chapterLink).toBeHidden();
+
+  const { violations } = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(violations
+    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .map((violation) => violation.id)).toEqual([]);
+
+  // Opening the leaf directly expands both collapsed ancestors and marks the leaf.
+  await page.goto(`/article/${leaf.slug}`);
+  await expect(leafLink).toBeVisible();
+  await expect(leafLink).toHaveAttribute('aria-current', 'page');
+  await expect(leafLink).toBeInViewport();
+
+  // The server HTML holds the whole tree whatever the reader collapsed.
+  const html = await (await request.get('/')).text();
+  expect(html).toContain(`href="/article/${chapter.slug}"`);
+  expect(html).toContain(`href="/article/${leaf.slug}"`);
+});

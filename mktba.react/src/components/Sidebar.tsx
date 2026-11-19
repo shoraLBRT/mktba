@@ -99,7 +99,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="mb-0 mt-1 text-xs text-red-600">{(error as Error).message}</p>
           </div>
         ) : (
-          <NavigationTree navigationTree={filteredNavigationTree} onNavigate={onCloseMobile} />
+          <NavigationTree
+            navigationTree={filteredNavigationTree}
+            forceExpanded={searchValue.trim() !== ''}
+            onNavigate={onCloseMobile}
+          />
         )}
       </nav>
 

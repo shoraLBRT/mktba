@@ -219,7 +219,7 @@ test('an admin reorders sections and moves one under another parent', async ({ p
   await createSection(parent);
   await createSection(first, parent);
   await createSection(second, parent);
-  const childTitles = row(parent).locator('xpath=following-sibling::div[1]').getByRole('link');
+  const childTitles = row(parent).locator('xpath=following-sibling::ul[1]').getByRole('link');
   await expect(childTitles).toHaveText([first, second]);
 
   await row(second).hover();
