@@ -346,7 +346,7 @@ const ArticlePage: React.FC = () => {
       <div className="flex min-h-[60vh] items-center justify-center">
         {documentHead}
         <div className="w-full max-w-xl rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-red-700 shadow-sm">
-          <p className="m-0 text-base font-semibold">{locale.articlePage.loadError}</p>
+          <h1 className="m-0 text-base font-semibold">{locale.articlePage.loadError}</h1>
           <p className="mb-0 mt-2 text-sm text-red-600">{extractApiErrorMessage(error)}</p>
         </div>
       </div>
@@ -356,13 +356,13 @@ const ArticlePage: React.FC = () => {
   return (
     <div className="xl:flex xl:gap-0">
       {documentHead}
-      <main className="min-w-0 flex-1 overflow-hidden border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-r-none xl:border-r xl:border-[var(--color-border-soft)]">
+      <article className="min-w-0 flex-1 overflow-hidden border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-r-none xl:border-r xl:border-[var(--color-border-soft)]">
         <div className="mx-auto max-w-[760px] px-4 py-6 pb-24 sm:px-6 lg:px-8 xl:px-10">
           {breadcrumbItems.length > 0 ? (
-            <nav className="mb-5 flex flex-wrap items-center gap-1 text-[12.5px]">
+            <nav aria-label={locale.articlePage.breadcrumbs} className="mb-5 flex flex-wrap items-center gap-1 text-[12.5px]">
               {breadcrumbItems.map((item, index) => (
                 <React.Fragment key={`${item.id}-${index}`}>
-                  <span className={
+                  <span aria-current={index === breadcrumbItems.length - 1 ? 'page' : undefined} className={
                     index === breadcrumbItems.length - 1
                       ? 'text-[var(--color-ink-strong)]'
                       : item.hasContent
@@ -372,7 +372,7 @@ const ArticlePage: React.FC = () => {
                     {item.hasContent ? <Link to={articleHref(item.slug)}>{item.title}</Link> : item.title}
                   </span>
                   {index < breadcrumbItems.length - 1 ? (
-                    <ChevronRight size={12} className="shrink-0 text-[#bebdb8]" />
+                    <ChevronRight size={12} aria-hidden="true" className="shrink-0 text-[#bebdb8]" />
                   ) : null}
                 </React.Fragment>
               ))}
@@ -424,7 +424,7 @@ const ArticlePage: React.FC = () => {
             </div>
           )}
         </div>
-      </main>
+      </article>
 
       <ArticleRightSidebar
         tocItems={tocItems}

@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { declineAnalytics } from './helpers';
 
@@ -48,4 +49,19 @@ test('an unknown page and a missing article show the 404 page', async ({ page })
   await expect(page.getByRole('heading', { name: 'Страница не найдена' })).toBeVisible();
   await page.getByRole('link', { name: 'На главную' }).click();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test('an article page has no serious or critical accessibility violations (O-10)', async ({ page }) => {
+  await page.goto('/article/salat');
+  await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
+
+  // Colour contrast and the mazhab tabs' accessible names are R-17 (#141); the rest must stay clean.
+  const { violations } = await new AxeBuilder({ page })
+    .disableRules(['color-contrast', 'label-content-name-mismatch'])
+    .analyze();
+  const serious = violations
+    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
+
+  expect(serious).toEqual([]);
 });

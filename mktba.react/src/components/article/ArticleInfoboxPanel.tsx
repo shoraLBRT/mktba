@@ -52,7 +52,7 @@ export const ArticleInfoboxPanel = ({ infobox }: ArticleInfoboxPanelProps) => {
     : normalizedInfobox.fields;
 
   return (
-    <aside className="mb-6 w-full overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-sm shadow-sm lg:float-right lg:mb-4 lg:ml-6 lg:w-[320px]">
+    <aside aria-label={normalizedInfobox.title} className="mb-6 w-full overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-sm shadow-sm lg:float-right lg:mb-4 lg:ml-6 lg:w-[320px]">
       <div className="bg-[var(--color-brand-forest)] px-4 py-3 text-white">
         <p className="m-0 text-[15px] font-semibold leading-6">{normalizedInfobox.title}</p>
         {normalizedInfobox.subtitle ? (

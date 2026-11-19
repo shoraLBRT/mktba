@@ -57,7 +57,7 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-subtle)]">
             {t.onThisPage}
           </p>
-          <nav className="space-y-0.5">
+          <nav aria-label={t.onThisPage} className="space-y-0.5">
             {tocItems.map((item) => (
               <a
                 key={item.id}
@@ -112,7 +112,7 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
             {t.relatedArticles}
           </p>
           {hasRelatedLinks ? (
-            <nav className="space-y-0.5">
+            <nav aria-label={t.relatedArticles} className="space-y-0.5">
               {relatedLinks!.map((link) => (
                 <Link
                   key={link.id}

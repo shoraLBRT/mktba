@@ -577,7 +577,7 @@ const EditArticlePage: React.FC = () => {
           onJumpToBlock={(blockId) => blockRefs.current[blockId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
         />
 
-        <main className="min-w-0 flex-1 xl:px-6">
+        <div className="min-w-0 flex-1 xl:px-6">
           <div className="mx-auto max-w-[840px]">
             {notice ? (
               <div className={`mb-5 rounded-2xl border px-4 py-3 text-sm shadow-sm ${noticeClasses[notice.tone]}`}>
@@ -708,7 +708,7 @@ const EditArticlePage: React.FC = () => {
             onFormat={applyFormat}
             onAddBlock={(kind) => setBlocks((current) => insertBlockAfter(current, activeTarget?.blockId ?? null, kind))}
           />
-        </main>
+        </div>
 
         <EditorHelpRail
           blockCount={blocks.length}

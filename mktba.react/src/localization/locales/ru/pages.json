@@ -24,7 +24,8 @@
     "uiModeUpdated": "Режим отображения абзацев обновлен",
     "overview": "Общее описание",
     "publishedOn": "Опубликовано {date}",
-    "updatedOn": "Обновлено {date}"
+    "updatedOn": "Обновлено {date}",
+    "breadcrumbs": "Путь к статье"
   },
   "articleRightSidebar": {
     "onThisPage": "На этой странице",

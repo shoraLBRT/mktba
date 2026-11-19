@@ -15,6 +15,7 @@
       "close": "Закрыть панель навигации",
       "searchPlaceholder": "Поиск",
       "label": "Навигация",
+      "treeLabel": "Статьи",
       "mobileClose": "Закрыть навигацию"
     }
   },

@@ -14,6 +14,24 @@ test('the server sends an article page with its title, paragraphs and metadata i
   expect(html).toMatch(/<link rel="canonical" href="[^"]*\/article\/salat"/);
 });
 
+test('the server sends an article page with one h1, its landmarks and machine-readable dates (O-10)', async ({ request }) => {
+  const html = await (await request.get('/article/salat')).text();
+
+  expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+  expect(html.match(/<main[\s>]/g)).toHaveLength(1);
+  expect(html).toMatch(/<main[\s\S]*<article[\s>][\s\S]*<h1/);
+  expect(html).toMatch(/<header[\s>]/);
+  expect(html).toMatch(/<nav aria-label="Статьи"/);
+  expect(html).toMatch(/<time datetime="\d{4}-\d{2}-\d{2}T[^"]+Z">/i);
+});
+
+test('the server sends the home page with exactly one h1 inside main (O-10)', async ({ request }) => {
+  const html = await (await request.get('/')).text();
+
+  expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+  expect(html).toMatch(/<main[\s>][\s\S]*<h1/);
+});
+
 /** The `content` of a `<meta>` in raw HTML, matched by its `name` or `property`. */
 const metaContent = (html: string, key: string): string | null =>
   html.match(new RegExp(`<meta (?:name|property)="${key}" content="([^"]*)"`))?.[1] ?? null;
