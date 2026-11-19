@@ -179,7 +179,7 @@
 
 ## 7. Админка `/admin`
 
-Соответствующий файл: [AdminPage.tsx](../wikiweaver.react/src/pages/AdminPage.tsx)
+Соответствующие файлы: [AdminLayout.tsx](../mktba.react/src/layouts/AdminLayout.tsx) (свой layout с меню разделов по роли, A-01 #33), страницы разделов — [pages/admin/](../mktba.react/src/pages/admin/). Старый одностраничный `AdminPage.tsx` разбит; ссылки `/admin?section=…` перенаправляются на новые адреса.
 
 В Figma админка **отсутствует** (кнопки нет, экрана нет). Используется текущий WikiWeaver-админ.
 

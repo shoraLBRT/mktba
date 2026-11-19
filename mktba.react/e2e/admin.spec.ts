@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { declineAnalytics, logIn } from './helpers';
+import { declineAnalytics, logIn, openAdminArticleTree } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await declineAnalytics(page);
@@ -16,7 +16,7 @@ test('a reload keeps the admin signed in without a token in storage', async ({ p
   await page.reload();
 
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole('heading', { name: 'Статьи', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Обзор', level: 1 })).toBeVisible();
   const storedKeys = await page.evaluate(() => Object.keys(localStorage));
   expect(storedKeys).not.toContain('mktba.admin.token');
   const cookies = await page.context().cookies('http://localhost:5172/auth/refresh');
@@ -53,9 +53,8 @@ test('an admin creates an article and then edits it', async ({ page }) => {
   await expect(page.getByText('Первый абзац из E2E-теста.')).toBeVisible();
   const articleUrl = page.url();
 
-  // Inside the admin panel the navigation tree links straight to the editor.
-  await page.goto('/admin');
-  await page.getByRole('complementary').getByRole('link', { name: title, exact: true }).click();
+  // The admin article tree links straight to the editor.
+  await (await openAdminArticleTree(page)).getByRole('link', { name: title, exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/articles\/\d+\/edit$/);
   const articleId = page.url().match(/\/admin\/articles\/(\d+)\/edit$/)![1];
   await page.getByRole('textbox', { name: 'Название статьи...' }).fill(editedTitle);
@@ -86,7 +85,7 @@ test('without a configured AI provider the editor explains where to set it up', 
   await expect(page.getByText(/ИИ не настроен/)).toBeVisible();
   await page.getByRole('link', { name: 'Открыть настройки ИИ' }).click();
 
-  await expect(page).toHaveURL(/\/admin\?section=aiProvider$/);
+  await expect(page).toHaveURL(/\/admin\/ai$/);
   const baseUrl = page.locator('input[name="ai-base-url"]');
   await expect(baseUrl).toHaveValue('');
   await expect(baseUrl).toHaveAttribute('placeholder', 'https://api.openai.com/v1');
@@ -111,8 +110,7 @@ test('a new article is a draft hidden from readers until it is published', async
   await expect(reader.getByText('Текст черновика.')).toHaveCount(0);
   await expect(reader.getByRole('complementary').getByRole('link', { name: title, exact: true })).toHaveCount(0);
 
-  await page.goto('/admin');
-  await page.getByRole('complementary').getByRole('link', { name: title, exact: true }).click();
+  await (await openAdminArticleTree(page)).getByRole('link', { name: title, exact: true }).click();
   const statusPanel = page.getByTestId('article-status-panel');
   await expect(statusPanel.getByText('Черновик')).toBeVisible();
   await statusPanel.getByRole('button', { name: 'Отправить на проверку' }).click();
@@ -139,8 +137,7 @@ test('an edit is kept in the history, can be compared and rolled back', async ({
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
 
-  await page.goto('/admin');
-  await page.getByRole('complementary').getByRole('link', { name: title, exact: true }).click();
+  await (await openAdminArticleTree(page)).getByRole('link', { name: title, exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/articles\/\d+\/edit$/);
   const editUrl = page.url();
   await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Испорченный текст.');
@@ -173,7 +170,7 @@ test('an admin reorders sections and moves one under another parent', async ({ p
   const first = `E2E первая ${stamp}`;
   const second = `E2E вторая ${stamp}`;
   await logIn(page);
-  const sidebar = page.getByRole('complementary');
+  const sidebar = await openAdminArticleTree(page);
   const row = (title: string) => sidebar.getByRole('link', { name: title, exact: true }).locator('..');
   const createSection = async (title: string, under?: string) => {
     if (under) {

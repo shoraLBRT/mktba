@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, useNavigate } from 'react-router-dom';
-import MainLayout from '../layouts/MainLayout';
 import { ADMIN_SESSION_EXPIRED_EVENT, startSession, useSession } from '../services/session';
 import { MazhabProvider } from '../context/MazhabProvider';
 import { CookieConsent } from '../components/CookieConsent';
@@ -46,10 +45,8 @@ function App() {
       <MazhabProvider>
       <Router>
         <AdminSessionExpirationHandler />
-        <MainLayout>
-          <CookieConsent />
-          <AppRoutes />
-        </MainLayout>
+        <CookieConsent />
+        <AppRoutes />
       </Router>
       </MazhabProvider>
     </QueryClientProvider>
