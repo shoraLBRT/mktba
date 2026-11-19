@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -24,7 +25,10 @@ internal sealed class NonNullablePropertiesRequiredSchemaFilter : ISchemaFilter
         foreach (var schemaPropertyName in schema.Properties.Keys)
         {
             var property = properties.FirstOrDefault(p =>
-                string.Equals(p.Name, schemaPropertyName, StringComparison.OrdinalIgnoreCase));
+                string.Equals(
+                    p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? p.Name,
+                    schemaPropertyName,
+                    StringComparison.OrdinalIgnoreCase));
             if (property is null)
             {
                 continue;
