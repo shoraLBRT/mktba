@@ -78,6 +78,15 @@ export const useSectionCollapsed = (articleId: number): boolean =>
     () => false,
   );
 
+const NOTHING_COLLAPSED: ReadonlySet<number> = new Set();
+
+/**
+ * The whole set of collapsed sections, for a tree that lays its rows out itself (the windowed mode
+ * of `NavigationTree`). Like `useSectionCollapsed`, it is empty on the server and while hydrating.
+ */
+export const useCollapsedSections = (): ReadonlySet<number> =>
+  useSyncExternalStore(subscribe, current, () => NOTHING_COLLAPSED);
+
 /** Test hook: forgets the in-memory copy so the next read comes from `localStorage`. */
 export const resetNavigationTreeStateForTests = () => {
   collapsedIds = null;
