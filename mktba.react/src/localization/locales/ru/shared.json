@@ -1,11 +1,5 @@
 {
   "layout": {
-    "serviceTabs": {
-      "library": "Lib",
-      "blog": "Blog",
-      "qa": "Q&A",
-      "soon": "скоро"
-    },
     "menu": {
       "home": "Главная",
       "addArticle": "Добавить статью",

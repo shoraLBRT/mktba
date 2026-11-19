@@ -71,6 +71,14 @@ describe('AppRoutes', () => {
     expect(screen.getByRole('link', { name: 'На главную' }).getAttribute('href')).toBe('/');
   });
 
+  it('given the public header, when rendered, then shows no service tabs for the unbuilt Blog and Q&A', () => {
+    renderAt('/no/such/page');
+
+    const header = screen.getByRole('banner');
+    expect(header.textContent).not.toMatch(/Blog|Q&A|скоро/);
+    expect(screen.queryByRole('button', { name: /Blog|Q&A/ })).toBeNull();
+  });
+
   it('given an admin on the old create path, when rendered, then redirects to the admin create page', async () => {
     signInAs('Admin');
 
