@@ -23,7 +23,7 @@ test('an admin creates an article and then edits it', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
   await expect(page.getByRole('textbox', { name: 'Адрес статьи' })).toHaveValue(slug);
   await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Первый абзац из E2E-теста.');
-  await page.getByRole('button', { name: 'Сохранить' }).click();
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
 
   await expect(page).toHaveURL(new RegExp(`/article/${slug}$`));
   await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
@@ -36,7 +36,7 @@ test('an admin creates an article and then edits it', async ({ page }) => {
   await expect(page).toHaveURL(/\/admin\/articles\/\d+\/edit$/);
   const articleId = page.url().match(/\/admin\/articles\/(\d+)\/edit$/)![1];
   await page.getByRole('textbox', { name: 'Название статьи...' }).fill(editedTitle);
-  await page.getByRole('button', { name: 'Сохранить' }).click();
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
 
   // A new title keeps the slug, so links to the article do not change.
   await expect(page).toHaveURL(articleUrl);
@@ -44,7 +44,7 @@ test('an admin creates an article and then edits it', async ({ page }) => {
 
   await page.goto(`/admin/articles/${articleId}/edit`);
   await page.getByRole('textbox', { name: 'Адрес статьи' }).fill(editedSlug);
-  await page.getByRole('button', { name: 'Сохранить' }).click();
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/article/${editedSlug}$`));
 
   // The old slug and the pre-slug numeric link both land on the current slug.
@@ -78,7 +78,7 @@ test('a new article is a draft hidden from readers until it is published', async
   await page.getByRole('button', { name: 'Добавить статью' }).click();
   await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
   await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Текст черновика.');
-  await page.getByRole('button', { name: 'Сохранить' }).click();
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/article/${slug}$`));
 
   const reader = await browser.newPage();
@@ -96,9 +96,11 @@ test('a new article is a draft hidden from readers until it is published', async
   await expect(statusPanel.getByText('На проверке')).toBeVisible();
   await statusPanel.getByRole('button', { name: 'Опубликовать' }).click();
   await expect(statusPanel.getByText('Опубликована')).toBeVisible();
+  await expect(page.getByTestId('article-authors-panel').getByLabel('Автор', { exact: true })).not.toHaveValue('');
 
   await reader.goto(`/article/${slug}`);
   await expect(reader.getByRole('heading', { name: title, level: 1 })).toBeVisible();
   await expect(reader.getByText('Текст черновика.')).toBeVisible();
+  await expect(reader.getByTestId('article-dates')).toContainText('Опубликовано');
   await reader.close();
 });
