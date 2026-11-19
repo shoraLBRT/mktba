@@ -3071,6 +3071,10 @@ export interface components {
             } | null;
             traceId: string;
         };
+        ArticleAuthorDto: {
+            displayName: string;
+            slug?: string | null;
+        };
         ArticleAuthorsDto: {
             /** Format: int32 */
             authorId?: number | null;
@@ -3124,6 +3128,7 @@ export interface components {
             seo?: components["schemas"]["ArticleSeoDto"];
             meta?: components["schemas"]["ArticleMetaDto"];
             sources?: components["schemas"]["SourceDto"][] | null;
+            authors?: components["schemas"]["ArticleAuthorDto"][] | null;
         };
         ArticleCreateDto: {
             title: string;

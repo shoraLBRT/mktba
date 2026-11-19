@@ -21,6 +21,7 @@ export type ArticleInfoboxCreateDto = Schemas['ArticleInfoboxCreateDto'];
 export type ArticleRelatedLinkDto = Schemas['ArticleRelatedLinkDto'];
 export type ArticleRelatedLinkCreateDto = Schemas['ArticleRelatedLinkCreateDto'];
 export type ArticleContentDto = Schemas['ArticleContentDto'];
+export type ArticleAuthorDto = Schemas['ArticleAuthorDto'];
 export type ArticleContentCreateDto = Schemas['ArticleContentCreateDto'];
 export type ArticleSeoDto = Schemas['ArticleSeoDto'];
 export type ArticleMetaDto = Schemas['ArticleMetaDto'];

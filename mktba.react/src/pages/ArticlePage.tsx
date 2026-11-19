@@ -8,6 +8,7 @@ import { ArticleBreadcrumbs } from '../components/article/ArticleBreadcrumbs';
 import { ArticleDates } from '../components/article/ArticleDates';
 import { ArticleFooter } from '../components/article/ArticleFooter';
 import { collectCitedSources } from '../shared/articleSources';
+import { authorHref } from '../shared/author';
 import { ArticleMeta } from '../components/article/ArticleMeta';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { ArticleStructuredData } from '../components/StructuredData';
@@ -293,6 +294,8 @@ const ArticlePage: React.FC = () => {
               image: articleContent.meta.socialImageUrl,
               publishedAt: articleContent.publishedAt,
               updatedAt: articleContent.updatedAt,
+              authors: (articleContent.authors ?? []).flatMap((author) =>
+                author.slug ? [{ name: author.displayName, path: authorHref(author.slug) }] : []),
             }}
             breadcrumbs={breadcrumbSteps}
           />
@@ -354,6 +357,7 @@ const ArticlePage: React.FC = () => {
             publishedAt={articleContent.publishedAt}
             updatedAt={articleContent.updatedAt}
             readingMinutes={readingMinutes}
+            authors={articleContent.authors}
           />
 
           {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);

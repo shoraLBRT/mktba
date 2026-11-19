@@ -63,6 +63,29 @@ describe('structured data builders', () => {
     });
   });
 
+  it('given authors with public pages, when building Article, then the author is their Person nodes and the publisher stays the organization', () => {
+    const article = articleNode(site, {
+      path: '/article/salat',
+      headline: 'Салат',
+      authors: [
+        { name: 'Ахмад Иванов', path: '/authors/ahmad-ivanov' },
+        { name: 'Умар Петров', path: '/authors/umar-petrov' },
+      ],
+    });
+
+    expect(article.author).toEqual([
+      { '@id': 'https://mktba.ru/authors/ahmad-ivanov#person' },
+      { '@id': 'https://mktba.ru/authors/umar-petrov#person' },
+    ]);
+    expect(article.publisher).toEqual({ '@id': 'https://mktba.ru/#organization' });
+  });
+
+  it('given an empty author list, when building Article, then the author is the organization', () => {
+    const article = articleNode(site, { path: '/article/salat', headline: 'Салат', authors: [] });
+
+    expect(article.author).toEqual({ '@id': 'https://mktba.ru/#organization' });
+  });
+
   it('given an article without description, image or dates, when building Article, then those fields are left out and the default image is used', () => {
     const article = articleNode(site, { path: '/article/a', headline: 'A', description: null, image: null });
 

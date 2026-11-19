@@ -45,6 +45,25 @@ describe('StructuredData', () => {
     expect(nodes[2]).toMatchObject({ headline: 'Салат', datePublished: '2026-10-01T10:00:00Z' });
   });
 
+  it('given an article by an author with a page, when rendered, then the graph ends with the Person the Article names', () => {
+    const { container } = renderOnSite(
+      <ArticleStructuredData
+        article={{ path: '/article/salat', headline: 'Салат', authors: [{ name: 'Ахмад Иванов', path: '/authors/ahmad-ivanov' }] }}
+        breadcrumbs={[{ name: 'Салат', path: '/article/salat' }]}
+      />,
+    );
+
+    const nodes = renderedGraph(container)['@graph'];
+    expect(nodes.map((node) => node['@type'])).toEqual(['Organization', 'WebSite', 'Article', 'BreadcrumbList', 'Person']);
+    expect(nodes[4]).toEqual({
+      '@id': 'https://mktba.ru/authors/ahmad-ivanov#person',
+      '@type': 'Person',
+      name: 'Ахмад Иванов',
+      url: 'https://mktba.ru/authors/ahmad-ivanov',
+    });
+    expect(nodes[2]).toMatchObject({ author: [{ '@id': nodes[4]['@id'] }] });
+  });
+
   it('given a headline with a closing script tag, when rendered, then the script is not broken and the headline survives', () => {
     const headline = '</script><img src=x onerror=alert(1)>';
     const { container } = renderOnSite(

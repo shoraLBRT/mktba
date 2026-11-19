@@ -88,6 +88,8 @@
     "breadcrumbsHome": "Главная",
     "readingTime": "{minutes} мин чтения",
     "readingTimeLabel": "Время чтения: около {minutes} мин",
+    "author": "Автор:",
+    "authors": "Авторы:",
     "headingLink": "Ссылка на раздел «{title}»",
     "paragraphLink": "Ссылка на абзац {number}",
     "childArticles": "В этом разделе",

@@ -40,7 +40,10 @@ type ArticleStructuredDataProps = {
   breadcrumbs: BreadcrumbStep[];
 };
 
-/** An article page's structured data: `Organization`, `WebSite`, `Article` and its `BreadcrumbList`. */
+/**
+ * An article page's structured data: `Organization`, `WebSite`, `Article`, its `BreadcrumbList` and
+ * a `Person` for each author with a public page.
+ */
 export const ArticleStructuredData = ({ article, breadcrumbs }: ArticleStructuredDataProps) => {
   const site = useSiteFacts();
   return (
@@ -50,6 +53,7 @@ export const ArticleStructuredData = ({ article, breadcrumbs }: ArticleStructure
         webSiteNode(site),
         articleNode(site, article),
         breadcrumbListNode(site.siteUrl, article.path, breadcrumbs),
+        ...(article.authors ?? []).map((author) => personNode(site, author)),
       ])}
     />
   );
