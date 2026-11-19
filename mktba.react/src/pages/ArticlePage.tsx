@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getArticleContentById } from '../services/Article/articleService';
+import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
@@ -25,6 +25,7 @@ import { useMazhab } from '../context/mazhabContext';
 import { useTrackEvent } from '../analytics/useTrackEvent';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
+import { articleHref } from '../shared/slug';
 
 const findArticlePathById = (
   articles: NavigationArticleDto[],
@@ -100,8 +101,10 @@ const buildOpinionCaptions = (
 
 const ArticlePage: React.FC = () => {
   const locale = useLocale();
-  const { id } = useParams<{ id: string }>();
-  const articleId = parseInt(id || '0', 10);
+  const navigate = useNavigate();
+  const { slug: requestedSlug = '' } = useParams<{ slug: string }>();
+  // `/article/{id}` links from before slugs still open the article and are replaced by its slug URL.
+  const legacyArticleId = /^\d+$/.test(requestedSlug) ? Number(requestedSlug) : null;
   const [uiMode] = useState<ParagraphUiMode>(getInitialUiMode);
   const { selectedSchoolId } = useMazhab();
   // Per-paragraph overrides are scoped to the mazhab they were made under, so
@@ -127,10 +130,23 @@ const ArticlePage: React.FC = () => {
   };
 
   const { data: articleContent, isLoading, error } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, articleId],
-    queryFn: () => getArticleContentById(articleId),
-    enabled: !isNaN(articleId) && articleId > 0,
+    queryKey: legacyArticleId !== null
+      ? [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, legacyArticleId]
+      : [APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, 'slug', requestedSlug],
+    queryFn: () => (legacyArticleId !== null
+      ? getArticleContentById(legacyArticleId)
+      : getArticleContentBySlug(requestedSlug)),
+    enabled: requestedSlug.length > 0,
   });
+  const articleId = articleContent?.id ?? 0;
+  const canonicalSlug = articleContent?.slug;
+
+  // An id link or an old slug lands on the article's current slug URL without a history entry.
+  useEffect(() => {
+    if (canonicalSlug && canonicalSlug !== requestedSlug) {
+      navigate(articleHref(canonicalSlug), { replace: true });
+    }
+  }, [canonicalSlug, requestedSlug, navigate]);
 
   const { data: navigationTree } = useNavigationTree();
 
@@ -142,7 +158,7 @@ const ArticlePage: React.FC = () => {
   const { data: articleSchools } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, articleId],
     queryFn: () => getSchoolsByArticleId(articleId),
-    enabled: !isNaN(articleId) && articleId > 0,
+    enabled: articleId > 0,
   });
 
   const track = useTrackEvent();
@@ -182,6 +198,7 @@ const ArticlePage: React.FC = () => {
     () =>
       articlePath.map((article) => ({
         id: article.id,
+        slug: article.slug,
         title: article.title,
         hasContent: article.hasContent,
       })),
@@ -293,7 +310,7 @@ const ArticlePage: React.FC = () => {
                         ? 'text-[var(--color-brand-forest)]'
                         : 'text-[var(--color-ink-muted)]'
                   }>
-                    {item.hasContent ? <Link to={`/article/${item.id}`}>{item.title}</Link> : item.title}
+                    {item.hasContent ? <Link to={articleHref(item.slug)}>{item.title}</Link> : item.title}
                   </span>
                   {index < breadcrumbItems.length - 1 ? (
                     <ChevronRight size={12} className="shrink-0 text-[#bebdb8]" />

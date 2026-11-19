@@ -46,6 +46,7 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 
 **Key domain concepts:**
 - `Article` contains ordered `Paragraph`s (slot).
+- `Article.Slug` — URL segment (`/article/{slug}`), transliterated from the title or set by hand; unique across articles until M-09 (#27) makes it unique per locale. A changed slug leaves an `ArticleSlugRedirect`; old `/article/{id}` links redirect to the slug URL. Transliteration lives in `ArticleSlugRules` (C#), the `AddArticleSlugs` migration backfill (SQL) and `src/shared/slug.ts` (editor prefill) — keep the three identical.
 - Each `Paragraph` holds one or more `Opinion`s; one `Opinion` is marked default (fallback when user's mazhab has no specific opinion).
 - `Opinion` ↔ `School` is M:N through `OpinionSchool` join.
 - A plain paragraph (exactly one `Opinion`) is common to all schools and has no school links: every write path (`/paragraph`, `/articles/content`, `/articles/{id}/content`) rejects school ids on it with `paragraph_plain_schools_not_allowed`, and the editor offers school selection only in a block with two or more opinions (a block left with one non-empty opinion is saved as a plain paragraph, without school ids). School links belong to versioned paragraphs (two or more opinions).
@@ -58,6 +59,7 @@ mktba.react           → React 19 + TypeScript, React Router v7, React Query v5
 - `/navigationTree/tree` — article hierarchy for the sidebar
 - `/articles` — article CRUD (`GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}`)
 - `/articles/{id}/content`, `POST /articles/content` — article with its paragraphs and opinions, read and saved as a whole
+- `/articles/by-slug/{slug}/content` — the same content by slug; an old slug answers 302 to the current slug's URL
 - `/paragraph` — paragraph CRUD (`GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}`)
 - `/schools` — `GET /system`, `GET /article/{articleId}`, `POST /`, `DELETE /{id}`
 - `/admin` — `POST /cleanup`, `GET|PUT|DELETE /ai-settings`, `POST /ai-style`, `POST /ai-check`

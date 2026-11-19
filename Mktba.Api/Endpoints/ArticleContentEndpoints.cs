@@ -16,6 +16,23 @@ namespace Mktba.Api.Endpoints
                 return Results.Ok(content);
             }).Produces<ArticleContentDto>().ProducesApiProblem(StatusCodes.Status404NotFound);
 
+            group.MapGet("/by-slug/{slug}/content", async (string slug, ArticleContentService service) =>
+            {
+                var lookup = await service.GetContentBySlugAsync(slug);
+                return lookup.Content is not null
+                    ? Results.Ok(lookup.Content)
+                    : Results.Redirect(BySlugContentPath(lookup.RedirectToSlug!), permanent: false);
+            })
+            .WithSummary("Article content by slug; an old slug redirects (302) to the current one.")
+            .WithDescription(
+                "A current slug returns the content. A slug the article used before answers 302 Found with "
+                + "Location set to the current slug's URL, so clients that follow redirects get the content "
+                + "and can compare its slug with the one they asked for. The redirect is temporary on purpose: "
+                + "an old slug can become current again, and a cached permanent redirect would then loop.")
+            .Produces<ArticleContentDto>()
+            .Produces(StatusCodes.Status302Found)
+            .ProducesApiProblem(StatusCodes.Status404NotFound);
+
             group.MapPost("/content", async (ArticleContentCreateDto dto, ArticleContentService service) =>
             {
                 var article = await service.CreateArticleWithContentAsync(dto);
@@ -30,5 +47,7 @@ namespace Mktba.Api.Endpoints
 
             return builder;
         }
+
+        private static string BySlugContentPath(string slug) => $"/articles/by-slug/{Uri.EscapeDataString(slug)}/content";
     }
 }

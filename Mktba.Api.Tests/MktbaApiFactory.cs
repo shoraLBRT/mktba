@@ -1,9 +1,10 @@
-using System.Net;
+﻿using System.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Mktba.Infrastructure.Data;
@@ -76,7 +77,10 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
                 services.Remove(descriptor);
             }
 
-            services.AddDbContext<MktbaDbContext>(options => options.UseInMemoryDatabase(_databaseName));
+            // InMemory has no transactions; services that open one (article create/update) still run.
+            services.AddDbContext<MktbaDbContext>(options => options
+                .UseInMemoryDatabase(_databaseName)
+                .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
             services.AddSingleton<IStartupFilter, RemoteIpFromHeaderStartupFilter>();
         });
     }

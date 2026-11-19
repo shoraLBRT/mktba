@@ -2,6 +2,7 @@ import { Tag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLocale } from '../../localization/hooks';
+import { articleHref } from '../../shared/slug';
 import type { ArticleRelatedLinkDto } from '../../shared/types/ApiTypes';
 
 export type TocItem = {
@@ -115,7 +116,7 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
               {relatedLinks!.map((link) => (
                 <Link
                   key={link.id}
-                  to={`/article/${link.relatedArticleId}`}
+                  to={articleHref(link.relatedArticleSlug)}
                   className="block rounded px-2 py-1 text-[12.5px] text-[var(--color-brand-forest)] transition-colors hover:bg-[var(--color-brand-forest-soft)]"
                 >
                   {link.relatedArticleTitle}

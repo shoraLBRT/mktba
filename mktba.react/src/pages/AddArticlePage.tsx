@@ -46,6 +46,9 @@ import {
 import { addInfoboxField, buildInfoboxCreateDto, createEmptyInfoboxDraft, hasIncompleteInfoboxFields, moveInfoboxField, removeInfoboxField, updateInfoboxField } from './add-article/infoboxHelpers';
 import { addRelatedLink, buildRelatedLinkCreateDtos, moveRelatedLink, removeRelatedLink, type RelatedLinkDraft } from './add-article/metadataHelpers';
 import type { EditorBlock } from './add-article/types';
+import { SlugField } from './add-article/SlugField';
+import { formatMessage } from '../localization';
+import { SLUG_MAX_LENGTH, articleHref, isValidSlug, slugFromTitle } from '../shared/slug';
 
 type Notice = {
   tone: 'success' | 'warning' | 'error';
@@ -113,6 +116,10 @@ const AddArticlePage: React.FC = () => {
   const t = locale.addArticlePage;
   const editorText = locale.addArticleEditor;
   const [title, setTitle] = useState('');
+  // Until the editor types a slug, it follows the title and is left to the server to generate,
+  // so a slug already taken gets a -2 suffix instead of an error.
+  const [manualSlug, setManualSlug] = useState<string | null>(null);
+  const slug = manualSlug ?? (title.trim() ? slugFromTitle(title) : '');
   const [parentArticleId, setParentArticleId] = useState<number | null>(null);
   const [infobox, setInfobox] = useState(createEmptyInfoboxDraft);
   const [blocks, setBlocks] = useState<EditorBlock[]>([createEmptyBlock('paragraph')]);
@@ -179,7 +186,7 @@ const AddArticlePage: React.FC = () => {
     onSuccess: (created) => {
       void invalidateArticleQueries(queryClient);
       showNotice('success', t.saved);
-      navigate(`/article/${created.id}`);
+      navigate(articleHref(created.slug ?? String(created.id)));
     },
     onError: (error) => showNotice('error', `${t.saveError}: ${(error as Error).message}`),
   });
@@ -344,8 +351,15 @@ const AddArticlePage: React.FC = () => {
       return;
     }
 
+    const requestedSlug = manualSlug?.trim() || undefined;
+    if (requestedSlug !== undefined && !isValidSlug(requestedSlug)) {
+      showNotice('warning', formatMessage(t.slugInvalid, { maxLength: SLUG_MAX_LENGTH }));
+      return;
+    }
+
     mutation.mutate({
       title: title.trim(),
+      slug: requestedSlug,
       parentArticleId: parentArticleId ?? undefined,
       paragraphs: buildParagraphCreateDtosFromBlocks(blocks),
       infobox: buildInfoboxCreateDto(infobox),
@@ -467,6 +481,12 @@ const AddArticlePage: React.FC = () => {
                       className="h-auto border-0 bg-transparent px-0 py-0 text-3xl font-bold tracking-[-0.03em] text-[var(--color-ink-strong)] shadow-none focus:ring-0"
                     />
                   </div>
+                  <SlugField
+                    value={slug}
+                    disabled={isLocked}
+                    onChange={setManualSlug}
+                    onFillFromTitle={() => setManualSlug(null)}
+                  />
                 </div>
               </div>
 

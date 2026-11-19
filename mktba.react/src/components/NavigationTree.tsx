@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocale } from '../localization/hooks';
+import { articleHref } from '../shared/slug';
 import type { NavigationArticleDto } from '../shared/types/ApiTypes';
 
 interface NavigationTreeProps {
@@ -62,7 +63,7 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
 
         {isClickable ? (
           <Link
-            to={showArticleEditActions ? `/admin/articles/${article.id}/edit` : `/article/${article.id}`}
+            to={showArticleEditActions ? `/admin/articles/${article.id}/edit` : articleHref(article.slug)}
             className={[
               'min-w-0 flex-1 truncate text-[12px] leading-5',
               isActive ? 'font-medium' : '',
@@ -112,6 +113,15 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
   );
 };
 
+const findArticleIdBySlug = (articles: NavigationArticleDto[] | undefined, slug: string): number | undefined => {
+  for (const article of articles ?? []) {
+    if (article.slug === slug) return article.id;
+    const nested = findArticleIdBySlug(article.children ?? undefined, slug);
+    if (nested !== undefined) return nested;
+  }
+  return undefined;
+};
+
 const NavigationTree: React.FC<NavigationTreeProps> = ({
   navigationTree,
   showArticleEditActions = false,
@@ -121,14 +131,17 @@ const NavigationTree: React.FC<NavigationTreeProps> = ({
   const location = useLocation();
 
   const activeArticleId = useMemo(() => {
-    const readMatch = location.pathname.match(/^\/article\/(\d+)$/);
-    if (readMatch) return Number(readMatch[1]);
+    const readMatch = location.pathname.match(/^\/article\/([^/]+)$/);
+    if (readMatch) {
+      const segment = decodeURIComponent(readMatch[1]);
+      return /^\d+$/.test(segment) ? Number(segment) : findArticleIdBySlug(navigationTree, segment);
+    }
 
     const editMatch = location.pathname.match(/^\/admin\/articles\/(\d+)\/edit$/);
     if (editMatch) return Number(editMatch[1]);
 
     return undefined;
-  }, [location.pathname]);
+  }, [location.pathname, navigationTree]);
 
   return (
     <div className="space-y-px">

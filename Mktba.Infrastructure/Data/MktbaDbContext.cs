@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Mktba.Domain.Entities;
 
 namespace Mktba.Infrastructure.Data
@@ -12,6 +12,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<Article> Articles { get; set; } = null!;
         public DbSet<ArticleInfoboxField> ArticleInfoboxFields { get; set; } = null!;
         public DbSet<ArticleRelatedLink> ArticleRelatedLinks { get; set; } = null!;
+        public DbSet<ArticleSlugRedirect> ArticleSlugRedirects { get; set; } = null!;
         public DbSet<Paragraph> Paragraphs { get; set; } = null!;
         public DbSet<Opinion> Opinions { get; set; } = null!;
         public DbSet<School> Schools { get; set; } = null!;
@@ -20,8 +21,36 @@ namespace Mktba.Infrastructure.Data
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<AdminInviteToken> AdminInviteTokens { get; set; } = null!;
 
+        /// <summary>Longest article slug; the slug rules in the application layer use the same limit.</summary>
+        public const int ArticleSlugMaxLength = 80;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Article slug: unique across all articles until M-09 (#27) widens it to (Locale, Slug).
+            modelBuilder.Entity<Article>()
+                .Property(a => a.Slug)
+                .HasMaxLength(ArticleSlugMaxLength)
+                .IsRequired();
+
+            modelBuilder.Entity<Article>()
+                .HasIndex(a => a.Slug)
+                .IsUnique();
+
+            modelBuilder.Entity<ArticleSlugRedirect>()
+                .Property(r => r.Slug)
+                .HasMaxLength(ArticleSlugMaxLength)
+                .IsRequired();
+
+            modelBuilder.Entity<ArticleSlugRedirect>()
+                .HasIndex(r => r.Slug)
+                .IsUnique();
+
+            modelBuilder.Entity<ArticleSlugRedirect>()
+                .HasOne(r => r.Article)
+                .WithMany(a => a.SlugRedirects)
+                .HasForeignKey(r => r.ArticleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Article hierarchy
             modelBuilder.Entity<Article>()
                 .HasMany(a => a.ChildArticles)

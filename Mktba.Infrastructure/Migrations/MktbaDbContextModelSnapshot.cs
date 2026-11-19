@@ -113,6 +113,11 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<int?>("ParentArticleId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
                     b.Property<string>("Summary")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -128,6 +133,9 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ParentArticleId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("Articles");
                 });
@@ -191,6 +199,32 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasIndex("ArticleId", "Order");
 
                     b.ToTable("ArticleRelatedLinks");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleSlugRedirect", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("ArticleSlugRedirects");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>
@@ -386,6 +420,17 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("RelatedArticle");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleSlugRedirect", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany("SlugRedirects")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>
                 {
                     b.HasOne("Mktba.Domain.Entities.Paragraph", "Paragraph")
@@ -448,6 +493,8 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Paragraphs");
 
                     b.Navigation("RelatedLinks");
+
+                    b.Navigation("SlugRedirects");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>
