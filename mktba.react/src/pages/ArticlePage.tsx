@@ -7,6 +7,7 @@ import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
 import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
+import { resolveAutoOpinionIndex } from '../components/mazhab/opinionSelection';
 import MarkdownContent from '../components/MarkdownContent';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
@@ -192,12 +193,7 @@ const ArticlePage: React.FC = () => {
     return [...(articleContent?.paragraphs ?? [])]
       .sort((a, b) => a.order - b.order)
       .map((paragraph) => {
-        const defaultIndex = paragraph.opinions.findIndex((o) => o.isDefault);
-        let autoIndex = defaultIndex >= 0 ? defaultIndex : 0;
-        if (selectedSchoolId !== null) {
-          const mazhabIndex = paragraph.opinions.findIndex((o) => o.schoolIds.includes(selectedSchoolId));
-          if (mazhabIndex >= 0) autoIndex = mazhabIndex;
-        }
+        const autoIndex = resolveAutoOpinionIndex(paragraph.opinions, selectedSchoolId);
         const activeIndex = selectedAlternatives[paragraph.id] ?? autoIndex;
         const activeOpinion = paragraph.opinions[activeIndex] ?? paragraph.opinions[0];
         const title = extractHeadingTitle(activeOpinion?.content ?? '');

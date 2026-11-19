@@ -43,6 +43,7 @@ jobs:
           cache-dependency-path: mktba.react/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
 
   # FE<->BE contract: the committed OpenAPI document and the TypeScript types generated from it
