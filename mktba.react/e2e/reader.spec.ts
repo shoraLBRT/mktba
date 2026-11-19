@@ -14,6 +14,14 @@ test('a reader opens an article from the navigation tree', async ({ page }) => {
   await expect(page.getByRole('tablist', { name: 'Мазхабы:' }).first()).toBeVisible();
 });
 
+test('an article page sets its own document title and canonical link', async ({ page }) => {
+  await page.goto('/article/salat');
+
+  await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
+  await expect(page).toHaveTitle('Салат');
+  await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute('href', /\/article\/salat$/);
+});
+
 test('choosing a mazhab switches the shown opinions and is remembered', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('complementary').getByRole('link', { name: 'Салат', exact: true }).click();
