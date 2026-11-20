@@ -42,7 +42,7 @@ test('an author invited by an admin writes and submits an article but cannot pub
   await author.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
   await author.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Абзац приглашённого автора.');
   await author.getByRole('button', { name: 'Сохранить', exact: true }).click();
-  await expect(author).toHaveURL(new RegExp(`/article/${slug}$`));
+  await expect(author).toHaveURL(new RegExp(`^[^/]+//[^/]+/${slug}$`));
 
   await (await openAdminArticleTree(author)).getByRole('link', { name: title, exact: true }).click();
   const statusPanel = author.getByTestId('article-status-panel');

@@ -4,18 +4,35 @@ import { adminCredentials, API_URL, publishArticle } from './helpers';
 // Public pages are rendered on the server (O-01): their HTML carries the content before any script runs.
 
 test('the server sends an article page with its title, paragraphs and metadata in the HTML', async ({ request }) => {
-  const response = await request.get('/article/salat');
+  const response = await request.get('/salat');
 
   expect(response.status()).toBe(200);
   const html = await response.text();
   expect(html).toMatch(/<h1[^>]*>Салат<\/h1>/);
   expect(html).toContain('ритуальная молитва, которая является одним из пяти столпов ислама');
   expect(html).toContain('<title>Салат — mktba</title>');
-  expect(html).toMatch(/<link rel="canonical" href="[^"]*\/article\/salat"/);
+  expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^/"]+\/salat"/);
+});
+
+test('the server answers old article URLs with 301 to /{slug}, keeping the query (O-02)', async ({ request }) => {
+  const bySlug = await request.get('/article/salat?mazhab=shafii', { maxRedirects: 0 });
+  expect(bySlug.status()).toBe(301);
+  expect(bySlug.headers()['location']).toBe('/salat?mazhab=shafii');
+
+  const article = await publishArticle(request, `Старая ссылка ${Date.now()}`, [
+    { order: 1, opinions: [{ content: 'Текст', isDefault: true, schoolIds: [] }] },
+  ]);
+  const byId = await request.get(`/article/${article.id}`, { maxRedirects: 0 });
+  expect(byId.status()).toBe(301);
+  expect(byId.headers()['location']).toBe(`/${article.slug}`);
+
+  const search = await request.get('/search', { maxRedirects: 0 });
+  expect(search.status()).toBe(200);
+  expect(await search.text()).not.toContain('Страница не найдена');
 });
 
 test('the server sends an article page with one h1, its landmarks and machine-readable dates (O-10)', async ({ request }) => {
-  const html = await (await request.get('/article/salat')).text();
+  const html = await (await request.get('/salat')).text();
 
   expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
   expect(html.match(/<main[\s>]/g)).toHaveLength(1);
@@ -31,7 +48,7 @@ test('the server sends the home page with its sections and new articles in the H
   expect(response.status()).toBe(200);
   const html = await response.text();
   expect(html).toMatch(/<h2[^>]*>Разделы<\/h2>/);
-  expect(html).toMatch(/<h2[^>]*>Новые статьи<\/h2>[\s\S]*?<a[^>]*href="\/article\/[^"]+"/);
+  expect(html).toMatch(/<h2[^>]*>Новые статьи<\/h2>[\s\S]*?<a[^>]*href="\/[^"]+"/);
   expect(html).toMatch(/<h2[^>]*>Что такое mktba<\/h2>/);
   expect(html).toContain('<title>mktba — исламская wiki</title>');
 });
@@ -48,13 +65,13 @@ const metaContent = (html: string, key: string): string | null =>
   html.match(new RegExp(`<meta (?:name|property)="${key}" content="([^"]*)"`))?.[1] ?? null;
 
 test('the server sends an article with Open Graph and Twitter Card tags (O-04)', async ({ request }) => {
-  const html = await (await request.get('/article/salat')).text();
+  const html = await (await request.get('/salat')).text();
 
   expect(metaContent(html, 'og:site_name')).toBe('mktba');
   expect(metaContent(html, 'og:locale')).toBe('ru_RU');
   expect(metaContent(html, 'og:type')).toBe('article');
   expect(metaContent(html, 'og:title')).toBe('Салат');
-  expect(metaContent(html, 'og:url')).toMatch(/^https?:\/\/[^/]+\/article\/salat$/);
+  expect(metaContent(html, 'og:url')).toMatch(/^https?:\/\/[^/]+\/salat$/);
   expect(metaContent(html, 'og:image')).toMatch(/^https?:\/\/[^/]+\/.+/);
   expect(metaContent(html, 'description')).toBeTruthy();
   expect(metaContent(html, 'twitter:card')).toBe('summary_large_image');
@@ -95,7 +112,7 @@ test('the default social image is served', async ({ request }) => {
 });
 
 test('the server sends the icons, the manifest and the theme colour on public, admin and error pages (O-13)', async ({ request }) => {
-  for (const url of ['/', '/article/salat', '/admin/login', '/admin', '/no/such/page']) {
+  for (const url of ['/', '/salat', '/admin/login', '/admin', '/no/such/page']) {
     const html = await (await request.get(url)).text();
 
     expect(html, url).toContain('<link rel="icon" href="/favicon.ico" sizes="32x32"/>');
@@ -155,7 +172,7 @@ test('client-side navigation keeps one set of metadata tags in the head', async 
 });
 
 test('the server sends the opinions of every mazhab, not only the shown one (O-03)', async ({ request }) => {
-  const html = await (await request.get('/article/salat')).text();
+  const html = await (await request.get('/salat')).text();
 
   for (const text of [
     'время Фаджра начинается с истинного рассвета',
@@ -169,15 +186,15 @@ test('the server sends the opinions of every mazhab, not only the shown one (O-0
 });
 
 test('a link with a mazhab parameter keeps the canonical on the clean article URL', async ({ request }) => {
-  const html = await (await request.get('/article/salat?mazhab=shafii')).text();
+  const html = await (await request.get('/salat?mazhab=shafii')).text();
 
-  expect(html).toMatch(/<link rel="canonical" href="[^"?]*\/article\/salat"/);
+  expect(html).toMatch(/<link rel="canonical" href="[^"?]*\/salat"/);
   // The schools still reach the server render: tabs are named after them, not left as common opinions.
   expect(html).toMatch(/role="tab"[^>]*>Шафииты</);
 });
 
 test('a reader sees only one opinion of a block and switches it with the arrow keys', async ({ page }) => {
-  await page.goto('/article/salat');
+  await page.goto('/salat');
   const firstSlot = page.getByRole('tablist', { name: 'Мазхабы:' }).first();
   const hanafiTab = firstSlot.getByRole('tab', { name: 'Ханафиты' });
   await expect(page.getByText(/время Фаджра начинается с истинного рассвета/)).toBeVisible();
@@ -195,7 +212,7 @@ test('an article page reads without JavaScript', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
 
-  await page.goto('/article/salat');
+  await page.goto('/salat');
 
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
   await expect(page.getByText(/ритуальная молитва/).first()).toBeVisible();
@@ -204,7 +221,7 @@ test('an article page reads without JavaScript', async ({ browser }) => {
 });
 
 test('the server answers 404 for an unknown article and an unknown page', async ({ request }) => {
-  const article = await request.get('/article/no-such-article');
+  const article = await request.get('/no-such-article');
   expect(article.status()).toBe(404);
   expect(await article.text()).toContain('Страница не найдена');
 
@@ -218,7 +235,7 @@ test('the server answers 410 with a non-indexed page for a deleted article (O-07
   ]);
   expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).status()).toBe(204);
 
-  const response = await request.get(`/article/${article.slug}`, { maxRedirects: 0 });
+  const response = await request.get(`/${article.slug}`, { maxRedirects: 0 });
 
   expect(response.status()).toBe(410);
   const html = await response.text();
@@ -229,12 +246,12 @@ test('the server answers 410 with a non-indexed page for a deleted article (O-07
 test('the server marks a published stub without content noindex and leaves it out of the sitemap (O-07)', async ({ request }) => {
   const stub = await publishArticle(request, `Заглушка ${Date.now()}`, null);
 
-  const response = await request.get(`/article/${stub.slug}`);
+  const response = await request.get(`/${stub.slug}`);
 
   expect(response.status()).toBe(200);
   expect(metaContent(await response.text(), 'robots')).toContain('noindex');
-  expect(metaContent(await (await request.get('/article/salat')).text(), 'robots')).toBeNull();
-  expect(await (await request.get('/sitemap.xml')).text()).not.toContain(`/article/${stub.slug}<`);
+  expect(metaContent(await (await request.get('/salat')).text(), 'robots')).toBeNull();
+  expect(await (await request.get('/sitemap.xml')).text()).not.toContain(`/${stub.slug}<`);
 });
 
 /** The steps of the article's breadcrumb trail in raw HTML, in order (R-06). */
@@ -247,8 +264,8 @@ test('the server sends the article header: breadcrumbs for a stub too, and the r
   const title = `Заглушка шапки ${Date.now()}`;
   const stub = await publishArticle(request, title, null);
 
-  const stubHtml = await (await request.get(`/article/${stub.slug}`)).text();
-  const articleHtml = await (await request.get('/article/salat')).text();
+  const stubHtml = await (await request.get(`/${stub.slug}`)).text();
+  const articleHtml = await (await request.get('/salat')).text();
 
   expect(breadcrumbSteps(stubHtml)).toEqual(['Главная', title]);
   expect(stubHtml).not.toContain('data-testid="article-reading-time"');
@@ -278,14 +295,14 @@ test('the server sends an article with Article, BreadcrumbList, WebSite and Orga
   const { accessToken } = await login.json() as { accessToken: string };
   expect((await request.put(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${accessToken}` }, data: { displayName: null } })).ok()).toBe(true);
 
-  const html = await (await request.get('/article/salat')).text();
+  const html = await (await request.get('/salat')).text();
   const nodes = jsonLdNodes(html);
 
   expect(nodes.map((node) => node['@type'])).toEqual(['Organization', 'WebSite', 'Article', 'BreadcrumbList']);
   const [organization, , article, breadcrumbs] = nodes;
   expect(organization).toMatchObject({ name: 'mktba' });
   expect(article.headline).toBe('Салат');
-  expect(article.url).toMatch(/^https?:\/\/[^/]+\/article\/salat$/);
+  expect(article.url).toMatch(/^https?:\/\/[^/]+\/salat$/);
   expect(article.datePublished).toBeTruthy();
   expect(article.author).toEqual({ '@id': organization['@id'] });
   expect(html).not.toContain('data-testid="article-authors"');
@@ -308,7 +325,7 @@ const footerBlock = (html: string, testId: string): string =>
   new RegExp(`<nav[^>]*data-testid="${testId}"[^>]*>([^]*?)</nav>`).exec(html)?.[1] ?? '';
 
 const linkedSlugs = (blockHtml: string): string[] =>
-  [...blockHtml.matchAll(/href="\/article\/([^"]+)"/g)].map((match) => match[1]);
+  [...blockHtml.matchAll(/href="\/([^"]+)"/g)].map((match) => match[1]);
 
 test('the server sends the article footer: children, related and neighbours, without drafts and with stubs unlinked (R-08)', async ({ request }) => {
   const stamp = Date.now();
@@ -328,10 +345,10 @@ test('the server sends the article footer: children, related and neighbours, wit
     relatedLinks: [{ relatedArticleId: first.id, order: 1 }],
   });
 
-  const sectionHtml = await (await request.get(`/article/${section.slug}`)).text();
-  const firstHtml = await (await request.get(`/article/${first.slug}`)).text();
-  const lastHtml = await (await request.get(`/article/${last.slug}`)).text();
-  const stubHtml = await (await request.get(`/article/${stub.slug}`)).text();
+  const sectionHtml = await (await request.get(`/${section.slug}`)).text();
+  const firstHtml = await (await request.get(`/${first.slug}`)).text();
+  const lastHtml = await (await request.get(`/${last.slug}`)).text();
+  const stubHtml = await (await request.get(`/${stub.slug}`)).text();
 
   const children = footerBlock(sectionHtml, 'article-children');
   expect(children).toContain('<h2');
@@ -363,7 +380,7 @@ test('the server sends the search results with the matched words marked and keep
   expect(metaContent(html, 'robots')).toBe('noindex');
   expect(html).not.toContain('rel="canonical"');
   expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
-  expect(html).toMatch(/<ol aria-label="Результаты поиска"[\s\S]*href="\/article\/salat(#p-\d+)?"/);
+  expect(html).toMatch(/<ol aria-label="Результаты поиска"[\s\S]*href="\/salat(#p-\d+)?"/);
   expect(html).toMatch(/<mark[^>]*>столпов<\/mark>/);
 });
 

@@ -10,17 +10,17 @@ test('a reader opens an article from the navigation tree', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('complementary').getByRole('link', { name: 'Салат', exact: true }).click();
 
-  await expect(page).toHaveURL(/\/article\/salat$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/salat$/);
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
   await expect(page.getByRole('tablist', { name: 'Мазхабы:' }).first()).toBeVisible();
 });
 
 test('an article page sets its own document title and canonical link', async ({ page }) => {
-  await page.goto('/article/salat');
+  await page.goto('/salat');
 
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
   await expect(page).toHaveTitle('Салат — mktba');
-  await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute('href', /\/article\/salat$/);
+  await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute('href', /^https?:\/\/[^/]+\/salat$/);
 });
 
 test('choosing a mazhab switches the shown opinions and is remembered', async ({ page }) => {
@@ -42,7 +42,7 @@ test('choosing a mazhab switches the shown opinions and is remembered', async ({
 });
 
 test('the mazhab picker sits in the header and explains itself once on the first visit (R-03)', async ({ page }) => {
-  await page.goto('/article/salat');
+  await page.goto('/salat');
   const hint = page.getByRole('banner').getByRole('note');
   await expect(hint).toContainText('Мазхаб — школа исламского права');
   await expect(page.getByRole('banner').getByRole('button', { name: 'Мазхаб не выбран' })).toBeVisible();
@@ -57,14 +57,14 @@ test('the mazhab picker sits in the header and explains itself once on the first
 
 test('a link with a mazhab opens the article with it and leaves the reader their own choice (R-03)', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.goto('/article/salat');
+  await page.goto('/salat');
   await page.getByRole('button', { name: 'Мазхаб не выбран' }).click();
   await page.getByRole('button', { name: /Шафиитский мазхаб/ }).click();
   await page.getByRole('button', { name: 'Шафиитский мазхаб' }).click();
   await page.getByRole('button', { name: 'Скопировать ссылку с этим мазхабом' }).click();
   await expect(page.getByText('Ссылка скопирована')).toBeVisible();
   const link = await page.evaluate<string>('navigator.clipboard.readText()');
-  expect(link).toMatch(/\/article\/salat\?mazhab=shafii$/);
+  expect(link).toMatch(/^https?:\/\/[^/]+\/salat\?mazhab=shafii$/);
 
   // The recipient has a mazhab of their own: the link wins on this page only.
   await page.getByRole('button', { name: /Ханафитский мазхаб/ }).click();
@@ -79,7 +79,7 @@ test('a link with a mazhab opens the article with it and leaves the reader their
   // Choosing by hand saves the choice and drops the parameter.
   await page.getByRole('button', { name: 'Шафиитский мазхаб' }).click();
   await page.getByRole('button', { name: /Маликитский мазхаб/ }).click();
-  await expect(page).toHaveURL(/\/article\/salat$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/salat$/);
   await expect(firstSlot.getByRole('tab', { name: /^Маликиты.*ваш мазхаб$/ })).toHaveAttribute('aria-selected', 'true');
 });
 
@@ -97,7 +97,7 @@ test('a reader whose mazhab has no opinion of its own sees the common one with a
   ]);
   await page.addInitScript((id) => localStorage.setItem('mktba.mazhab', String(id)), schoolId('hanafi'));
 
-  await page.goto(`/article/${article.slug}`);
+  await page.goto(`/${article.slug}`);
 
   const slot = page.getByRole('tablist', { name: 'Мазхабы:' });
   await expect(slot.getByRole('tab', { name: 'Общее мнение' })).toHaveAttribute('aria-selected', 'true');
@@ -137,7 +137,7 @@ test('the infobox never overlaps the text or overflows, and collapses on a phone
       },
     },
   );
-  const url = `/article/${article.slug}`;
+  const url = `/${article.slug}`;
 
   // Collapsed or not, the facts are in the server HTML.
   expect(await (await request.get(url)).text()).toContain('Столп ислама');
@@ -211,7 +211,7 @@ test('an unknown page and a missing article show the 404 page', async ({ page })
 });
 
 test('an article page has no serious or critical accessibility violations (O-10)', async ({ page }) => {
-  await page.goto('/article/salat');
+  await page.goto('/salat');
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
 
   // Colour contrast is R-17 (#141); the rest must stay clean.
@@ -256,7 +256,7 @@ test('the home page offers sections, new and updated articles and the search (R-
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/search\?q=/);
   await page.getByRole('list', { name: 'Результаты поиска' }).getByRole('link', { name: title, exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/article/${article.slug}(#p-[0-9]+)?$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${article.slug}(#p-[0-9]+)?$`));
   await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
 });
 
@@ -291,7 +291,7 @@ test('the table of contents follows the scroll, headings and paragraphs have lin
     },
     { order: 4, opinions: [{ content: `## Условия\n\n${filler}`, isDefault: true, schoolIds: [] }] },
   ]);
-  const path = `/article/${article.slug}`;
+  const path = `/${article.slug}`;
 
   // The anchors are in the server HTML: paragraph ids, heading slugs, a repeated heading numbered.
   const html = await (await request.get(path)).text();
@@ -357,9 +357,9 @@ test('the bottom of an article leads to its children and neighbours and stays ac
   });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/article/${section.slug}`);
+  await page.goto(`/${section.slug}`);
   await page.getByRole('navigation', { name: 'В этом разделе' }).getByRole('link', { name: `Глава перехода ${stamp}` }).click();
-  await expect(page).toHaveURL(new RegExp(`/article/${child.slug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${child.slug}$`));
   await expect(page.getByRole('heading', { name: `Глава перехода ${stamp}`, level: 1 })).toBeVisible();
 
   const related = page.getByRole('navigation', { name: 'Связанные статьи' });
@@ -371,12 +371,12 @@ test('the bottom of an article leads to its children and neighbours and stays ac
     .map((violation) => violation.id)).toEqual([]);
 
   await page.getByRole('navigation', { name: 'Соседние статьи' }).getByRole('link', { name: /Предыдущая статья/ }).click();
-  await expect(page).toHaveURL(new RegExp(`/article/${section.slug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${section.slug}$`));
   await expect(page.getByRole('heading', { name: `Раздел перехода ${stamp}`, level: 1 })).toBeVisible();
 
   // On a wide screen the related articles live in the right sidebar only.
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/article/${child.slug}`);
+  await page.goto(`/${child.slug}`);
   await expect(page.getByRole('navigation', { name: 'Связанные статьи' })).toHaveCount(1);
   await expect(page.getByTestId('article-related')).toBeHidden();
 });
@@ -433,15 +433,15 @@ test('the navigation tree remembers collapsed sections, opens the path to the cu
     .map((violation) => violation.id)).toEqual([]);
 
   // Opening the leaf directly expands both collapsed ancestors and marks the leaf.
-  await page.goto(`/article/${leaf.slug}`);
+  await page.goto(`/${leaf.slug}`);
   await expect(leafLink).toBeVisible();
   await expect(leafLink).toHaveAttribute('aria-current', 'page');
   await expect(leafLink).toBeInViewport();
 
   // The server HTML holds the whole tree whatever the reader collapsed.
   const html = await (await request.get('/')).text();
-  expect(html).toContain(`href="/article/${chapter.slug}"`);
-  expect(html).toContain(`href="/article/${leaf.slug}"`);
+  expect(html).toContain(`href="/${chapter.slug}"`);
+  expect(html).toContain(`href="/${leaf.slug}"`);
 });
 
 /** Serious and critical axe violations inside `scope`. Colour contrast is R-17 (#141). */
@@ -453,7 +453,7 @@ const seriousViolations = async (page: Page, scope: string): Promise<string[]> =
 };
 
 test('Ctrl+K opens the search, the results page marks the matches and leads to the article (R-10)', async ({ page }) => {
-  await page.goto('/article/salat');
+  await page.goto('/salat');
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
 
   await page.keyboard.press('Control+K');
@@ -476,7 +476,7 @@ test('Ctrl+K opens the search, the results page marks the matches and leads to t
   expect(await seriousViolations(page, 'main')).toEqual([]);
 
   await results.getByRole('link', { name: 'Салат', exact: true }).click();
-  await expect(page).toHaveURL(/\/article\/salat(#p-\d+)?$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/salat(#p-\d+)?$/);
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
 });
 

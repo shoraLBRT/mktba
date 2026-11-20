@@ -16,7 +16,7 @@ const seriousViolations = async (page: Page): Promise<string[]> => {
 
 // The e2e API runs with Feedback:GitHub:Enabled=false: a message is stored and nothing is filed.
 test('a reader reports an error from the article and gets the message number (F-01)', async ({ page }) => {
-  await page.goto('/article/salat?mazhab=shafii');
+  await page.goto('/salat?mazhab=shafii');
   await expect(page.getByRole('contentinfo')).toHaveCount(1);
   await page.getByTestId('article-report-error').getByRole('link', { name: 'Сообщить об ошибке' }).click();
 
@@ -28,7 +28,7 @@ test('a reader reports an error from the article and gets the message number (F-
 
   // What goes with the message is said before sending: the page, the article and the mazhab of the link.
   const attached = page.getByRole('region', { name: 'Что будет отправлено вместе с сообщением' });
-  await expect(attached.getByRole('link')).toHaveAttribute('href', '/article/salat?mazhab=shafii');
+  await expect(attached.getByRole('link')).toHaveAttribute('href', '/salat?mazhab=shafii');
   await expect(attached).toContainText('Статья: Салат');
   await expect(attached.getByTestId('feedback-mazhab')).toContainText('Шафиит');
   await expect(attached).toContainText('Контакт туда не попадает');
@@ -42,7 +42,7 @@ test('a reader reports an error from the article and gets the message number (F-
   await page.keyboard.press('Tab');
   await expect(page.getByLabel(/Контакт для ответа/)).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: /\/article\/salat/ })).toBeFocused();
+  await expect(page.getByRole('link', { name: /\/salat/ })).toBeFocused();
 
   expect(await seriousViolations(page)).toEqual([]);
 
@@ -56,7 +56,7 @@ test('a reader reports an error from the article and gets the message number (F-
     type: 'ArticleError',
     text: 'Во втором абзаце опечатка.',
     contact: 'reader@example.com',
-    pageUrl: '/article/salat?mazhab=shafii',
+    pageUrl: '/salat?mazhab=shafii',
     mazhab: 'shafii',
     website: '',
   });
@@ -69,7 +69,7 @@ test('a reader reports an error from the article and gets the message number (F-
   expect(await seriousViolations(page)).toEqual([]);
 
   await page.getByRole('link', { name: 'Вернуться на страницу' }).click();
-  await expect(page).toHaveURL(/\/article\/salat\?mazhab=shafii$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/salat\?mazhab=shafii$/);
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
 });
 
