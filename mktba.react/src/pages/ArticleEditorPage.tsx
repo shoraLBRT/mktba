@@ -81,7 +81,9 @@ import { ExternalLinkDialog } from './add-article/ExternalLinkDialog';
 import type { RichTextHandle } from './add-article/richText/RichTextEditor';
 import { InternalLinkWarnings } from './add-article/InternalLinkWarnings';
 import { SlugField } from './add-article/SlugField';
-import { SeoFields } from './add-article/SeoFields';
+import { PublicationPanel } from './add-article/PublicationPanel';
+import { seoSnippetOf } from './add-article/seoSnippet';
+import { useSiteUrl } from '../app/siteUrl';
 import { useBlockDragAndDrop } from './add-article/useBlockDragAndDrop';
 import type { SlashMenuKind } from './add-article/slashMenuKinds';
 import { formatMessage } from '../localization';
@@ -282,8 +284,9 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     );
   }, [articleOptions, parentSearch]);
 
+  // `stay`: the save that comes before a status move — the editor stays open and the move follows.
   const saveMutation = useMutation({
-    mutationFn: async (saved: ArticleDraft): Promise<string> => {
+    mutationFn: async ({ saved }: { saved: ArticleDraft; stay: boolean }): Promise<string> => {
       if (articleId === null) {
         const created = await createArticleContent(buildArticleCreateDto(saved));
         return created.slug ?? String(created.id);
@@ -293,8 +296,16 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       await updateArticleContent(articleId, payload);
       return payload.slug ?? String(articleId);
     },
-    onSuccess: async (slug, saved) => {
+    onSuccess: async (slug, { saved, stay }) => {
       localCopy.clear();
+      if (stay) {
+        // The comment described the revision just written; the next save starts without one.
+        const next = { ...saved, editComment: '' };
+        setBaseline(next);
+        setDraft((current) => (current.editComment === saved.editComment ? { ...current, editComment: '' } : current));
+        await invalidateArticleQueries(queryClient);
+        return;
+      }
       setBaseline(saved);
       if (mode.kind === 'edit') {
         await invalidateArticleQueries(queryClient);
@@ -325,6 +336,9 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
 
   const previewMarkdown = useMemo(() => buildDocumentPreviewMarkdown(blocks), [blocks]);
   const stats = useMemo(() => computeEditorStats(blocks, previewMarkdown), [blocks, previewMarkdown]);
+  const seoSnippet = useMemo(() => seoSnippetOf(draft), [draft]);
+  const siteUrl = useSiteUrl();
+  const snippetUrl = `${siteUrl.replace(/^https?:\/\//, '')}${articleHref(displayedSlug(draft))}`;
   const brokenLinks = useMemo(
     () => (navigationTreeQuery.data ? findBrokenInternalLinks(blocks, articleOptions) : []),
     [blocks, articleOptions, navigationTreeQuery.data],
@@ -499,7 +513,35 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       return;
     }
 
-    saveMutation.mutate(draft);
+    saveMutation.mutate({ saved: draft, stay: false });
+  };
+
+  /**
+   * Saves the edits before a status move, so that what is submitted or published is what the
+   * editor shows; true when the move may follow (nothing to save, or saved). A draft that fails the
+   * save checks or a failed save keeps the status as it is, and the edits stay in the editor.
+   */
+  const saveBeforeStatusChange = async (): Promise<boolean> => {
+    if (!hasUnsavedChanges) {
+      return true;
+    }
+    if (isLocked || saveMutation.isPending) {
+      return false;
+    }
+
+    const problem = findArticleDraftProblem(draft, mode.kind);
+    if (problem) {
+      showNotice('warning', problemMessage(problem));
+      return false;
+    }
+
+    try {
+      await saveMutation.mutateAsync({ saved: draft, stay: true });
+      return true;
+    } catch {
+      // The save's own onError has already told the user why.
+      return false;
+    }
   };
 
   const infoboxEditorProps = {
@@ -623,11 +665,6 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                       >
                         {editT.historyLink}
                       </Link>
-                      <ArticleStatusPanel
-                        articleId={articleId}
-                        onChanged={(status) => showNotice('success', editT.statusChanged.replace('{status}', locale.articleStatus[status]))}
-                        onError={(message) => showNotice('error', message)}
-                      />
                       {canEditAnyArticle ? (
                         <ArticleAuthorsPanel
                           articleId={articleId}
@@ -650,30 +687,6 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                       className="h-auto border-0 bg-transparent px-0 py-0 text-3xl font-bold tracking-[-0.03em] text-[var(--color-ink-strong)] shadow-none focus:ring-0"
                     />
                   </div>
-                  <SlugField
-                    value={displayedSlug(draft)}
-                    disabled={isLocked}
-                    onChange={(value) => setField('slug', value)}
-                    // A new article goes back to following the title; a saved one takes the derived slug once.
-                    onFillFromTitle={() => setField('slug', mode.kind === 'edit' ? articleSlugFromTitle(title) : null)}
-                    locale={mode.kind === 'edit' ? mode.article.locale ?? undefined : undefined}
-                  />
-                  {mode.kind === 'edit' ? (
-                    <div>
-                      <label htmlFor="edit-comment" className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
-                        {editT.editCommentLabel}
-                      </label>
-                      <Input
-                        id="edit-comment"
-                        value={draft.editComment}
-                        disabled={isLocked}
-                        maxLength={500}
-                        onChange={(event) => setField('editComment', event.target.value)}
-                        placeholder={editT.editCommentPlaceholder}
-                      />
-                    </div>
-                  ) : null}
-                  <SeoFields value={draft.seo} disabled={isLocked} onChange={(value) => setField('seo', value)} />
                 </div>
               </div>
 
@@ -772,6 +785,36 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
               showDelete={articleId !== null && canEditAnyArticle}
               isDeleting={deleteMutation.isPending}
               onDelete={deleteRequested}
+            />
+          )}
+          publication={(
+            <PublicationPanel
+              status={articleId !== null ? (
+                <ArticleStatusPanel
+                  articleId={articleId}
+                  hasUnsavedChanges={hasUnsavedChanges}
+                  beforeChange={saveBeforeStatusChange}
+                  disabled={isLocked || saveMutation.isPending}
+                  onChanged={(status) => showNotice('success', editT.statusChanged.replace('{status}', locale.articleStatus[status]))}
+                  onError={(message) => showNotice('error', message)}
+                />
+              ) : undefined}
+              slug={(
+                <SlugField
+                  value={displayedSlug(draft)}
+                  disabled={isLocked}
+                  onChange={(value) => setField('slug', value)}
+                  // A new article goes back to following the title; a saved one takes the derived slug once.
+                  onFillFromTitle={() => setField('slug', mode.kind === 'edit' ? articleSlugFromTitle(title) : null)}
+                  locale={mode.kind === 'edit' ? mode.article.locale ?? undefined : undefined}
+                />
+              )}
+              editComment={mode.kind === 'edit' ? { value: draft.editComment, onChange: (value) => setField('editComment', value) } : undefined}
+              seo={draft.seo}
+              onSeoChange={(value) => setField('seo', value)}
+              snippet={seoSnippet}
+              url={snippetUrl}
+              disabled={isLocked}
             />
           )}
           isLocked={isLocked}

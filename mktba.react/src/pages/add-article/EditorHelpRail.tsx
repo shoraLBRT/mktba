@@ -22,6 +22,8 @@ type EditorHelpRailProps = {
   characterCount: number;
   readingTimeMinutes: number;
   actions?: ReactNode;
+  /** The «Публикация» block (`PublicationPanel`), right under the actions. */
+  publication?: ReactNode;
   isLocked: boolean;
   isLoadingParents?: boolean;
   selectedParent?: ParentOption | null;
@@ -63,6 +65,7 @@ export const EditorHelpRail = ({
   characterCount,
   readingTimeMinutes,
   actions,
+  publication,
   isLocked,
   isLoadingParents,
   selectedParent,
@@ -206,6 +209,7 @@ export const EditorHelpRail = ({
     <aside className="hidden xl:block xl:w-[280px] xl:shrink-0">
       <div className="sticky top-[calc(var(--layout-header-height)+24px)] max-h-[calc(100vh-var(--layout-header-height)-48px)] overflow-y-auto space-y-4 px-4 pb-6">
         {actions ? <div>{actions}</div> : null}
+        {publication}
 
         {onToggleParentDropdown ? (
           <div>
