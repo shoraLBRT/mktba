@@ -9,7 +9,9 @@ import {
   ListOrdered,
   Pilcrow,
   Quote,
+  Redo2,
   Superscript,
+  Undo2,
 } from 'lucide-react';
 import { useLocale } from '../../localization/hooks';
 import { Button } from '../../shared/ui/Button';
@@ -22,6 +24,9 @@ type EditorBottomToolbarProps = {
   onFormat: (action: FormatAction) => void;
   /** Opens the article picker; the link goes where the cursor of the active text is. */
   onInsertArticleLink: () => void;
+  /** Undo and redo in the rich text that has the focus (also Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y). */
+  onUndo: () => void;
+  onRedo: () => void;
   onAddBlock: (kind: PlainBlockKind) => void;
 };
 
@@ -48,7 +53,7 @@ const ToolbarIconButton = ({
   </button>
 );
 
-export const EditorBottomToolbar = ({ disabled, onFormat, onInsertArticleLink, onAddBlock }: EditorBottomToolbarProps) => {
+export const EditorBottomToolbar = ({ disabled, onFormat, onInsertArticleLink, onUndo, onRedo, onAddBlock }: EditorBottomToolbarProps) => {
   const locale = useLocale();
   const t = locale.addArticleEditor.bottomToolbar;
   const addActions: Array<{ kind: PlainBlockKind; label: string; icon: typeof Pilcrow }> = [
@@ -69,6 +74,8 @@ export const EditorBottomToolbar = ({ disabled, onFormat, onInsertArticleLink, o
           <ToolbarIconButton icon={ListOrdered} label={t.formatting.orderedList} onClick={() => onFormat('orderedList')} disabled={disabled} />
           <ToolbarIconButton icon={Quote} label={t.formatting.quote} onClick={() => onFormat('quote')} disabled={disabled} />
           <ToolbarIconButton icon={Superscript} label={t.formatting.footnote} onClick={() => onFormat('footnote')} disabled={disabled} />
+          <ToolbarIconButton icon={Undo2} label={t.formatting.undo} onClick={onUndo} disabled={disabled} />
+          <ToolbarIconButton icon={Redo2} label={t.formatting.redo} onClick={onRedo} disabled={disabled} />
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-[var(--color-border-soft)] bg-[rgba(255,255,255,0.94)] px-1.5 py-1 shadow-[0_18px_48px_rgba(28,27,24,0.08)] backdrop-blur-sm">

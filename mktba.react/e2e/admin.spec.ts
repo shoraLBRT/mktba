@@ -360,11 +360,14 @@ test('an admin links another article from the editor, a broken link only warns, 
   await picker.getByRole('searchbox', { name: 'Поиск статьи' }).fill(`цель ссылки ${stamp}`);
   await picker.getByRole('button', { name: new RegExp(`E2E цель ссылки ${stamp}`) }).click();
   await expect(picker).toBeHidden();
-  await expect(text).toHaveValue(`Подробнее: [E2E цель ссылки ${stamp}](/${target.slug})`);
+  await expect(text).toHaveText(`Подробнее: E2E цель ссылки ${stamp}`);
+  await expect(text.getByRole('link', { name: `E2E цель ссылки ${stamp}` })).toHaveAttribute('href', `/${target.slug}`);
 
+  // Markdown typed into the rich text becomes a link as the closing parenthesis is typed.
   await text.press('Control+End');
   await text.pressSequentially(` и [нет](/${missingSlug})`);
-  await expect(text).toHaveValue(`Подробнее: [E2E цель ссылки ${stamp}](/${target.slug}) и [нет](/${missingSlug})`);
+  await expect(text).toHaveText(`Подробнее: E2E цель ссылки ${stamp} и нет`);
+  await expect(text.getByRole('link', { name: 'нет', exact: true })).toHaveAttribute('href', `/${missingSlug}`);
   const warnings = page.getByRole('region', { name: 'Проверьте ссылки на статьи' });
   await expect(warnings).toContainText(`/${missingSlug} — такой статьи нет`);
   await expect(warnings).not.toContainText(`/${target.slug}`);

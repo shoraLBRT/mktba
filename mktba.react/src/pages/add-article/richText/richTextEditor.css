@@ -1,0 +1,60 @@
+/* The rich-text editor of an opinion (E-04): the reader's `.article-markdown` typography plus what
+   only the editor shows. Imported by the editor module, so it ships in the admin chunk only. */
+
+.rich-text-editor {
+  min-height: 32px;
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rich-text-editor[contenteditable='false'] {
+  opacity: 0.6;
+}
+
+.rich-text-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--color-ink-subtle);
+  pointer-events: none;
+}
+
+.rich-text-editor a {
+  color: var(--color-brand-forest);
+  text-decoration: underline;
+}
+
+.rich-text-editor blockquote {
+  margin: 0 0 12px;
+  padding-inline-start: 12px;
+  border-inline-start: 3px solid var(--color-border-soft);
+  color: var(--color-ink-muted);
+}
+
+.rich-text-editor pre {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-page-panel);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+/* Markdown kept as typed: a dashed frame says it is not formatted text. */
+.rich-text-editor pre.rich-text-raw {
+  border: 1px dashed var(--color-border-soft);
+  background: transparent;
+}
+
+.rich-text-editor .rich-text-raw-inline {
+  padding: 0 3px;
+  border-radius: 4px;
+  background: var(--color-page-panel);
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+}
+
+.rich-text-editor .ProseMirror-selectednode {
+  outline: 2px solid var(--color-brand-forest);
+}

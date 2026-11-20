@@ -22,6 +22,11 @@ export default defineConfig({
       'mdast-util-gfm',
       'micromark-extension-gfm',
       'rehype-sanitize',
+      '@tiptap/core',
+      '@tiptap/pm/state',
+      '@tiptap/react',
+      '@tiptap/starter-kit',
+      '@tiptap/extensions',
     ],
   },
   test: {

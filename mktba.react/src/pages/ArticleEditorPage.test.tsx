@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { Editor } from '@tiptap/core';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_CONSTANTS } from '../constants/AppConstants';
@@ -66,6 +67,14 @@ const renderAt = (url: string, navigationTree: NavigationArticleDto[] = []) => {
 };
 
 const titleField = () => screen.getByPlaceholderText('Название статьи...') as HTMLInputElement;
+/** A paragraph's rich-text editor; TipTap hangs its instance on the editable element. */
+const paragraphText = () => screen.getByRole('textbox', { name: 'Введите текст параграфа...' }) as HTMLElement & { editor: Editor };
+const typeInParagraph = (text: string) =>
+  act(() => {
+    // jsdom does not move the focus into a contenteditable, so the focus event is sent by hand.
+    fireEvent.focus(paragraphText());
+    paragraphText().editor.chain().focus('end').insertContent(text).run();
+  });
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
 
 describe('ArticleEditorPage', () => {
@@ -98,7 +107,7 @@ describe('ArticleEditorPage', () => {
     renderAt('/admin/articles/7/edit');
 
     expect(await screen.findByDisplayValue('Намаз')).toBeTruthy();
-    expect(screen.getByDisplayValue('Текст статьи')).toBeTruthy();
+    expect(paragraphText().textContent).toBe('Текст статьи');
     expect(screen.getByText('История правок').getAttribute('href')).toBe('/admin/articles/7/history');
     expect(screen.getByLabelText('Комментарий к правке')).toBeTruthy();
   });
@@ -131,6 +140,48 @@ describe('ArticleEditorPage', () => {
     expect(await screen.findByText('history-page')).toBeTruthy();
   });
 
+  it('given a text the editor would write differently, when opened and left untouched, then the article is not changed', async () => {
+    const opinion = { id: 21, content: 'Обычный _курсив_ и * звёздочка\nс мягким переносом', isDefault: true, schoolIds: [], sources: [] };
+    vi.mocked(getArticleContentById).mockResolvedValue({ ...article, paragraphs: [{ id: 11, order: 1, opinions: [opinion] }] });
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+    expect(paragraphText().textContent).toBe('Обычный курсив и * звёздочка с мягким переносом');
+
+    fireEvent.click(screen.getByText('История правок'));
+
+    expect(await screen.findByText('history-page')).toBeTruthy();
+  });
+
+  it('given a text edited and then undone, when the history link is followed, then it opens without asking', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+    typeInParagraph(' и ещё');
+    act(() => {
+      paragraphText().editor.commands.undo();
+    });
+
+    fireEvent.click(screen.getByText('История правок'));
+
+    expect(await screen.findByText('history-page')).toBeTruthy();
+  });
+
+  it('given formatted text, when saved, then the opinion is sent as Markdown', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(updateArticleContent).mockResolvedValue();
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+    act(() => {
+      paragraphText().editor.chain().focus('end').insertContent(' и ').toggleBold().insertContent('жирный').run();
+    });
+
+    save();
+
+    expect(await screen.findByText('article-page')).toBeTruthy();
+    const dto = vi.mocked(updateArticleContent).mock.calls[0][1];
+    expect(dto.paragraphs[0].opinions[0].content).toBe('Текст статьи и **жирный**');
+  });
+
   it('given unsaved edits, when the history link is followed, then the editor asks and staying keeps the edits', async () => {
     vi.mocked(getArticleContentById).mockResolvedValue(article);
     renderAt('/admin/articles/7/edit');
@@ -160,7 +211,7 @@ describe('ArticleEditorPage', () => {
     vi.mocked(createArticleContent).mockResolvedValue({ ...article, id: 8, slug: 'novaya' });
     renderAt('/admin/articles/new');
     fireEvent.change(titleField(), { target: { value: 'Новая' } });
-    fireEvent.change(screen.getByPlaceholderText('Введите текст параграфа...'), { target: { value: 'Текст' } });
+    typeInParagraph('Текст');
 
     save();
 
@@ -239,27 +290,41 @@ describe('ArticleEditorPage', () => {
     expect(readLocalDraftCopy(localDraftCopyKey(1, 7))).toBeNull();
   });
 
-  it('given a picked article, when the link is inserted, then the text and its caret are back at once and stay where the user moves them', async () => {
+  it('given a picked article, when the link is inserted, then the title becomes a link to it, selected, and is saved as Markdown', async () => {
     const target: NavigationArticleDto = { id: 9, title: 'Пост', slug: 'post', status: 'Published', hasContent: true, canEdit: true };
+    vi.mocked(createArticleContent).mockResolvedValue({ ...article, id: 8, slug: 'novaya' });
     renderAt('/admin/articles/new', [target]);
-    const text = screen.getByPlaceholderText('Введите текст параграфа...') as HTMLTextAreaElement;
-    fireEvent.focus(text);
-    fireEvent.change(text, { target: { value: 'См. ' } });
-    text.setSelectionRange(4, 4);
+    fireEvent.change(titleField(), { target: { value: 'Новая' } });
+    typeInParagraph('См. ');
 
     fireEvent.click(screen.getByRole('button', { name: 'Ссылка на статью' }));
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Ссылка на статью' })).getByRole('button', { name: /Пост/ }));
 
-    // No frame has passed: the insert, the focus and the selected link text are already there.
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(text.value).toBe('См. [Пост](/post)');
-    expect(document.activeElement).toBe(text);
-    expect([text.selectionStart, text.selectionEnd]).toEqual([5, 9]);
+    const { editor } = paragraphText();
+    expect(within(paragraphText()).getByRole('link', { name: 'Пост' }).getAttribute('href')).toBe('/post');
+    expect([editor.state.selection.from, editor.state.selection.to]).toEqual([5, 9]);
 
-    // The user moves the caret right away; nothing restores the old selection over it later.
-    text.setSelectionRange(text.value.length, text.value.length);
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    expect([text.selectionStart, text.selectionEnd]).toEqual([17, 17]);
+    save();
+
+    expect(await screen.findByText('article-page')).toBeTruthy();
+    expect(vi.mocked(createArticleContent).mock.calls[0][0].paragraphs[0].opinions[0].content).toBe('См. [Пост](/post)');
+  });
+
+  it('given a selected word, when the external link is applied from the dialog, then the word links to the typed address', () => {
+    renderAt('/admin/articles/new');
+    typeInParagraph('сайт');
+    act(() => {
+      paragraphText().editor.commands.setTextSelection({ from: 1, to: 5 });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Внешняя ссылка' }));
+    const dialog = screen.getByRole('dialog', { name: 'Внешняя ссылка' });
+    fireEvent.change(within(dialog).getByLabelText('Адрес ссылки'), { target: { value: 'https://example.com' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Применить' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(within(paragraphText()).getByRole('link', { name: 'сайт' }).getAttribute('href')).toBe('https://example.com');
   });
 
   it('given an article that cannot be loaded, when the edit address opens, then the load error is shown', async () => {
