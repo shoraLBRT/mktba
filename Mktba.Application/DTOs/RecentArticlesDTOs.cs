@@ -3,7 +3,7 @@ namespace Mktba.Application.DTOs
     /// <summary>One entry of the home page's lists of new and updated articles (R-05, #41).</summary>
     /// <param name="Id">Article id.</param>
     /// <param name="Title">Article title.</param>
-    /// <param name="Slug">URL segment of the article: the reader's link is <c>/article/{slug}</c>.</param>
+    /// <param name="Slug">URL segment of the article: the reader's link is <c>/{slug}</c>.</param>
     /// <param name="Summary">The article's short summary, or null when it has none.</param>
     /// <param name="PublishedAt">When the article first became Published (UTC).</param>
     /// <param name="UpdatedAt">When its content or metadata was last saved (UTC).</param>

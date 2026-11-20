@@ -23,7 +23,7 @@ public sealed class ArticleSlugAssigner
     /// </summary>
     /// <param name="locale">The article's locale; slugs are unique within it.</param>
     /// <param name="articleId">The article being edited; <c>null</c> for a new one.</param>
-    /// <exception cref="ValidationException"><c>article_slug_invalid</c> or <c>article_slug_taken</c>.</exception>
+    /// <exception cref="ValidationException"><c>article_slug_invalid</c>, <c>article_slug_reserved</c> or <c>article_slug_taken</c>.</exception>
     public async Task<string> ChooseAsync(string? requestedSlug, string title, string locale, int? articleId)
     {
         if (string.IsNullOrWhiteSpace(requestedSlug))
@@ -37,6 +37,11 @@ public sealed class ArticleSlugAssigner
             throw new ValidationException(AppErrors.ArticleSlugInvalid);
         }
 
+        if (ArticleSlugRules.IsReserved(slug))
+        {
+            throw new ValidationException(AppErrors.ArticleSlugReserved(slug));
+        }
+
         if (await _articleRepository.IsSlugTakenAsync(locale, slug, articleId))
         {
             throw new ValidationException(AppErrors.ArticleSlugTaken(slug));
@@ -45,14 +50,17 @@ public sealed class ArticleSlugAssigner
         return slug;
     }
 
-    /// <summary>The slug from the title, or the first free one of slug-2, slug-3, … in <paramref name="locale"/>.</summary>
+    /// <summary>
+    /// The slug from the title, or the first free one of slug-2, slug-3, … in <paramref name="locale"/>;
+    /// a reserved word is never free (a title «Search» gives <c>search-2</c>).
+    /// </summary>
     public async Task<string> GenerateUniqueAsync(string title, string locale, int? articleId)
     {
         var baseSlug = ArticleSlugRules.FromTitle(title);
         for (var number = 1; ; number++)
         {
             var candidate = ArticleSlugRules.WithSuffix(baseSlug, number);
-            if (!await _articleRepository.IsSlugTakenAsync(locale, candidate, articleId))
+            if (!ArticleSlugRules.IsReserved(candidate) && !await _articleRepository.IsSlugTakenAsync(locale, candidate, articleId))
             {
                 return candidate;
             }

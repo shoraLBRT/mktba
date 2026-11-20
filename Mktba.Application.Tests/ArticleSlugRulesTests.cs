@@ -91,6 +91,22 @@ public class ArticleSlugRulesTests
         ArticleSlugRules.IsValid(slug).Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData("admin", true)]
+    [InlineData("search", true)]
+    [InlineData("authors", true)]
+    [InlineData("article", true)]
+    [InlineData("sitemaps", true)]
+    [InlineData("ru", true)]
+    [InlineData("en", true)]
+    [InlineData("search-2", false)]
+    [InlineData("administratsiya", false)]
+    [InlineData("namaz", false)]
+    public void GivenSlug_WhenCheckingReserved_ThenOnlyTheSitesFirstSegmentsAreReserved(string slug, bool expected)
+    {
+        ArticleSlugRules.IsReserved(slug).Should().Be(expected);
+    }
+
     [Fact]
     public void GivenTooLongSlug_WhenValidating_ThenFails()
     {

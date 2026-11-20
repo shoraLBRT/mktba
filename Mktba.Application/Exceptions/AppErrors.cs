@@ -131,6 +131,9 @@ public static class AppErrors
     public static AppError SearchQueryTooLong(int maxLength) =>
         new("search_query_too_long", $"A search query cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
 
+    public static AppError ArticleSlugReserved(string slug) =>
+        new("article_slug_reserved", $"Slug '{slug}' is reserved for another page of the site.", With(("slug", slug)));
+
     public static AppError ArticleSlugTaken(string slug) =>
         new("article_slug_taken", $"Slug '{slug}' is already used by another article.", With(("slug", slug)));
 

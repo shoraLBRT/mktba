@@ -97,6 +97,42 @@ public class ArticleSlugTests : IDisposable
             .Which.Error.Code.Should().Be(AppErrors.ArticleSlugInvalid.Code);
     }
 
+    [Theory]
+    [InlineData("search")]
+    [InlineData("admin")]
+    [InlineData("article")]
+    [InlineData("en")]
+    public async Task GivenReservedManualSlug_WhenCreating_ThenRejectsWithSlugReserved(string slug)
+    {
+        var act = () => CreateAsync("Намаз", slug);
+
+        var error = (await act.Should().ThrowAsync<ValidationException>()).Which.Error;
+        error.Code.Should().Be("article_slug_reserved");
+        error.Params!.Should().ContainKey("slug").WhoseValue.Should().Be(slug);
+    }
+
+    [Theory]
+    [InlineData("Search", "search-2")]
+    [InlineData("بسم الله", "article-2")]
+    public async Task GivenTitleGivingReservedWord_WhenCreatingWithoutSlug_ThenSuffixIsAdded(string title, string expected)
+    {
+        var article = await CreateAsync(title);
+
+        article.Slug.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task GivenReservedSlug_WhenRenaming_ThenRejectsWithSlugReservedAndKeepsOldSlug()
+    {
+        var article = await CreateAsync("Намаз");
+
+        var (success, error) = await UpdateAsync(article with { Slug = "feedback" });
+
+        success.Should().BeFalse();
+        error!.Code.Should().Be("article_slug_reserved");
+        (await _service.GetContentByArticleIdAsync(article.Id, TestViewers.Admin)).Slug.Should().Be("namaz");
+    }
+
     [Fact]
     public async Task GivenSlugOfAnotherArticle_WhenCreating_ThenRejectsWithSlugTaken()
     {

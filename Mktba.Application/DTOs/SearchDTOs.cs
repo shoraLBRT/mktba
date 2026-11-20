@@ -7,7 +7,7 @@ namespace Mktba.Application.DTOs
 
     /// <summary>One article found by the search (R-10, #46).</summary>
     /// <param name="Id">Article id.</param>
-    /// <param name="Slug">URL segment of the article: the reader's link is <c>/article/{slug}</c>.</param>
+    /// <param name="Slug">URL segment of the article: the reader's link is <c>/{slug}</c>.</param>
     /// <param name="Title">The article title, split into plain and matched runs.</param>
     /// <param name="Summary">The article's summary split the same way, or null when it has none.</param>
     /// <param name="Snippet">
