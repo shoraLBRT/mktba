@@ -308,6 +308,9 @@ test('the table of contents follows the scroll, headings and paragraphs have lin
   await expect(page.getByRole('button', { name: 'Наверх' })).toBeHidden();
   // A late web font re-wraps the text and moves the sections; wait it out before measuring.
   await page.evaluate('document.fonts.ready');
+  // The first-visit mazhab hint appears only after hydration: jump once the page has settled, since
+  // hydration may still move the window (the tree scrolls the current article into view).
+  await expect(page.getByRole('note')).toBeVisible();
 
   // A table of contents entry jumps to its section and becomes the current one.
   await toc.getByRole('link', { name: 'Ният' }).click();
