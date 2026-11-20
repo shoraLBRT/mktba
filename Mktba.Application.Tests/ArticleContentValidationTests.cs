@@ -18,7 +18,7 @@ public class ArticleContentValidationTests : IDisposable
         var articleRepo = new ArticleRepository(_context);
         var paragraphRepo = new ParagraphRepository(_context);
         var uow = Substitute.For<IUnitOfWork>();
-        _service = new ArticleContentService(articleRepo, paragraphRepo, uow, TimeProvider.System);
+        _service = new ArticleContentService(articleRepo, paragraphRepo, uow, new TagRepository(_context), TimeProvider.System);
     }
 
     public void Dispose() => _context.Dispose();

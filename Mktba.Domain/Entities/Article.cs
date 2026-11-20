@@ -35,7 +35,14 @@
         public ICollection<Paragraph> Paragraphs { get; set; } = new List<Paragraph>();
         public ICollection<ArticleInfoboxField> InfoboxFields { get; set; } = new List<ArticleInfoboxField>();
         public string? Summary { get; set; }
-        public string? Tags { get; set; }
+        /// <summary>The article's tags (M-06, #70), ordered by <see cref="ArticleTag.Order"/>.</summary>
+        public ICollection<ArticleTag> TagLinks { get; set; } = new List<ArticleTag>();
+        /// <summary>
+        /// Copy of the tag names joined by ",", in order (column <c>Tags</c>), kept only for the full-text
+        /// search: the stored generated <c>SearchVector</c> column can read only this table. Written
+        /// together with <see cref="TagLinks"/> and never read for anything else; null when there are none.
+        /// </summary>
+        public string? TagsSearchText { get; set; }
         /// <summary>Title for search engines and link previews; null falls back to <see cref="Title"/>.</summary>
         public string? SeoTitle { get; set; }
         /// <summary>Description for search engines and link previews; null falls back to <see cref="Summary"/>, then to the start of the text.</summary>

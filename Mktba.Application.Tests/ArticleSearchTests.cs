@@ -285,7 +285,7 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
             Locale = locale,
             Status = status,
             Summary = summary,
-            Tags = tags,
+            TagsSearchText = tags,
             ParentArticle = parent,
             Paragraphs = opinions is null
                 ? []

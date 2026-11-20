@@ -79,6 +79,11 @@
         bool NoIndex
     );
 
+    /// <param name="Tags">
+    /// Tag names of the article's language, in order (M-06, #70): trimmed, white space collapsed,
+    /// blanks dropped, a repeat in another case kept once; at most 16, each at most 50 characters and
+    /// without a comma. A name no tag has yet creates the tag.
+    /// </param>
     /// <param name="Slug">Optional URL segment; null or blank generates one from the title.</param>
     /// <param name="Seo">Optional SEO overrides; null means none.</param>
     /// <param name="EditComment">Optional note stored on the first revision (at most 500 characters).</param>
@@ -100,6 +105,10 @@
         ArticleSeoDto? Seo = null
     );
 
+    /// <param name="Tags">
+    /// Tag names, in order. On update a full replace, with the rules of <see cref="ArticleContentCreateDto"/>;
+    /// a tag's name follows renames and merges, so a read may differ from what was saved.
+    /// </param>
     /// <param name="Slug">
     /// The article's URL segment. Always set on read. On update, null or blank keeps the current
     /// slug; a new value is validated, and the old slug keeps working as a redirect.
@@ -125,6 +134,10 @@
     /// reads (<c>GET</c> by id and by slug); null in the answer to a save. Ignored on update:
     /// authorship is changed through <c>/articles/{id}/authors</c>.
     /// </param>
+    /// <param name="TagLinks">
+    /// Read only: <c>tags</c> with the slug of each tag's page (<c>/tags/{slug}</c>), in the same
+    /// order. Always set on read. Ignored on update: tags are written as <c>tags</c>.
+    /// </param>
     public record ArticleContentDto(
         int Id,
         string Title,
@@ -142,8 +155,14 @@
         ArticleSeoDto? Seo = null,
         ArticleMetaDto? Meta = null,
         List<SourceDto>? Sources = null,
-        List<ArticleAuthorDto>? Authors = null
+        List<ArticleAuthorDto>? Authors = null,
+        List<ArticleTagDto>? TagLinks = null
     );
+
+    /// <summary>A tag of an article as readers see it (M-06, #70).</summary>
+    /// <param name="Name">The tag's name.</param>
+    /// <param name="Slug">The slug of the tag page, <c>/tags/{slug}</c>, unique within the article's language.</param>
+    public record ArticleTagDto(string Name, string Slug);
 
     /// <summary>A person credited on an article as readers see them (P-06, #94): no id, no email.</summary>
     /// <param name="DisplayName">The name the user chose for their profile.</param>

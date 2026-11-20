@@ -19,7 +19,7 @@ public class ArticleSlugTests : IDisposable
         _context = TestDbHelper.CreateInMemoryContext();
         var uow = Substitute.For<IUnitOfWork>();
         uow.SaveChangesAsync().Returns(_ => _context.SaveChangesAsync());
-        _service = new ArticleContentService(new ArticleRepository(_context), new ParagraphRepository(_context), uow, TimeProvider.System);
+        _service = new ArticleContentService(new ArticleRepository(_context), new ParagraphRepository(_context), uow, new TagRepository(_context), TimeProvider.System);
     }
 
     public void Dispose() => _context.Dispose();

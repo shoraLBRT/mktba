@@ -28,7 +28,7 @@ namespace Mktba.Application.Services
                 article.Title,
                 article.Slug,
                 article.Summary,
-                article.Tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList() ?? new List<string>(),
+                ArticleTagAssigner.NamesOf(article),
                 infobox,
                 article.Paragraphs
                     .OrderBy(p => p.Order)

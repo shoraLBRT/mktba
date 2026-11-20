@@ -28,7 +28,7 @@ public class ArticleOrderTests : IDisposable
         _articles = new ArticleService(articleRepo, mapper, TimeProvider.System);
         var uow = Substitute.For<IUnitOfWork>();
         uow.SaveChangesAsync().Returns(_ => _context.SaveChangesAsync());
-        _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, TimeProvider.System);
+        _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, new TagRepository(_context), TimeProvider.System);
         _tree = new NavigationTreeService(articleRepo);
     }
 

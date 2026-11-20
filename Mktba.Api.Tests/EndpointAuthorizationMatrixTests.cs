@@ -83,6 +83,10 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         ["POST /sources/"] = Policies.CanEditArticles,
         ["PUT /sources/{id:int}"] = Policies.CanEditAnyArticle,
         ["DELETE /sources/{id:int}"] = Policies.CanEditAnyArticle,
+        ["GET /tags/"] = Policies.CanEditAnyArticle,
+        ["GET /tags/{slug}"] = Public,
+        ["PUT /tags/{id:int}"] = Policies.CanEditAnyArticle,
+        ["POST /tags/{id:int}/merge"] = Policies.CanEditAnyArticle,
         ["DELETE /schools/{id:int}"] = Policies.CanEditArticles,
 
         ["POST /articles/{id:int}/status"] = Policies.CanEditArticles,

@@ -146,9 +146,8 @@ namespace Mktba.Infrastructure.Repositories
 
             if (!string.IsNullOrWhiteSpace(query.Tag))
             {
-                // Tags are stored joined by "," without spaces, so ",tag," matches one whole tag.
-                var tag = "," + query.Tag.Trim().ToLower() + ",";
-                articles = articles.Where(article => article.Tags != null && ("," + article.Tags.ToLower() + ",").Contains(tag));
+                var tagKey = query.Tag;
+                articles = articles.Where(article => article.TagLinks.Any(link => link.Tag.NormalizedName == tagKey));
             }
 
             if (!string.IsNullOrWhiteSpace(query.Locale))
@@ -170,7 +169,7 @@ namespace Mktba.Infrastructure.Repositories
                     article.ParentArticleId,
                     article.AuthorId,
                     article.CoAuthors.Select(coAuthor => coAuthor.UserId).ToList(),
-                    article.Tags,
+                    article.TagLinks.OrderBy(link => link.Order).Select(link => link.Tag.Name).ToList(),
                     article.Paragraphs.Count,
                     article.CreatedAt,
                     article.UpdatedAt,
@@ -234,6 +233,8 @@ namespace Mktba.Infrastructure.Repositories
                     .ThenInclude(p => p.Opinions)
                         .ThenInclude(o => o.Sources)
                             .ThenInclude(c => c.Source)
+                .Include(article => article.TagLinks)
+                    .ThenInclude(link => link.Tag)
                 .Include(article => article.InfoboxFields)
                 .Include(article => article.RelatedLinks)
                     .ThenInclude(link => link.RelatedArticle)
@@ -255,6 +256,8 @@ namespace Mktba.Infrastructure.Repositories
                     .ThenInclude(p => p.Opinions)
                         .ThenInclude(o => o.Sources)
                             .ThenInclude(c => c.Source)
+                .Include(article => article.TagLinks)
+                    .ThenInclude(link => link.Tag)
                 .Include(article => article.InfoboxFields)
                 .Include(article => article.RelatedLinks)
                     .ThenInclude(link => link.RelatedArticle)
