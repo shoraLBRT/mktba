@@ -14,7 +14,9 @@ using Mktba.Api.Endpoints;
 using Mktba.Api.Infrastructure;
 using Mktba.Api.Middleware;
 
-var builder = WebApplication.CreateBuilder(args);
+// `--migrate` applies the migrations and exits instead of serving (X-03, #65; DatabaseStartup).
+var (migrateOnly, hostArgs) = DatabaseStartup.ParseArgs(args);
+var builder = WebApplication.CreateBuilder(hostArgs);
 builder.Configuration.AddLocalSettingsFile();
 
 builder.Services.AddDbContext<MktbaDbContext>(options =>
@@ -113,23 +115,17 @@ if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
 
 var app = builder.Build();
 
+if (migrateOnly)
+{
+    await DatabaseStartup.MigrateAsync(app.Services);
+    return;
+}
+
 // The OpenApi environment only generates the OpenAPI document (see mktba.react `npm run gen:api`)
 // and must not touch the database.
 if (!app.Environment.IsEnvironment(OpenApiEnvironmentName))
 {
-    // Demonstration-only seed data to make navigation/content visible in fresh local environments.
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<MktbaDbContext>();
-    // Integration tests run the API on a non-relational (InMemory) provider, which has no migrations.
-    if (dbContext.Database.IsRelational())
-    {
-        await dbContext.Database.MigrateAsync();
-    }
-    else
-    {
-        await dbContext.Database.EnsureCreatedAsync();
-    }
-    await DemoDataSeeder.SeedAsync(dbContext);
+    await DatabaseStartup.PrepareAsync(app.Services, app.Configuration);
 }
 
 if (app.Environment.IsDevelopment())

@@ -18,10 +18,19 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
 
     private readonly string _databaseName = $"mktba_test_{Guid.NewGuid():N}";
     private readonly NpgsqlConnectionStringBuilder _server;
+    private readonly bool _migrate;
 
-    public PostgresDatabaseFixture()
+    /// <summary>A throwaway database left empty: no migration applied (X-03 #65 tests the migration step itself).</summary>
+    public static PostgresDatabaseFixture Empty() => new(migrate: false);
+
+    public PostgresDatabaseFixture() : this(migrate: true)
+    {
+    }
+
+    private PostgresDatabaseFixture(bool migrate)
     {
         var configured = Environment.GetEnvironmentVariable(ConnectionVariable);
+        _migrate = migrate;
         _server = new NpgsqlConnectionStringBuilder(string.IsNullOrWhiteSpace(configured) ? ComposeConnection : configured);
     }
 
@@ -31,6 +40,12 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        if (!_migrate)
+        {
+            await ExecuteOnServerAsync($"CREATE DATABASE \"{_databaseName}\"");
+            return;
+        }
+
         await using var context = CreateContext();
         await context.Database.MigrateAsync();
     }
@@ -38,10 +53,15 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
     public async Task DisposeAsync()
     {
         NpgsqlConnection.ClearAllPools();
+        await ExecuteOnServerAsync($"DROP DATABASE IF EXISTS \"{_databaseName}\" WITH (FORCE)");
+    }
+
+    private async Task ExecuteOnServerAsync(string sql)
+    {
         await using var connection = new NpgsqlConnection(ConnectionTo("postgres"));
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
-        command.CommandText = $"DROP DATABASE IF EXISTS \"{_databaseName}\" WITH (FORCE)";
+        command.CommandText = sql;
         await command.ExecuteNonQueryAsync();
     }
 

@@ -3,7 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mktba.Infrastructure.Data;
 
-public static class DemoDataSeeder
+/// <summary>
+/// Reference data every database needs, production included: the four canonical schools (with their
+/// English names). Idempotent; run by <see cref="DatabaseMigrator.MigrateAsync"/> after the migrations.
+/// Demo content is not seeded here — it comes from <c>scripts/seed-demo-content.mjs</c> through the API.
+/// </summary>
+public static class SystemSchoolSeeder
 {
     private static readonly (string Slug, string Name, string ShortName, string EnName, string EnShortName)[] SystemSchools =
     [

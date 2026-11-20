@@ -169,8 +169,8 @@ public class ArticleLocaleTests : IDisposable
     [Fact]
     public async Task GivenSystemSchools_WhenSeeding_ThenEachGetsOneEnglishName()
     {
-        await DemoDataSeeder.SeedAsync(_context);
-        await DemoDataSeeder.SeedAsync(_context);
+        await SystemSchoolSeeder.SeedAsync(_context);
+        await SystemSchoolSeeder.SeedAsync(_context);
 
         var schools = await _context.Schools.Include(s => s.Translations).ToListAsync();
         schools.Should().HaveCount(4);

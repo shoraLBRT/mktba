@@ -44,7 +44,7 @@ mktba/
 docker compose up -d postgres    # поднять локальный PostgreSQL
 dotnet restore Mktba.sln
 dotnet build Mktba.sln           # без имени решения MSBuild падает (MSB1011: рядом docker-compose.dcproj)
-dotnet run --project Mktba.Api   # :5172, при старте применяются миграции и 4 системные школы
+dotnet run --project Mktba.Api   # :5172, в Development при старте применяет миграции и 4 системные школы
 ```
 
 Тесты: `dotnet test Mktba.sln`. Почти все идут на InMemory-провайдере, но тесты поиска
@@ -75,6 +75,25 @@ cp Mktba.Api/appsettings.local.example.json Mktba.Api/appsettings.local.json
 Порядок источников (последний побеждает): `appsettings.json` → `appsettings.{Environment}.json`
 → `appsettings.local.json` → user-secrets (Development) → переменные окружения
 (`ConnectionStrings__DefaultConnection=...`) → аргументы командной строки.
+
+#### Миграции БД (X-03)
+
+API сам применяет миграции при старте только при `Database:MigrateOnStartup=true` — так стоит в
+`appsettings.Development.json` (локальный запуск, e2e). В любом другом окружении (Production,
+Staging, контейнер) он схему не трогает: проверяет, что неприменённых миграций нет, и иначе не
+стартует с сообщением, сколько их и какой командой применить. Миграции применяет тот же бинарник
+отдельной командой — она применяет миграции, досоздаёт справочные данные (4 системные школы
+с английскими названиями, `SystemSchoolSeeder`) и завершается, ничего не обслуживая:
+
+```bash
+dotnet Mktba.Api.dll --migrate                     # опубликованная сборка
+dotnet run --project Mktba.Api -- --migrate        # из исходников
+docker run --rm -e ConnectionStrings__DefaultConnection=... <образ> --migrate   # ENTRYPOINT образа — API
+```
+
+Команда идемпотентна: повторный запуск на актуальной базе ничего не меняет. Порядок деплоя —
+сначала `--migrate`, потом новая версия API (этот шаг использует деплой из CI, X-02 #64).
+Демо-контента в API нет вовсе — его создаёт только скрипт `scripts/seed-demo-content.mjs` (ниже).
 
 #### Ключ подписи JWT
 
