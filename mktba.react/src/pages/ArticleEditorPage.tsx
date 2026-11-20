@@ -42,7 +42,7 @@ import {
   addVersionToBlock,
   buildDocumentPreviewMarkdown,
   collectWholeArticleAiTargets,
-  setOpinionSchools,
+  toggleOpinionSchool,
   setOpinionSources,
   changeEmptyBlockKind,
   convertParagraphToVersioned,
@@ -236,8 +236,11 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const blockRefs = useRef<Record<string, HTMLElement | null>>({});
   /** The block of opinions waiting for the user to confirm it becomes a plain paragraph. */
   const [convertToParagraph, setConvertToParagraph] = useState<{ blockId: string; lostOpinions: number } | null>(null);
-  /** A block whose text gets the focus once it is rendered (a kind picked in the `/` menu). */
-  const [focusRequest, setFocusRequest] = useState<string | null>(null);
+  /**
+   * A block whose text gets the focus once it is rendered (a kind picked in the `/` menu), or one
+   * opinion of it (an opinion just added); without one, a block of opinions focuses its default.
+   */
+  const [focusRequest, setFocusRequest] = useState<{ blockId: string; localId?: string } | null>(null);
   const blockDragAndDrop = useBlockDragAndDrop({
     getBlockElement: (blockId) => blockRefs.current[blockId] ?? null,
     onMove: (blockId, target) => setBlocks((current) => moveBlockTo(current, blockId, target.blockId, target.position)),
@@ -396,7 +399,15 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
 
   const chooseBlockKind = (blockId: string, kind: SlashMenuKind) => {
     setBlocks((current) => changeEmptyBlockKind(current, blockId, kind));
-    setFocusRequest(blockId);
+    setFocusRequest({ blockId });
+  };
+
+  /** «Add opinion» in a block of opinions: a new empty opinion for the school picked, opened to write. */
+  const addOpinion = (blockId: string, schoolId: number | null) => {
+    const localId = crypto.randomUUID();
+    setBlocks((current) => addVersionToBlock(current, blockId, schoolId === null ? [] : [schoolId], localId));
+    setActiveTarget({ blockId, localId });
+    setFocusRequest({ blockId, localId });
   };
 
   // The text of a block whose kind was just picked takes the focus once it is rendered.
@@ -404,13 +415,16 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     if (!focusRequest) {
       return;
     }
-    const block = blocks.find((candidate) => candidate.id === focusRequest);
+    const block = blocks.find((candidate) => candidate.id === focusRequest.blockId);
     setFocusRequest(null);
     if (!block) {
       return;
     }
     if (block.kind === 'versioned') {
-      const opinion = block.variants.find((variant) => variant.isDefault) ?? block.variants[0];
+      const opinion =
+        block.variants.find((variant) => variant.localId === focusRequest.localId) ??
+        block.variants.find((variant) => variant.isDefault) ??
+        block.variants[0];
       setActiveTarget({ blockId: block.id, localId: opinion.localId });
       richTextRefs.current[targetKey(block.id, opinion.localId)]?.focus();
     } else {
@@ -718,9 +732,9 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                           onChangePlain={(blockId, content) => setBlocks((current) => updatePlainBlockContent(current, blockId, content))}
                           onChangeVersion={(blockId, localId, content) => setBlocks((current) => updateVersionContent(current, blockId, localId, content))}
                           onSetDefault={(blockId, localId) => setBlocks((current) => setDefaultVersion(current, blockId, localId))}
-                          onSetSchools={(blockId, localId, schoolIds) => setBlocks((current) => setOpinionSchools(current, blockId, localId, schoolIds))}
+                          onToggleSchool={(blockId, localId, schoolId) => setBlocks((current) => toggleOpinionSchool(current, blockId, localId, schoolId))}
                           onSetSources={(blockId, localId, sources) => setBlocks((current) => setOpinionSources(current, blockId, localId, sources))}
-                          onAddVersion={(blockId) => setBlocks((current) => addVersionToBlock(current, blockId))}
+                          onAddOpinion={addOpinion}
                           onRemoveVersion={(blockId, localId) => setBlocks((current) => removeVersionFromBlock(current, blockId, localId))}
                           onDeleteBlock={(blockId) => setBlocks((current) => (current.length > 1 ? deleteBlock(current, blockId) : current))}
                           onDuplicateBlock={(blockId) => setBlocks((current) => duplicateBlock(current, blockId))}
