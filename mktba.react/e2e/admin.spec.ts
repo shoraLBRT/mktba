@@ -158,6 +158,51 @@ test('a new article is a draft hidden from readers until it is published', async
   await reader.close();
 });
 
+test('leaving the editor with unsaved edits asks first, and a saved draft leaves freely', async ({ page }) => {
+  const stamp = Date.now();
+  const title = `E2E правки ${stamp}`;
+  const titleField = page.getByRole('textbox', { name: 'Название статьи...' });
+  const leaveDialog = page.getByRole('alertdialog', { name: 'Уйти без сохранения?' });
+  await logIn(page);
+
+  // Saving a new article goes to it without asking.
+  await page.goto('/admin/articles/new');
+  await titleField.fill(title);
+  await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Текст.');
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+
+  // An untouched editor is left without asking.
+  await (await openAdminArticleTree(page)).getByRole('link', { name: title, exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/articles\/\d+\/edit$/);
+  const editUrl = page.url();
+  await page.getByRole('link', { name: 'История правок' }).click();
+  await expect(page).toHaveURL(/\/history$/);
+
+  await page.goto(editUrl);
+  await titleField.fill(`${title} (не сохранено)`);
+  await page.getByRole('link', { name: 'История правок' }).click();
+  await expect(leaveDialog).toBeVisible();
+  await expect(leaveDialog.getByRole('button', { name: 'Остаться' })).toBeFocused();
+  await leaveDialog.getByRole('button', { name: 'Остаться' }).click();
+  await expect(leaveDialog).toBeHidden();
+  await expect(page).toHaveURL(editUrl);
+  await expect(titleField).toHaveValue(`${title} (не сохранено)`);
+
+  await page.getByRole('link', { name: 'История правок' }).click();
+  await leaveDialog.getByRole('button', { name: 'Уйти без сохранения' }).click();
+  await expect(page).toHaveURL(/\/history$/);
+
+  // Closing the tab with unsaved edits asks the browser's own question.
+  await page.goto(editUrl);
+  await titleField.fill(`${title} (снова)`);
+  const unload = page.waitForEvent('dialog');
+  await page.close({ runBeforeUnload: true });
+  const dialog = await unload;
+  expect(dialog.type()).toBe('beforeunload');
+  await dialog.accept();
+});
+
 test('an edit is kept in the history, can be compared and rolled back', async ({ page }) => {
   const stamp = Date.now();
   const title = `E2E история ${stamp}`;
