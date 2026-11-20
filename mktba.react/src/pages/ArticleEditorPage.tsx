@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, type SetStateAction } from 'react';
+import React, { useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { flushSync } from 'react-dom';
 import { FileText } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -23,7 +23,15 @@ import { EditorHelpRail } from './add-article/EditorHelpRail';
 import { InfoboxEditor } from './add-article/InfoboxEditor';
 import { EditorOutlineRail } from './add-article/EditorOutlineRail';
 import { EditorToolbar } from './add-article/EditorToolbar';
-import { AiRunningOverlay, DeleteArticleDialog, EditorNotice, ImportMarkdownDialog, UnsavedChangesDialog, type EditorNoticeValue } from './add-article/EditorDialogs';
+import {
+  AiRunningOverlay,
+  ConvertToParagraphDialog,
+  DeleteArticleDialog,
+  EditorNotice,
+  ImportMarkdownDialog,
+  UnsavedChangesDialog,
+  type EditorNoticeValue,
+} from './add-article/EditorDialogs';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 import { localDraftCopyKey } from './add-article/localDraftCopy';
 import { DraftSaveIndicator, LocalDraftOffer } from './add-article/LocalDraftCopyNotices';
@@ -36,12 +44,16 @@ import {
   collectWholeArticleAiTargets,
   setOpinionSchools,
   setOpinionSources,
+  changeEmptyBlockKind,
   convertParagraphToVersioned,
   convertVersionedToParagraph,
   deleteBlock,
+  duplicateBlock,
   importBlocksFromMarkdown,
   insertBlockAfter,
   moveBlock,
+  moveBlockTo,
+  opinionsLostByConvertingToParagraph,
   removeVersionFromBlock,
   setDefaultVersion,
   updatePlainBlockContent,
@@ -72,6 +84,8 @@ import type { RichTextHandle } from './add-article/richText/RichTextEditor';
 import { InternalLinkWarnings } from './add-article/InternalLinkWarnings';
 import { SlugField } from './add-article/SlugField';
 import { SeoFields } from './add-article/SeoFields';
+import { useBlockDragAndDrop } from './add-article/useBlockDragAndDrop';
+import type { SlashMenuKind } from './add-article/slashMenuKinds';
 import { formatMessage } from '../localization';
 import { SLUG_MAX_LENGTH, articleHref, articleSlugFromTitle } from '../shared/slug';
 
@@ -220,6 +234,14 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   /** The rich-text editors of paragraphs and opinions, by target key. */
   const richTextRefs = useRef<Record<string, RichTextHandle | null>>({});
   const blockRefs = useRef<Record<string, HTMLElement | null>>({});
+  /** The block of opinions waiting for the user to confirm it becomes a plain paragraph. */
+  const [convertToParagraph, setConvertToParagraph] = useState<{ blockId: string; lostOpinions: number } | null>(null);
+  /** A block whose text gets the focus once it is rendered (a kind picked in the `/` menu). */
+  const [focusRequest, setFocusRequest] = useState<string | null>(null);
+  const blockDragAndDrop = useBlockDragAndDrop({
+    getBlockElement: (blockId) => blockRefs.current[blockId] ?? null,
+    onMove: (blockId, target) => setBlocks((current) => moveBlockTo(current, blockId, target.blockId, target.position)),
+  });
 
   const showNotice = (tone: EditorNoticeValue['tone'], message: string) => {
     setNotice({ tone, message });
@@ -360,6 +382,43 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     element?.focus();
     element?.setSelectionRange(formatted.selectionStart, formatted.selectionEnd);
   };
+
+  /** A block of opinions becomes a plain paragraph at once, unless other opinions would lose their text: then the user is asked. */
+  const requestConvertToParagraph = (blockId: string) => {
+    const block = blocks.find((candidate) => candidate.id === blockId);
+    const lostOpinions = block?.kind === 'versioned' ? opinionsLostByConvertingToParagraph(block) : 0;
+    if (lostOpinions > 0) {
+      setConvertToParagraph({ blockId, lostOpinions });
+    } else {
+      setBlocks((current) => convertVersionedToParagraph(current, blockId));
+    }
+  };
+
+  const chooseBlockKind = (blockId: string, kind: SlashMenuKind) => {
+    setBlocks((current) => changeEmptyBlockKind(current, blockId, kind));
+    setFocusRequest(blockId);
+  };
+
+  // The text of a block whose kind was just picked takes the focus once it is rendered.
+  useEffect(() => {
+    if (!focusRequest) {
+      return;
+    }
+    const block = blocks.find((candidate) => candidate.id === focusRequest);
+    setFocusRequest(null);
+    if (!block) {
+      return;
+    }
+    if (block.kind === 'versioned') {
+      const opinion = block.variants.find((variant) => variant.isDefault) ?? block.variants[0];
+      setActiveTarget({ blockId: block.id, localId: opinion.localId });
+      richTextRefs.current[targetKey(block.id, opinion.localId)]?.focus();
+    } else {
+      setActiveTarget({ blockId: block.id, localId: null });
+      richTextRefs.current[targetKey(block.id, null)]?.focus();
+      editorRefs.current[targetKey(block.id, null)]?.focus();
+    }
+  }, [focusRequest, blocks]);
 
   const openExternalLinkDialog = (target: EditorTarget) => {
     const richText = richTextOf(target);
@@ -664,9 +723,15 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                           onAddVersion={(blockId) => setBlocks((current) => addVersionToBlock(current, blockId))}
                           onRemoveVersion={(blockId, localId) => setBlocks((current) => removeVersionFromBlock(current, blockId, localId))}
                           onDeleteBlock={(blockId) => setBlocks((current) => (current.length > 1 ? deleteBlock(current, blockId) : current))}
+                          onDuplicateBlock={(blockId) => setBlocks((current) => duplicateBlock(current, blockId))}
                           onMoveBlock={(blockId, direction) => setBlocks((current) => moveBlock(current, blockId, direction))}
                           onConvertToVersioned={(blockId) => setBlocks((current) => convertParagraphToVersioned(current, blockId))}
-                          onConvertToParagraph={(blockId) => setBlocks((current) => convertVersionedToParagraph(current, blockId))}
+                          onConvertToParagraph={requestConvertToParagraph}
+                          onChooseBlockKind={chooseBlockKind}
+                          dragHandleProps={blockDragAndDrop.handleProps(block.id)}
+                          dropZoneProps={blockDragAndDrop.dropZoneProps(block.id)}
+                          isDragged={blockDragAndDrop.draggedBlockId === block.id}
+                          dropIndicator={blockDragAndDrop.dropTarget?.blockId === block.id ? blockDragAndDrop.dropTarget.position : null}
                         />
                       ))}
                     </div>
@@ -780,6 +845,17 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       ) : null}
 
       {isAiRunning ? <AiRunningOverlay /> : null}
+
+      {convertToParagraph ? (
+        <ConvertToParagraphDialog
+          lostOpinions={convertToParagraph.lostOpinions}
+          onCancel={() => setConvertToParagraph(null)}
+          onConfirm={() => {
+            setBlocks((current) => convertVersionedToParagraph(current, convertToParagraph.blockId));
+            setConvertToParagraph(null);
+          }}
+        />
+      ) : null}
 
       {leaveGuard.blocker.state === 'blocked' ? (
         <UnsavedChangesDialog onStay={leaveGuard.blocker.reset} onLeave={leaveAndDiscard} />

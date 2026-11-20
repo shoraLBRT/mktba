@@ -34,6 +34,8 @@ type RichTextEditorProps = {
   onFocus: () => void;
   /** Ctrl/⌘+K: the page opens its link dialog. */
   onRequestLink: () => void;
+  /** A key pressed in the text, before the editor handles it; true when the caller took it (the `/` menu). */
+  onKeyDown?: (event: KeyboardEvent) => boolean;
   handleRef: (handle: RichTextHandle | null) => void;
   disabled: boolean;
   placeholder: string;
@@ -127,15 +129,16 @@ export const RichTextEditor = ({
   onChange,
   onFocus,
   onRequestLink,
+  onKeyDown,
   handleRef,
   disabled,
   placeholder,
   className,
 }: RichTextEditorProps) => {
   const t = useLocale().addArticleEditor.richText;
-  const callbacks = useRef({ onChange, onFocus, handleRef, placeholder });
+  const callbacks = useRef({ onChange, onFocus, onKeyDown, handleRef, placeholder });
   useLayoutEffect(() => {
-    callbacks.current = { onChange, onFocus, handleRef, placeholder };
+    callbacks.current = { onChange, onFocus, onKeyDown, handleRef, placeholder };
   });
 
   /** The last value given from outside (loaded, restored, imported, styled by the AI) and its normal form. */
@@ -168,6 +171,7 @@ export const RichTextEditor = ({
         'aria-label': callbacks.current.placeholder,
         class: cn('rich-text-editor article-markdown', className),
       }),
+      handleKeyDown: (_view, event) => callbacks.current.onKeyDown?.(event) ?? false,
     },
     onUpdate: ({ editor: updated }) => {
       const markdown = documentToMarkdown(updated.getJSON());

@@ -159,7 +159,7 @@ export type AiStyledText = { blockId: string; localId: string | null; original: 
  * Puts the AI's texts into the blocks. A new article takes every text in place of the original.
  * An existing article takes only the texts the AI changed: a changed opinion is added to its block
  * as a further opinion, the original kept; a changed paragraph is turned into a block of opinions
- * holding the styled text.
+ * whose default is the original and whose second opinion is the styled text.
  */
 export const applyAiStyledTexts = (
   blocks: EditorBlock[],

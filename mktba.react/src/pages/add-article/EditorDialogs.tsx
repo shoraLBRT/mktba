@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
 import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
@@ -131,6 +132,59 @@ export const UnsavedChangesDialog = ({ onStay, onLeave }: { onStay: () => void; 
         <div className="flex justify-end gap-3 border-t border-[var(--color-border-soft)] px-6 py-4">
           <Button variant="ghost" onClick={onLeave}>{t.leave}</Button>
           <Button data-stay variant="primary" onClick={onStay}>{t.stay}</Button>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+/**
+ * Asks before a block of opinions becomes a plain paragraph and loses the other opinions' text;
+ * cancelling is the default.
+ */
+export const ConvertToParagraphDialog = ({
+  lostOpinions,
+  onCancel,
+  onConfirm,
+}: {
+  lostOpinions: number;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) => {
+  const t = useLocale().addArticlePage.convertToParagraph;
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    overlayRef.current?.querySelector<HTMLButtonElement>('[data-cancel]')?.focus();
+    const cancelOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', cancelOnEscape);
+    return () => window.removeEventListener('keydown', cancelOnEscape);
+  }, [onCancel]);
+
+  return (
+    <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(20,20,18,0.35)] p-4 backdrop-blur-sm">
+      <Card
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="convert-to-paragraph-title"
+        aria-describedby="convert-to-paragraph-description"
+        className="w-full max-w-xl"
+      >
+        <div className="border-b border-[var(--color-border-soft)] px-6 py-5">
+          <h2 id="convert-to-paragraph-title" className="m-0 text-xl font-semibold text-[var(--color-ink-strong)]">{t.title}</h2>
+        </div>
+        <div className="px-6 py-5">
+          <p id="convert-to-paragraph-description" className="m-0 text-sm leading-7 text-[var(--color-ink-muted)]">
+            {formatMessage(t.description, { count: lostOpinions })}
+          </p>
+        </div>
+        <div className="flex justify-end gap-3 border-t border-[var(--color-border-soft)] px-6 py-4">
+          <Button variant="ghost" onClick={onConfirm}>{t.confirm}</Button>
+          <Button data-cancel variant="primary" onClick={onCancel}>{t.cancel}</Button>
         </div>
       </Card>
     </div>
