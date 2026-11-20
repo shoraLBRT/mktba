@@ -98,3 +98,37 @@ describe('ArticleRightSidebar table of contents', () => {
     expect(trackGoal).toHaveBeenCalledExactlyOnceWith('toc_click', { depth: 3 });
   });
 });
+
+describe('ArticleRightSidebar empty blocks (R-14)', () => {
+  const renderWith = (props: Partial<Parameters<typeof ArticleRightSidebar>[0]>) =>
+    render(
+      <MemoryRouter>
+        <LocalizationProvider>
+          <ArticleRightSidebar tocItems={[]} {...props} />
+        </LocalizationProvider>
+      </MemoryRouter>,
+    );
+
+  it('given a stub with no summary, tags or related articles, when rendered, then the column is left out', () => {
+    const { container } = renderWith({ relatedLinks: [] });
+
+    expect(container.querySelector('aside')).toBeNull();
+  });
+
+  it('given only related articles, when rendered, then neither an empty table of contents nor a placeholder is shown', () => {
+    renderWith({
+      relatedLinks: [{ id: 1, relatedArticleId: 7, relatedArticleTitle: 'Омовение', relatedArticleSlug: 'omovenie', order: 1 }],
+    });
+
+    expect(screen.queryByRole('navigation', { name: 'На этой странице' })).toBeNull();
+    expect(screen.queryByText('На этой странице')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Омовение' }).getAttribute('href')).toBe('/omovenie');
+  });
+
+  it('given a table of contents and no related articles, when rendered, then the related block is left out', () => {
+    renderWith({ tocItems, relatedLinks: [] });
+
+    expect(tocLinks()).toHaveLength(3);
+    expect(screen.queryByText('Связанные статьи')).toBeNull();
+  });
+});

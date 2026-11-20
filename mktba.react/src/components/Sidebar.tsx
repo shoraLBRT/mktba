@@ -1,11 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
+import { Link } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { Input } from '../shared/ui/Input';
+import { isSearchableQuery, normalizeSearchQuery, searchHref } from '../shared/search';
 import type { NavigationArticleDto } from '../shared/types/ApiTypes';
 import NavigationTree from './NavigationTree';
+import { NavigationTreeSkeleton } from './Skeleton';
+
+const emptyNoteClass = 'mx-2 my-0 text-[12.5px] leading-5 text-[var(--color-ink-muted)]';
 
 const filterNavigationTree = (articles: NavigationArticleDto[], searchValue: string): NavigationArticleDto[] => {
   const normalizedSearch = searchValue.trim().toLowerCase();
@@ -51,6 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: navigationTree, isLoading, error } = useNavigationTree();
+  const filterQuery = normalizeSearchQuery(searchValue);
 
   const filteredNavigationTree = useMemo(() => {
     if (!navigationTree) {
@@ -90,13 +96,27 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <nav aria-label={locale.layout.navigation.treeLabel} className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center">
-            <div className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--color-border-soft)] border-t-[var(--color-brand-forest)]" />
-          </div>
+          <NavigationTreeSkeleton />
         ) : error ? (
           <div className="mx-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <p className="m-0 font-semibold">{locale.sidebar.loadError}</p>
             <p className="mb-0 mt-1 text-xs text-red-600">{(error as Error).message}</p>
+          </div>
+        ) : !navigationTree || navigationTree.length === 0 ? (
+          <p className={emptyNoteClass}>{locale.sidebar.emptyTree}</p>
+        ) : filteredNavigationTree?.length === 0 ? (
+          <div className={emptyNoteClass}>
+            <p className="m-0">{locale.sidebar.noMatches}</p>
+            {/* The filter matches titles only; the full-text search may still find the words in the text. */}
+            {isSearchableQuery(filterQuery) && (
+              <Link
+                to={searchHref(filterQuery)}
+                onClick={onCloseMobile}
+                className="mt-1 inline-block text-[var(--color-brand-forest)] underline-offset-2 hover:underline"
+              >
+                {locale.sidebar.searchArticles.replace('{query}', filterQuery)}
+              </Link>
+            )}
           </div>
         ) : (
           <NavigationTree
