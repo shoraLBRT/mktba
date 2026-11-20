@@ -54,6 +54,22 @@ describe('AdminProfilePage', () => {
     expect(nameInput().value).toBe('');
   });
 
+  it('given the saved profile still loading, when the page opens, then nothing can be typed until it is in, and the saved name then shows unchanged', async () => {
+    let resolveProfile: (value: UserProfileDto) => void = () => undefined;
+    fetchProfile.mockReturnValue(new Promise((resolve) => { resolveProfile = resolve; }));
+    renderPage();
+
+    expect(nameInput().matches(':disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Сохранить профиль' }).matches(':disabled')).toBe(true);
+
+    resolveProfile(profile({ displayName: 'Иван Иванов', slug: 'ivan-ivanov' }));
+
+    await waitFor(() => expect(nameInput().matches(':disabled')).toBe(false));
+    expect(nameInput().value).toBe('Иван Иванов');
+    fireEvent.change(nameInput(), { target: { value: 'Пётр' } });
+    expect(nameInput().value).toBe('Пётр');
+  });
+
   it('given a typed name, when the slug is left empty, then the slug field previews the address and the save sends no slug', async () => {
     saveProfile.mockResolvedValue(profile({ displayName: 'Иван Иванов', slug: 'ivan-ivanov' }));
     renderPage();

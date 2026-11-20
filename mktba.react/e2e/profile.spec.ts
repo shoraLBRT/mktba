@@ -18,6 +18,8 @@ test('a user fills in their profile and readers get it by its address, without t
   await page.getByRole('navigation', { name: 'Разделы админки' }).first().getByRole('link', { name: 'Мой профиль' }).click();
   await expect(page).toHaveURL(/\/admin\/profile$/);
   await expect(page.getByRole('heading', { name: 'Мой профиль', level: 1 })).toBeVisible();
+  // The form opens for typing once the saved profile is in (it may hold a name from author.spec).
+  await expect(page.getByLabel('Имя')).toBeEnabled();
   await page.getByLabel('Имя').fill(name);
   await page.getByLabel('Адрес профиля').fill(slug);
   await page.getByLabel('О себе').fill('Пишу для E2E-проверки.');
