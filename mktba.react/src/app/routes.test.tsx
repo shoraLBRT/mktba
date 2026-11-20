@@ -317,6 +317,7 @@ describe('AdminLayout', () => {
     expect([...sectionLinks()].map((link) => link.textContent)).toEqual([
       'Обзор',
       'Статьи',
+      'Теги',
       'Пользователи и приглашения',
       'Сессии',
       'Мой профиль',

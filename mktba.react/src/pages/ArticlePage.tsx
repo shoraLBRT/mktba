@@ -372,7 +372,7 @@ const ArticlePage: React.FC = () => {
           <ArticleMobileOverview
             tocItems={tocItems}
             summary={articleContent.summary ?? undefined}
-            tags={articleContent.tags}
+            tags={articleContent.tagLinks ?? []}
           />
 
           {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);
@@ -453,7 +453,7 @@ const ArticlePage: React.FC = () => {
       <ArticleRightSidebar
         tocItems={tocItems}
         summary={articleContent.summary ?? undefined}
-        tags={articleContent.tags}
+        tags={articleContent.tagLinks ?? []}
         relatedLinks={articleContent.relatedLinks ?? undefined}
       />
       <BackToTopButton />

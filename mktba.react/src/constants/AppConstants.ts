@@ -18,6 +18,8 @@ export const APP_CONSTANTS = {
     MY_PROFILE: 'myProfile',
     AUTHOR: 'author',
     AUTHOR_ARTICLES: 'authorArticles',
+    TAG_PAGE: 'tagPage',
+    ADMIN_TAGS: 'adminTags',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
   },

@@ -2,6 +2,7 @@ import { API_BASE_URL } from '../config';
 import { ApiError } from '../shared/api-client/apiError';
 import { AUTHOR_PAGE_PARAM } from '../shared/author';
 import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../shared/search';
+import { TAG_PAGE_PARAM } from '../shared/tag';
 import type {
   ArticleContentDto,
   AuthorArticlesDto,
@@ -11,6 +12,7 @@ import type {
   SchoolDto,
   SearchResultsDto,
   SitemapArticleDto,
+  TagPageDto,
 } from '../shared/types/ApiTypes';
 
 // Node's `process`; the app's TypeScript config has browser types only.
@@ -75,6 +77,8 @@ export const serverApi = {
   getAuthor: (slug: string) => getJson<PublicProfileDto>(`/authors/${encodeURIComponent(slug)}`),
   getAuthorArticles: (slug: string, page: number) =>
     getJson<AuthorArticlesDto>(`/authors/${encodeURIComponent(slug)}/articles?${AUTHOR_PAGE_PARAM}=${page}`),
+  getTagPage: (slug: string, page: number) =>
+    getJson<TagPageDto>(`/tags/${encodeURIComponent(slug)}?${TAG_PAGE_PARAM}=${page}`),
   getSystemSchools: () => getJson<SchoolDto[]>('/schools/system'),
   getSchoolsByArticleId: (articleId: number) => getJson<SchoolDto[]>(`/schools/article/${articleId}`),
 };

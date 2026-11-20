@@ -153,6 +153,7 @@ app.MapArticleEndpoints();
 app.MapParagraphEndpoints();
 app.MapSchoolEndpoints();
 app.MapSourceEndpoints();
+app.MapTagEndpoints();
 app.MapAdminEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();

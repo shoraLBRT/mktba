@@ -124,9 +124,10 @@ namespace Mktba.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<string>("Tags")
+                    b.Property<string>("TagsSearchText")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("Tags");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -300,6 +301,24 @@ namespace Mktba.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ArticleSlugRedirects");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleTag", b =>
+                {
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ArticleId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("ArticleTags");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.DeletedArticleSlug", b =>
@@ -710,6 +729,45 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("Sources");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.Tag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Locale", "NormalizedName")
+                        .IsUnique();
+
+                    b.HasIndex("Locale", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("Tags");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -907,6 +965,25 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Article");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleTag", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany("TagLinks")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.Tag", "Tag")
+                        .WithMany("ArticleLinks")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Tag");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.FeedbackMessage", b =>
                 {
                     b.HasOne("Mktba.Domain.Entities.Article", "Article")
@@ -1060,6 +1137,8 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Revisions");
 
                     b.Navigation("SlugRedirects");
+
+                    b.Navigation("TagLinks");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>
@@ -1084,6 +1163,11 @@ namespace Mktba.Infrastructure.Migrations
             modelBuilder.Entity("Mktba.Domain.Entities.Source", b =>
                 {
                     b.Navigation("Citations");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.Tag", b =>
+                {
+                    b.Navigation("ArticleLinks");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.User", b =>

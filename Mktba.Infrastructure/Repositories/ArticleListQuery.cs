@@ -25,7 +25,7 @@ namespace Mktba.Infrastructure.Repositories
     /// 1-based and both paging values are already within bounds.
     /// </summary>
     /// <param name="Search">Case-insensitive substring of the title or the slug.</param>
-    /// <param name="Tag">One tag, matched case-insensitively against the article's whole tags.</param>
+    /// <param name="Tag">The comparison key of one tag (<c>Tag.NormalizedName</c>): articles carrying that tag.</param>
     public sealed record ArticleListQuery(
         string? Search,
         ArticleStatus? Status,
@@ -38,7 +38,7 @@ namespace Mktba.Infrastructure.Repositories
         int PageSize);
 
     /// <summary>An article as the admin list shows it, projected in SQL without its content rows.</summary>
-    /// <param name="Tags">The stored comma-separated tags, or null.</param>
+    /// <param name="Tags">The tag names in order.</param>
     /// <param name="ParagraphCount">Counted in SQL; the paragraphs themselves are not loaded.</param>
     public sealed record ArticleListRow(
         int Id,
@@ -49,7 +49,7 @@ namespace Mktba.Infrastructure.Repositories
         int? ParentArticleId,
         int? AuthorId,
         IReadOnlyList<int> CoAuthorIds,
-        string? Tags,
+        IReadOnlyList<string> Tags,
         int ParagraphCount,
         DateTime CreatedAt,
         DateTime UpdatedAt,

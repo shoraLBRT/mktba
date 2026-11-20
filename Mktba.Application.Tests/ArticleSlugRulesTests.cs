@@ -97,6 +97,7 @@ public class ArticleSlugRulesTests
     [InlineData("authors", true)]
     [InlineData("article", true)]
     [InlineData("sitemaps", true)]
+    [InlineData("tags", true)]
     [InlineData("ru", true)]
     [InlineData("en", true)]
     [InlineData("search-2", false)]

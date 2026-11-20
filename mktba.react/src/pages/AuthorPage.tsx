@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
+import { ArticleListEntry } from '../components/ArticleListEntry';
 import { PageLinks } from '../components/PageLinks';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { AuthorStructuredData } from '../components/StructuredData';
@@ -17,9 +18,7 @@ import {
   authorQueryKey,
   readAuthorPage,
 } from '../shared/author';
-import { formatRussianDate } from '../shared/lib/formatDate';
-import { articleHref } from '../shared/slug';
-import type { AuthorArticleDto, AuthorArticlesDto, PublicProfileDto } from '../shared/types/ApiTypes';
+import type { AuthorArticlesDto, PublicProfileDto } from '../shared/types/ApiTypes';
 import NotFoundPage from './NotFoundPage';
 
 /** Side of the avatar square in CSS pixels; the box is reserved whether or not the image loads. */
@@ -104,37 +103,6 @@ const SelfDeclared = ({ profile }: { profile: PublicProfileDto }) => {
   );
 };
 
-const ArticleEntry = ({ article }: { article: AuthorArticleDto }) => {
-  const t = useLocale().articlePage;
-  // A save on the day of publication is not news: the second date is shown from the next day on.
-  const edited = formatRussianDate(article.updatedAt) !== formatRussianDate(article.publishedAt) && article.updatedAt > article.publishedAt;
-  const date = (template: string, iso: string) => {
-    const [before, after = ''] = template.split('{date}');
-    return (
-      <>
-        {before}
-        <time dateTime={new Date(iso).toISOString()}>{formatRussianDate(iso)}</time>
-        {after}
-      </>
-    );
-  };
-
-  return (
-    <li>
-      <Link to={articleHref(article.slug)} className={`font-medium [overflow-wrap:anywhere] ${linkClass}`}>
-        {article.title}
-      </Link>
-      {article.summary && (
-        <p className="mb-0 mt-1 line-clamp-2 text-sm leading-6 text-[var(--color-ink-muted)]">{article.summary}</p>
-      )}
-      <p className="mb-0 mt-1 text-xs text-[var(--color-ink-subtle)]">
-        {date(t.publishedOn, article.publishedAt)}
-        {edited && <> · {date(t.updatedOn, article.updatedAt)}</>}
-      </p>
-    </li>
-  );
-};
-
 type ArticleListProps = {
   slug: string;
   /** Undefined while the list is loading for the first time. */
@@ -168,7 +136,7 @@ const ArticleList = ({ slug, articles, failed, onRetry }: ArticleListProps) => {
           <p className="m-0 text-sm text-[var(--color-ink-muted)]">{t.articlesCount.replace('{count}', String(articles.total))}</p>
           <ul className="m-0 flex list-none flex-col gap-4 p-0">
             {articles.items.map((article) => (
-              <ArticleEntry key={article.id} article={article} />
+              <ArticleListEntry key={article.id} article={article} />
             ))}
           </ul>
           <PageLinks

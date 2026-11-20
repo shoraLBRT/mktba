@@ -12,12 +12,14 @@ namespace Mktba.Application.Services
         private readonly ParagraphRepository _paragraphRepo;
         private readonly IUnitOfWork _uow;
         private readonly ArticleSlugAssigner _slugs;
+        private readonly ArticleTagAssigner _tags;
         private readonly TimeProvider _clock;
 
         public ArticleContentService(
             ArticleRepository articleRepo,
             ParagraphRepository paragraphRepo,
             IUnitOfWork uow,
+            TagRepository tagRepo,
             TimeProvider clock)
         {
             _clock = clock;
@@ -25,6 +27,7 @@ namespace Mktba.Application.Services
             _paragraphRepo = paragraphRepo;
             _uow = uow;
             _slugs = new ArticleSlugAssigner(articleRepo);
+            _tags = new ArticleTagAssigner(tagRepo);
         }
 
         /// <summary>
@@ -135,6 +138,7 @@ namespace Mktba.Application.Services
 
             var locale = Locales.Normalize(dto.Locale)
                 ?? throw new ValidationException(AppErrors.LocaleUnsupported(dto.Locale!));
+            var tagNames = TagRules.NormalizeList(dto.Tags);
             var slug = await _slugs.ChooseAsync(dto.Slug, dto.Title, locale, articleId: null);
 
             try
@@ -151,8 +155,8 @@ namespace Mktba.Application.Services
                     InfoboxTitle = normalizedInfobox?.Title,
                     InfoboxSubtitle = normalizedInfobox?.Subtitle,
                     Summary = NormalizeOptionalText(dto.Summary),
-                    Tags = SerializeTags(dto.Tags)
                 };
+                await _tags.ApplyAsync(article, tagNames);
                 ArticleSeo.Apply(article, seo);
                 ArticleTimestamps.StampCreated(article, authorId, _clock);
 
@@ -294,17 +298,19 @@ namespace Mktba.Application.Services
                 return (false, AppErrors.ArticleNotFound);
             }
 
+            List<string> tagNames;
             string? newSlug = null;
-            if (!string.IsNullOrWhiteSpace(dto.Slug))
+            try
             {
-                try
+                tagNames = TagRules.NormalizeList(dto.Tags);
+                if (!string.IsNullOrWhiteSpace(dto.Slug))
                 {
                     newSlug = await _slugs.ChooseAsync(dto.Slug, dto.Title, article.Locale, articleId);
                 }
-                catch (ValidationException ex)
-                {
-                    return (false, ex.Error);
-                }
+            }
+            catch (ValidationException ex)
+            {
+                return (false, ex.Error);
             }
 
             try
@@ -314,7 +320,8 @@ namespace Mktba.Application.Services
                 await DeleteRemovedParagraphsAsync(existingParagraphs, incomingParagraphs);
                 UpdateExistingParagraphs(existingParagraphs, incomingParagraphs);
                 await AddNewParagraphsAsync(articleId, incomingParagraphs);
-                UpdateArticleMetadata(article, dto.Title, normalizedInfobox, dto.Summary, dto.Tags, incomingRelatedLinks);
+                UpdateArticleMetadata(article, dto.Title, normalizedInfobox, dto.Summary, incomingRelatedLinks);
+                await _tags.ApplyAsync(article, tagNames);
                 ArticleSeo.Apply(article, seo);
                 if (newSlug is not null)
                 {
@@ -544,23 +551,6 @@ namespace Mktba.Application.Services
         private static string? NormalizeOptionalText(string? value)
             => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-        private static List<string> ParseTags(string? tags)
-            => tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                   .Where(t => !string.IsNullOrEmpty(t))
-                   .ToList()
-               ?? new List<string>();
-
-        private static string? SerializeTags(List<string>? tags)
-        {
-            if (tags is null || tags.Count == 0) return null;
-            var normalized = tags
-                .Select(t => t.Trim())
-                .Where(t => !string.IsNullOrEmpty(t))
-                .Distinct()
-                .ToList();
-            return normalized.Count == 0 ? null : string.Join(",", normalized);
-        }
-
         private static ArticleContentDto BuildArticleContentDto(Article article, bool includeUnpublishedLinks)
         {
             var paragraphDtos = article.Paragraphs
@@ -595,7 +585,7 @@ namespace Mktba.Application.Services
                 paragraphDtos,
                 MapInfobox(article),
                 article.Summary,
-                ParseTags(article.Tags),
+                ArticleTagAssigner.NamesOf(article),
                 MapRelatedLinks(article, includeUnpublishedLinks),
                 article.Slug,
                 article.PublishedAt,
@@ -604,7 +594,8 @@ namespace Mktba.Application.Services
                 TranslationGroupId: article.TranslationGroupId,
                 Seo: ArticleSeo.From(article),
                 Meta: ArticleSeo.Resolve(article),
-                Sources: citedSources);
+                Sources: citedSources,
+                TagLinks: article.TagLinks.OrderBy(l => l.Order).Select(l => new ArticleTagDto(l.Tag.Name, l.Tag.Slug)).ToList());
         }
 
         private static ArticleInfoboxDto? MapInfobox(Article article)
@@ -713,7 +704,6 @@ namespace Mktba.Application.Services
             string title,
             ArticleInfoboxCreateDto? infobox,
             string? summary,
-            List<string> tags,
             List<ArticleRelatedLinkCreateDto>? relatedLinks)
         {
             article.Title = title;
@@ -721,7 +711,6 @@ namespace Mktba.Application.Services
             article.InfoboxTitle = infobox?.Title;
             article.InfoboxSubtitle = infobox?.Subtitle;
             article.Summary = NormalizeOptionalText(summary);
-            article.Tags = SerializeTags(tags);
 
             article.InfoboxFields.Clear();
             foreach (var field in infobox?.Fields ?? Enumerable.Empty<ArticleInfoboxFieldCreateDto>())

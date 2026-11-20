@@ -43,7 +43,7 @@ public class ArticleListTests : IDisposable
             Locale = locale,
             Status = status,
             AuthorId = authorId,
-            Tags = tags,
+            TagsSearchText = tags,
             CreatedAt = Start,
             UpdatedAt = Start.AddDays(updatedDay),
             PublishedAt = publishedDay is int day ? Start.AddDays(day) : null,
@@ -51,6 +51,15 @@ public class ArticleListTests : IDisposable
         for (var order = 1; order <= paragraphs; order++)
         {
             article.Paragraphs.Add(new Paragraph { Order = order });
+        }
+
+        var names = tags?.Split(',') ?? [];
+        for (var order = 0; order < names.Length; order++)
+        {
+            var key = TagRules.KeyOf(names[order]);
+            var tag = _context.Tags.Local.FirstOrDefault(t => t.Locale == locale && t.NormalizedName == key)
+                ?? new Tag { Locale = locale, Name = names[order], NormalizedName = key, Slug = TagRules.SlugFromName(names[order]) };
+            article.TagLinks.Add(new ArticleTag { Tag = tag, Order = order });
         }
 
         if (coAuthorId is int coAuthor)

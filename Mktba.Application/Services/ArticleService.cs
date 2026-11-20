@@ -43,6 +43,7 @@ namespace Mktba.Application.Services
             {
                 Page = Math.Max(query.Page, 1),
                 PageSize = Math.Clamp(query.PageSize, 1, MaxPageSize),
+                Tag = string.IsNullOrWhiteSpace(query.Tag) ? null : TagRules.KeyOf(TagRules.Normalize(query.Tag)),
             };
             var (rows, total) = await _articleRepository.GetListPageAsync(bounded, viewer);
             return new ArticleListPageDto
@@ -66,7 +67,7 @@ namespace Mktba.Application.Services
                 .ToList(),
             ParentArticleId = row.ParentArticleId,
             AuthorId = row.AuthorId,
-            Tags = row.Tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList() ?? new List<string>(),
+            Tags = row.Tags.ToList(),
             ParagraphCount = row.ParagraphCount,
             CanEdit = viewer.CanEdit(row.AuthorId, row.CoAuthorIds),
             CreatedAt = row.CreatedAt,

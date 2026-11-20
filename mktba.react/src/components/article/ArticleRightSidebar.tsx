@@ -1,10 +1,10 @@
-import { Tag } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import { METRIKA_GOALS, trackGoal } from '../../analytics/metrika';
 import { useLocale } from '../../localization/hooks';
 import { articleHref } from '../../shared/slug';
-import type { ArticleRelatedLinkDto } from '../../shared/types/ApiTypes';
+import type { ArticleRelatedLinkDto, ArticleTagDto } from '../../shared/types/ApiTypes';
+import { ArticleTagList } from './ArticleTagList';
 import { useActiveSection } from './useActiveSection';
 
 /** Each block after the first is divided from the one above by a rule. */
@@ -21,7 +21,7 @@ export type TocItem = {
 type ArticleRightSidebarProps = {
   tocItems: TocItem[];
   summary?: string;
-  tags?: string[];
+  tags?: ArticleTagDto[];
   relatedLinks?: ArticleRelatedLinkDto[];
 };
 
@@ -100,17 +100,7 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
                 <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-subtle)]">
                   {t.tagsTitle}
                 </p>
-                <div className="flex flex-wrap gap-1">
-                  {tags!.map((tag) => (
-                    <span
-                      key={tag}
-                      className="flex items-center gap-1 rounded-full bg-[var(--color-brand-forest-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-brand-forest)]"
-                    >
-                      <Tag size={8} />
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                <ArticleTagList tags={tags!} label={t.tagsTitle} />
               </div>
             )}
           </div>

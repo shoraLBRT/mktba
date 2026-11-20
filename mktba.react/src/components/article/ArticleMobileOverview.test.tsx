@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router';
 import { LocalizationProvider } from '../../localization/provider';
 import { ArticleMobileOverview } from './ArticleMobileOverview';
 import type { TocItem } from './ArticleRightSidebar';
@@ -18,7 +19,9 @@ const tocItems: TocItem[] = [
 const renderOverview = (props: Parameters<typeof ArticleMobileOverview>[0]) =>
   render(
     <LocalizationProvider>
-      <ArticleMobileOverview {...props} />
+      <MemoryRouter>
+        <ArticleMobileOverview {...props} />
+      </MemoryRouter>
     </LocalizationProvider>,
   );
 
@@ -26,7 +29,7 @@ afterEach(() => trackGoal.mockClear());
 
 describe('ArticleMobileOverview', () => {
   it('given contents and a summary, when rendered, then holds both in a closed disclosure hidden from xl up', () => {
-    renderOverview({ tocItems, summary: 'Кратко о статье', tags: ['намаз'] });
+    renderOverview({ tocItems, summary: 'Кратко о статье', tags: [{ name: 'намаз', slug: 'namaz' }] });
 
     const details = screen.getByTestId('article-mobile-overview');
     expect(details.tagName).toBe('DETAILS');
@@ -36,7 +39,7 @@ describe('ArticleMobileOverview', () => {
     expect(within(details).getByRole('link', { name: 'Условия' }).getAttribute('href')).toBe('#usloviya');
     expect(within(details).getByRole('link', { name: 'Ният' }).closest('li')?.className).toBe('pl-4');
     expect(within(details).getByText('Кратко о статье')).toBeTruthy();
-    expect(within(details).getByText('намаз')).toBeTruthy();
+    expect(within(details).getByRole('link', { name: 'намаз' }).getAttribute('href')).toBe('/tags/namaz');
   });
 
   it('given only contents or only a summary, when rendered, then the toggle names what is inside', () => {

@@ -23,6 +23,8 @@ namespace Mktba.Infrastructure.Data
         public DbSet<OpinionSchool> OpinionSchools { get; set; } = null!;
         public DbSet<Source> Sources { get; set; } = null!;
         public DbSet<OpinionSource> OpinionSources { get; set; } = null!;
+        public DbSet<Tag> Tags { get; set; } = null!;
+        public DbSet<ArticleTag> ArticleTags { get; set; } = null!;
         public DbSet<AiProviderSettings> AiProviderSettings { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<UserLink> UserLinks { get; set; } = null!;
@@ -83,6 +85,15 @@ namespace Mktba.Infrastructure.Data
 
         /// <summary>Longest locator of a citation (page, hadith number, sura:ayah).</summary>
         public const int SourceLocatorMaxLength = 200;
+
+        /// <summary>Longest tag name; with at most 16 tags an article's search copy stays within its 1000 characters.</summary>
+        public const int TagNameMaxLength = 50;
+
+        /// <summary>Longest tag slug, as for articles.</summary>
+        public const int TagSlugMaxLength = ArticleSlugMaxLength;
+
+        /// <summary>Longest search copy of an article's tags (column <c>Tags</c>, read by the search vector).</summary>
+        public const int ArticleTagsSearchTextMaxLength = 1000;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -240,9 +251,36 @@ namespace Mktba.Infrastructure.Data
                 .Property(a => a.Summary)
                 .HasMaxLength(500);
 
+            // The column keeps its old name: the stored generated "SearchVector" reads it (AddArticleSearch).
             modelBuilder.Entity<Article>()
-                .Property(a => a.Tags)
-                .HasMaxLength(1000);
+                .Property(a => a.TagsSearchText)
+                .HasColumnName("Tags")
+                .HasMaxLength(ArticleTagsSearchTextMaxLength);
+
+            // Tags (M-06, #70): one directory per language, name compared case-insensitively.
+            modelBuilder.Entity<Tag>(tag =>
+            {
+                tag.Property(t => t.Locale).HasMaxLength(Locales.MaxLength).IsRequired();
+                tag.Property(t => t.Name).HasMaxLength(TagNameMaxLength).IsRequired();
+                tag.Property(t => t.NormalizedName).HasMaxLength(TagNameMaxLength).IsRequired();
+                tag.Property(t => t.Slug).HasMaxLength(TagSlugMaxLength).IsRequired();
+                tag.HasIndex(t => new { t.Locale, t.NormalizedName }).IsUnique();
+                tag.HasIndex(t => new { t.Locale, t.Slug }).IsUnique();
+            });
+
+            modelBuilder.Entity<ArticleTag>(link =>
+            {
+                link.HasKey(l => new { l.ArticleId, l.TagId });
+                link.HasIndex(l => l.TagId);
+                link.HasOne(l => l.Article)
+                    .WithMany(a => a.TagLinks)
+                    .HasForeignKey(l => l.ArticleId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                link.HasOne(l => l.Tag)
+                    .WithMany(t => t.ArticleLinks)
+                    .HasForeignKey(l => l.TagId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             modelBuilder.Entity<Article>()
                 .Property(a => a.SeoTitle)

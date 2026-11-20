@@ -216,6 +216,32 @@ public static class AppErrors
     public static AppError SourceLocatorTooLong(int maxLength) =>
         new("source_locator_too_long", $"A source locator cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
 
+    // Tags
+    public static AppError TagNotFound => new("tag_not_found", "Tag not found.");
+
+    public static AppError TagNameRequired => new("tag_name_required", "Tag name is required.");
+
+    public static AppError TagNameInvalid => new("tag_name_invalid", "A tag name cannot contain a comma or control characters.");
+
+    public static AppError TagNameTooLong(int maxLength) =>
+        new("tag_name_too_long", $"A tag name cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ArticleTooManyTags(int max) =>
+        new("article_too_many_tags", $"An article cannot have more than {max} tags.", With(("max", max)));
+
+    public static AppError TagNameTaken(int id) =>
+        new("tag_name_taken", $"Another tag of this language has this name (id {id}); merge them instead.", With(("id", id)));
+
+    public static AppError TagSlugInvalid => new(
+        "tag_slug_invalid", "Tag slug must be 1-80 characters of lowercase Latin letters, digits and single hyphens, not only digits.");
+
+    public static AppError TagSlugTaken(string slug) =>
+        new("tag_slug_taken", $"Another tag of this language has the slug '{slug}'.", With(("slug", slug)));
+
+    public static AppError TagMergeIntoItself => new("tag_merge_into_itself", "A tag cannot be merged into itself.");
+
+    public static AppError TagMergeLocaleMismatch => new("tag_merge_locale_mismatch", "Only tags of the same language can be merged.");
+
     // Feedback
     public static AppError FeedbackTypeInvalid => new("feedback_type_invalid", "Feedback type is required: ArticleError, SiteProblem or Idea.");
     public static AppError FeedbackTextRequired => new("feedback_text_required", "Feedback text is required.");

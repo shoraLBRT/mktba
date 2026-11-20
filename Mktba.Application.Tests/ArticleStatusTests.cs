@@ -24,7 +24,7 @@ public class ArticleStatusTests : IDisposable
         var articleRepo = new ArticleRepository(_context);
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
         _articles = new ArticleService(articleRepo, mapper, TimeProvider.System);
-        _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), Substitute.For<IUnitOfWork>(), TimeProvider.System);
+        _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), Substitute.For<IUnitOfWork>(), new TagRepository(_context), TimeProvider.System);
         _tree = new NavigationTreeService(articleRepo);
     }
 

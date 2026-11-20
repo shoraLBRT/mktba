@@ -2820,6 +2820,245 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every tag with the number of articles carrying it, for the admin (M-06, #70).
+         * @description Ordered by language, then name. locale, when given, lists one language (an unsupported one answers 400 locale_unsupported). articleCount counts articles of any status; a tag no article carries any more has 0.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    locale?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TagDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tags/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A tag and the articles carrying it, for the tag page.
+         * @description Only articles a reader can open: Published, not under a non-Published parent, and not empty stubs; ordered by publishedAt, latest first. The same answer for every caller. Answers 404 tag_not_found when the language has no tag with this slug or no such article carries it. locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1; pageSize is 20 by default, kept within 1 to 50.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    locale?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TagPageDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tags/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Renames a tag on every article carrying it (admins only).
+         * @description A bad name answers 400 tag_name_required, tag_name_too_long (params.maxLength) or tag_name_invalid (a comma or control characters). A name another tag of the language has (ignoring case, ё as е) answers 400 tag_name_taken with params.id: merge the two instead. slug null or blank keeps the current one; a new one must be valid (tag_slug_invalid) and free in the language (tag_slug_taken). The old slug is not kept. No revision is written and updatedAt does not change.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TagRenameDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TagDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tags/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merges a tag into another and deletes it (admins only).
+         * @description Every article carrying the tag carries intoTagId instead, at the same place; the answer is the remaining tag. Fails with 400 tag_merge_into_itself or tag_merge_locale_mismatch, 404 tag_not_found for either tag. No revision is written and updatedAt does not change.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TagMergeDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TagDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -3129,6 +3368,7 @@ export interface components {
             meta?: components["schemas"]["ArticleMetaDto"];
             sources?: components["schemas"]["SourceDto"][] | null;
             authors?: components["schemas"]["ArticleAuthorDto"][] | null;
+            tagLinks?: components["schemas"]["ArticleTagDto"][] | null;
         };
         ArticleCreateDto: {
             title: string;
@@ -3329,6 +3569,10 @@ export interface components {
         ArticleStatus: "Draft" | "InReview" | "Published" | "Archived";
         ArticleStatusChangeDto: {
             status: components["schemas"]["ArticleStatus"];
+        };
+        ArticleTagDto: {
+            name: string;
+            slug: string;
         };
         ArticleUpdateDto: {
             title: string;
@@ -3585,6 +3829,34 @@ export interface components {
             author?: string | null;
             details?: string | null;
             url?: string | null;
+        };
+        TagDto: {
+            /** Format: int32 */
+            id: number;
+            locale: string;
+            name: string;
+            slug: string;
+            /** Format: int32 */
+            articleCount: number;
+        };
+        TagMergeDto: {
+            /** Format: int32 */
+            intoTagId: number;
+        };
+        TagPageDto: {
+            name: string;
+            slug: string;
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            items: components["schemas"]["AuthorArticleDto"][];
+        };
+        TagRenameDto: {
+            name: string;
+            slug?: string | null;
         };
         UpdateAiProviderSettingsDto: {
             baseUrl: string;
