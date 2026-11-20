@@ -1,8 +1,8 @@
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
-import { SLUG_MAX_LENGTH, isValidSlug } from '../../shared/slug';
+import { SLUG_MAX_LENGTH, isReservedArticleSlug, isValidSlug } from '../../shared/slug';
 
-const ARTICLE_PATH_PREFIX = '/article/';
+const ARTICLE_PATH_PREFIX = '/';
 
 type SlugFieldProps = {
   value: string;
@@ -17,7 +17,9 @@ type SlugFieldProps = {
 /** The article's URL segment under the title in the editor, with a format check as you type. */
 export const SlugField = ({ value, disabled, onChange, onFillFromTitle, locale = 'ru' }: SlugFieldProps) => {
   const t = useLocale().addArticlePage;
-  const invalid = value.length > 0 && !isValidSlug(value);
+  const malformed = value.length > 0 && !isValidSlug(value);
+  const reserved = isReservedArticleSlug(value);
+  const invalid = malformed || reserved;
 
   return (
     <div>
@@ -54,7 +56,9 @@ export const SlugField = ({ value, disabled, onChange, onFillFromTitle, locale =
         id="article-slug-hint"
         className={`mb-0 mt-1 text-[11px] ${invalid ? 'text-red-600' : 'text-[var(--color-ink-subtle)]'}`}
       >
-        {invalid ? formatMessage(t.slugInvalid, { maxLength: SLUG_MAX_LENGTH }) : t.slugHint}
+        {malformed
+          ? formatMessage(t.slugInvalid, { maxLength: SLUG_MAX_LENGTH })
+          : reserved ? formatMessage(t.slugReserved, { slug: value }) : t.slugHint}
       </p>
       <p data-testid="article-locale" className="mb-0 mt-1 text-[11px] text-[var(--color-ink-subtle)]">
         {formatMessage(t.localeLabel, { locale })}

@@ -157,7 +157,8 @@ const NavigationTree: React.FC<NavigationTreeProps> = ({
   );
 
   const activeArticleId = useMemo(() => {
-    const readMatch = location.pathname.match(/^\/article\/([^/]+)$/);
+    // An article's `/{slug}`, or an old `/article/{slug-or-id}` while it is being redirected.
+    const readMatch = location.pathname.match(/^\/(?:article\/)?([^/]+)$/);
     if (readMatch) {
       const segment = decodeURIComponent(readMatch[1]);
       return /^\d+$/.test(segment) ? Number(segment) : findArticleIdBySlug(navigationTree, segment);

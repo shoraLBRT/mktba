@@ -32,7 +32,7 @@ describe('sitemap entries', () => {
 
     expect(entries).toEqual([
       { loc: 'https://mktba.ru/', lastmod: null, alternates: [] },
-      { loc: 'https://mktba.ru/article/namaz', lastmod: '2026-11-01T10:30:00Z', alternates: [] },
+      { loc: 'https://mktba.ru/namaz', lastmod: '2026-11-01T10:30:00Z', alternates: [] },
     ]);
   });
 
@@ -51,14 +51,14 @@ describe('sitemap entries', () => {
     );
 
     const expected = [
-      { hreflang: 'ru', href: 'https://mktba.ru/article/namaz' },
-      { hreflang: 'en', href: 'https://mktba.ru/en/article/prayer' },
-      { hreflang: 'x-default', href: 'https://mktba.ru/article/namaz' },
+      { hreflang: 'ru', href: 'https://mktba.ru/namaz' },
+      { hreflang: 'en', href: 'https://mktba.ru/en/prayer' },
+      { hreflang: 'x-default', href: 'https://mktba.ru/namaz' },
     ];
     expect(entries.map((item) => item.loc)).toEqual([
       'https://mktba.ru/',
-      'https://mktba.ru/article/namaz',
-      'https://mktba.ru/en/article/prayer',
+      'https://mktba.ru/namaz',
+      'https://mktba.ru/en/prayer',
     ]);
     expect(entries[1].alternates).toEqual(expected);
     expect(entries[2].alternates).toEqual(expected);
@@ -71,14 +71,14 @@ describe('sitemap entries', () => {
       SITE,
     );
 
-    expect(entries.map((item) => item.loc)).toEqual(['https://mktba.ru/', 'https://mktba.ru/article/namaz']);
+    expect(entries.map((item) => item.loc)).toEqual(['https://mktba.ru/', 'https://mktba.ru/namaz']);
     expect(entries[1].alternates).toEqual([]);
   });
 
   it('given a slug with characters reserved in URLs, when building entries, then it is percent-encoded like the reader link', () => {
     const entries = sitemapEntries([article('a b')], SITE);
 
-    expect(entries[1].loc).toBe('https://mktba.ru/article/a%20b');
+    expect(entries[1].loc).toBe('https://mktba.ru/a%20b');
   });
 });
 

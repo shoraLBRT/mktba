@@ -64,7 +64,7 @@ import { SlugField } from './add-article/SlugField';
 import { SeoFields } from './add-article/SeoFields';
 import { buildSeoDto, emptySeoDraft, isValidSocialImageUrl, seoDraftFromDto } from '../shared/seo';
 import { formatMessage } from '../localization';
-import { SLUG_MAX_LENGTH, articleHref, isValidSlug, slugFromTitle } from '../shared/slug';
+import { SLUG_MAX_LENGTH, articleHref, articleSlugFromTitle, isReservedArticleSlug, isValidSlug } from '../shared/slug';
 
 type ArticleOption = {
   id: number;
@@ -429,6 +429,11 @@ const EditArticlePage: React.FC = () => {
       return;
     }
 
+    if (isReservedArticleSlug(requestedSlug)) {
+      showNotice('warning', formatMessage(addT.slugReserved, { slug: requestedSlug }));
+      return;
+    }
+
     if (!isValidSocialImageUrl(seo.socialImageUrl)) {
       showNotice('warning', addT.seo.imageInvalid);
       return;
@@ -629,7 +634,7 @@ const EditArticlePage: React.FC = () => {
                     value={slug}
                     disabled={isLocked}
                     onChange={setSlug}
-                    onFillFromTitle={() => setSlug(slugFromTitle(title))}
+                    onFillFromTitle={() => setSlug(articleSlugFromTitle(title))}
                     locale={articleQuery.data.locale ?? undefined}
                   />
                   <div>

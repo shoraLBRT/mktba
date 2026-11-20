@@ -38,9 +38,9 @@ import { useHashAnchor } from '../components/article/useHashAnchor';
 const ArticlePage: React.FC = () => {
   const locale = useLocale();
   const navigate = useNavigate();
-  const { search: locationSearch } = useLocation();
+  const { pathname, search: locationSearch } = useLocation();
   const { slug: requestedSlug = '' } = useParams<{ slug: string }>();
-  // `/article/{id}` links from before slugs still open the article and are replaced by its slug URL.
+  // `/article/{id}` links from before slugs still open the article and are replaced by its `/{slug}` URL.
   const legacyArticleId = parseLegacyArticleId(requestedSlug);
   const { selectedSchoolId } = useMazhab();
   // Per-paragraph overrides are scoped to the mazhab they were made under, so
@@ -75,12 +75,13 @@ const ArticlePage: React.FC = () => {
   const articleId = articleContent?.id ?? 0;
   const canonicalSlug = articleContent?.slug;
 
-  // An id link or an old slug lands on the article's current slug URL without a history entry.
+  // An old `/article/…` URL, an id link or an old slug lands on the article's current `/{slug}`
+  // without a history entry, keeping the query (`?mazhab=`) as the server's 301 does.
   useEffect(() => {
-    if (canonicalSlug && canonicalSlug !== requestedSlug) {
-      navigate(articleHref(canonicalSlug), { replace: true });
+    if (canonicalSlug && articleHref(canonicalSlug) !== pathname) {
+      navigate(`${articleHref(canonicalSlug)}${locationSearch}`, { replace: true });
     }
-  }, [canonicalSlug, requestedSlug, navigate]);
+  }, [canonicalSlug, pathname, locationSearch, navigate]);
 
   const { data: navigationTree } = useNavigationTree();
 

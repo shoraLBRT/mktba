@@ -34,8 +34,8 @@ describe('searchHref', () => {
 
 describe('searchResultHref', () => {
   it('given a result with a snippet paragraph, when built, then it points at that paragraph, otherwise at the article', () => {
-    expect(searchResultHref({ slug: 'salat', paragraphId: 12 })).toBe('/article/salat#p-12');
-    expect(searchResultHref({ slug: 'salat', paragraphId: null })).toBe('/article/salat');
+    expect(searchResultHref({ slug: 'salat', paragraphId: 12 })).toBe('/salat#p-12');
+    expect(searchResultHref({ slug: 'salat', paragraphId: null })).toBe('/salat');
   });
 });
 

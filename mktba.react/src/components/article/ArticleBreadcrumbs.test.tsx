@@ -25,8 +25,8 @@ describe('ArticleBreadcrumbs', () => {
     expect(steps().map((step) => step.textContent)).toEqual(['Главная', 'Основы религии', 'Столпы ислама', 'Намаз']);
     expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
       '/',
-      '/article/osnovy',
-      '/article/stolpy',
+      '/osnovy',
+      '/stolpy',
     ]);
   });
 

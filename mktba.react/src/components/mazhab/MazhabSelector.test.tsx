@@ -19,7 +19,7 @@ const SYSTEM_SCHOOLS = [
 
 const HINT = /Мазхаб — школа исламского права\. Выберите свою/;
 
-const renderSelector = (url = '/article/salat') => {
+const renderSelector = (url = '/salat') => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData([APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS], SYSTEM_SCHOOLS);
   render(

@@ -179,7 +179,7 @@ describe('NavigationTree in windowed mode', () => {
       </LocalizationProvider>
     );
     const html = renderToString(app);
-    expect(html.match(/href="\/article\/a\d+"/g)).toHaveLength(rowCount);
+    expect(html.match(/href="\/a\d+"/g)).toHaveLength(rowCount);
 
     const container = document.createElement('div');
     container.innerHTML = html;
@@ -222,7 +222,7 @@ describe('NavigationTree in windowed mode', () => {
     Element.prototype.scrollIntoView = scrollIntoView;
     saveCollapsed(Array.from({ length: SECTIONS }, (_, section) => sectionId(section)));
 
-    renderTree(largeTree, `/article/a${childId(15, 140)}`);
+    renderTree(largeTree, `/a${childId(15, 140)}`);
 
     // Row 15 (the section) + 141: far below the 580px the scroller shows.
     const current = link('Статья 15-140');

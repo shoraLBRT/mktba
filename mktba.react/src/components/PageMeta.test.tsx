@@ -47,7 +47,7 @@ describe('PageMeta', () => {
   });
 
   it('given one page replaced by another, when re-rendered, then head holds one set of tags', () => {
-    const view = render(onSite(<PageMeta title="Первая" path="/article/a" />));
+    const view = render(onSite(<PageMeta title="Первая" path="/a" />));
     view.rerender(onSite(<NotFoundMeta />));
 
     expect(document.head.querySelectorAll('title')).toHaveLength(1);

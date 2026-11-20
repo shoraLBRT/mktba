@@ -76,7 +76,7 @@ describe('AuthorPage', () => {
 
     const items = within(screen.getByRole('region', { name: 'Статьи' })).getAllByRole('listitem');
     expect(items).toHaveLength(2);
-    expect(within(items[0]).getByRole('link', { name: 'Условия намаза' }).getAttribute('href')).toBe('/article/salat');
+    expect(within(items[0]).getByRole('link', { name: 'Условия намаза' }).getAttribute('href')).toBe('/salat');
     expect(items[0].textContent).toContain('Кратко о намазе');
     expect(items[0].textContent).toContain('Опубликовано 2 ноября 2026 г.');
     expect(items[0].textContent).toContain('Обновлено 5 ноября 2026 г.');

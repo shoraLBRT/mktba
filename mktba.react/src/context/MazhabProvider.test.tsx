@@ -53,7 +53,7 @@ describe('MazhabProvider', () => {
 
   it('given a saved mazhab, when the server HTML hydrates, then applies it without a hydration mismatch', async () => {
     localStorage.setItem(MAZHAB_STORAGE_KEY, '3');
-    const tree = treeAt('/article/salat?mazhab=hanafi');
+    const tree = treeAt('/salat?mazhab=hanafi');
     const container = document.createElement('div');
     container.innerHTML = renderToString(tree);
     const recoverableErrors: unknown[] = [];
@@ -70,7 +70,7 @@ describe('MazhabProvider', () => {
   it('given a link with a mazhab, when opened, then that mazhab is shown and the saved one is kept', () => {
     localStorage.setItem(MAZHAB_STORAGE_KEY, '1');
 
-    render(treeAt('/article/salat?mazhab=shafii'));
+    render(treeAt('/salat?mazhab=shafii'));
 
     expect(screen.getByText('school:3')).not.toBeNull();
     expect(localStorage.getItem(MAZHAB_STORAGE_KEY)).toBe('1');
@@ -79,18 +79,18 @@ describe('MazhabProvider', () => {
   it('given a link with an unknown mazhab, when opened, then the saved mazhab is shown', () => {
     localStorage.setItem(MAZHAB_STORAGE_KEY, '1');
 
-    render(treeAt('/article/salat?mazhab=nobody'));
+    render(treeAt('/salat?mazhab=nobody'));
 
     expect(screen.getByText('school:1')).not.toBeNull();
   });
 
   it('given a link with a mazhab, when the reader chooses another, then it is saved and the parameter leaves the URL', () => {
-    render(treeAt('/article/salat?mazhab=shafii&utm_source=tg'));
+    render(treeAt('/salat?mazhab=shafii&utm_source=tg'));
 
     fireEvent.click(screen.getByRole('button', { name: 'choose' }));
 
     expect(screen.getByText('school:1')).not.toBeNull();
-    expect(screen.getByText('url:/article/salat?utm_source=tg')).not.toBeNull();
+    expect(screen.getByText('url:/salat?utm_source=tg')).not.toBeNull();
     expect(localStorage.getItem(MAZHAB_STORAGE_KEY)).toBe('1');
   });
 });

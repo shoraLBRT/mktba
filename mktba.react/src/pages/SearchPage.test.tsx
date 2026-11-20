@@ -57,9 +57,9 @@ describe('SearchPage', () => {
     expect(screen.getByRole('status').textContent).toContain('Найдено статей: 2');
     const items = within(screen.getByRole('list', { name: 'Результаты поиска' })).getAllByRole('listitem');
     expect(items).toHaveLength(2);
-    expect(within(items[0]).getByRole('link', { name: 'Условия намаза' }).getAttribute('href')).toBe('/article/salat#p-7');
+    expect(within(items[0]).getByRole('link', { name: 'Условия намаза' }).getAttribute('href')).toBe('/salat#p-7');
     expect([...items[0].querySelectorAll('mark')].map((mark) => mark.textContent)).toEqual(['намаза', 'намазе', 'намаз']);
-    expect(within(items[1]).getByRole('link', { name: 'Закят' }).getAttribute('href')).toBe('/article/zakyat');
+    expect(within(items[1]).getByRole('link', { name: 'Закят' }).getAttribute('href')).toBe('/zakyat');
     expect(items[1].querySelector('mark')).toBeNull();
     expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('намаз');
   });

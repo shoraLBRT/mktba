@@ -35,8 +35,8 @@ describe('StructuredData', () => {
   it('given an article with a trail, when rendered, then the graph has Article and BreadcrumbList', () => {
     const { container } = renderOnSite(
       <ArticleStructuredData
-        article={{ path: '/article/salat', headline: 'Салат', publishedAt: '2026-10-01T10:00:00Z' }}
-        breadcrumbs={[{ name: 'Салат', path: '/article/salat' }]}
+        article={{ path: '/salat', headline: 'Салат', publishedAt: '2026-10-01T10:00:00Z' }}
+        breadcrumbs={[{ name: 'Салат', path: '/salat' }]}
       />,
     );
 
@@ -48,8 +48,8 @@ describe('StructuredData', () => {
   it('given an article by an author with a page, when rendered, then the graph ends with the Person the Article names', () => {
     const { container } = renderOnSite(
       <ArticleStructuredData
-        article={{ path: '/article/salat', headline: 'Салат', authors: [{ name: 'Ахмад Иванов', path: '/authors/ahmad-ivanov' }] }}
-        breadcrumbs={[{ name: 'Салат', path: '/article/salat' }]}
+        article={{ path: '/salat', headline: 'Салат', authors: [{ name: 'Ахмад Иванов', path: '/authors/ahmad-ivanov' }] }}
+        breadcrumbs={[{ name: 'Салат', path: '/salat' }]}
       />,
     );
 
@@ -67,7 +67,7 @@ describe('StructuredData', () => {
   it('given a headline with a closing script tag, when rendered, then the script is not broken and the headline survives', () => {
     const headline = '</script><img src=x onerror=alert(1)>';
     const { container } = renderOnSite(
-      <ArticleStructuredData article={{ path: '/article/x', headline }} breadcrumbs={[]} />,
+      <ArticleStructuredData article={{ path: '/x', headline }} breadcrumbs={[]} />,
     );
 
     expect(container.querySelector('img')).toBeNull();

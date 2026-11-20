@@ -147,7 +147,7 @@ describe('NavigationTree collapsing', () => {
   it('given collapsed ancestors, when their descendant is the current article, then the path to it is expanded and saved so', () => {
     saveCollapsed([1, 2, 6]);
 
-    renderReaderTree('/article/a5');
+    renderReaderTree('/a5');
 
     expect(screen.getByRole('link', { name: 'Омовение' }).getAttribute('aria-current')).toBe('page');
     expect(savedCollapsed()).toEqual([6]);
@@ -174,7 +174,7 @@ describe('NavigationTree collapsing', () => {
     );
 
     for (const slug of ['a1', 'a2', 'a3', 'a4', 'a5', 'a7']) {
-      expect(html).toContain(`href="/article/${slug}"`);
+      expect(html).toContain(`href="/${slug}"`);
     }
   });
 

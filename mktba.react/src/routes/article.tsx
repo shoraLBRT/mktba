@@ -26,10 +26,11 @@ export const handle: RouteHandle = { ownsMeta: true };
 
 /**
  * On the server: the article with its schools, so the HTML carries the title and every paragraph.
- * An id link or an old slug is redirected to the current slug URL; an unknown one answers 404 and
- * a removed one 410. An API that fails answers 503 (see `serverApi`).
+ * An old `/article/{slug-or-id}` URL, an id or an old slug is redirected (301, the query kept) to the
+ * current `/{slug}`; an unknown one answers 404 and a removed one 410. An API that fails answers
+ * 503 (see `serverApi`).
  */
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params, request }: LoaderFunctionArgs) {
   const requestedSlug = params.slug ?? '';
   const legacyArticleId = parseLegacyArticleId(requestedSlug);
 
@@ -46,8 +47,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
     throw error;
   }
 
-  if (content.slug && content.slug !== requestedSlug) {
-    throw redirect(articleHref(content.slug), 301);
+  const url = new URL(request.url);
+  if (content.slug && articleHref(content.slug) !== url.pathname) {
+    throw redirect(`${articleHref(content.slug)}${url.search}`, 301);
   }
 
   const queryClient = createServerQueryClient();

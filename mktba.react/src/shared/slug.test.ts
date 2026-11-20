@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SLUG_MAX_LENGTH, articleHref, isValidSlug, slugFromTitle } from './slug';
+import { SLUG_MAX_LENGTH, articleHref, articleSlugFromTitle, isReservedArticleSlug, isValidSlug, slugFromTitle } from './slug';
 
 // The same cases as ArticleSlugRulesTests in Mktba.Application.Tests: both sides must agree.
 describe('slugFromTitle', () => {
@@ -62,8 +62,32 @@ describe('isValidSlug', () => {
   });
 });
 
+describe('isReservedArticleSlug', () => {
+  it.each([
+    ['admin', true],
+    ['search', true],
+    ['article', true],
+    ['en', true],
+    ['search-2', false],
+    ['namaz', false],
+  ])('given %j, then returns %s', (slug, expected) => {
+    expect(isReservedArticleSlug(slug)).toBe(expected);
+  });
+});
+
+describe('articleSlugFromTitle', () => {
+  it('given a title that gives a reserved word, then adds -2', () => {
+    expect(articleSlugFromTitle('Search')).toBe('search-2');
+    expect(articleSlugFromTitle('بسم الله')).toBe('article-2');
+  });
+
+  it('given an ordinary title, then is the plain transliteration', () => {
+    expect(articleSlugFromTitle('Намаз')).toBe('namaz');
+  });
+});
+
 describe('articleHref', () => {
-  it('given a slug, then builds the reader URL', () => {
-    expect(articleHref('namaz')).toBe('/article/namaz');
+  it('given a slug, then builds the reader URL directly under the root', () => {
+    expect(articleHref('namaz')).toBe('/namaz');
   });
 });
