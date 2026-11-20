@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Data;
 
 namespace Mktba.Application.Services;
@@ -17,6 +18,19 @@ public static partial class ArticleSlugRules
 
     /// <summary>Slug used when the title has nothing to transliterate (empty, punctuation, other scripts).</summary>
     public const string Fallback = "article";
+
+    /// <summary>
+    /// First URL segments an article cannot take, because articles live at <c>/{slug}</c> (O-02, #53):
+    /// the site's other top-level routes, the old <c>/article/…</c> prefix, the build's static
+    /// directory and the language prefixes (<see cref="Locales.Supported"/>). Files such as
+    /// <c>robots.txt</c> or <c>sitemap.xml</c> need no entry: a dot is never valid in a slug.
+    /// <see cref="Fallback"/> is reserved too, so a title with nothing to transliterate gets <c>article-2</c>.
+    /// Mirror: <c>RESERVED_ARTICLE_SLUGS</c> in <c>mktba.react/src/shared/slug.ts</c>; existing rows
+    /// were moved off these words by migration <c>MoveArticlesOffReservedSlugs</c>.
+    /// </summary>
+    public static readonly IReadOnlySet<string> Reserved = new HashSet<string>(
+        ["admin", "api", "article", "articles", "assets", "authors", "feedback", "login", "search", "sitemaps", .. Locales.Supported],
+        StringComparer.Ordinal);
 
     /// <summary>
     /// Russian letters to Latin. ъ and ь are dropped. Letters outside this table and outside
@@ -104,12 +118,16 @@ public static partial class ArticleSlugRules
     /// <summary>
     /// A valid slug: 1–<see cref="MaxLength"/> characters of a–z and 0–9 in hyphen-separated
     /// groups, and not digits only — a numeric segment stays reserved for <c>/article/{id}</c> links.
+    /// A valid slug may still be <see cref="IsReserved"/>.
     /// </summary>
     public static bool IsValid(string? slug)
         => !string.IsNullOrEmpty(slug)
            && slug.Length <= MaxLength
            && SlugPattern().IsMatch(slug)
            && !slug.All(char.IsAsciiDigit);
+
+    /// <summary>Whether <paramref name="slug"/> is one of the <see cref="Reserved"/> first URL segments.</summary>
+    public static bool IsReserved(string slug) => Reserved.Contains(slug);
 
     private static string Truncate(string slug, int length)
         => slug.Length <= length ? slug : slug[..length].TrimEnd('-');

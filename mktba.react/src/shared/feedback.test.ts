@@ -9,18 +9,18 @@ describe('feedbackHref', () => {
   });
 
   it('given an article page, when built and read back, then the kind, the article and the page survive', () => {
-    const href = feedbackHref({ type: 'ArticleError', articleId: 12, from: '/article/taharat' });
+    const href = feedbackHref({ type: 'ArticleError', articleId: 12, from: '/taharat' });
 
-    expect(href).toBe('/feedback?type=article-error&article=12&from=%2Farticle%2Ftaharat');
-    expect(read(href)).toEqual({ type: 'ArticleError', articleId: 12, from: '/article/taharat' });
+    expect(href).toBe('/feedback?type=article-error&article=12&from=%2Ftaharat');
+    expect(read(href)).toEqual({ type: 'ArticleError', articleId: 12, from: '/taharat' });
   });
 
   it('given a page opened by a mazhab link, when built, then the mazhab is carried over to the form address', () => {
-    const href = feedbackHref({ from: '/article/taharat?mazhab=shafii' });
+    const href = feedbackHref({ from: '/taharat?mazhab=shafii' });
 
     const params = new URL(href, 'http://site.test').searchParams;
     expect(params.get('mazhab')).toBe('shafii');
-    expect(params.get('from')).toBe('/article/taharat?mazhab=shafii');
+    expect(params.get('from')).toBe('/taharat?mazhab=shafii');
   });
 
   it('given an address on another site, when built, then the page is left out', () => {

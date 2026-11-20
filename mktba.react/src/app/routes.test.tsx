@@ -63,6 +63,7 @@ const RoutesStub = createRoutesStub([
           { index: true, Component: HomeRoute, loader: homeRoute.clientLoader, handle: homeRoute.handle },
           { path: 'article/new', Component: LegacyAddArticleRoute, loader: legacyAddArticleRoute.clientLoader },
           { path: 'article/:slug', Component: ArticleRoute, loader: articleRoute.clientLoader, handle: articleRoute.handle },
+          { path: ':slug', Component: ArticleRoute, loader: articleRoute.clientLoader, handle: articleRoute.handle },
           { path: 'admin/login', Component: AdminLoginRoute },
           { path: '*', Component: NotFoundRoute, loader: notFoundRoute.clientLoader, handle: notFoundRoute.handle },
         ],
@@ -168,18 +169,27 @@ describe('AppRoutes', () => {
   it('given a slug, when opened, then loads the article by slug and keeps the URL', async () => {
     vi.mocked(getArticleContentBySlug).mockResolvedValue(article('namaz'));
 
-    renderAt('/article/namaz');
+    renderAt('/namaz');
 
     expect(await screen.findByRole('heading', { name: 'Намаз', level: 1 })).toBeTruthy();
     expect(getArticleContentBySlug).toHaveBeenCalledWith('namaz');
     expect(getArticleContentById).not.toHaveBeenCalled();
-    expect(screen.getByTestId('path').textContent).toBe('/article/namaz');
+    expect(screen.getByTestId('path').textContent).toBe('/namaz');
+  });
+
+  it('given an old /article/{slug} URL, when opened, then replaces it with /{slug} keeping the query', async () => {
+    vi.mocked(getArticleContentBySlug).mockResolvedValue(article('namaz'));
+
+    renderAt('/article/namaz?mazhab=hanafi');
+
+    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/namaz'));
+    expect(getArticleContentBySlug).toHaveBeenCalledWith('namaz');
   });
 
   it('given an unknown slug, when opened, then shows the 404 page', async () => {
     vi.mocked(getArticleContentBySlug).mockRejectedValue(new ApiError('Article not found', 404));
 
-    renderAt('/article/no-such-article');
+    renderAt('/no-such-article');
 
     expect(await screen.findByRole('heading', { name: 'Страница не найдена' })).toBeTruthy();
   });
@@ -189,16 +199,16 @@ describe('AppRoutes', () => {
 
     renderAt('/article/7');
 
-    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/article/namaz'));
+    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/namaz'));
     expect(getArticleContentById).toHaveBeenCalledWith(7);
   });
 
   it('given an old slug, when the API answers with the current one, then replaces the URL with it', async () => {
     vi.mocked(getArticleContentBySlug).mockResolvedValue(article('salat'));
 
-    renderAt('/article/namaz');
+    renderAt('/namaz');
 
-    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/article/salat'));
+    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/salat'));
   });
 });
 
@@ -235,7 +245,7 @@ describe('Page semantics', () => {
   it('given an article with markdown headings, when rendered, then it has one h1 and heading levels never skip', async () => {
     vi.mocked(getArticleContentBySlug).mockResolvedValue(richArticle);
 
-    renderAt('/article/namaz');
+    renderAt('/namaz');
 
     await screen.findByRole('heading', { name: 'Намаз', level: 1 });
     const levels = headingLevels();
@@ -249,7 +259,7 @@ describe('Page semantics', () => {
   it('given an article, when rendered, then landmarks, breadcrumbs, dates and image alt are marked up', async () => {
     vi.mocked(getArticleContentBySlug).mockResolvedValue(richArticle);
 
-    renderAt('/article/namaz');
+    renderAt('/namaz');
 
     await screen.findByRole('heading', { name: 'Намаз', level: 1 });
     expect(document.body.querySelectorAll('main')).toHaveLength(1);
@@ -275,7 +285,7 @@ describe('Page semantics', () => {
       },
     ] as unknown as Awaited<ReturnType<typeof getNavigationTree>>);
 
-    renderAt('/article/namaz');
+    renderAt('/namaz');
 
     const trail = await screen.findByRole('navigation', { name: 'Путь к статье' });
     await waitFor(() =>
@@ -288,7 +298,7 @@ describe('Page semantics', () => {
   it('given an article with text, when rendered, then the header shows the reading time by the default opinions', async () => {
     vi.mocked(getArticleContentBySlug).mockResolvedValue(richArticle);
 
-    renderAt('/article/namaz');
+    renderAt('/namaz');
 
     expect((await screen.findByTestId('article-reading-time')).textContent).toContain('1 мин чтения');
   });

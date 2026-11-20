@@ -1,7 +1,7 @@
 // Size budget for the public article page (issue #59). Run after `npm run build`.
 //
 // Reads the React Router manifest the build writes to build/client/assets/manifest-*.js, collects
-// every JS module the browser loads for a first visit to /article/:slug (the client entry plus the
+// every JS module the browser loads for a first visit to an article at /:slug (the client entry plus the
 // root, public-layout and article route modules with their imports), gzips each one and fails when
 // the total is over BUDGET_GZIP_BYTES.
 //
@@ -47,7 +47,7 @@ rows.sort((a, b) => b.bytes - a.bytes);
 
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 for (const { url, bytes } of rows) console.log(`${kb(bytes).padStart(10)}  ${url}`);
-console.log(`\n/article/:slug first load: ${rows.length} JS chunks, ${kb(total)} gzip (budget ${kb(BUDGET_GZIP_BYTES)})`);
+console.log(`\n/:slug first load: ${rows.length} JS chunks, ${kb(total)} gzip (budget ${kb(BUDGET_GZIP_BYTES)})`);
 
 if (total > BUDGET_GZIP_BYTES) {
   console.error(`Over budget by ${kb(total - BUDGET_GZIP_BYTES)}. Shrink the page or raise the budget (see the header of this script).`);

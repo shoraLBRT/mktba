@@ -36,6 +36,6 @@ test('sitemap.xml lists a published article and leaves a draft out', async ({ re
   expect(response.headers()['content-type']).toContain('application/xml');
   const xml = await response.text();
   expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"');
-  expect(xml).toMatch(/<loc>https?:\/\/[^/]+\/article\/salat<\/loc><lastmod>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z<\/lastmod>/);
-  expect(xml).not.toContain(`/article/${draftSlug}<`);
+  expect(xml).toMatch(/<loc>https?:\/\/[^/]+\/salat<\/loc><lastmod>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z<\/lastmod>/);
+  expect(xml).not.toContain(`/${draftSlug}<`);
 });

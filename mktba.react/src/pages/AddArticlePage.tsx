@@ -52,7 +52,7 @@ import { SlugField } from './add-article/SlugField';
 import { SeoFields } from './add-article/SeoFields';
 import { buildSeoDto, emptySeoDraft, isValidSocialImageUrl } from '../shared/seo';
 import { formatMessage } from '../localization';
-import { SLUG_MAX_LENGTH, articleHref, isValidSlug, slugFromTitle } from '../shared/slug';
+import { SLUG_MAX_LENGTH, articleHref, articleSlugFromTitle, isReservedArticleSlug, isValidSlug } from '../shared/slug';
 
 type Notice = {
   tone: 'success' | 'warning' | 'error';
@@ -125,7 +125,7 @@ const AddArticlePage: React.FC = () => {
   // Until the editor types a slug, it follows the title and is left to the server to generate,
   // so a slug already taken gets a -2 suffix instead of an error.
   const [manualSlug, setManualSlug] = useState<string | null>(null);
-  const slug = manualSlug ?? (title.trim() ? slugFromTitle(title) : '');
+  const slug = manualSlug ?? (title.trim() ? articleSlugFromTitle(title) : '');
   const [parentArticleId, setParentArticleId] = useState<number | null>(null);
   const [infobox, setInfobox] = useState(createEmptyInfoboxDraft);
   const [blocks, setBlocks] = useState<EditorBlock[]>([createEmptyBlock('paragraph')]);
@@ -362,6 +362,11 @@ const AddArticlePage: React.FC = () => {
     const requestedSlug = manualSlug?.trim() || undefined;
     if (requestedSlug !== undefined && !isValidSlug(requestedSlug)) {
       showNotice('warning', formatMessage(t.slugInvalid, { maxLength: SLUG_MAX_LENGTH }));
+      return;
+    }
+
+    if (requestedSlug !== undefined && isReservedArticleSlug(requestedSlug)) {
+      showNotice('warning', formatMessage(t.slugReserved, { slug: requestedSlug }));
       return;
     }
 

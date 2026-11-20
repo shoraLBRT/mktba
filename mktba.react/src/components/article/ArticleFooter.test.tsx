@@ -61,7 +61,7 @@ describe('ArticleFooter', () => {
     const block = screen.getByRole('navigation', { name: 'В этом разделе' });
     expect(within(block).getByRole('heading', { level: 2, name: 'В этом разделе' }).tagName).toBe('H2');
     expect(within(block).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Условия намаза', 'Время намаза']);
-    expect(hrefs(block)).toEqual(['/article/usloviya', '/article/vremya']);
+    expect(hrefs(block)).toEqual(['/usloviya', '/vremya']);
   });
 
   it('given a stub among the children, when rendered, then its title is shown without a link', () => {
@@ -74,7 +74,7 @@ describe('ArticleFooter', () => {
 
     const block = screen.getByRole('navigation', { name: 'В этом разделе' });
     expect(within(block).getByText('Условия намаза').tagName).toBe('LI');
-    expect(hrefs(block)).toEqual(['/article/vremya']);
+    expect(hrefs(block)).toEqual(['/vremya']);
   });
 
   it('given related articles, when rendered, then they are linked by slug', () => {
@@ -82,7 +82,7 @@ describe('ArticleFooter', () => {
 
     const block = screen.getByRole('navigation', { name: 'Связанные статьи' });
     expect(within(block).getByRole('heading', { level: 2, name: 'Связанные статьи' }).tagName).toBe('H2');
-    expect(hrefs(block)).toEqual(['/article/post']);
+    expect(hrefs(block)).toEqual(['/post']);
   });
 
   it('given both neighbours, when rendered, then the previous and the next article are linked with rel', () => {
@@ -94,10 +94,10 @@ describe('ArticleFooter', () => {
     const block = screen.getByRole('navigation', { name: 'Соседние статьи' });
     const [previous, next] = within(block).getAllByRole('link');
     expect(previous.textContent).toBe('Предыдущая статья Омовение');
-    expect(previous.getAttribute('href')).toBe('/article/omovenie');
+    expect(previous.getAttribute('href')).toBe('/omovenie');
     expect(previous.getAttribute('rel')).toBe('prev');
     expect(next.textContent).toBe('Следующая статья Пост');
-    expect(next.getAttribute('href')).toBe('/article/post');
+    expect(next.getAttribute('href')).toBe('/post');
     expect(next.getAttribute('rel')).toBe('next');
   });
 

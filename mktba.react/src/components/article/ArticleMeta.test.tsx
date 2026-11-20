@@ -36,13 +36,13 @@ describe('ArticleMeta', () => {
     expect(content('meta[property="og:site_name"]')).toBe('mktba');
     expect(content('meta[property="og:locale"]')).toBe('ru_RU');
     expect(content('meta[property="og:image"]')).toBe('https://mktba.ru/img/namaz.png');
-    expect(content('meta[property="og:url"]')).toBe('https://mktba.ru/article/namaz');
+    expect(content('meta[property="og:url"]')).toBe('https://mktba.ru/namaz');
     expect(content('meta[property="article:published_time"]')).toBe('2026-10-01T10:00:00Z');
     expect(content('meta[property="article:modified_time"]')).toBe('2026-11-02T12:00:00Z');
     expect(content('meta[name="twitter:card"]')).toBe('summary_large_image');
     expect(content('meta[name="twitter:title"]')).toBe('Намаз — порядок');
     expect(content('meta[name="twitter:image"]')).toBe('https://mktba.ru/img/namaz.png');
-    expect(head('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.ru/article/namaz');
+    expect(head('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.ru/namaz');
     expect(head('meta[name="robots"]')).toBeNull();
   });
 

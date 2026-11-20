@@ -48,7 +48,7 @@ test('an admin creates an article and then edits it', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Первый абзац из E2E-теста.');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
 
-  await expect(page).toHaveURL(new RegExp(`/article/${slug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${slug}$`));
   await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
   await expect(page.getByText('Первый абзац из E2E-теста.')).toBeVisible();
   const articleUrl = page.url();
@@ -67,14 +67,14 @@ test('an admin creates an article and then edits it', async ({ page }) => {
   await page.goto(`/admin/articles/${articleId}/edit`);
   await page.getByRole('textbox', { name: 'Адрес статьи' }).fill(editedSlug);
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/article/${editedSlug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${editedSlug}$`));
 
   // The old slug and the pre-slug numeric link both land on the current slug.
   await page.goto(articleUrl);
-  await expect(page).toHaveURL(new RegExp(`/article/${editedSlug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${editedSlug}$`));
   await expect(page.getByRole('heading', { name: editedTitle, level: 1 })).toBeVisible();
   await page.goto(`/article/${articleId}`);
-  await expect(page).toHaveURL(new RegExp(`/article/${editedSlug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${editedSlug}$`));
 });
 
 test('an admin finds a draft in the article table and submits it for review in bulk', async ({ page }) => {
@@ -133,11 +133,11 @@ test('a new article is a draft hidden from readers until it is published', async
   await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
   await page.getByRole('textbox', { name: 'Введите текст параграфа...' }).fill('Текст черновика.');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/article/${slug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${slug}$`));
 
   const reader = await browser.newPage();
   await declineAnalytics(reader);
-  await reader.goto(`/article/${slug}`);
+  await reader.goto(`/${slug}`);
   await expect(reader.getByText('Страница не найдена')).toBeVisible();
   await expect(reader.getByText('Текст черновика.')).toHaveCount(0);
   await expect(reader.getByRole('complementary').getByRole('link', { name: title, exact: true })).toHaveCount(0);
@@ -151,7 +151,7 @@ test('a new article is a draft hidden from readers until it is published', async
   await expect(statusPanel.getByText('Опубликована')).toBeVisible();
   await expect(page.getByTestId('article-authors-panel').getByLabel('Автор', { exact: true })).not.toHaveValue('');
 
-  await reader.goto(`/article/${slug}`);
+  await reader.goto(`/${slug}`);
   await expect(reader.getByRole('heading', { name: title, level: 1 })).toBeVisible();
   await expect(reader.getByText('Текст черновика.')).toBeVisible();
   await expect(reader.getByTestId('article-dates')).toContainText('Опубликовано');
@@ -261,7 +261,7 @@ test('an admin cites a new source in the editor, and readers see it under the pu
   await form.getByRole('button', { name: 'Добавить в справочник' }).click();
   await page.getByLabel(`Место в источнике «${sourceTitle}»`).fill('№ 1');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/article/${slug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${slug}$`));
 
   // The editor opens the saved article with the citation and its locator, and publishes it.
   await (await openAdminArticleTree(page)).getByRole('link', { name: title, exact: true }).click();
@@ -278,13 +278,13 @@ test('an admin cites a new source in the editor, and readers see it under the pu
   await expect(page.getByRole('list', { name: 'Найденные источники' }).getByRole('button')).toContainText(`аль-Бухари. ${sourceTitle}`);
 
   // The server HTML already holds the block: it does not wait for the browser.
-  const html = await (await request.get(`/article/${slug}`)).text();
+  const html = await (await request.get(`/${slug}`)).text();
   expect(html).toContain('id="article-sources-title"');
   expect(html).toContain(sourceTitle);
 
   const reader = await browser.newPage();
   await declineAnalytics(reader);
-  await reader.goto(`/article/${slug}`);
+  await reader.goto(`/${slug}`);
   const sources = reader.getByTestId('article-sources');
   await expect(sources.getByRole('heading', { name: 'Источники', level: 2 })).toBeVisible();
   await expect(sources.getByRole('listitem')).toHaveText(`аль-Бухари. ${sourceTitle} — № 1`);

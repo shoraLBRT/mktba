@@ -38,7 +38,7 @@ describe('structured data builders', () => {
 
   it('given a full article, when building Article, then it has absolute URLs, dates and the organization as author and publisher', () => {
     const article = articleNode(site, {
-      path: '/article/salat',
+      path: '/salat',
       headline: 'Салат',
       description: 'Молитва',
       image: '/img/salat.png',
@@ -47,12 +47,12 @@ describe('structured data builders', () => {
     });
 
     expect(article).toEqual({
-      '@id': 'https://mktba.ru/article/salat#article',
+      '@id': 'https://mktba.ru/salat#article',
       '@type': 'Article',
       headline: 'Салат',
       description: 'Молитва',
-      url: 'https://mktba.ru/article/salat',
-      mainEntityOfPage: 'https://mktba.ru/article/salat',
+      url: 'https://mktba.ru/salat',
+      mainEntityOfPage: 'https://mktba.ru/salat',
       image: ['https://mktba.ru/img/salat.png'],
       inLanguage: 'ru',
       datePublished: '2026-10-01T10:00:00Z',
@@ -65,7 +65,7 @@ describe('structured data builders', () => {
 
   it('given authors with public pages, when building Article, then the author is their Person nodes and the publisher stays the organization', () => {
     const article = articleNode(site, {
-      path: '/article/salat',
+      path: '/salat',
       headline: 'Салат',
       authors: [
         { name: 'Ахмад Иванов', path: '/authors/ahmad-ivanov' },
@@ -81,13 +81,13 @@ describe('structured data builders', () => {
   });
 
   it('given an empty author list, when building Article, then the author is the organization', () => {
-    const article = articleNode(site, { path: '/article/salat', headline: 'Салат', authors: [] });
+    const article = articleNode(site, { path: '/salat', headline: 'Салат', authors: [] });
 
     expect(article.author).toEqual({ '@id': 'https://mktba.ru/#organization' });
   });
 
   it('given an article without description, image or dates, when building Article, then those fields are left out and the default image is used', () => {
-    const article = articleNode(site, { path: '/article/a', headline: 'A', description: null, image: null });
+    const article = articleNode(site, { path: '/a', headline: 'A', description: null, image: null });
 
     expect(article.image).toEqual(['https://mktba.ru/og-default.png']);
     expect(article).not.toHaveProperty('description');
@@ -96,19 +96,19 @@ describe('structured data builders', () => {
   });
 
   it('given a trail, when building BreadcrumbList, then positions start at 1 and items are absolute', () => {
-    const list = breadcrumbListNode('https://mktba.ru', '/article/salat', [
-      { name: 'Ибадат', path: '/article/ibadat' },
-      { name: 'Салат', path: '/article/salat' },
+    const list = breadcrumbListNode('https://mktba.ru', '/salat', [
+      { name: 'Ибадат', path: '/ibadat' },
+      { name: 'Салат', path: '/salat' },
     ]);
 
     expect(list?.itemListElement).toEqual([
-      { '@type': 'ListItem', position: 1, name: 'Ибадат', item: 'https://mktba.ru/article/ibadat' },
-      { '@type': 'ListItem', position: 2, name: 'Салат', item: 'https://mktba.ru/article/salat' },
+      { '@type': 'ListItem', position: 1, name: 'Ибадат', item: 'https://mktba.ru/ibadat' },
+      { '@type': 'ListItem', position: 2, name: 'Салат', item: 'https://mktba.ru/salat' },
     ]);
   });
 
   it('given an empty trail, when building BreadcrumbList, then there is none and the graph leaves it out', () => {
-    const list = breadcrumbListNode('https://mktba.ru', '/article/a', []);
+    const list = breadcrumbListNode('https://mktba.ru', '/a', []);
 
     expect(list).toBeNull();
     expect(structuredDataGraph([organizationNode(site), list])['@graph']).toHaveLength(1);

@@ -65,7 +65,7 @@ test('an author with a published article has a public page with the profile and 
   await expect(articles).toContainText('Кратко о статье автора');
   await expect(articles).toContainText('Опубликовано');
   await articles.getByRole('link', { name: title }).click();
-  await expect(page).toHaveURL(new RegExp(`/article/${article.slug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${article.slug}$`));
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
 
   expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).ok()).toBe(true);
@@ -142,7 +142,7 @@ test('an article names its author and co-author with links to their pages, in th
     [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)]
       .flatMap((match) => (JSON.parse(match[1]) as { '@graph': Record<string, unknown>[] })['@graph']);
 
-  const html = await (await request.get(`/article/${article.slug}`)).text();
+  const html = await (await request.get(`/${article.slug}`)).text();
   expect(html).toContain('data-testid="article-authors"');
   expect(html).toMatch(new RegExp(`Авторы:.*href="/authors/${author.slug}"[^>]*>${authorName}</a>.*href="/authors/${coAuthor.slug}"[^>]*>${coAuthorName}</a>`, 's'));
   expect(html).not.toContain('@mktba.local');
@@ -152,7 +152,7 @@ test('an article names its author and co-author with links to their pages, in th
   expect(String(people[0]['@id'])).toMatch(new RegExp(`/authors/${author.slug}#person$`));
   expect(nodes.find((node) => node['@type'] === 'Article')!.author).toEqual(people.map((person) => ({ '@id': person['@id'] })));
 
-  await page.goto(`/article/${article.slug}`);
+  await page.goto(`/${article.slug}`);
   await expect(page.getByTestId('article-authors')).toHaveText(`Авторы: ${authorName}, ${coAuthorName}`);
   await expect(page.getByRole('link', { name: authorName })).toHaveAttribute('rel', 'author');
   const { violations } = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
@@ -164,11 +164,11 @@ test('an article names its author and co-author with links to their pages, in th
   await page.setViewportSize({ width: 375, height: 700 });
   expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);
   await page.getByRole('link', { name: coAuthorName }).click();
-  await expect(page).toHaveURL(new RegExp(`/authors/${coAuthor.slug}$`));
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/authors/${coAuthor.slug}$`));
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(coAuthorName);
 
   await setAuthors(nameless.id, []);
-  const bare = await (await request.get(`/article/${article.slug}`)).text();
+  const bare = await (await request.get(`/${article.slug}`)).text();
   expect(bare).not.toContain('data-testid="article-authors"');
   expect(bare).toContain('data-testid="article-dates"');
   const bareNodes = graphOf(bare);

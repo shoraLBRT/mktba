@@ -47,11 +47,11 @@ describe('FeedbackPage', () => {
   });
 
   it('given a link from an article, when opened, then the kind is chosen and the page, the article and the mazhab are shown', () => {
-    renderPage('/feedback?type=article-error&article=12&from=%2Farticle%2Ftaharat', 3);
+    renderPage('/feedback?type=article-error&article=12&from=%2Ftaharat', 3);
 
     expect((screen.getByRole('radio', { name: 'Ошибка в статье' }) as HTMLInputElement).checked).toBe(true);
     const attached = screen.getByRole('region', { name: 'Что будет отправлено вместе с сообщением' });
-    expect(within(attached).getByRole('link').getAttribute('href')).toBe('/article/taharat');
+    expect(within(attached).getByRole('link').getAttribute('href')).toBe('/taharat');
     expect(attached.textContent).toContain('Статья: Тахарат');
     expect(attached.textContent).toContain('Выбранный мазхаб: Шафиитский');
     expect(attached.textContent).toContain('открытый список задач проекта на GitHub');
@@ -60,7 +60,7 @@ describe('FeedbackPage', () => {
 
   it('given a filled form, when sent, then the request carries the attached values and the number is confirmed', async () => {
     sendFeedbackMock.mockResolvedValue({ id: 41 });
-    renderPage('/feedback?type=article-error&article=12&from=%2Farticle%2Ftaharat', 3);
+    renderPage('/feedback?type=article-error&article=12&from=%2Ftaharat', 3);
 
     fireEvent.change(textField(), { target: { value: 'Опечатка во втором абзаце' } });
     fireEvent.change(screen.getByLabelText(/Контакт для ответа/), { target: { value: ' reader@example.com ' } });
@@ -72,12 +72,12 @@ describe('FeedbackPage', () => {
       type: 'ArticleError',
       text: 'Опечатка во втором абзаце',
       contact: 'reader@example.com',
-      pageUrl: '/article/taharat',
+      pageUrl: '/taharat',
       articleId: 12,
       mazhab: 'shafii',
       website: '',
     });
-    expect(screen.getByRole('link', { name: 'Вернуться на страницу' }).getAttribute('href')).toBe('/article/taharat');
+    expect(screen.getByRole('link', { name: 'Вернуться на страницу' }).getAttribute('href')).toBe('/taharat');
   });
 
   it('given the bare form, when sent, then nothing is attached and an unchosen mazhab is said so', async () => {

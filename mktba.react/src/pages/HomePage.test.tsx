@@ -63,8 +63,8 @@ describe('HomePage', () => {
     renderHome();
 
     const sections = region('Разделы');
-    expect(within(sections).getByRole('link', { name: 'Поклонение' }).getAttribute('href')).toBe('/article/pokloneniye');
-    expect(within(sections).getByRole('link', { name: 'Салат' }).getAttribute('href')).toBe('/article/salat');
+    expect(within(sections).getByRole('link', { name: 'Поклонение' }).getAttribute('href')).toBe('/pokloneniye');
+    expect(within(sections).getByRole('link', { name: 'Салат' }).getAttribute('href')).toBe('/salat');
     expect(within(sections).getByText('Вероубеждение').closest('a')).toBeNull();
   });
 

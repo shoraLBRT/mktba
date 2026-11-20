@@ -24,8 +24,8 @@ test('a tree of more than 300 articles keeps only the rows in view in the DOM an
 
     // Crawlers and readers without JS: the server HTML holds every link of the tree.
     const html = await (await request.get('/')).text();
-    expect(html).toContain(`href="/article/${first.slug}"`);
-    expect(html).toContain(`href="/article/${last.slug}"`);
+    expect(html).toContain(`href="/${first.slug}"`);
+    expect(html).toContain(`href="/${last.slug}"`);
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
@@ -48,7 +48,7 @@ test('a tree of more than 300 articles keeps only the rows in view in the DOM an
       .map((violation) => violation.id)).toEqual([]);
 
     // Opening the last article scrolls the tree to a row that was not rendered.
-    await page.goto(`/article/${last.slug}`);
+    await page.goto(`/${last.slug}`);
     await expect(lastLink).toHaveAttribute('aria-current', 'page');
     await expect(lastLink).toBeInViewport();
     await expect(lastLink.locator('xpath=ancestor::li[1]')).toHaveAttribute('aria-level', '2');
