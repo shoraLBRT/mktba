@@ -1,12 +1,14 @@
-import { ChevronDown, Tag } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { METRIKA_GOALS, trackGoal } from '../../analytics/metrika';
 import { useLocale } from '../../localization/hooks';
+import type { ArticleTagDto } from '../../shared/types/ApiTypes';
 import type { TocItem } from './ArticleRightSidebar';
+import { ArticleTagList } from './ArticleTagList';
 
 type ArticleMobileOverviewProps = {
   tocItems: TocItem[];
   summary?: string;
-  tags?: string[];
+  tags?: ArticleTagDto[];
 };
 
 const captionClass = 'mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-subtle)]';
@@ -71,17 +73,7 @@ export const ArticleMobileOverview = ({ tocItems, summary, tags }: ArticleMobile
         {hasTags && (
           <div>
             <p className={captionClass}>{sidebarText.tagsTitle}</p>
-            <div className="flex flex-wrap gap-1">
-              {tags!.map((tag) => (
-                <span
-                  key={tag}
-                  className="flex items-center gap-1 rounded-full bg-[var(--color-brand-forest-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-brand-forest)]"
-                >
-                  <Tag size={8} aria-hidden="true" />
-                  {tag}
-                </span>
-              ))}
-            </div>
+            <ArticleTagList tags={tags!} label={sidebarText.tagsTitle} />
           </div>
         )}
       </div>

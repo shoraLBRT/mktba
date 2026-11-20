@@ -10,6 +10,7 @@ import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminMaintenancePage from '../pages/admin/AdminMaintenancePage';
 import AdminProfilePage from '../pages/admin/AdminProfilePage';
 import AdminSessionsPage from '../pages/admin/AdminSessionsPage';
+import AdminTagsPage from '../pages/admin/AdminTagsPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import AdminLayout from '../layouts/AdminLayout';
 import { AdminIndexRoute, AdminSectionRoute } from '../layouts/AdminRouteGuards';
@@ -22,6 +23,7 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 const SECTION_PAGES: Record<AdminSectionId, ReactElement> = {
   dashboard: <AdminDashboardPage />,
   articles: <AdminArticlesPage />,
+  tags: <AdminTagsPage />,
   users: <AdminUsersPage />,
   sessions: <AdminSessionsPage />,
   profile: <AdminProfilePage />,

@@ -2590,6 +2590,247 @@
         }
       }
     },
+    "/tags": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Every tag with the number of articles carrying it, for the admin (M-06, #70).",
+        "description": "Ordered by language, then name. locale, when given, lists one language (an unsupported one answers 400 locale_unsupported). articleCount counts articles of any status; a tag no article carries any more has 0.",
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{slug}": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "A tag and the articles carrying it, for the tag page.",
+        "description": "Only articles a reader can open: Published, not under a non-Published parent, and not empty stubs; ordered by publishedAt, latest first. The same answer for every caller. Answers 404 tag_not_found when the language has no tag with this slug or no such article carries it. locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1; pageSize is 20 by default, kept within 1 to 50.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{id}": {
+      "put": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Renames a tag on every article carrying it (admins only).",
+        "description": "A bad name answers 400 tag_name_required, tag_name_too_long (params.maxLength) or tag_name_invalid (a comma or control characters). A name another tag of the language has (ignoring case, ё as е) answers 400 tag_name_taken with params.id: merge the two instead. slug null or blank keeps the current one; a new one must be valid (tag_slug_invalid) and free in the language (tag_slug_taken). The old slug is not kept. No revision is written and updatedAt does not change.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagRenameDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{id}/merge": {
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Merges a tag into another and deletes it (admins only).",
+        "description": "Every article carrying the tag carries intoTagId instead, at the same place; the answer is the remaining tag. Fails with 400 tag_merge_into_itself or tag_merge_locale_mismatch, 404 tag_not_found for either tag. No revision is written and updatedAt does not change.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagMergeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users": {
       "get": {
         "tags": [
@@ -3215,6 +3456,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ArticleAuthorDto"
+            },
+            "nullable": true
+          },
+          "tagLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleTagDto"
             },
             "nullable": true
           }
@@ -3938,6 +4186,22 @@
         "properties": {
           "status": {
             "$ref": "#/components/schemas/ArticleStatus"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleTagDto": {
+        "required": [
+          "name",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -4875,6 +5139,103 @@
             "nullable": true
           },
           "url": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TagDto": {
+        "required": [
+          "articleCount",
+          "id",
+          "locale",
+          "name",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "articleCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TagMergeDto": {
+        "required": [
+          "intoTagId"
+        ],
+        "type": "object",
+        "properties": {
+          "intoTagId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TagPageDto": {
+        "required": [
+          "items",
+          "name",
+          "page",
+          "pageSize",
+          "slug",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorArticleDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "TagRenameDto": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
             "type": "string",
             "nullable": true
           }

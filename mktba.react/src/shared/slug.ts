@@ -58,7 +58,7 @@ export const isValidSlug = (slug: string): boolean =>
  * prefixes. Mirror of `ArticleSlugRules.Reserved`; a name with a dot (`robots.txt`) is never a slug.
  */
 export const RESERVED_ARTICLE_SLUGS: ReadonlySet<string> = new Set([
-  'admin', 'api', 'article', 'articles', 'assets', 'authors', 'feedback', 'login', 'search', 'sitemaps', 'ru', 'en',
+  'admin', 'api', 'article', 'articles', 'assets', 'authors', 'feedback', 'login', 'search', 'sitemaps', 'tags', 'ru', 'en',
 ]);
 
 /** Whether the API will refuse the slug for an article as `article_slug_reserved`. */
@@ -81,3 +81,9 @@ export const articleHref = (slug: string): string => `/${encodeURIComponent(slug
  * so the article page links to authors without loading the author page's module (`author.ts`).
  */
 export const authorHref = (slug: string): string => `/authors/${encodeURIComponent(slug)}`;
+
+/**
+ * The page of the tag whose slug is `slug` (M-06, #70). Here for the same reason as `authorHref`:
+ * the article page links to its tags without loading the tag page's module (`tag.ts`).
+ */
+export const tagHref = (slug: string): string => `/tags/${encodeURIComponent(slug)}`;

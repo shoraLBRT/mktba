@@ -18,6 +18,7 @@ export default [
     route('article/:slug', 'routes/article.tsx', { id: 'routes/legacy-article' }),
     route(':slug', 'routes/article.tsx'),
     route('authors/:slug', 'routes/author.tsx'),
+    route('tags/:slug', 'routes/tag.tsx'),
     route('admin/login', 'routes/admin-login.tsx'),
     route('*', 'routes/not-found.tsx'),
   ]),
