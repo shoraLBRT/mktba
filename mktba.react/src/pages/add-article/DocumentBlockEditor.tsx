@@ -7,6 +7,7 @@ import { Textarea } from '../../shared/ui/Textarea';
 import type { SchoolDto } from '../../shared/types/ApiTypes';
 import { canAssignSchools } from './draftHelpers';
 import { OpinionSourcesEditor } from './OpinionSourcesEditor';
+import { RichTextEditor, type RichTextHandle } from './richText/RichTextEditor';
 import type { AlternativeDraft, CitationDraft, EditorBlock } from './types';
 
 type EditorTarget = {
@@ -22,8 +23,13 @@ type DocumentBlockEditorProps = {
   activeTarget: EditorTarget | null;
   availableSchools: SchoolDto[];
   blockRef: (blockId: string, node: HTMLElement | null) => void;
+  /** A heading's textarea. */
   editorRef: (targetKey: string, node: HTMLTextAreaElement | null) => void;
+  /** The rich-text editor of a paragraph or of an opinion. */
+  richTextRef: (targetKey: string, handle: RichTextHandle | null) => void;
   onFocusTarget: (target: EditorTarget) => void;
+  /** Ctrl/⌘+K in a rich text: the page opens its link dialog for that text. */
+  onRequestLink: (target: EditorTarget) => void;
   onChangePlain: (blockId: string, content: string) => void;
   onChangeVersion: (blockId: string, localId: string, content: string) => void;
   onSetDefault: (blockId: string, localId: string) => void;
@@ -122,7 +128,9 @@ export const DocumentBlockEditor = ({
   availableSchools,
   blockRef,
   editorRef,
+  richTextRef,
   onFocusTarget,
+  onRequestLink,
   onChangePlain,
   onChangeVersion,
   onSetDefault,
@@ -140,9 +148,7 @@ export const DocumentBlockEditor = ({
   const headingClasses =
     block.kind === 'heading2'
       ? 'min-h-[36px] text-[24px] font-bold tracking-[-0.03em]'
-      : block.kind === 'heading3'
-        ? 'min-h-[30px] text-[18px] font-semibold'
-        : 'min-h-[32px] text-[15px] leading-8';
+      : 'min-h-[30px] text-[18px] font-semibold';
 
   const blockKindLabel =
     block.kind === 'heading2'
@@ -253,13 +259,16 @@ export const DocumentBlockEditor = ({
                   </button>
                 </div>
 
-                <AutoResizingTextarea
-                  textareaRef={(node) => editorRef(targetKey(block.id, selectedVariant.localId), node)}
+                <RichTextEditor
+                  // One editor per opinion, so each keeps its own undo history.
+                  key={selectedVariant.localId}
+                  handleRef={(handle) => richTextRef(targetKey(block.id, selectedVariant.localId), handle)}
                   value={selectedVariant.content}
                   disabled={disabled}
                   onFocus={() => onFocusTarget({ blockId: block.id, localId: selectedVariant.localId })}
-                  onChange={(event) => onChangeVersion(block.id, selectedVariant.localId, event.target.value)}
-                  className="min-h-[32px] border-0 bg-transparent px-0 py-1 text-[14px] leading-8 shadow-none focus:ring-0"
+                  onRequestLink={() => onRequestLink({ blockId: block.id, localId: selectedVariant.localId })}
+                  onChange={(content) => onChangeVersion(block.id, selectedVariant.localId, content)}
+                  className="py-1 text-[14px]"
                   placeholder={formatMessage(t.versionTextPlaceholder, { index: selectedIndex + 1 })}
                 />
 
@@ -327,35 +336,37 @@ export const DocumentBlockEditor = ({
           </div>
         </div>
       ) : (
-        <>
-        <AutoResizingTextarea
-          textareaRef={(node) => editorRef(targetKey(block.id, null), node)}
-          value={block.content}
-          disabled={disabled}
-          onFocus={() => onFocusTarget({ blockId: block.id, localId: null })}
-          onChange={(event) => {
-            const isHeading = block.kind === 'heading2' || block.kind === 'heading3';
-            const value = isHeading ? event.target.value.replace(/\n/g, '') : event.target.value;
-            onChangePlain(block.id, value);
-          }}
-          maxLength={block.kind === 'heading2' || block.kind === 'heading3' ? 150 : undefined}
-          className={`border-0 bg-transparent px-0 py-0 shadow-none focus:ring-0 ${headingClasses}`}
-            placeholder={
-              block.kind === 'heading2'
-                ? t.sectionTitlePlaceholder
-                : block.kind === 'heading3'
-                  ? t.subsectionTitlePlaceholder
-                  : t.paragraphPlaceholder
-            }
-          />
-          {block.kind === 'paragraph' ? (
+        block.kind === 'paragraph' ? (
+          <>
+            <RichTextEditor
+              handleRef={(handle) => richTextRef(targetKey(block.id, null), handle)}
+              value={block.content}
+              disabled={disabled}
+              onFocus={() => onFocusTarget({ blockId: block.id, localId: null })}
+              onRequestLink={() => onRequestLink({ blockId: block.id, localId: null })}
+              onChange={(content) => onChangePlain(block.id, content)}
+              className="text-[15px]"
+              placeholder={t.paragraphPlaceholder}
+            />
             <OpinionSourcesEditor
               citations={block.sources ?? []}
               disabled={disabled}
               onChange={(sources) => onSetSources(block.id, null, sources)}
             />
-          ) : null}
-        </>
+          </>
+        ) : (
+          // A heading is one plain line of text, so it stays a textarea.
+          <AutoResizingTextarea
+            textareaRef={(node) => editorRef(targetKey(block.id, null), node)}
+            value={block.content}
+            disabled={disabled}
+            onFocus={() => onFocusTarget({ blockId: block.id, localId: null })}
+            onChange={(event) => onChangePlain(block.id, event.target.value.replace(/\n/g, ''))}
+            maxLength={150}
+            className={`border-0 bg-transparent px-0 py-0 shadow-none focus:ring-0 ${headingClasses}`}
+            placeholder={block.kind === 'heading2' ? t.sectionTitlePlaceholder : t.subsectionTitlePlaceholder}
+          />
+        )
       )}
 
     </section>

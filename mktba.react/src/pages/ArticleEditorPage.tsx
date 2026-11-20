@@ -67,6 +67,8 @@ import { computeEditorStats } from './add-article/editorStats';
 import { applyMarkdownFormat, insertArticleLink, type FormattedText } from './add-article/markdownFormat';
 import { findBrokenInternalLinks, type ArticleLinkTarget } from './add-article/internalLinks';
 import { InternalLinkDialog } from './add-article/InternalLinkDialog';
+import { ExternalLinkDialog } from './add-article/ExternalLinkDialog';
+import type { RichTextHandle } from './add-article/richText/RichTextEditor';
 import { InternalLinkWarnings } from './add-article/InternalLinkWarnings';
 import { SlugField } from './add-article/SlugField';
 import { SeoFields } from './add-article/SeoFields';
@@ -206,12 +208,17 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const [activeTarget, setActiveTarget] = useState<EditorTarget | null>(null);
   /** The text the article picker will insert its link into; `null` while the picker is closed. */
   const [linkPickerTarget, setLinkPickerTarget] = useState<EditorTarget | null>(null);
+  /** The rich text the external-link dialog edits a link in, with the address it opened with. */
+  const [externalLink, setExternalLink] = useState<{ target: EditorTarget; href: string } | null>(null);
   const [isAiRunning, setIsAiRunning] = useState(false);
   const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
   const [parentSearch, setParentSearch] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+  /** Headings' textareas, by target key. */
   const editorRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  /** The rich-text editors of paragraphs and opinions, by target key. */
+  const richTextRefs = useRef<Record<string, RichTextHandle | null>>({});
   const blockRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const showNotice = (tone: EditorNoticeValue['tone'], message: string) => {
@@ -312,7 +319,13 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     [blocks, articleOptions, navigationTreeQuery.data],
   );
 
-  /** Rewrites the text of `target` around its textarea's selection and restores the selection. */
+  const richTextOf = (target: EditorTarget | null) =>
+    target && !isLocked ? richTextRefs.current[targetKey(target.blockId, target.localId)] ?? null : null;
+
+  /**
+   * Rewrites the text of a heading `target` around its textarea's selection and restores the
+   * selection. Paragraphs and opinions are rich texts and format themselves.
+   */
   const editTargetText = (
     target: EditorTarget | null,
     edit: (value: string, start: number, end: number) => FormattedText,
@@ -348,8 +361,29 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     element?.setSelectionRange(formatted.selectionStart, formatted.selectionEnd);
   };
 
-  const applyFormat = (action: FormatAction) =>
-    editTargetText(activeTarget, (value, start, end) => applyMarkdownFormat(value, start, end, action, editorText.markdown));
+  const openExternalLinkDialog = (target: EditorTarget) => {
+    const richText = richTextOf(target);
+    if (richText) {
+      setExternalLink({ target, href: richText.linkHref() ?? '' });
+    }
+  };
+
+  const applyExternalLink = (href: string) => {
+    const target = externalLink?.target ?? null;
+    setExternalLink(null);
+    richTextOf(target)?.setLink(href || null);
+  };
+
+  const applyFormat = (action: FormatAction) => {
+    const richText = richTextOf(activeTarget);
+    if (!richText || !activeTarget) {
+      editTargetText(activeTarget, (value, start, end) => applyMarkdownFormat(value, start, end, action, editorText.markdown));
+    } else if (action === 'link') {
+      openExternalLinkDialog(activeTarget);
+    } else {
+      richText.format(action);
+    }
+  };
 
   const openArticleLinkPicker = () => {
     if (activeTarget && !isLocked) {
@@ -360,9 +394,13 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const insertPickedArticleLink = (article: ArticleLinkTarget) => {
     // Closed in the same synchronous commit as the insert, so focus returns to the text at once.
     setLinkPickerTarget(null);
-    editTargetText(linkPickerTarget, (value, start, end) =>
-      insertArticleLink(value, start, end, { title: article.title, href: articleHref(article.slug) }),
-    );
+    const link = { title: article.title, href: articleHref(article.slug) };
+    const richText = richTextOf(linkPickerTarget);
+    if (richText) {
+      richText.insertArticleLink(link);
+      return;
+    }
+    editTargetText(linkPickerTarget, (value, start, end) => insertArticleLink(value, start, end, link));
   };
 
   const problemMessage = (problem: ArticleDraftProblem): string => {
@@ -612,8 +650,12 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                           editorRef={(key, node) => {
                             editorRefs.current[key] = node;
                           }}
+                          richTextRef={(key, handle) => {
+                            richTextRefs.current[key] = handle;
+                          }}
                           availableSchools={schools.available}
                           onFocusTarget={setActiveTarget}
+                          onRequestLink={openExternalLinkDialog}
                           onChangePlain={(blockId, content) => setBlocks((current) => updatePlainBlockContent(current, blockId, content))}
                           onChangeVersion={(blockId, localId, content) => setBlocks((current) => updateVersionContent(current, blockId, localId, content))}
                           onSetDefault={(blockId, localId) => setBlocks((current) => setDefaultVersion(current, blockId, localId))}
@@ -648,6 +690,8 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
             disabled={isLocked || saveMutation.isPending}
             onFormat={applyFormat}
             onInsertArticleLink={openArticleLinkPicker}
+            onUndo={() => richTextOf(activeTarget)?.undo()}
+            onRedo={() => richTextOf(activeTarget)?.redo()}
             onAddBlock={(kind) => setBlocks((current) => insertBlockAfter(current, activeTarget?.blockId ?? null, kind))}
           />
         </div>
@@ -720,6 +764,18 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
           isLoading={navigationTreeQuery.isLoading}
           onPick={insertPickedArticleLink}
           onClose={() => setLinkPickerTarget(null)}
+        />
+      ) : null}
+
+      {externalLink ? (
+        <ExternalLinkDialog
+          initialHref={externalLink.href}
+          onApply={applyExternalLink}
+          onClose={() => {
+            const target = externalLink.target;
+            setExternalLink(null);
+            richTextOf(target)?.focus();
+          }}
         />
       ) : null}
 
