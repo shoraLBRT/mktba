@@ -308,6 +308,9 @@ test('the table of contents follows the scroll, headings and paragraphs have lin
   await expect(page.getByRole('button', { name: 'Наверх' })).toBeHidden();
   // A late web font re-wraps the text and moves the sections; wait it out before measuring.
   await page.evaluate('document.fonts.ready');
+  // The first-visit mazhab hint appears only after hydration: jump once the page has settled, since
+  // hydration may still move the window (the tree scrolls the current article into view).
+  await expect(page.getByRole('note')).toBeVisible();
 
   // A table of contents entry jumps to its section and becomes the current one.
   await toc.getByRole('link', { name: 'Ният' }).click();
@@ -489,4 +492,51 @@ test('the home page search field leads to the results page and an empty result i
   await expect(page).toHaveURL(/\/search\?q=abrakadabraksis$/);
   await expect(page.getByRole('status')).toContainText('По запросу abrakadabraksis ничего не найдено.');
   await expect(page.getByRole('searchbox', { name: 'Поиск по статьям' })).toHaveValue('abrakadabraksis');
+});
+
+test('on a phone the header keeps the brand and the search, the contents open from a block and the mazhab sits in a bottom bar (R-11)', async ({ page, request }) => {
+  const filler = 'Текст раздела для прокрутки. '.repeat(120);
+  const article = await publishArticle(request, `Мобильная ${Date.now()}`, [
+    { order: 1, opinions: [{ content: `Вступление. ${filler}`, isDefault: true, schoolIds: [] }] },
+    { order: 2, opinions: [{ content: `## Условия\n\n${filler}`, isDefault: true, schoolIds: [] }] },
+  ], { summary: 'Кратко о мобильной статье' });
+  const path = `/${article.slug}`;
+
+  // The block is plain HTML in the server response, closed.
+  const html = await (await request.get(path)).text();
+  expect(html).toMatch(/<details[^>]*data-testid="article-mobile-overview"/);
+
+  await page.setViewportSize({ width: 375, height: 740 });
+  await page.goto(path);
+  const banner = page.getByRole('banner');
+  await expect(banner.getByRole('link', { name: 'mktba', exact: true })).toBeVisible();
+  await expect(banner.getByRole('button', { name: 'Поиск' })).toBeVisible();
+  expect(await page.evaluate<boolean>('document.documentElement.scrollWidth <= window.innerWidth')).toBe(true);
+
+  // The mazhab picker is in a bar at the bottom of the screen, and its panel opens above it.
+  const bar = page.getByTestId('mazhab-bar');
+  const barBox = (await bar.boundingBox())!;
+  expect(barBox.y + barBox.height).toBeCloseTo(740, 0);
+  await page.getByRole('note').getByRole('button', { name: 'Закрыть подсказку' }).click();
+  await bar.getByRole('button', { name: 'Мазхаб не выбран' }).click();
+  const shafii = page.getByRole('button', { name: /Шафиитский мазхаб/ });
+  const optionBox = (await shafii.boundingBox())!;
+  expect(optionBox.y + optionBox.height).toBeLessThan(barBox.y);
+  await shafii.click();
+  await expect(bar.getByRole('button', { name: /Шафиитский мазхаб/ })).toBeVisible();
+
+  // The contents and the summary are in one disclosure under the header; an entry leads to its section.
+  const overview = page.getByTestId('article-mobile-overview');
+  await expect(overview.getByRole('link', { name: 'Условия' })).toBeHidden();
+  await overview.getByText('Содержание и описание').click();
+  await expect(overview.getByText('Кратко о мобильной статье')).toBeVisible();
+  await overview.getByRole('link', { name: 'Условия' }).click();
+  await expect(page).toHaveURL(new RegExp(`${path}#usloviya$`));
+  expect(await page.evaluate<boolean>('document.documentElement.scrollWidth <= window.innerWidth')).toBe(true);
+
+  // On a wide screen the right sidebar takes over and the picker is back in the header row.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(overview).toBeHidden();
+  const wideBox = (await page.getByTestId('mazhab-bar').getByRole('button', { name: /Шафиитский мазхаб/ }).boundingBox())!;
+  expect(wideBox.y).toBeLessThan(48);
 });

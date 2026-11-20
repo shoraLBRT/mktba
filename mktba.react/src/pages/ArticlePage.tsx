@@ -11,6 +11,7 @@ import { collectCitedSources } from '../shared/articleSources';
 import { ArticleMeta } from '../components/article/ArticleMeta';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { ArticleStructuredData } from '../components/StructuredData';
+import { ArticleMobileOverview } from '../components/article/ArticleMobileOverview';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
 import { ArticleSkeleton } from '../components/article/ArticleSkeleton';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
@@ -367,6 +368,11 @@ const ArticlePage: React.FC = () => {
             updatedAt={articleContent.updatedAt}
             readingMinutes={readingMinutes}
             authors={articleContent.authors}
+          />
+          <ArticleMobileOverview
+            tocItems={tocItems}
+            summary={articleContent.summary ?? undefined}
+            tags={articleContent.tags}
           />
 
           {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);

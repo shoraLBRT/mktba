@@ -215,7 +215,8 @@ test('an article page reads without JavaScript', async ({ browser }) => {
   await page.goto('/salat');
 
   await expect(page.getByRole('heading', { name: 'Салат', level: 1 })).toBeVisible();
-  await expect(page.getByText(/ритуальная молитва/).first()).toBeVisible();
+  // The summary in the closed mobile overview (R-11) matches too; the visible match is the text.
+  await expect(page.getByText(/ритуальная молитва/).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByRole('complementary').getByRole('link', { name: 'Салат', exact: true })).toBeVisible();
   await context.close();
 });

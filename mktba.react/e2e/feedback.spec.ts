@@ -76,6 +76,8 @@ test('a reader reports an error from the article and gets the message number (F-
 test('a reader on a narrow phone writes from the site footer, and an empty form says what is missing (F-01)', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await page.goto('/');
+  // On a first visit the mazhab hint sits above the bottom bar (R-11), over the end of the page.
+  await page.getByRole('note').getByRole('button', { name: 'Закрыть подсказку' }).click();
   await page.getByRole('contentinfo').getByRole('link', { name: 'Обратная связь' }).click();
 
   await expect(page).toHaveURL(/\/feedback\?from=%2F$/);

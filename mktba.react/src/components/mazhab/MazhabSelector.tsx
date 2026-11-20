@@ -10,7 +10,10 @@ import { getPaletteForSchool } from './schoolPalette';
 
 export const MAZHAB_HINT_STORAGE_KEY = 'mktba.mazhabHintSeen';
 
-const PANEL_POSITION = 'fixed right-3 top-[calc(var(--layout-header-height)+0.5rem)] z-50';
+// From `md` up the picker is in the header and the panel opens under it; below `md` it is in the bar at
+// the bottom of the screen (`MainLayout`) and the panel opens above the bar.
+const PANEL_POSITION =
+  'fixed right-3 bottom-[calc(var(--layout-bottom-bar-height)+env(safe-area-inset-bottom)+0.5rem)] z-50 md:bottom-auto md:top-[calc(var(--layout-header-height)+0.5rem)]';
 
 const readHintSeen = (): boolean => {
   try {
@@ -23,7 +26,8 @@ const readHintSeen = (): boolean => {
 type CopyState = 'idle' | 'copied' | 'failed';
 
 /**
- * The mazhab picker of the site header: a button with the current choice and a panel under it.
+ * The mazhab picker of the public layout: a button with the current choice and a panel by it — in the
+ * header from `md` up, in the bottom bar on phones.
  * A reader who has not chosen a mazhab and has not seen the hint yet gets a short note under the
  * button; it does not block the page and goes away for good when closed or when the picker is
  * opened. With a mazhab chosen, the panel offers a link to the current page that opens with it.
@@ -220,7 +224,7 @@ export const MazhabSelector = () => {
           type="button"
           onClick={toggleOpen}
           aria-expanded={open}
-          className="flex min-h-8 max-w-[11.5rem] items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--color-ink-default)] transition-colors hover:bg-[var(--color-surface-muted)] sm:max-w-[15rem]"
+          className="flex min-h-8 max-w-[min(15rem,calc(100vw-7rem))] items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--color-ink-default)] transition-colors hover:bg-[var(--color-surface-muted)] sm:max-w-[15rem]"
         >
           <span
             className="h-2 w-2 shrink-0 rounded-full"
@@ -229,9 +233,9 @@ export const MazhabSelector = () => {
           />
           <span className="truncate">{selectedSchool ? selectedSchool.name : t.placeholder}</span>
           {open ? (
-            <ChevronUp size={13} className="shrink-0 text-[var(--color-ink-muted)]" />
+            <ChevronUp size={13} className="shrink-0 max-md:rotate-180 text-[var(--color-ink-muted)]" />
           ) : (
-            <ChevronDown size={13} className="shrink-0 text-[var(--color-ink-muted)]" />
+            <ChevronDown size={13} className="shrink-0 max-md:rotate-180 text-[var(--color-ink-muted)]" />
           )}
         </button>
       </div>

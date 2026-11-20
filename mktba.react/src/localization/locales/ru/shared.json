@@ -18,6 +18,9 @@
       "treeLabel": "Статьи",
       "mobileClose": "Закрыть навигацию"
     },
+    "mazhabBar": {
+      "label": "Мазхаб"
+    },
     "footer": {
       "label": "Подвал сайта",
       "feedback": "Обратная связь"
