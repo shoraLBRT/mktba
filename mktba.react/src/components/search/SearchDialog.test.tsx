@@ -1,10 +1,16 @@
 import { useCallback, useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
 import { SearchDialog } from './SearchDialog';
 import { useSearchShortcut } from './searchShortcut';
+
+const { trackGoal } = vi.hoisted(() => ({ trackGoal: vi.fn() }));
+vi.mock('../../analytics/metrika', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../analytics/metrika')>()),
+  trackGoal,
+}));
 
 /** A page with an opener button, a text field, an editor and the dialog on the shortcut — as the public layout wires it. */
 const Harness = () => {
@@ -102,5 +108,6 @@ describe('SearchDialog', () => {
     fireEvent.submit(screen.getByRole('search'));
 
     expect(screen.getByTestId('location').textContent).toBe('/search?q=%D0%B7%D0%B0%D0%BA%D1%8F%D1%82');
+    expect(trackGoal).toHaveBeenCalledExactlyOnceWith('search');
   });
 });

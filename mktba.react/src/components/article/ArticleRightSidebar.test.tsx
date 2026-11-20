@@ -1,8 +1,14 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
 import { ArticleRightSidebar, type TocItem } from './ArticleRightSidebar';
+
+const { trackGoal } = vi.hoisted(() => ({ trackGoal: vi.fn() }));
+vi.mock('../../analytics/metrika', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../analytics/metrika')>()),
+  trackGoal,
+}));
 
 const tocItems: TocItem[] = [
   { id: 'article-overview', label: 'Общее описание', depth: 2 },
@@ -48,6 +54,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  trackGoal.mockClear();
   tocItems.forEach((item) => document.getElementById(item.id)?.remove());
 });
 
@@ -80,5 +87,14 @@ describe('ArticleRightSidebar table of contents', () => {
     });
 
     expect(currentEntries()).toEqual(['Ният']);
+  });
+
+  it('given an entry, when clicked, then reports the toc_click goal with its depth', () => {
+    placeSections({ 'article-overview': 0, usloviya: 600, niyat: 1200 });
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole('link', { name: 'Ният' }));
+
+    expect(trackGoal).toHaveBeenCalledExactlyOnceWith('toc_click', { depth: 3 });
   });
 });

@@ -295,6 +295,7 @@ npm start          # react-router-serve, порт из PORT (по умолчан
 | `API_INTERNAL_URL` | при запуске сервера | адрес API для серверного рендера (например, внутри сети деплоя); по умолчанию — `VITE_API_BASE_URL` |
 | `PUBLIC_SITE_URL` | при запуске сервера | публичный адрес сайта (например, `https://mktba.ru`, без пути) для canonical, `og:url` и `og:image`; задавайте за прокси. По умолчанию — origin входящего запроса (подходит для локальной разработки) |
 | `PORT` | при запуске сервера | порт `react-router-serve` |
+| `VITE_METRIKA_ID` | при сборке | номер счётчика Яндекс Метрики; не задан — Метрика не загружается. Счётчик стартует только после согласия посетителя, считает переходы внутри SPA и цели `article_view`, `article_time_5min`, `article_read_end`, `opinion_switch`, `mazhab_change`, `search`, `toc_click` (их нужно завести в счётчике как JavaScript-события с этими идентификаторами; список — `METRIKA_GOALS` в `src/analytics/metrika.ts`) |
 
 Тесты фронтенда — Vitest и Testing Library (jsdom), файлы `src/**/*.test.{ts,tsx}`:
 

@@ -1,6 +1,7 @@
 import { useId, type FormEvent } from 'react';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { METRIKA_GOALS, trackGoal } from '../../analytics/metrika';
 import { useLocale } from '../../localization/hooks';
 import {
   normalizeSearchQuery,
@@ -33,6 +34,7 @@ export const SearchForm = ({ initialQuery = '', autoFocus = false, className }: 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = normalizeSearchQuery(new FormData(event.currentTarget).get(SEARCH_QUERY_PARAM)?.toString());
+    trackGoal(METRIKA_GOALS.search);
     navigate(searchHref(query));
   };
 
