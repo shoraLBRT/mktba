@@ -6,14 +6,18 @@ import {
   buildParagraphUpdateDtosFromBlocks,
   canAssignSchools,
   convertParagraphToVersioned,
+  changeEmptyBlockKind,
   convertVersionedToParagraph,
   createCitation,
+  duplicateBlock,
   hasAnyFilledContent,
   hasVersionedBlockWithoutFilledDefault,
   importBlocksFromMarkdown,
   importBlocksFromParagraphs,
   insertBlockAfter,
   moveBlock,
+  moveBlockTo,
+  opinionsLostByConvertingToParagraph,
   removeVersionFromBlock,
   setDefaultVersion,
   setOpinionSources,
@@ -21,6 +25,7 @@ import {
 import type { EditorBlock, VersionedEditorBlock } from './types';
 
 const paragraph = (id: string, content: string): EditorBlock => ({ id, kind: 'paragraph', content });
+const hidaya = { id: 3, kind: 'Book' as const, title: 'Хидая' };
 
 const versioned = (
   id: string,
@@ -155,15 +160,17 @@ describe('schools on a block with a single opinion (S-14)', () => {
 });
 
 describe('convertParagraphToVersioned and convertVersionedToParagraph', () => {
-  it('given a plain paragraph, when converting to versioned, then its content becomes the default variant', () => {
+  it('given a plain paragraph, when converting to versioned, then its content becomes the default variant and an empty opinion follows', () => {
     const [next] = convertParagraphToVersioned(
       [{ id: 'p', kind: 'paragraph', content: 'текст', paragraphId: 7, opinionId: 70 }],
       'p',
     ) as VersionedEditorBlock[];
 
     expect(next).toMatchObject({ id: 'p', kind: 'versioned', paragraphId: 7 });
-    expect(next.variants).toHaveLength(1);
+    expect(next.variants).toHaveLength(2);
     expect(next.variants[0]).toMatchObject({ content: 'текст', isDefault: true, opinionId: 70, schoolIds: [] });
+    expect(next.variants[1]).toMatchObject({ content: '', isDefault: false, schoolIds: [] });
+    expect(next.variants[1].opinionId).toBeUndefined();
   });
 
   it('given a versioned block, when converting to a paragraph, then keeps the default variant content', () => {
@@ -173,6 +180,122 @@ describe('convertParagraphToVersioned and convertVersionedToParagraph', () => {
     ]);
 
     expect(convertVersionedToParagraph([block], 'v')[0]).toMatchObject({ kind: 'paragraph', content: 'chosen' });
+  });
+
+  it('given other opinions with text or citations, when counting what a paragraph would drop, then counts those opinions only', () => {
+    const block = versioned('v', [
+      { localId: 'x', content: 'ханафи', isDefault: true, schoolIds: [1] },
+      { localId: 'y', content: 'шафии', isDefault: false, schoolIds: [3] },
+      { localId: 'z', content: '   ', isDefault: false },
+    ]);
+    const withCitation: VersionedEditorBlock = {
+      ...block,
+      variants: [...block.variants, { localId: 'w', content: '', isDefault: false, schoolIds: [], sources: [createCitation(hidaya)] }],
+    };
+
+    expect(opinionsLostByConvertingToParagraph(block)).toBe(1);
+    expect(opinionsLostByConvertingToParagraph(withCitation)).toBe(2);
+  });
+
+  it('given only the default opinion filled, when counting, then nothing would be lost', () => {
+    const block = versioned('v', [
+      { localId: 'x', content: 'текст', isDefault: true },
+      { localId: 'y', content: '', isDefault: false },
+    ]);
+
+    expect(opinionsLostByConvertingToParagraph(block)).toBe(0);
+  });
+
+  it('given a block of opinions with school links, when converted to a paragraph and saved, then no school id is sent', () => {
+    const block = versioned('v', [
+      { localId: 'x', content: 'ханафи', isDefault: true, schoolIds: [1] },
+      { localId: 'y', content: 'шафии', isDefault: false, schoolIds: [3] },
+    ]);
+
+    const [dto] = buildParagraphCreateDtosFromBlocks(convertVersionedToParagraph([block], 'v'));
+
+    expect(dto.opinions).toEqual([expect.objectContaining({ content: 'ханафи', isDefault: true, schoolIds: [] })]);
+  });
+});
+
+describe('duplicateBlock', () => {
+  it('given a saved paragraph, when duplicated, then a new paragraph with the same text and citations follows it without the ids', () => {
+    const original: EditorBlock = { id: 'a', kind: 'paragraph', content: 'текст', paragraphId: 7, opinionId: 70, sources: [createCitation(hidaya, 'с. 5')] };
+    const blocks: EditorBlock[] = [original, paragraph('b', 'дальше')];
+
+    const next = duplicateBlock(blocks, 'a');
+
+    expect(next).toHaveLength(3);
+    expect(next[0]).toBe(original);
+    expect(next[2]).toBe(blocks[1]);
+    const copy = next[1];
+    expect(copy).toMatchObject({ kind: 'paragraph', content: 'текст', sources: [{ locator: 'с. 5', source: hidaya }] });
+    expect(copy.id).not.toBe('a');
+    expect(copy.paragraphId).toBeUndefined();
+    expect(copy.kind !== 'versioned' ? copy.opinionId : 0).toBeUndefined();
+    expect(copy.kind !== 'versioned' ? copy.sources?.[0].localId : '').not.toBe(original.sources?.[0].localId);
+  });
+
+  it('given a block of opinions, when duplicated, then the copy has every opinion with its schools and none of the ids', () => {
+    const block: VersionedEditorBlock = {
+      ...versioned('v', [
+        { localId: 'x', content: 'ханафи', isDefault: true, schoolIds: [1] },
+        { localId: 'y', content: 'шафии', isDefault: false, schoolIds: [3] },
+      ]),
+      paragraphId: 9,
+    };
+    block.variants[0].opinionId = 90;
+
+    const [, copy] = duplicateBlock([block], 'v') as VersionedEditorBlock[];
+
+    expect(copy.paragraphId).toBeUndefined();
+    expect(copy.variants.map((variant) => [variant.content, variant.isDefault, variant.schoolIds, variant.opinionId])).toEqual([
+      ['ханафи', true, [1], undefined],
+      ['шафии', false, [3], undefined],
+    ]);
+    expect(copy.variants.map((variant) => variant.localId)).not.toContain('x');
+  });
+
+  it('given an unknown block, when duplicated, then the list is unchanged', () => {
+    const blocks = [paragraph('a', 'x')];
+
+    expect(duplicateBlock(blocks, 'missing')).toBe(blocks);
+  });
+});
+
+describe('moveBlockTo', () => {
+  const blocks = [paragraph('a', '1'), paragraph('b', '2'), paragraph('c', '3'), paragraph('d', '4')];
+
+  it('given a block dropped before another, when moved, then it lands right above it', () => {
+    expect(ids(moveBlockTo(blocks, 'd', 'b', 'before'))).toEqual(['a', 'd', 'b', 'c']);
+  });
+
+  it('given a block dropped after another, when moved, then it lands right below it', () => {
+    expect(ids(moveBlockTo(blocks, 'a', 'c', 'after'))).toEqual(['b', 'c', 'a', 'd']);
+  });
+
+  it('given a drop that keeps the order, when moved, then the same list comes back', () => {
+    expect(moveBlockTo(blocks, 'b', 'a', 'after')).toBe(blocks);
+    expect(moveBlockTo(blocks, 'b', 'b', 'before')).toBe(blocks);
+    expect(moveBlockTo(blocks, 'missing', 'a', 'before')).toBe(blocks);
+  });
+});
+
+describe('changeEmptyBlockKind', () => {
+  it('given an empty saved paragraph, when it becomes a heading, then it keeps its place and ids', () => {
+    const blocks: EditorBlock[] = [paragraph('a', 'x'), { id: 'b', kind: 'paragraph', content: '/h2', paragraphId: 5, opinionId: 50 }];
+
+    const next = changeEmptyBlockKind(blocks, 'b', 'heading2');
+
+    expect(next[0]).toBe(blocks[0]);
+    expect(next[1]).toEqual({ id: 'b', kind: 'heading2', content: '', paragraphId: 5, opinionId: 50 });
+  });
+
+  it('given an empty paragraph, when it becomes a block of opinions, then it starts with a default and a second empty opinion', () => {
+    const [next] = changeEmptyBlockKind([{ id: 'b', kind: 'paragraph', content: '/' }], 'b', 'versioned') as VersionedEditorBlock[];
+
+    expect(next.kind).toBe('versioned');
+    expect(next.variants.map((variant) => [variant.content, variant.isDefault])).toEqual([['', true], ['', false]]);
   });
 });
 

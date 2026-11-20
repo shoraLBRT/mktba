@@ -174,12 +174,12 @@ describe('applyAiStyledTexts', () => {
     expect(applied.blocks.map((block) => block.kind === 'versioned' ? null : block.content)).toEqual(['новый', 'тот же']);
   });
 
-  it('given a saved article, when the AI changes one text, then only that block becomes a block of opinions with the styled text', () => {
+  it('given a saved article, when the AI changes one text, then only that block becomes a block of opinions with the original as the default and the styled text as a further opinion', () => {
     const applied = applyAiStyledTexts(blocks, results, 'edit');
 
     expect(applied.styledCount).toBe(1);
     const [first, second] = applied.blocks;
-    expect(first.kind === 'versioned' ? first.variants.map((variant) => variant.content) : null).toEqual(['новый']);
+    expect(first.kind === 'versioned' ? first.variants.map((variant) => variant.content) : null).toEqual(['старый', 'новый']);
     expect(second).toBe(blocks[1]);
   });
 });

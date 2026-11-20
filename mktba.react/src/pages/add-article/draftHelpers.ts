@@ -203,10 +203,28 @@ export const convertParagraphToVersioned = (blocks: EditorBlock[], blockId: stri
           schoolIds: [],
           sources: block.sources,
         },
+        // The second opinion is what a block of opinions is for, so it is there to be written.
+        createVariant(false),
       ],
     };
   });
 
+const hasOpinionContent = (variant: AlternativeDraft) =>
+  variant.content.trim() !== '' || (variant.sources?.length ?? 0) > 0;
+
+/**
+ * The opinions that turning a block of opinions into a plain paragraph would drop: every opinion
+ * but the default one that holds text or citations. The editor asks before dropping them.
+ */
+export const opinionsLostByConvertingToParagraph = (block: VersionedEditorBlock): number => {
+  const kept = block.variants.find((variant) => variant.isDefault) ?? block.variants[0];
+  return block.variants.filter((variant) => variant !== kept && hasOpinionContent(variant)).length;
+};
+
+/**
+ * Turns a block of opinions into a plain paragraph with the default opinion's text and citations.
+ * The other opinions and every school link are dropped: a plain paragraph is common to all schools.
+ */
 export const convertVersionedToParagraph = (blocks: EditorBlock[], blockId: string): EditorBlock[] =>
   blocks.map((block) => {
     if (block.id !== blockId || block.kind !== 'versioned') {
@@ -223,6 +241,93 @@ export const convertVersionedToParagraph = (blocks: EditorBlock[], blockId: stri
       opinionId: defaultVariant?.opinionId,
       sources: defaultVariant?.sources,
     };
+  });
+
+const copyCitations = (sources: CitationDraft[] | undefined): CitationDraft[] | undefined =>
+  sources?.map((citation) => ({ ...citation, localId: crypto.randomUUID() }));
+
+/**
+ * Puts a copy of the block right after it. The copy is a new paragraph: it has no paragraph or
+ * opinion ids (a paragraph id is a reader's anchor, `p-{id}`, and stays with the original) and
+ * local ids of its own, so it is edited apart from the original.
+ */
+export const duplicateBlock = (blocks: EditorBlock[], blockId: string): EditorBlock[] => {
+  const index = blocks.findIndex((block) => block.id === blockId);
+  if (index < 0) {
+    return blocks;
+  }
+
+  const original = blocks[index];
+  const copy: EditorBlock =
+    original.kind === 'versioned'
+      ? {
+          id: crypto.randomUUID(),
+          kind: 'versioned',
+          variants: original.variants.map((variant) => ({
+            localId: crypto.randomUUID(),
+            content: variant.content,
+            isDefault: variant.isDefault,
+            schoolIds: [...variant.schoolIds],
+            sources: copyCitations(variant.sources),
+          })),
+        }
+      : {
+          id: crypto.randomUUID(),
+          kind: original.kind,
+          content: original.content,
+          sources: copyCitations(original.sources),
+        };
+
+  const next = [...blocks];
+  next.splice(index + 1, 0, copy);
+  return next;
+};
+
+/** Where a dragged block lands: before or after another block. */
+export type BlockDropPosition = 'before' | 'after';
+
+/** Moves a block before or after another one (drag and drop); a drop that changes no order returns the same list. */
+export const moveBlockTo = (
+  blocks: EditorBlock[],
+  blockId: string,
+  targetBlockId: string,
+  position: BlockDropPosition,
+): EditorBlock[] => {
+  const block = blocks.find((candidate) => candidate.id === blockId);
+  if (!block || blockId === targetBlockId || !blocks.some((candidate) => candidate.id === targetBlockId)) {
+    return blocks;
+  }
+
+  const rest = blocks.filter((candidate) => candidate.id !== blockId);
+  const targetIndex = rest.findIndex((candidate) => candidate.id === targetBlockId);
+  rest.splice(position === 'before' ? targetIndex : targetIndex + 1, 0, block);
+  return rest.every((candidate, index) => candidate === blocks[index]) ? blocks : rest;
+};
+
+/**
+ * Turns an empty paragraph into an empty block of another kind (the `/` menu). The block keeps its
+ * place and its paragraph id, so a saved empty paragraph stays the same paragraph.
+ */
+export const changeEmptyBlockKind = (
+  blocks: EditorBlock[],
+  blockId: string,
+  kind: PlainBlockKind | 'versioned',
+): EditorBlock[] =>
+  blocks.map((block) => {
+    if (block.id !== blockId || block.kind === 'versioned') {
+      return block;
+    }
+
+    if (kind === 'versioned') {
+      return {
+        id: block.id,
+        kind: 'versioned',
+        paragraphId: block.paragraphId,
+        variants: [{ ...createVariant(true), opinionId: block.opinionId }, createVariant(false)],
+      };
+    }
+
+    return { id: block.id, kind, content: '', paragraphId: block.paragraphId, opinionId: block.opinionId };
   });
 
 const toStoredMarkdown = (block: EditorBlock): string[] => {

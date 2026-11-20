@@ -158,6 +158,39 @@ test('a new article is a draft hidden from readers until it is published', async
   await reader.close();
 });
 
+test('blocks are reordered by dragging their handle and a heading is made from the / menu', async ({ page }) => {
+  const title = `E2E блоки ${Date.now()}`;
+  const paragraphs = page.getByRole('textbox', { name: 'Введите текст параграфа...' });
+  await logIn(page);
+  await page.goto('/admin/articles/new');
+  await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
+  await paragraphs.first().fill('Первый абзац.');
+  await page.getByRole('button', { name: 'Текст', exact: true }).click();
+  await paragraphs.nth(1).fill('Второй абзац.');
+
+  // The second block is dropped on the upper half of the first one.
+  await page.getByRole('button', { name: /^Блок 2 из 2\./ }).dragTo(page.getByRole('button', { name: /^Блок 1 из 2\./ }));
+  await expect(paragraphs.first()).toHaveText('Второй абзац.');
+  await expect(paragraphs.nth(1)).toHaveText('Первый абзац.');
+
+  // An empty paragraph typed `/h2` into becomes a heading on Enter (a new block goes after the focused one).
+  await paragraphs.nth(1).click();
+  await page.getByRole('button', { name: 'Текст', exact: true }).click();
+  await paragraphs.nth(2).click();
+  await page.keyboard.type('/h2');
+  await expect(page.getByRole('listbox', { name: 'Тип блока' }).getByRole('option')).toHaveText([/Заголовок H2/]);
+  await page.keyboard.press('Enter');
+  const heading = page.getByPlaceholder('Заголовок раздела...');
+  await expect(heading).toBeFocused();
+  await heading.fill('Раздел в конце');
+
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+  const text = await page.locator('main').innerText();
+  expect(text.indexOf('Второй абзац.')).toBeLessThan(text.indexOf('Первый абзац.'));
+  await expect(page.getByRole('heading', { name: 'Раздел в конце', level: 2 })).toBeVisible();
+});
+
 test('leaving the editor with unsaved edits asks first, and a saved draft leaves freely', async ({ page }) => {
   const stamp = Date.now();
   const title = `E2E правки ${stamp}`;

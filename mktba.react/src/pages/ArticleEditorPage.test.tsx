@@ -327,6 +327,144 @@ describe('ArticleEditorPage', () => {
     expect(within(paragraphText()).getByRole('link', { name: 'сайт' }).getAttribute('href')).toBe('https://example.com');
   });
 
+  it('given a paragraph, when duplicated, then the copy is saved as a new paragraph after it', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(updateArticleContent).mockResolvedValue();
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Дублировать блок' }));
+    save();
+
+    expect(await screen.findByText('article-page')).toBeTruthy();
+    const dto = vi.mocked(updateArticleContent).mock.calls[0][1];
+    expect(dto.paragraphs.map((paragraph) => [paragraph.id, paragraph.opinions[0].id, paragraph.opinions[0].content])).toEqual([
+      [11, 21, 'Текст статьи'],
+      [0, 0, 'Текст статьи'],
+    ]);
+  });
+
+  it('given two blocks, when the first is dragged by its handle onto the lower half of the second, then they swap places', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({
+      ...article,
+      paragraphs: [
+        ...article.paragraphs,
+        { id: 12, order: 2, opinions: [{ id: 22, content: 'Второй абзац', isDefault: true, schoolIds: [], sources: [] }] },
+      ],
+    });
+    vi.mocked(updateArticleContent).mockResolvedValue();
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+    const handle = screen.getByRole('button', { name: /^Блок 1 из 2\./ });
+    const second = screen.getByText('Второй абзац').closest('section') as HTMLElement;
+    const dataTransfer = { setData: vi.fn(), setDragImage: vi.fn(), effectAllowed: '', dropEffect: '' };
+
+    fireEvent.dragStart(handle, { dataTransfer });
+    fireEvent.dragOver(second, { dataTransfer, clientY: 10 });
+    fireEvent.drop(second, { dataTransfer, clientY: 10 });
+    fireEvent.dragEnd(handle, { dataTransfer });
+    save();
+
+    expect(await screen.findByText('article-page')).toBeTruthy();
+    const dto = vi.mocked(updateArticleContent).mock.calls[0][1];
+    expect(dto.paragraphs.map((paragraph) => paragraph.id)).toEqual([12, 11]);
+  });
+
+  it('given a block handle, when the down arrow is pressed on it, then the block moves down and its handle says so', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({
+      ...article,
+      paragraphs: [
+        ...article.paragraphs,
+        { id: 12, order: 2, opinions: [{ id: 22, content: 'Второй абзац', isDefault: true, schoolIds: [], sources: [] }] },
+      ],
+    });
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+
+    fireEvent.keyDown(screen.getByRole('button', { name: /^Блок 1 из 2\./ }), { key: 'ArrowDown' });
+
+    const texts = screen.getAllByRole('textbox', { name: 'Введите текст параграфа...' }).map((node) => node.textContent);
+    expect(texts).toEqual(['Второй абзац', 'Текст статьи']);
+  });
+
+  it('given a block of opinions whose other opinion has text, when turned into a paragraph, then the editor asks and only the default opinion is kept without schools', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({
+      ...article,
+      paragraphs: [{
+        id: 11,
+        order: 1,
+        opinions: [
+          { id: 21, content: 'Мнение ханафитов', isDefault: true, schoolIds: [1], sources: [] },
+          { id: 22, content: 'Мнение шафиитов', isDefault: false, schoolIds: [3], sources: [] },
+        ],
+      }],
+    });
+    vi.mocked(updateArticleContent).mockResolvedValue();
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+    const convert = () => fireEvent.click(screen.getByRole('button', { name: 'Преобразовать в обычный параграф' }));
+
+    convert();
+    const dialog = screen.getByRole('alertdialog', { name: 'Оставить только мнение по умолчанию?' });
+    expect(dialog.textContent).toContain('(их число: 1)');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Отмена' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Преобразовать в обычный параграф' })).toBeTruthy();
+
+    convert();
+    fireEvent.click(screen.getByRole('button', { name: 'Преобразовать' }));
+    expect(paragraphText().textContent).toBe('Мнение ханафитов');
+    save();
+
+    expect(await screen.findByText('article-page')).toBeTruthy();
+    const dto = vi.mocked(updateArticleContent).mock.calls[0][1];
+    expect(dto.paragraphs).toEqual([
+      expect.objectContaining({ id: 11, opinions: [expect.objectContaining({ id: 21, content: 'Мнение ханафитов', isDefault: true, schoolIds: [] })] }),
+    ]);
+  });
+
+  it('given a plain paragraph, when turned into a block of opinions, then its text is the default opinion and a second empty one is open to write', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Преобразовать в блок мнений' }));
+
+    expect(screen.getByRole('textbox', { name: 'Текст мнения 1...' }).textContent).toBe('Текст статьи');
+    expect(screen.getByTitle('Мнение 2')).toBeTruthy();
+  });
+
+  it('given an empty paragraph, when / is typed and Enter picks the highlighted heading, then the block becomes a heading', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({ ...article, paragraphs: [] });
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+
+    typeInParagraph('/');
+    const menu = screen.getByRole('listbox', { name: 'Тип блока' });
+    expect(within(menu).getAllByRole('option').map((option) => option.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false']);
+    act(() => {
+      paragraphText().editor.chain().focus('end').insertContent('h2').run();
+    });
+    expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(1);
+    fireEvent.keyDown(paragraphText(), { key: 'Enter' });
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.getByPlaceholderText('Заголовок раздела...')).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Введите текст параграфа...' })).toBeNull();
+  });
+
+  it('given the / menu, when Escape is pressed, then it closes and the slash stays as text', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({ ...article, paragraphs: [] });
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+
+    typeInParagraph('/');
+    fireEvent.keyDown(paragraphText(), { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(paragraphText().textContent).toBe('/');
+  });
+
   it('given an article that cannot be loaded, when the edit address opens, then the load error is shown', async () => {
     vi.mocked(getArticleContentById).mockRejectedValue(new Error('404'));
     renderAt('/admin/articles/7/edit');
