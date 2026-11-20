@@ -95,121 +95,124 @@ const AdminProfilePage: React.FC = () => {
         <Card className="p-6 text-sm text-red-700">{t.loadFailed}</Card>
       ) : (
         <Card className="p-6">
-          <form onSubmit={save} className="space-y-5" aria-busy={profileQuery.isLoading}>
-            <p data-testid="profile-visibility" className="rounded-lg bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-ink-default)]">
-              {visibility}
-            </p>
+          <form onSubmit={save} aria-busy={profileQuery.isLoading}>
+            {/* Nothing can be typed until the saved profile is in: text typed earlier would be overwritten or glued to it. */}
+            <fieldset disabled={profileQuery.isLoading} className="m-0 min-w-0 space-y-5 border-0 p-0">
+              <p data-testid="profile-visibility" className="rounded-lg bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-ink-default)]">
+                {visibility}
+              </p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t.displayName} hint={t.displayNameHint}>
-                <Input
-                  name="profile-display-name"
-                  autoComplete="name"
-                  maxLength={PROFILE_DISPLAY_NAME_MAX_LENGTH}
-                  value={draft.displayName}
-                  onChange={(event) => change({ displayName: event.target.value })}
-                />
-              </Field>
-              <Field label={t.slug} hint={t.slugHint}>
-                <Input
-                  name="profile-slug"
-                  autoComplete="off"
-                  spellCheck={false}
-                  maxLength={SLUG_MAX_LENGTH}
-                  value={draft.slug}
-                  placeholder={derivedSlug}
-                  onChange={(event) => change({ slug: event.target.value })}
-                />
-              </Field>
-            </div>
-
-            <Field label={t.avatarUrl} hint={t.avatarUrlHint}>
-              <Input
-                name="profile-avatar-url"
-                autoComplete="off"
-                inputMode="url"
-                maxLength={SOCIAL_IMAGE_URL_MAX_LENGTH}
-                value={draft.avatarUrl}
-                onChange={(event) => change({ avatarUrl: event.target.value })}
-              />
-            </Field>
-
-            <Field label={t.bio} hint={formatMessage(t.bioHint, { max: PROFILE_BIO_MAX_LENGTH })}>
-              <Textarea
-                name="profile-bio"
-                rows={5}
-                maxLength={PROFILE_BIO_MAX_LENGTH}
-                value={draft.bio}
-                onChange={(event) => change({ bio: event.target.value })}
-              />
-            </Field>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t.degree} hint={t.scholarFieldsHint}>
-                <Input
-                  name="profile-degree"
-                  autoComplete="off"
-                  maxLength={PROFILE_DEGREE_MAX_LENGTH}
-                  value={draft.degree}
-                  onChange={(event) => change({ degree: event.target.value })}
-                />
-              </Field>
-              <Field label={t.institution}>
-                <Input
-                  name="profile-institution"
-                  autoComplete="organization"
-                  maxLength={PROFILE_INSTITUTION_MAX_LENGTH}
-                  value={draft.institution}
-                  onChange={(event) => change({ institution: event.target.value })}
-                />
-              </Field>
-            </div>
-
-            <fieldset className="space-y-3">
-              <legend className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
-                {t.links}
-              </legend>
-              <p className="text-xs text-[var(--color-ink-muted)]">{formatMessage(t.linksHint, { max: PROFILE_MAX_LINKS })}</p>
-              {draft.links.map((link, index) => (
-                // The rows have no identity of their own: they are edited in place and removed by position.
-                <div key={index} className="flex flex-wrap items-center gap-2">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t.displayName} hint={t.displayNameHint}>
                   <Input
-                    className="sm:w-48"
-                    aria-label={formatMessage(t.linkLabel, { number: index + 1 })}
-                    placeholder={t.linkLabelPlaceholder}
-                    maxLength={PROFILE_LINK_LABEL_MAX_LENGTH}
-                    value={link.label}
-                    onChange={(event) => changeLink(index, { label: event.target.value })}
+                    name="profile-display-name"
+                    autoComplete="name"
+                    maxLength={PROFILE_DISPLAY_NAME_MAX_LENGTH}
+                    value={draft.displayName}
+                    onChange={(event) => change({ displayName: event.target.value })}
                   />
+                </Field>
+                <Field label={t.slug} hint={t.slugHint}>
                   <Input
-                    className="min-w-0 flex-1"
-                    aria-label={formatMessage(t.linkUrl, { number: index + 1 })}
-                    placeholder={t.linkUrlPlaceholder}
-                    inputMode="url"
-                    maxLength={PROFILE_LINK_URL_MAX_LENGTH}
-                    value={link.url}
-                    onChange={(event) => changeLink(index, { url: event.target.value })}
+                    name="profile-slug"
+                    autoComplete="off"
+                    spellCheck={false}
+                    maxLength={SLUG_MAX_LENGTH}
+                    value={draft.slug}
+                    placeholder={derivedSlug}
+                    onChange={(event) => change({ slug: event.target.value })}
                   />
-                  <Button
-                    variant="ghost"
-                    aria-label={formatMessage(t.removeLink, { number: index + 1 })}
-                    onClick={() => change({ links: draft.links.filter((_, position) => position !== index) })}
-                  >
-                    <Trash2 size={16} />
+                </Field>
+              </div>
+
+              <Field label={t.avatarUrl} hint={t.avatarUrlHint}>
+                <Input
+                  name="profile-avatar-url"
+                  autoComplete="off"
+                  inputMode="url"
+                  maxLength={SOCIAL_IMAGE_URL_MAX_LENGTH}
+                  value={draft.avatarUrl}
+                  onChange={(event) => change({ avatarUrl: event.target.value })}
+                />
+              </Field>
+
+              <Field label={t.bio} hint={formatMessage(t.bioHint, { max: PROFILE_BIO_MAX_LENGTH })}>
+                <Textarea
+                  name="profile-bio"
+                  rows={5}
+                  maxLength={PROFILE_BIO_MAX_LENGTH}
+                  value={draft.bio}
+                  onChange={(event) => change({ bio: event.target.value })}
+                />
+              </Field>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t.degree} hint={t.scholarFieldsHint}>
+                  <Input
+                    name="profile-degree"
+                    autoComplete="off"
+                    maxLength={PROFILE_DEGREE_MAX_LENGTH}
+                    value={draft.degree}
+                    onChange={(event) => change({ degree: event.target.value })}
+                  />
+                </Field>
+                <Field label={t.institution}>
+                  <Input
+                    name="profile-institution"
+                    autoComplete="organization"
+                    maxLength={PROFILE_INSTITUTION_MAX_LENGTH}
+                    value={draft.institution}
+                    onChange={(event) => change({ institution: event.target.value })}
+                  />
+                </Field>
+              </div>
+
+              <fieldset className="space-y-3">
+                <legend className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
+                  {t.links}
+                </legend>
+                <p className="text-xs text-[var(--color-ink-muted)]">{formatMessage(t.linksHint, { max: PROFILE_MAX_LINKS })}</p>
+                {draft.links.map((link, index) => (
+                  // The rows have no identity of their own: they are edited in place and removed by position.
+                  <div key={index} className="flex flex-wrap items-center gap-2">
+                    <Input
+                      className="sm:w-48"
+                      aria-label={formatMessage(t.linkLabel, { number: index + 1 })}
+                      placeholder={t.linkLabelPlaceholder}
+                      maxLength={PROFILE_LINK_LABEL_MAX_LENGTH}
+                      value={link.label}
+                      onChange={(event) => changeLink(index, { label: event.target.value })}
+                    />
+                    <Input
+                      className="min-w-0 flex-1"
+                      aria-label={formatMessage(t.linkUrl, { number: index + 1 })}
+                      placeholder={t.linkUrlPlaceholder}
+                      inputMode="url"
+                      maxLength={PROFILE_LINK_URL_MAX_LENGTH}
+                      value={link.url}
+                      onChange={(event) => changeLink(index, { url: event.target.value })}
+                    />
+                    <Button
+                      variant="ghost"
+                      aria-label={formatMessage(t.removeLink, { number: index + 1 })}
+                      onClick={() => change({ links: draft.links.filter((_, position) => position !== index) })}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                ))}
+                {draft.links.length < PROFILE_MAX_LINKS ? (
+                  <Button onClick={() => change({ links: [...draft.links, { label: '', url: '' }] })}>
+                    <Plus size={16} />
+                    {t.addLink}
                   </Button>
-                </div>
-              ))}
-              {draft.links.length < PROFILE_MAX_LINKS ? (
-                <Button onClick={() => change({ links: [...draft.links, { label: '', url: '' }] })}>
-                  <Plus size={16} />
-                  {t.addLink}
-                </Button>
-              ) : null}
-            </fieldset>
+                ) : null}
+              </fieldset>
 
-            <Button type="submit" variant="primary" disabled={profileQuery.isLoading || saveMutation.isPending}>
-              {saveMutation.isPending ? t.saving : t.save}
-            </Button>
+              <Button type="submit" variant="primary" disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? t.saving : t.save}
+              </Button>
+            </fieldset>
           </form>
         </Card>
       )}
