@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { flushSync } from 'react-dom';
-import { FileText } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
-import MarkdownContent from '../components/MarkdownContent';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
@@ -12,9 +10,9 @@ import { invalidateArticleQueries } from '../app/queryClient';
 import { deleteArticle, getAiProviderSettings, styleMarkdownWithAi } from '../services/adminService';
 import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
-import type { ArticleInfoboxDto, NavigationArticleDto } from '../shared/types/ApiTypes';
+import type { NavigationArticleDto } from '../shared/types/ApiTypes';
 import { createCustomSchool, deleteCustomSchool, getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
-import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
+import { ArticleDraftPreview } from './add-article/ArticleDraftPreview';
 import { ArticleAuthorsPanel } from '../components/article/ArticleAuthorsPanel';
 import { ArticleStatusPanel } from '../components/article/ArticleStatusPanel';
 import { DocumentBlockEditor } from './add-article/DocumentBlockEditor';
@@ -59,7 +57,7 @@ import {
   updatePlainBlockContent,
   updateVersionContent,
 } from './add-article/draftHelpers';
-import { addInfoboxField, buildInfoboxCreateDto, moveInfoboxField, removeInfoboxField, updateInfoboxField } from './add-article/infoboxHelpers';
+import { addInfoboxField, moveInfoboxField, removeInfoboxField, updateInfoboxField } from './add-article/infoboxHelpers';
 import { addRelatedLink, moveRelatedLink, removeRelatedLink } from './add-article/metadataHelpers';
 import type { EditorBlock } from './add-article/types';
 import {
@@ -326,18 +324,6 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   });
 
   const previewMarkdown = useMemo(() => buildDocumentPreviewMarkdown(blocks), [blocks]);
-  const previewInfobox = useMemo<ArticleInfoboxDto | undefined>(() => {
-    const dto = buildInfoboxCreateDto(infobox);
-    if (!dto) {
-      return undefined;
-    }
-
-    return {
-      title: dto.title,
-      subtitle: dto.subtitle,
-      fields: dto.fields.map((field) => ({ ...field, id: field.order })),
-    };
-  }, [infobox]);
   const stats = useMemo(() => computeEditorStats(blocks, previewMarkdown), [blocks, previewMarkdown]);
   const brokenLinks = useMemo(
     () => (navigationTreeQuery.data ? findBrokenInternalLinks(blocks, articleOptions) : []),
@@ -693,17 +679,12 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
 
               <div className="px-4 py-6 sm:px-6 lg:px-8">
                 {isPreview ? (
-                  <div className="@container mx-auto flow-root max-w-[720px] rounded-[26px] border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-6 py-8 shadow-sm">
-                    <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-subtle)]">
-                      <FileText size={12} />
-                      {t.previewTitle}
-                    </div>
-                    <h1 className="mb-6 text-3xl font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">{title || locale.common.untitled}</h1>
-                    <ArticleInfoboxPanel infobox={previewInfobox} />
-                    <div className="article-markdown">
-                      <MarkdownContent content={previewMarkdown || t.previewEmpty} />
-                    </div>
-                  </div>
+                  <ArticleDraftPreview
+                    draft={draft}
+                    article={mode.kind === 'edit' ? mode.article : null}
+                    schools={schools.available}
+                    navigationTree={navigationTreeQuery.data}
+                  />
                 ) : (
                   <div className="mx-auto max-w-[720px]">
                     <InfoboxEditor {...infoboxEditorProps} />
