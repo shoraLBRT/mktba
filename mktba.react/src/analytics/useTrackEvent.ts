@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { trackGoal } from './metrika';
+import { trackGoal, type MetrikaGoal } from './metrika';
 
 export const useTrackEvent = () =>
-  useCallback((goal: string, params?: Record<string, unknown>) => {
+  useCallback((goal: MetrikaGoal, params?: Record<string, unknown>) => {
     trackGoal(goal, params);
   }, []);

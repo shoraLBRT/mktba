@@ -1,6 +1,7 @@
 import { Tag } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
+import { METRIKA_GOALS, trackGoal } from '../../analytics/metrika';
 import { useLocale } from '../../localization/hooks';
 import { articleHref } from '../../shared/slug';
 import type { ArticleRelatedLinkDto } from '../../shared/types/ApiTypes';
@@ -61,7 +62,10 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
                     ? 'bg-[var(--color-brand-forest-soft)] text-[var(--color-brand-forest)]'
                     : 'text-[var(--color-ink-muted)] hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)]',
                 ].join(' ')}
-                onClick={() => select(item.id)}
+                onClick={() => {
+                  select(item.id);
+                  trackGoal(METRIKA_GOALS.tocClick, { depth: item.depth });
+                }}
               >
                 {item.label}
               </a>

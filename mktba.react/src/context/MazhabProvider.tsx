@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
-import { trackGoal } from '../analytics/metrika';
+import { METRIKA_GOALS, trackGoal } from '../analytics/metrika';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { getSystemSchools } from '../services/schoolService';
 import { useHydrated } from '../shared/useHydrated';
@@ -67,7 +67,7 @@ export const MazhabProvider = ({ children }: { children: ReactNode }) => {
         { replace: true, preventScrollReset: true },
       );
     }
-    trackGoal('mazhab_change', { schoolId: id });
+    trackGoal(METRIKA_GOALS.mazhabChange, { schoolId: id });
   };
 
   return (

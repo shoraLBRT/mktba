@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
@@ -23,6 +23,8 @@ import { useNavigationTree } from '../hooks/useNavigationTree';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import type { SchoolDto } from '../shared/types/ApiTypes';
 import { useMazhab } from '../context/mazhabContext';
+import { METRIKA_GOALS } from '../analytics/metrika';
+import { useReadToEnd } from '../analytics/useReadToEnd';
 import { useTrackEvent } from '../analytics/useTrackEvent';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
@@ -101,9 +103,9 @@ const ArticlePage: React.FC = () => {
 
   useEffect(() => {
     if (!articleContent) return;
-    track('article_view', { articleId });
+    track(METRIKA_GOALS.articleView, { articleId });
     fiveMinTimerRef.current = setTimeout(() => {
-      track('article_time_5min', { articleId });
+      track(METRIKA_GOALS.articleTime5min, { articleId });
     }, 5 * 60 * 1000);
     return () => {
       if (fiveMinTimerRef.current) clearTimeout(fiveMinTimerRef.current);
@@ -262,7 +264,7 @@ const ArticlePage: React.FC = () => {
   const selectAlternative = (paragraphId: number, index: number, total: number) => {
     const boundedIndex = Math.max(0, Math.min(index, total - 1));
     setAlternative(paragraphId, boundedIndex);
-    track('opinion_switch', { paragraphId, index: boundedIndex });
+    track(METRIKA_GOALS.opinionSwitch, { paragraphId, index: boundedIndex });
   };
 
   // Structured data breadcrumbs (O-05): the visible trail, without the section titles that link nowhere.
@@ -303,6 +305,11 @@ const ArticlePage: React.FC = () => {
       </>
     )
     : <PageMeta noIndex />;
+
+  // The reader scrolled to the end of the text (N-01, #51): once per article, not for a stub.
+  const textEndRef = useRef<HTMLDivElement>(null);
+  const reportReadToEnd = useCallback(() => track(METRIKA_GOALS.articleReadEnd, { articleId }), [articleId, track]);
+  useReadToEnd(textEndRef, renderedParagraphs.length > 0, reportReadToEnd);
 
   if (isLoading) {
     return (
@@ -417,6 +424,7 @@ const ArticlePage: React.FC = () => {
               {locale.articlePage.noContent}
             </div>
           )}
+          {renderedParagraphs.length > 0 && <div ref={textEndRef} aria-hidden="true" />}
           </div>
 
           <ArticleFooter

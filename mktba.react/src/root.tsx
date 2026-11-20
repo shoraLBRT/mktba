@@ -15,6 +15,7 @@ import {
 } from 'react-router';
 import interCyrillic400Url from '@fontsource/inter/files/inter-cyrillic-400-normal.woff2?url';
 import './index.css';
+import { usePageViewTracking } from './analytics/usePageViewTracking';
 import { CookieConsent } from './components/CookieConsent';
 import { PageMeta } from './components/PageMeta';
 import { ErrorFallback } from './components/ErrorFallback';
@@ -113,6 +114,12 @@ const SessionQueryRefresh = () => {
   return null;
 };
 
+/** Metrika hits on client-side navigations (N-01, #51); its own component, so a navigation re-renders only it. */
+const PageViewTracker = () => {
+  usePageViewTracking();
+  return null;
+};
+
 /** Generic, non-indexed metadata (admin, sign-in, service pages), unless the matched page renders its own. */
 const FallbackPageMeta = () => {
   const ownsMeta = useMatches().some((match) => (match.handle as RouteHandle | undefined)?.ownsMeta);
@@ -133,6 +140,7 @@ export default function App() {
             <AdminSessionExpirationHandler />
             <SessionQueryRefresh />
             <CookieConsent />
+            <PageViewTracker />
             <Outlet />
           </MazhabProvider>
         </QueryClientProvider>
