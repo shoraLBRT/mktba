@@ -6,6 +6,8 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import { LocalizationProvider } from '../localization/provider';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
 import type { ArticleContentDto, NavigationArticleDto } from '../shared/types/ApiTypes';
+import { localDraftCopyKey, readLocalDraftCopy, writeLocalDraftCopy } from './add-article/localDraftCopy';
+import { articleDraftFromDto } from './add-article/articleDraft';
 import ArticleEditorPage from './ArticleEditorPage';
 
 vi.mock('../services/Article/articleService', () => ({
@@ -19,6 +21,9 @@ vi.mock('../services/adminService', () => ({
   getAiProviderSettings: vi.fn(),
   getArticleById: vi.fn(async () => ({ id: 7, title: 'Намаз', status: 'Draft', allowedTransitions: [] })),
   styleMarkdownWithAi: vi.fn(),
+}));
+vi.mock('../auth/useCurrentUser', () => ({
+  useCurrentUser: () => ({ user: { id: 1, email: 'author@example.com', role: 'Author' }, role: undefined, can: () => false }),
 }));
 vi.mock('../services/schoolService', () => ({
   createCustomSchool: vi.fn(),
@@ -68,6 +73,7 @@ describe('ArticleEditorPage', () => {
     vi.mocked(createArticleContent).mockReset();
     vi.mocked(updateArticleContent).mockReset();
     vi.mocked(getArticleContentById).mockReset();
+    window.localStorage.clear();
   });
 
   it('given the create address, when rendered, then the editor is empty and offers nothing that needs a saved article', () => {
@@ -160,6 +166,77 @@ describe('ArticleEditorPage', () => {
 
     expect(await screen.findByText('article-page')).toBeTruthy();
     expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('given an edit, when typing pauses, then a copy is kept in the browser and the indicator says so', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    renderAt('/admin/articles/7/edit');
+    expect(await screen.findByText('Все изменения сохранены')).toBeTruthy();
+
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+    expect(await screen.findByText(/Копия правок сохранена в этом браузере/, undefined, { timeout: 3000 })).toBeTruthy();
+    expect(readLocalDraftCopy(localDraftCopyKey(1, 7))?.draft.title).toBe('Намаз путника');
+  });
+
+  it('given an edit, when the article is saved, then no copy is left behind', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(updateArticleContent).mockResolvedValue();
+    renderAt('/admin/articles/7/edit');
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+    save();
+
+    expect(await screen.findByText('article-page')).toBeTruthy();
+    expect(readLocalDraftCopy(localDraftCopyKey(1, 7))).toBeNull();
+  });
+
+  it('given a copy left by an earlier visit to an article saved since, when the editor opens, then it is offered with a warning and restored on request', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({ ...article, updatedAt: '2026-11-21T12:00:00Z' });
+    writeLocalDraftCopy(localDraftCopyKey(1, 7), {
+      savedAt: '2026-11-21T10:00:00Z',
+      baseUpdatedAt: '2026-11-20T09:00:00Z',
+      draft: { ...articleDraftFromDto(article), title: 'Намаз из копии' },
+    });
+    renderAt('/admin/articles/7/edit');
+
+    const offer = await screen.findByRole('region', { name: 'Найдены несохранённые правки' });
+    expect(within(offer).getByText(/Статья с тех пор была сохранена ещё раз/)).toBeTruthy();
+    expect(screen.getByDisplayValue('Намаз')).toBeTruthy();
+
+    fireEvent.click(within(offer).getByRole('button', { name: 'Восстановить' }));
+
+    expect(screen.getByDisplayValue('Намаз из копии')).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Найдены несохранённые правки' })).toBeNull();
+  });
+
+  it('given an offered copy, when it is discarded, then the article stays as loaded and the copy is gone', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    writeLocalDraftCopy(localDraftCopyKey(1, 7), {
+      savedAt: '2026-11-21T10:00:00Z',
+      baseUpdatedAt: null,
+      draft: { ...articleDraftFromDto(article), title: 'Намаз из копии' },
+    });
+    renderAt('/admin/articles/7/edit');
+
+    const offer = await screen.findByRole('region', { name: 'Найдены несохранённые правки' });
+    expect(within(offer).queryByText(/Статья с тех пор была сохранена ещё раз/)).toBeNull();
+    fireEvent.click(within(offer).getByRole('button', { name: 'Отбросить' }));
+
+    expect(screen.getByDisplayValue('Намаз')).toBeTruthy();
+    expect(readLocalDraftCopy(localDraftCopyKey(1, 7))).toBeNull();
+  });
+
+  it('given unsaved edits, when the user leaves without saving, then their copy is dropped too', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    renderAt('/admin/articles/7/edit');
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+    fireEvent.click(screen.getByText('История правок'));
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Уйти без сохранения' }));
+
+    expect(await screen.findByText('history-page')).toBeTruthy();
+    expect(readLocalDraftCopy(localDraftCopyKey(1, 7))).toBeNull();
   });
 
   it('given a picked article, when the link is inserted, then the text and its caret are back at once and stay where the user moves them', async () => {

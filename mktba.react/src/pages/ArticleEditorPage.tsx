@@ -25,6 +25,9 @@ import { EditorOutlineRail } from './add-article/EditorOutlineRail';
 import { EditorToolbar } from './add-article/EditorToolbar';
 import { AiRunningOverlay, DeleteArticleDialog, EditorNotice, ImportMarkdownDialog, UnsavedChangesDialog, type EditorNoticeValue } from './add-article/EditorDialogs';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
+import { localDraftCopyKey } from './add-article/localDraftCopy';
+import { DraftSaveIndicator, LocalDraftOffer } from './add-article/LocalDraftCopyNotices';
+import { useLocalDraftCopy } from './add-article/useLocalDraftCopy';
 import { getAiAvailability } from './add-article/aiAvailability';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import {
@@ -164,7 +167,7 @@ const useArticleSchools = (articleId: number | null, onError: (message: string) 
  */
 const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const locale = useLocale();
-  const { can } = useCurrentUser();
+  const { can, user } = useCurrentUser();
   // AI settings and styling are admin-only (CanConfigure); other roles keep the AI button off.
   const canConfigure = can('canConfigure');
   // Authorship and deletion stay admin-only even on an author's own article (U-02); the API enforces it.
@@ -181,6 +184,13 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const [draft, setDraft] = useState(baseline);
   const hasUnsavedChanges = useMemo(() => hasArticleDraftChanged(draft, baseline), [draft, baseline]);
   const leaveGuard = useUnsavedChangesGuard(hasUnsavedChanges);
+  const baseUpdatedAt = mode.kind === 'edit' ? mode.article.updatedAt ?? null : null;
+  const localCopy = useLocalDraftCopy({
+    storageKey: user ? localDraftCopyKey(user.id, articleId) : null,
+    draft,
+    baseline,
+    baseUpdatedAt,
+  });
   const setField = <K extends keyof ArticleDraft>(key: K, value: SetStateAction<ArticleDraft[K]>) =>
     setDraft((current) => ({
       ...current,
@@ -254,6 +264,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       return payload.slug ?? String(articleId);
     },
     onSuccess: async (slug, saved) => {
+      localCopy.clear();
       setBaseline(saved);
       if (mode.kind === 'edit') {
         await invalidateArticleQueries(queryClient);
@@ -271,6 +282,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const deleteMutation = useMutation({
     mutationFn: () => deleteArticle(articleId!),
     onSuccess: () => {
+      localCopy.clear();
       void invalidateArticleQueries(queryClient);
       leaveGuard.allowLeaving();
       navigate('/');
@@ -364,6 +376,19 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       default:
         return t.warnings[problem.code];
     }
+  };
+
+  const restoreLocalCopy = () => {
+    const restored = localCopy.acceptOffer();
+    if (restored) {
+      setDraft(restored);
+    }
+  };
+
+  // Leaving on purpose drops the edits, and with them their copy in this browser.
+  const leaveAndDiscard = () => {
+    localCopy.clear();
+    leaveGuard.blocker.proceed?.();
   };
 
   const saveArticle = () => {
@@ -479,6 +504,16 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
         <div className="min-w-0 flex-1 xl:px-6">
           <div className="mx-auto max-w-[840px]">
             {notice ? <EditorNotice notice={notice} onDismiss={() => setNotice(null)} /> : null}
+            {localCopy.offer ? (
+              <LocalDraftOffer
+                copy={localCopy.offer}
+                baseUpdatedAt={baseUpdatedAt}
+                onRestore={restoreLocalCopy}
+                onDiscard={localCopy.discardOffer}
+              />
+            ) : (
+              <DraftSaveIndicator status={localCopy.status} isSaving={saveMutation.isPending} />
+            )}
 
             <div className="overflow-hidden rounded-[30px] border border-[var(--color-border-soft)] bg-white shadow-[0_28px_90px_rgba(28,27,24,0.07)]">
               <div className="border-b border-[var(--color-border-soft)] px-6 py-5 sm:px-8">
@@ -691,7 +726,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       {isAiRunning ? <AiRunningOverlay /> : null}
 
       {leaveGuard.blocker.state === 'blocked' ? (
-        <UnsavedChangesDialog onStay={leaveGuard.blocker.reset} onLeave={leaveGuard.blocker.proceed} />
+        <UnsavedChangesDialog onStay={leaveGuard.blocker.reset} onLeave={leaveAndDiscard} />
       ) : null}
 
       {isDeleteModalOpen ? (
