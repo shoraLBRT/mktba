@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { LocalizationProvider } from '../localization/provider';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
-import type { ArticleContentDto } from '../shared/types/ApiTypes';
+import type { ArticleContentDto, NavigationArticleDto } from '../shared/types/ApiTypes';
 import ArticleEditorPage from './ArticleEditorPage';
 
 vi.mock('../services/Article/articleService', () => ({
@@ -36,9 +36,9 @@ const article: ArticleContentDto = {
   paragraphs: [{ id: 11, order: 1, opinions: [{ id: 21, content: 'Текст статьи', isDefault: true, schoolIds: [], sources: [] }] }],
 };
 
-const renderAt = (url: string) => {
+const renderAt = (url: string, navigationTree: NavigationArticleDto[] = []) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE], []);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE], navigationTree);
 
   // A data router, as in the app: the unsaved-edits guard needs one.
   const router = createMemoryRouter(
@@ -160,6 +160,29 @@ describe('ArticleEditorPage', () => {
 
     expect(await screen.findByText('article-page')).toBeTruthy();
     expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('given a picked article, when the link is inserted, then the text and its caret are back at once and stay where the user moves them', async () => {
+    const target: NavigationArticleDto = { id: 9, title: 'Пост', slug: 'post', status: 'Published', hasContent: true, canEdit: true };
+    renderAt('/admin/articles/new', [target]);
+    const text = screen.getByPlaceholderText('Введите текст параграфа...') as HTMLTextAreaElement;
+    fireEvent.focus(text);
+    fireEvent.change(text, { target: { value: 'См. ' } });
+    text.setSelectionRange(4, 4);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ссылка на статью' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Ссылка на статью' })).getByRole('button', { name: /Пост/ }));
+
+    // No frame has passed: the insert, the focus and the selected link text are already there.
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(text.value).toBe('См. [Пост](/post)');
+    expect(document.activeElement).toBe(text);
+    expect([text.selectionStart, text.selectionEnd]).toEqual([5, 9]);
+
+    // The user moves the caret right away; nothing restores the old selection over it later.
+    text.setSelectionRange(text.value.length, text.value.length);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect([text.selectionStart, text.selectionEnd]).toEqual([17, 17]);
   });
 
   it('given an article that cannot be loaded, when the edit address opens, then the load error is shown', async () => {

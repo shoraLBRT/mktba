@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState, type SetStateAction } from 'react';
+import { flushSync } from 'react-dom';
 import { FileText } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -320,17 +321,19 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       textarea.selectionStart ?? currentValue.length,
       textarea.selectionEnd ?? currentValue.length,
     );
-    setBlocks((current) =>
-      target.localId
-        ? updateVersionContent(current, target.blockId, target.localId, formatted.value)
-        : updatePlainBlockContent(current, target.blockId, formatted.value),
+    // Committed at once, not in a later frame: the selection must be back in the textarea before
+    // the next key press, or a caret the user moves meanwhile is overwritten and their typing
+    // replaces the restored selection.
+    flushSync(() =>
+      setBlocks((current) =>
+        target.localId
+          ? updateVersionContent(current, target.blockId, target.localId, formatted.value)
+          : updatePlainBlockContent(current, target.blockId, formatted.value),
+      ),
     );
-
-    requestAnimationFrame(() => {
-      const element = editorRefs.current[key];
-      element?.focus();
-      element?.setSelectionRange(formatted.selectionStart, formatted.selectionEnd);
-    });
+    const element = editorRefs.current[key];
+    element?.focus();
+    element?.setSelectionRange(formatted.selectionStart, formatted.selectionEnd);
   };
 
   const applyFormat = (action: FormatAction) =>
@@ -343,10 +346,11 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   };
 
   const insertPickedArticleLink = (article: ArticleLinkTarget) => {
+    // Closed in the same synchronous commit as the insert, so focus returns to the text at once.
+    setLinkPickerTarget(null);
     editTargetText(linkPickerTarget, (value, start, end) =>
       insertArticleLink(value, start, end, { title: article.title, href: articleHref(article.slug) }),
     );
-    setLinkPickerTarget(null);
   };
 
   const problemMessage = (problem: ArticleDraftProblem): string => {
