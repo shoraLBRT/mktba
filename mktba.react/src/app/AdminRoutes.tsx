@@ -1,8 +1,7 @@
 import type { ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
-import AddArticlePage from '../pages/AddArticlePage';
+import ArticleEditorPage from '../pages/ArticleEditorPage';
 import ArticleHistoryPage from '../pages/ArticleHistoryPage';
-import EditArticlePage from '../pages/EditArticlePage';
 import NotFoundPage from '../pages/NotFoundPage';
 import AdminAiSettingsPage from '../pages/admin/AdminAiSettingsPage';
 import AdminArticlesPage from '../pages/admin/AdminArticlesPage';
@@ -73,11 +72,11 @@ export const AdminRoutes = () => (
       />
       <Route
         path={underAdmin(APP_CONSTANTS.ROUTES.ADD_ARTICLE)}
-        element={<AdminSectionRoute policy="canEditArticles" padded={false}><AddArticlePage /></AdminSectionRoute>}
+        element={<AdminSectionRoute policy="canEditArticles" padded={false}><ArticleEditorPage /></AdminSectionRoute>}
       />
       <Route
         path="articles/:articleId/edit"
-        element={<AdminSectionRoute policy="canEditArticles" padded={false}><EditArticlePage /></AdminSectionRoute>}
+        element={<AdminSectionRoute policy="canEditArticles" padded={false}><ArticleEditorPage /></AdminSectionRoute>}
       />
       <Route
         path="articles/:articleId/history"
