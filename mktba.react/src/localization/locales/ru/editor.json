@@ -135,12 +135,25 @@
       }
     },
     "defaultVersion": "По умолчанию",
-    "versionTextPlaceholder": "Текст мнения {index}...",
-    "schoolsNeedSecondVersion": "Абзац с одним мнением общий для всех мазхабов. Чтобы указать мазхабы, добавьте второе мнение.",
+    "defaultVersionHint": "Мнение по умолчанию видят читатели мазхабов, у которых нет своего мнения",
+    "versionTextPlaceholder": "Текст мнения: {label}...",
+    "schoolsNeedSecondVersion": "Абзац с одним мнением общий для всех мазхабов. Чтобы дать мазхабу своё мнение, добавьте мнение для него.",
     "versions": "Мазхабы:",
-    "versionTitle": "Мнение {index}",
-    "defaultVersionTitle": "Мнение по умолчанию",
-    "addVersion": "Добавить мнение",
+    "opinionTab": {
+      "common": "Общее мнение",
+      "noSchool": "Без мазхаба",
+      "defaultMark": ", по умолчанию"
+    },
+    "addVersion": "Мазхаб",
+    "addOpinionMenu": {
+      "button": "Добавить мнение для мазхаба",
+      "noSchool": "Мнение без мазхаба",
+      "allCovered": "У каждого мазхаба уже есть мнение"
+    },
+    "removeVersion": "Удалить мнение «{label}»",
+    "opinionSchools": "Мазхабы мнения «{label}»",
+    "schoolTakenTitle": "{school}: сейчас у мнения «{opinion}». Нажмите, чтобы перенести сюда",
+    "uncoveredSchools": "Без своего мнения: {schools}. Их читатели увидят мнение по умолчанию.",
     "sectionTitlePlaceholder": "Заголовок раздела...",
     "subsectionTitlePlaceholder": "Подзаголовок...",
     "paragraphPlaceholder": "Введите текст параграфа...",

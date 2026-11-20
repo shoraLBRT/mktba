@@ -4,6 +4,7 @@ import {
   buildDocumentPreviewMarkdown,
   buildParagraphCreateDtosFromBlocks,
   buildParagraphUpdateDtosFromBlocks,
+  addVersionToBlock,
   canAssignSchools,
   convertParagraphToVersioned,
   changeEmptyBlockKind,
@@ -18,9 +19,12 @@ import {
   moveBlock,
   moveBlockTo,
   opinionsLostByConvertingToParagraph,
+  opinionTabLabel,
   removeVersionFromBlock,
   setDefaultVersion,
   setOpinionSources,
+  toggleOpinionSchool,
+  uncoveredSchools,
 } from './draftHelpers';
 import type { EditorBlock, VersionedEditorBlock } from './types';
 
@@ -472,5 +476,54 @@ describe('content checks', () => {
     ];
 
     expect(buildDocumentPreviewMarkdown(blocks)).toBe('## Глава\n\nпо умолчанию');
+  });
+});
+
+describe('opinions named by school (E-06)', () => {
+  const schools = [
+    { id: 1, shortName: 'Хан' },
+    { id: 2, shortName: 'Мал' },
+    { id: 3, shortName: 'Шаф' },
+    { id: 4, shortName: 'Ханб' },
+  ];
+  const texts = { common: 'Общее мнение', noSchool: 'Без мазхаба' };
+  const block = () =>
+    versioned('v', [
+      { localId: 'x', content: 'a', isDefault: true, schoolIds: [1] },
+      { localId: 'y', content: 'b', isDefault: false, schoolIds: [3, 2] },
+    ]);
+  const variantsOf = (blocks: EditorBlock[]) => (blocks[0] as VersionedEditorBlock).variants;
+
+  it('given opinions with and without schools, when labelled, then the label is the short names, else common for the default and no school otherwise', () => {
+    const [first, second] = block().variants;
+    expect(opinionTabLabel(second, schools, texts)).toBe('Шаф, Мал');
+    expect(opinionTabLabel({ ...first, schoolIds: [] }, schools, texts)).toBe('Общее мнение');
+    expect(opinionTabLabel({ ...second, schoolIds: [] }, schools, texts)).toBe('Без мазхаба');
+    expect(opinionTabLabel({ ...second, schoolIds: [99] }, schools, texts)).toBe('Без мазхаба');
+  });
+
+  it('given a block, when its uncovered schools are asked, then the schools no opinion has are listed in order; one opinion covers none', () => {
+    expect(uncoveredSchools(block(), schools).map((school) => school.id)).toEqual([4]);
+    expect(uncoveredSchools(versioned('s', [{ localId: 'o', content: 'a', isDefault: true }]), schools)).toHaveLength(4);
+  });
+
+  it('given a school, when an opinion is added for it, then the new opinion has it, is not the default and takes it from another opinion', () => {
+    const next = variantsOf(addVersionToBlock([block()], 'v', [2], 'z'));
+    expect(next.map(({ localId, schoolIds, isDefault, content }) => ({ localId, schoolIds, isDefault, content }))).toEqual([
+      { localId: 'x', schoolIds: [1], isDefault: true, content: 'a' },
+      { localId: 'y', schoolIds: [3], isDefault: false, content: 'b' },
+      { localId: 'z', schoolIds: [2], isDefault: false, content: '' },
+    ]);
+  });
+
+  it('given a school, when toggled on an opinion, then it is linked there and unlinked from any other; toggled again, it is unlinked', () => {
+    const moved = toggleOpinionSchool([block()], 'v', 'x', 3);
+    expect(variantsOf(moved).map((variant) => variant.schoolIds)).toEqual([[1, 3], [2]]);
+    expect(variantsOf(toggleOpinionSchool(moved, 'v', 'x', 1)).map((variant) => variant.schoolIds)).toEqual([[3], [2]]);
+  });
+
+  it('given an unknown opinion, when a school is toggled, then the blocks are unchanged', () => {
+    const blocks = [block()];
+    expect(toggleOpinionSchool(blocks, 'v', 'missing', 4)[0]).toBe(blocks[0]);
   });
 });

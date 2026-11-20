@@ -7,6 +7,7 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import { LocalizationProvider } from '../localization/provider';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
 import type { ArticleContentDto, NavigationArticleDto } from '../shared/types/ApiTypes';
+import { getSystemSchools } from '../services/schoolService';
 import { localDraftCopyKey, readLocalDraftCopy, writeLocalDraftCopy } from './add-article/localDraftCopy';
 import { articleDraftFromDto } from './add-article/articleDraft';
 import ArticleEditorPage from './ArticleEditorPage';
@@ -82,6 +83,7 @@ describe('ArticleEditorPage', () => {
     vi.mocked(createArticleContent).mockReset();
     vi.mocked(updateArticleContent).mockReset();
     vi.mocked(getArticleContentById).mockReset();
+    vi.mocked(getSystemSchools).mockResolvedValue([]);
     window.localStorage.clear();
   });
 
@@ -430,8 +432,105 @@ describe('ArticleEditorPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Преобразовать в блок мнений' }));
 
-    expect(screen.getByRole('textbox', { name: 'Текст мнения 1...' }).textContent).toBe('Текст статьи');
-    expect(screen.getByTitle('Мнение 2')).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Текст мнения: Общее мнение...' }).textContent).toBe('Текст статьи');
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Общее мнение, по умолчанию', 'Без мазхаба']);
+  });
+
+  describe('opinion tabs named by school (E-06)', () => {
+    const systemSchools = [
+      { id: 1, slug: 'hanafi', name: 'Ханафитский мазхаб', shortName: 'Хан', isSystem: true },
+      { id: 2, slug: 'maliki', name: 'Маликитский мазхаб', shortName: 'Мал', isSystem: true },
+      { id: 3, slug: 'shafii', name: 'Шафиитский мазхаб', shortName: 'Шаф', isSystem: true },
+      { id: 4, slug: 'hanbali', name: 'Ханбалитский мазхаб', shortName: 'Ханб', isSystem: true },
+    ];
+    const blockOfOpinions: ArticleContentDto = {
+      ...article,
+      paragraphs: [{
+        id: 11,
+        order: 1,
+        opinions: [
+          { id: 21, content: 'Мнение ханафитов', isDefault: true, schoolIds: [1], sources: [] },
+          { id: 22, content: 'Мнение шафиитов', isDefault: false, schoolIds: [3], sources: [] },
+        ],
+      }],
+    };
+    const tabNames = () => screen.getAllByRole('tab').map((tab) => tab.textContent);
+
+    beforeEach(() => {
+      vi.mocked(getSystemSchools).mockResolvedValue(systemSchools);
+      vi.mocked(getArticleContentById).mockResolvedValue(blockOfOpinions);
+    });
+
+    it('given a block of opinions, when it opens, then each tab names its schools, the default is marked and the uncovered schools are named', async () => {
+      renderAt('/admin/articles/7/edit');
+      await screen.findByRole('tab', { name: 'Хан, по умолчанию' });
+
+      expect(tabNames()).toEqual(['Хан, по умолчанию', 'Шаф']);
+      expect(screen.getByRole('tab', { name: 'Хан, по умолчанию' }).getAttribute('aria-selected')).toBe('true');
+      expect(screen.getByRole('tabpanel', { name: 'Хан, по умолчанию' })).toBeTruthy();
+      expect(screen.getByTestId('uncovered-schools').textContent).toBe(
+        'Без своего мнения: Маликитский мазхаб, Ханбалитский мазхаб. Их читатели увидят мнение по умолчанию.',
+      );
+    });
+
+    it('given the tabs, when an arrow key is pressed on one, then the next opinion is selected and focused', async () => {
+      renderAt('/admin/articles/7/edit');
+      const first = await screen.findByRole('tab', { name: 'Хан, по умолчанию' });
+
+      fireEvent.keyDown(first, { key: 'ArrowRight' });
+
+      const second = screen.getByRole('tab', { name: 'Шаф' });
+      expect(second.getAttribute('aria-selected')).toBe('true');
+      expect(second.getAttribute('tabindex')).toBe('0');
+      expect(document.activeElement).toBe(second);
+      expect(screen.getByRole('textbox', { name: 'Текст мнения: Шаф...' }).textContent).toBe('Мнение шафиитов');
+    });
+
+    it('given uncovered schools, when one is picked in «+ Мазхаб», then a new opinion for it is selected and the school leaves the hint and the menu', async () => {
+      renderAt('/admin/articles/7/edit');
+      await screen.findByRole('tab', { name: 'Хан, по умолчанию' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Добавить мнение для мазхаба' }));
+      const menu = screen.getByRole('menu', { name: 'Добавить мнение для мазхаба' });
+      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+        'Маликитский мазхаб', 'Ханбалитский мазхаб', 'Мнение без мазхаба',
+      ]);
+      fireEvent.click(within(menu).getByRole('menuitem', { name: 'Маликитский мазхаб' }));
+
+      expect(screen.queryByRole('menu')).toBeNull();
+      expect(tabNames()).toEqual(['Хан, по умолчанию', 'Шаф', 'Мал']);
+      expect(screen.getByRole('tab', { name: 'Мал' }).getAttribute('aria-selected')).toBe('true');
+      expect(screen.getByTestId('uncovered-schools').textContent).toContain('Без своего мнения: Ханбалитский мазхаб.');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Добавить мнение для мазхаба' }));
+      expect(within(screen.getByRole('menu')).getAllByRole('menuitem', { name: /мазхаб/ }).map((item) => item.textContent)).toEqual([
+        'Ханбалитский мазхаб', 'Мнение без мазхаба',
+      ]);
+      fireEvent.keyDown(screen.getByRole('menuitem', { name: 'Ханбалитский мазхаб' }), { key: 'Escape' });
+      expect(screen.queryByRole('menu')).toBeNull();
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Добавить мнение для мазхаба' }));
+    });
+
+    it('given a school of another opinion, when it is picked on the opinion on screen, then it moves there and the save sends it once', async () => {
+      vi.mocked(updateArticleContent).mockResolvedValue();
+      renderAt('/admin/articles/7/edit');
+      fireEvent.click(await screen.findByRole('tab', { name: 'Шаф' }));
+
+      const chips = screen.getByRole('group', { name: 'Мазхабы мнения «Шаф»' });
+      const hanafi = within(chips).getByRole('button', { name: 'Хан' });
+      expect(hanafi.getAttribute('aria-pressed')).toBe('false');
+      expect(hanafi.getAttribute('title')).toBe('Ханафитский мазхаб: сейчас у мнения «Хан». Нажмите, чтобы перенести сюда');
+      fireEvent.click(hanafi);
+
+      expect(tabNames()).toEqual(['Общее мнение, по умолчанию', 'Шаф, Хан']);
+      save();
+      await waitFor(() => expect(updateArticleContent).toHaveBeenCalled());
+      const dto = vi.mocked(updateArticleContent).mock.calls[0][1];
+      expect(dto.paragraphs[0].opinions).toEqual([
+        expect.objectContaining({ id: 21, isDefault: true, schoolIds: [] }),
+        expect.objectContaining({ id: 22, isDefault: false, schoolIds: [3, 1] }),
+      ]);
+    });
   });
 
   it('given an empty paragraph, when / is typed and Enter picks the highlighted heading, then the block becomes a heading', async () => {

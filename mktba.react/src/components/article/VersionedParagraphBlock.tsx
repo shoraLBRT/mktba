@@ -2,6 +2,7 @@ import { BookOpen, Info } from 'lucide-react';
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocale } from '../../localization/hooks';
 import { getSchoolPalette, type SchoolPaletteKey } from '../mazhab/schoolPalette';
+import { TAB_KEY_STEPS } from '../../shared/tabKeys';
 
 /** One switchable opinion inside a paragraph slot. */
 export type OpinionTab = {
@@ -27,15 +28,6 @@ type VersionedParagraphBlockProps = {
   panels: ReactNode[];
 };
 
-const KEY_STEPS: Record<string, (index: number, total: number) => number> = {
-  ArrowRight: (index, total) => (index + 1) % total,
-  ArrowDown: (index, total) => (index + 1) % total,
-  ArrowLeft: (index, total) => (index - 1 + total) % total,
-  ArrowUp: (index, total) => (index - 1 + total) % total,
-  Home: () => 0,
-  End: (_index, total) => total - 1,
-};
-
 export const VersionedParagraphBlock = ({
   activeIndex,
   tabs,
@@ -51,7 +43,7 @@ export const VersionedParagraphBlock = ({
   const panelId = (index: number) => `${idPrefix}-panel-${index}`;
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const step = KEY_STEPS[event.key];
+    const step = TAB_KEY_STEPS[event.key];
     if (!step) return;
     event.preventDefault();
     const nextIndex = step(index, tabs.length);

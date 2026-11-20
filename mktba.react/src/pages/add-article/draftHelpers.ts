@@ -109,13 +109,30 @@ export const setDefaultVersion = (
         },
   );
 
-export const addVersionToBlock = (blocks: EditorBlock[], blockId: string): EditorBlock[] =>
+/**
+ * Appends an empty opinion to a block of opinions, linked to `schoolIds` (the editor's «add
+ * opinion» picks the school it is for). A school already linked to another opinion of the block
+ * moves to the new one, so a school keeps one opinion per block.
+ */
+export const addVersionToBlock = (
+  blocks: EditorBlock[],
+  blockId: string,
+  schoolIds: number[] = [],
+  localId: string = crypto.randomUUID(),
+): EditorBlock[] =>
   blocks.map((block) =>
     block.id !== blockId || block.kind !== 'versioned'
       ? block
       : {
           ...block,
-          variants: [...block.variants, createVariant(false)],
+          variants: [
+            ...block.variants.map((variant) =>
+              variant.schoolIds.some((id) => schoolIds.includes(id))
+                ? { ...variant, schoolIds: variant.schoolIds.filter((id) => !schoolIds.includes(id)) }
+                : variant,
+            ),
+            { ...createVariant(false), localId, schoolIds },
+          ],
         },
   );
 
@@ -564,22 +581,51 @@ export const importBlocksFromParagraphs = (paragraphs: ParagraphDto[], sources: 
   });
 };
 
-export const setOpinionSchools = (
+/**
+ * Links a school to an opinion of a block, or unlinks it when the opinion has it already. A school
+ * linked to another opinion of the block moves to this one: a reader of a school sees one opinion.
+ */
+export const toggleOpinionSchool = (
   blocks: EditorBlock[],
   blockId: string,
   localId: string,
-  schoolIds: number[],
+  schoolId: number,
 ): EditorBlock[] =>
-  blocks.map((block) =>
-    block.id !== blockId || block.kind !== 'versioned'
-      ? block
-      : {
-          ...block,
-          variants: block.variants.map((variant) =>
-            variant.localId === localId ? { ...variant, schoolIds } : variant,
-          ),
-        },
-  );
+  blocks.map((block) => {
+    if (block.id !== blockId || block.kind !== 'versioned') {
+      return block;
+    }
+
+    const target = block.variants.find((variant) => variant.localId === localId);
+    if (!target) {
+      return block;
+    }
+
+    const unlink = target.schoolIds.includes(schoolId);
+    return {
+      ...block,
+      variants: block.variants.map((variant) => {
+        if (variant.localId === localId) {
+          return {
+            ...variant,
+            schoolIds: unlink ? variant.schoolIds.filter((id) => id !== schoolId) : [...variant.schoolIds, schoolId],
+          };
+        }
+        return variant.schoolIds.includes(schoolId)
+          ? { ...variant, schoolIds: variant.schoolIds.filter((id) => id !== schoolId) }
+          : variant;
+      }),
+    };
+  });
+
+/**
+ * The schools no opinion of a block is linked to, in the order given: their readers get the
+ * default opinion. In a block with a single opinion, which is common to all, that is every school.
+ */
+export const uncoveredSchools = <T extends { id: number }>(block: VersionedEditorBlock, schools: T[]): T[] => {
+  const covered = new Set(block.variants.flatMap((variant) => variant.schoolIds));
+  return schools.filter((school) => !covered.has(school.id));
+};
 
 export const collectWholeArticleAiTargets = (
   blocks: EditorBlock[],
@@ -603,3 +649,28 @@ export const collectWholeArticleAiTargets = (
 
   return targets;
 };
+
+export type OpinionTabTexts = {
+  common: string;
+  noSchool: string;
+};
+
+/**
+ * The name of an opinion on its tab: the short names of its schools. An opinion with no school is
+ * «Общее мнение» when it is the default (what every school without an opinion of its own reads)
+ * and «Без мазхаба» otherwise.
+ */
+export const opinionTabLabel = (
+  variant: AlternativeDraft,
+  schools: Array<{ id: number; shortName: string }>,
+  texts: OpinionTabTexts,
+): string => {
+  const names = variant.schoolIds
+    .map((id) => schools.find((school) => school.id === id)?.shortName)
+    .filter((name): name is string => Boolean(name));
+  if (names.length > 0) {
+    return names.join(', ');
+  }
+  return variant.isDefault ? texts.common : texts.noSchool;
+};
+
