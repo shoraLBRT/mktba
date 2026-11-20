@@ -15,7 +15,8 @@ UI — только на русском. Целевой домен — `mktba.ru
 docker compose up -d postgres
 dotnet build Mktba.sln            # plain `dotnet build` fails with MSB1011 (docker-compose.dcproj)
 dotnet test Mktba.sln             # needs the compose `postgres`: the search tests create and drop their own databases
-dotnet run --project Mktba.Api    # :5172, Development: connects to the compose `postgres` DB out of the box
+dotnet run --project Mktba.Api    # :5172, Development: connects to the compose `postgres` DB out of the box and migrates it
+dotnet run --project Mktba.Api -- --migrate   # apply migrations + system schools and exit (the only way outside Development)
 ```
 Machine-specific settings go in the gitignored `Mktba.Api/appsettings.local.json` (template: `appsettings.local.example.json`); it overrides `appsettings.{Environment}.json`, while user secrets and env vars override it.
 
@@ -113,6 +114,8 @@ mktba.react           → React 19 + TypeScript, React Router v7 framework mode 
 - Yandex Metrika (N-01, #51): `src/analytics/metrika.ts`. The counter starts only with `VITE_METRIKA_ID` set at build time **and** the visitor's consent (`localStorage['mktba.consent']`, `CookieConsent`): `entry.client.tsx` on load, or the consent banner. Without either every call is a no-op (tests, e2e, declined visitors). `init` counts the page a visit starts on; `usePageViewTracking` (the root's `PageViewTracker`) sends a `hit` with the previous page as `referer` on every later client-side navigation to another page — a change of path or query, not of the hash (anchors, the table of contents) and not of `?mazhab=` (dropped from the URL after a choice). Goals are `METRIKA_GOALS`, the only place their ids live; they are set up in the counter by these ids, so never rename one: `article_view` / `article_time_5min` (an article opened / still open after 5 min, `{ articleId }`), `article_read_end` (the end of the text came into view, once per article opened, never for a stub, `{ articleId }`, `useReadToEnd`), `opinion_switch` (`{ paragraphId, index }`), `mazhab_change` (chosen by hand in the picker, `{ schoolId }`), `search` (a submitted `SearchForm`: the home page, the results page, the Ctrl+K dialog; no query text — the hit's URL carries it), `toc_click` (an entry of the right sidebar's table of contents, `{ depth }`). Goal params never carry personal data.
 
 **Database:** PostgreSQL 16. Connection string `ConnectionStrings:DefaultConnection`; Development uses `appsettings.Development.json`, matching `docker-compose.yml` (service `postgres`).
+
+**Migrations and seeding (X-03, #65):** `DatabaseStartup` (`Mktba.Api/Infrastructure`) runs before serving: with `Database:MigrateOnStartup` (true only in `appsettings.Development.json`, which the e2e API uses) it calls `DatabaseMigrator.MigrateAsync` (`Mktba.Infrastructure/Data`: migrations, then `SystemSchoolSeeder` — the 4 canonical schools with their English names, reference data needed in every environment); otherwise `DatabaseMigrator.EnsureUpToDateAsync` only checks and the API refuses to start while a migration is pending. Outside Development migrations are applied by the same binary run with `--migrate` (migrate, seed, exit; idempotent) — the step a deployment (X-02 #64) runs before the new version. The InMemory provider of the API tests is always created and seeded. There is no demo data in the API: demo content comes only from `scripts/seed-demo-content.mjs` through the API.
 
 ## Coding conventions
 
