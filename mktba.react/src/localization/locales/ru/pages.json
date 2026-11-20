@@ -78,7 +78,7 @@
     "homeLink": "На главную"
   },
   "articlePage": {
-    "noContent": "Нет доступного контента",
+    "noContent": "Текст этой статьи ещё не написан.",
     "loadError": "Ошибка загрузки статьи",
     "uiModeUpdated": "Режим отображения абзацев обновлен",
     "overview": "Общее описание",
@@ -112,8 +112,7 @@
     "onThisPage": "На этой странице",
     "summaryTitle": "Краткое описание",
     "tagsTitle": "Теги",
-    "relatedArticles": "Связанные статьи",
-    "noRelatedArticles": "Связанных статей нет"
+    "relatedArticles": "Связанные статьи"
   },
   "articleInfobox": {
     "defaultTitle": "Обзор",
@@ -292,6 +291,7 @@
   },
   "adminLayout": {
     "title": "Админка",
+    "emptyTree": "Статей пока нет. Начните с нового раздела.",
     "navLabel": "Разделы админки",
     "menuOpen": "Открыть меню разделов",
     "menuClose": "Закрыть меню разделов",

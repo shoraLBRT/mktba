@@ -13,6 +13,7 @@ import { Card } from '../../shared/ui/Card';
 import CreateNodeModal from '../../components/CreateNodeModal';
 import MoveNodeModal from '../../components/MoveNodeModal';
 import NavigationTree from '../../components/NavigationTree';
+import { NavigationTreeSkeleton } from '../../components/Skeleton';
 import { AdminArticlesHeader } from './AdminArticlesHeader';
 
 type CreateNodeTarget = {
@@ -99,14 +100,14 @@ const AdminArticleTreePage: React.FC = () => {
           </button>
 
           {isLoading ? (
-            <div className="flex h-40 items-center justify-center">
-              <div className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--color-border-soft)] border-t-[var(--color-brand-forest)]" />
-            </div>
+            <NavigationTreeSkeleton />
           ) : error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               <p className="m-0 font-semibold">{locale.sidebar.loadError}</p>
               <p className="mb-0 mt-1 text-xs text-red-600">{(error as Error).message}</p>
             </div>
+          ) : !navigationTree || navigationTree.length === 0 ? (
+            <p className="mx-2 my-0 text-sm text-[var(--color-ink-muted)]">{t.emptyTree}</p>
           ) : (
             <>
               {moveError && !moveTarget ? (

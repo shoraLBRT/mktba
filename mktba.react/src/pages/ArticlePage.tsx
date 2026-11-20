@@ -12,6 +12,7 @@ import { ArticleMeta } from '../components/article/ArticleMeta';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { ArticleStructuredData } from '../components/StructuredData';
 import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
+import { ArticleSkeleton } from '../components/article/ArticleSkeleton';
 import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
 import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
 import { resolveAutoOpinionIndex } from '../components/mazhab/opinionSelection';
@@ -236,8 +237,9 @@ const ArticlePage: React.FC = () => {
     [renderedParagraphs, locale.articlePage.headingLink],
   );
 
+  // A stub has no text to find one's way in, so it has no table of contents at all.
   const tocItems = useMemo<TocItem[]>(
-    () => [
+    () => outline.length === 0 ? [] : [
       { id: ARTICLE_OVERVIEW_ANCHOR, label: locale.articlePage.overview, depth: 2 },
       ...outline.flatMap((paragraph) =>
         paragraph.headings
@@ -313,9 +315,9 @@ const ArticlePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="xl:flex">
         {documentHead}
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--color-border-soft)] border-t-[var(--color-brand-forest)]" />
+        <ArticleSkeleton />
       </div>
     );
   }
