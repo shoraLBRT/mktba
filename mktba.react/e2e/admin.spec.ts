@@ -275,7 +275,10 @@ test('an admin cites a new source in the editor, and readers see it under the pu
   // The directory now offers the source to the next opinion that needs it.
   await page.getByRole('button', { name: 'Источник', exact: true }).click();
   await page.getByLabel('Поиск в справочнике источников').fill(String(stamp));
-  await expect(page.getByRole('list', { name: 'Найденные источники' }).getByRole('button')).toContainText(`аль-Бухари. ${sourceTitle}`);
+  // Until the search answers, the picker keeps showing the previous results (keepPreviousData).
+  const found = page.getByRole('list', { name: 'Найденные источники' }).getByRole('button');
+  await expect(found).toHaveCount(1);
+  await expect(found).toContainText(`аль-Бухари. ${sourceTitle}`);
 
   // The server HTML already holds the block: it does not wait for the browser.
   const html = await (await request.get(`/${slug}`)).text();
