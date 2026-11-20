@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyMarkdownFormat } from './markdownFormat';
+import { applyMarkdownFormat, insertArticleLink } from './markdownFormat';
 import { computeEditorStats } from './editorStats';
 
 const snippets = { insertText: 'текст', linkSnippet: 'ссылка', listSnippet: 'пункт', quoteSnippet: 'цитата' };
@@ -15,6 +15,18 @@ describe('applyMarkdownFormat', () => {
     const result = applyMarkdownFormat('', 0, 0, 'link', snippets);
 
     expect(result).toEqual({ value: '[ссылка](https://example.com)', selectionStart: 1, selectionEnd: 7 });
+  });
+
+  it('given no selection, when an article link is inserted, then the escaped title is the selected link text', () => {
+    const result = insertArticleLink('См. ', 4, 4, { title: 'Намаз [кратко]', href: '/namaz' });
+
+    expect(result).toEqual({ value: 'См. [Намаз \\[кратко\\]](/namaz)', selectionStart: 5, selectionEnd: 21 });
+  });
+
+  it('given a selected word, when an article link is inserted, then the word links to the article', () => {
+    const result = insertArticleLink('о намазе тут', 2, 8, { title: 'Намаз', href: '/namaz' });
+
+    expect(result).toEqual({ value: 'о [намазе](/namaz) тут', selectionStart: 3, selectionEnd: 9 });
   });
 
   it('given two selected lines, when made an ordered list, then each line is numbered', () => {

@@ -1,5 +1,6 @@
 import React, { useMemo, type ComponentProps } from 'react';
 import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown';
+import { Link } from 'react-router';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
 import { gfm } from 'micromark-extension-gfm';
 import { collectHeadings, nestHeadings, type MarkdownNode } from '../shared/markdownHeadings';
@@ -103,6 +104,12 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, headingAncho
           const { href } = props;
           if (href?.startsWith('#')) {
             return <a {...props} />;
+          }
+          // A site-relative link (an article's `/{slug}`, E-10) stays in the tab as a client-side navigation.
+          if (href?.startsWith('/') && !href.startsWith('//')) {
+            // `node` is react-markdown's own prop, not an attribute; `Link` builds `href` from `to`.
+            const linkProps = { ...props, node: undefined, href: undefined };
+            return <Link {...linkProps} to={href} />;
           }
           return <a {...props} target="_blank" rel="noopener noreferrer" />;
         },

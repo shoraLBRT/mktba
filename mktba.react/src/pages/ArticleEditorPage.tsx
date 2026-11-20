@@ -60,7 +60,10 @@ import {
   type AiStyledText,
 } from './add-article/articleDraft';
 import { computeEditorStats } from './add-article/editorStats';
-import { applyMarkdownFormat } from './add-article/markdownFormat';
+import { applyMarkdownFormat, insertArticleLink, type FormattedText } from './add-article/markdownFormat';
+import { findBrokenInternalLinks, type ArticleLinkTarget } from './add-article/internalLinks';
+import { InternalLinkDialog } from './add-article/InternalLinkDialog';
+import { InternalLinkWarnings } from './add-article/InternalLinkWarnings';
 import { SlugField } from './add-article/SlugField';
 import { SeoFields } from './add-article/SeoFields';
 import { formatMessage } from '../localization';
@@ -71,11 +74,7 @@ type EditorTarget = {
   localId: string | null;
 };
 
-type ArticleOption = {
-  id: number;
-  title: string;
-  path: string;
-};
+type ArticleOption = ArticleLinkTarget;
 
 const targetKey = (blockId: string, localId: string | null) => `${blockId}:${localId ?? 'plain'}`;
 
@@ -96,7 +95,7 @@ const flattenNavigationTree = (nodes: NavigationArticleDto[], parentTitles: stri
   nodes.flatMap((node) => {
     const titles = [...parentTitles, node.title];
     return [
-      { id: node.id, title: node.title, path: titles.join(' / ') },
+      { id: node.id, title: node.title, path: titles.join(' / '), slug: node.slug, status: node.status },
       ...flattenNavigationTree(node.children ?? [], titles),
     ];
   });
@@ -194,6 +193,8 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const [notice, setNotice] = useState<EditorNoticeValue | null>(null);
   const [isPreview, setIsPreview] = useState(false);
   const [activeTarget, setActiveTarget] = useState<EditorTarget | null>(null);
+  /** The text the article picker will insert its link into; `null` while the picker is closed. */
+  const [linkPickerTarget, setLinkPickerTarget] = useState<EditorTarget | null>(null);
   const [isAiRunning, setIsAiRunning] = useState(false);
   const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
   const [parentSearch, setParentSearch] = useState('');
@@ -293,30 +294,36 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     };
   }, [infobox]);
   const stats = useMemo(() => computeEditorStats(blocks, previewMarkdown), [blocks, previewMarkdown]);
+  const brokenLinks = useMemo(
+    () => (navigationTreeQuery.data ? findBrokenInternalLinks(blocks, articleOptions) : []),
+    [blocks, articleOptions, navigationTreeQuery.data],
+  );
 
-  const applyFormat = (action: FormatAction) => {
-    if (!activeTarget || isLocked) {
+  /** Rewrites the text of `target` around its textarea's selection and restores the selection. */
+  const editTargetText = (
+    target: EditorTarget | null,
+    edit: (value: string, start: number, end: number) => FormattedText,
+  ) => {
+    if (!target || isLocked) {
       return;
     }
 
-    const key = targetKey(activeTarget.blockId, activeTarget.localId);
+    const key = targetKey(target.blockId, target.localId);
     const textarea = editorRefs.current[key];
-    const currentValue = getTargetValue(blocks, activeTarget);
+    const currentValue = getTargetValue(blocks, target);
     if (!textarea || currentValue === null) {
       return;
     }
 
-    const formatted = applyMarkdownFormat(
+    const formatted = edit(
       currentValue,
       textarea.selectionStart ?? currentValue.length,
       textarea.selectionEnd ?? currentValue.length,
-      action,
-      editorText.markdown,
     );
     setBlocks((current) =>
-      activeTarget.localId
-        ? updateVersionContent(current, activeTarget.blockId, activeTarget.localId, formatted.value)
-        : updatePlainBlockContent(current, activeTarget.blockId, formatted.value),
+      target.localId
+        ? updateVersionContent(current, target.blockId, target.localId, formatted.value)
+        : updatePlainBlockContent(current, target.blockId, formatted.value),
     );
 
     requestAnimationFrame(() => {
@@ -324,6 +331,22 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       element?.focus();
       element?.setSelectionRange(formatted.selectionStart, formatted.selectionEnd);
     });
+  };
+
+  const applyFormat = (action: FormatAction) =>
+    editTargetText(activeTarget, (value, start, end) => applyMarkdownFormat(value, start, end, action, editorText.markdown));
+
+  const openArticleLinkPicker = () => {
+    if (activeTarget && !isLocked) {
+      setLinkPickerTarget(activeTarget);
+    }
+  };
+
+  const insertPickedArticleLink = (article: ArticleLinkTarget) => {
+    editTargetText(linkPickerTarget, (value, start, end) =>
+      insertArticleLink(value, start, end, { title: article.title, href: articleHref(article.slug) }),
+    );
+    setLinkPickerTarget(null);
   };
 
   const problemMessage = (problem: ArticleDraftProblem): string => {
@@ -425,7 +448,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     showNotice('success', `${t.importedParagraphs}: ${importedBlocks.length}`);
   };
 
-  const selectParentArticle = (option: ArticleOption | null) => {
+  const selectParentArticle = (option: Pick<ArticleOption, 'id' | 'path'> | null) => {
     setField('parentArticleId', option?.id ?? null);
     setParentSearch(option?.path ?? '');
     setIsParentDropdownOpen(false);
@@ -574,9 +597,18 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
 
           </div>
 
+          <div className="mx-auto max-w-[840px]">
+            <InternalLinkWarnings
+              links={brokenLinks}
+              articles={articleOptions}
+              onJumpToBlock={(blockId) => blockRefs.current[blockId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            />
+          </div>
+
           <EditorBottomToolbar
             disabled={isLocked || saveMutation.isPending}
             onFormat={applyFormat}
+            onInsertArticleLink={openArticleLinkPicker}
             onAddBlock={(kind) => setBlocks((current) => insertBlockAfter(current, activeTarget?.blockId ?? null, kind))}
           />
         </div>
@@ -640,6 +672,15 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
           onChange={setImportText}
           onImport={importMarkdownAsBlocks}
           onClose={() => setIsImportOpen(false)}
+        />
+      ) : null}
+
+      {linkPickerTarget ? (
+        <InternalLinkDialog
+          articles={articleOptions}
+          isLoading={navigationTreeQuery.isLoading}
+          onPick={insertPickedArticleLink}
+          onClose={() => setLinkPickerTarget(null)}
         />
       ) : null}
 

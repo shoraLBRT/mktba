@@ -61,3 +61,27 @@ export const applyMarkdownFormat = (
     }
   }
 };
+
+/** Backslash-escapes the characters that would end or break a link's text. */
+const escapeLinkText = (text: string): string => text.replace(/[[\]\\]/g, (character) => `\\${character}`);
+
+/**
+ * Replaces the selection `start…end` of `value` with a link to the article at `href` (the site-
+ * relative `/{slug}`): the selected text becomes the link text, or the article's title when nothing
+ * is selected. The link text is selected afterwards.
+ */
+export const insertArticleLink = (
+  value: string,
+  start: number,
+  end: number,
+  article: { title: string; href: string },
+): FormattedText => {
+  const selected = value.slice(start, end);
+  const text = selected || escapeLinkText(article.title);
+  const selectionStart = start + 1;
+  return {
+    value: `${value.slice(0, start)}[${text}](${article.href})${value.slice(end)}`,
+    selectionStart,
+    selectionEnd: selectionStart + text.length,
+  };
+};
