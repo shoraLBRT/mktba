@@ -1,4 +1,5 @@
 import { cleanup, render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 import MarkdownContent from './MarkdownContent';
 
@@ -22,6 +23,19 @@ describe('MarkdownContent', () => {
     expect(external.getAttribute('target')).toBe('_blank');
     expect(external.getAttribute('rel')).toBe('noopener noreferrer');
     expect(anchor.hasAttribute('target')).toBe(false);
+  });
+
+  it('given a link to an article of the site, when rendered, then it stays in the tab with its address', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <MarkdownContent content={'[намаз](/namaz#p-3) [чужой](//example.com/x)'} />
+      </MemoryRouter>,
+    );
+    const [internal, protocolRelative] = container.querySelectorAll('a');
+
+    expect(internal.getAttribute('href')).toBe('/namaz#p-3');
+    expect(internal.hasAttribute('target')).toBe(false);
+    expect(protocolRelative.getAttribute('target')).toBe('_blank');
   });
 
   it('loads images lazily so they do not compete with the text above them', () => {

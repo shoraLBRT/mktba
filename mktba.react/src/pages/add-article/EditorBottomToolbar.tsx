@@ -1,5 +1,6 @@
 import {
   Bold,
+  FileSymlink,
   Heading2,
   Heading3,
   Italic,
@@ -19,6 +20,8 @@ export type FormatAction = 'bold' | 'italic' | 'link' | 'bulletList' | 'orderedL
 type EditorBottomToolbarProps = {
   disabled: boolean;
   onFormat: (action: FormatAction) => void;
+  /** Opens the article picker; the link goes where the cursor of the active text is. */
+  onInsertArticleLink: () => void;
   onAddBlock: (kind: PlainBlockKind) => void;
 };
 
@@ -45,7 +48,7 @@ const ToolbarIconButton = ({
   </button>
 );
 
-export const EditorBottomToolbar = ({ disabled, onFormat, onAddBlock }: EditorBottomToolbarProps) => {
+export const EditorBottomToolbar = ({ disabled, onFormat, onInsertArticleLink, onAddBlock }: EditorBottomToolbarProps) => {
   const locale = useLocale();
   const t = locale.addArticleEditor.bottomToolbar;
   const addActions: Array<{ kind: PlainBlockKind; label: string; icon: typeof Pilcrow }> = [
@@ -61,6 +64,7 @@ export const EditorBottomToolbar = ({ disabled, onFormat, onAddBlock }: EditorBo
           <ToolbarIconButton icon={Bold} label={t.formatting.bold} onClick={() => onFormat('bold')} disabled={disabled} />
           <ToolbarIconButton icon={Italic} label={t.formatting.italic} onClick={() => onFormat('italic')} disabled={disabled} />
           <ToolbarIconButton icon={LinkIcon} label={t.formatting.link} onClick={() => onFormat('link')} disabled={disabled} />
+          <ToolbarIconButton icon={FileSymlink} label={t.formatting.articleLink} onClick={onInsertArticleLink} disabled={disabled} />
           <ToolbarIconButton icon={List} label={t.formatting.bulletList} onClick={() => onFormat('bulletList')} disabled={disabled} />
           <ToolbarIconButton icon={ListOrdered} label={t.formatting.orderedList} onClick={() => onFormat('orderedList')} disabled={disabled} />
           <ToolbarIconButton icon={Quote} label={t.formatting.quote} onClick={() => onFormat('quote')} disabled={disabled} />

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { declineAnalytics, logIn, openAdminArticleTree } from './helpers';
+import { declineAnalytics, logIn, openAdminArticleTree, publishArticle } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await declineAnalytics(page);
@@ -340,4 +340,41 @@ test('an admin cites a new source in the editor, and readers see it under the pu
   await expect(reader).toHaveURL(/#p-\d+$/);
   await expect(reader.getByText('Абзац со ссылкой на хадис.')).toBeInViewport();
   await reader.close();
+});
+
+test('an admin links another article from the editor, a broken link only warns, and readers follow the link in the tab', async ({ page, request }) => {
+  const stamp = Date.now();
+  const target = await publishArticle(request, `E2E цель ссылки ${stamp}`, [
+    { order: 1, opinions: [{ content: 'Статья, на которую ссылаются.', isDefault: true, schoolIds: [] }] },
+  ]);
+  const missingSlug = `e2e-net-takoy-${stamp}`;
+  const title = `E2E статья со ссылкой ${stamp}`;
+  await logIn(page);
+
+  await page.goto('/admin/articles/new');
+  await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
+  const text = page.getByRole('textbox', { name: 'Введите текст параграфа...' });
+  await text.fill('Подробнее: ');
+  await page.getByRole('button', { name: 'Ссылка на статью' }).click();
+  const picker = page.getByRole('dialog', { name: 'Ссылка на статью' });
+  await picker.getByRole('searchbox', { name: 'Поиск статьи' }).fill(`цель ссылки ${stamp}`);
+  await picker.getByRole('button', { name: new RegExp(`E2E цель ссылки ${stamp}`) }).click();
+  await expect(picker).toBeHidden();
+  await expect(text).toHaveValue(`Подробнее: [E2E цель ссылки ${stamp}](/${target.slug})`);
+
+  await text.press('Control+End');
+  await text.pressSequentially(` и [нет](/${missingSlug})`);
+  await expect(text).toHaveValue(`Подробнее: [E2E цель ссылки ${stamp}](/${target.slug}) и [нет](/${missingSlug})`);
+  const warnings = page.getByRole('region', { name: 'Проверьте ссылки на статьи' });
+  await expect(warnings).toContainText(`/${missingSlug} — такой статьи нет`);
+  await expect(warnings).not.toContainText(`/${target.slug}`);
+
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+
+  const link = page.getByText('Подробнее:').getByRole('link', { name: `E2E цель ссылки ${stamp}` });
+  await expect(link).not.toHaveAttribute('target');
+  await link.click();
+  await expect(page).toHaveURL(new RegExp(`/${target.slug}$`));
+  await expect(page.getByText('Статья, на которую ссылаются.')).toBeVisible();
 });
