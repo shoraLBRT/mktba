@@ -22,7 +22,7 @@ const article = (slug: string): ArticleContentDto => ({ id: 7, title: 'Нама�
 vi.mock('../services/Article/articleService', () => ({ getArticleContentById: vi.fn(), getArticleContentBySlug: vi.fn(), getRecentArticles: vi.fn() }));
 vi.mock('../services/Article/navigationService', () => ({ getNavigationTree: vi.fn() }));
 vi.mock('../services/schoolService', () => ({ getSchoolsByArticleId: vi.fn(), getSystemSchools: vi.fn() }));
-vi.mock('../pages/AddArticlePage', () => ({ default: () => <p>add-article-page</p> }));
+vi.mock('../pages/ArticleEditorPage', () => ({ default: () => <p>article-editor-page</p> }));
 vi.mock('../pages/AdminLoginPage', () => ({ default: () => <p>admin-login-page</p> }));
 vi.mock('../services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('../pages/admin/AdminDashboardPage', () => ({ default: () => <p>admin-dashboard-page</p> }));
@@ -32,7 +32,6 @@ vi.mock('../pages/admin/AdminAiSettingsPage', () => ({ default: () => <p>admin-a
 vi.mock('../pages/admin/AdminUsersPage', () => ({ default: () => <p>admin-users-page</p> }));
 vi.mock('../pages/admin/AdminSessionsPage', () => ({ default: () => <p>admin-sessions-page</p> }));
 vi.mock('../pages/admin/AdminMaintenancePage', () => ({ default: () => <p>admin-maintenance-page</p> }));
-vi.mock('../pages/EditArticlePage', () => ({ default: () => <p>edit-article-page</p> }));
 
 const signInAs = (role: UserRole) => {
   setSignedIn({ accessToken: 'token-1', email: `${role.toLowerCase()}@mktba.test` });
@@ -134,7 +133,7 @@ describe('AppRoutes', () => {
 
     renderAt('/article/new');
 
-    expect(await screen.findByText('add-article-page')).toBeTruthy();
+    expect(await screen.findByText('article-editor-page')).toBeTruthy();
     expect(screen.getByTestId('path').textContent).toBe('/admin/articles/new');
   });
 
@@ -142,7 +141,7 @@ describe('AppRoutes', () => {
     renderAt('/admin/articles/new');
 
     expect(await screen.findByText('admin-login-page')).toBeTruthy();
-    expect(screen.queryByText('add-article-page')).toBeNull();
+    expect(screen.queryByText('article-editor-page')).toBeNull();
   });
 
   it('given a session still being restored after a reload, when an admin page renders, then it waits instead of sending them to the login page', async () => {
