@@ -746,14 +746,15 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
             />
           </div>
 
-          <EditorBottomToolbar
+          {/* The formats and new blocks act on the document, which the preview hides. */}
+          {isPreview ? null : <EditorBottomToolbar
             disabled={isLocked || saveMutation.isPending}
             onFormat={applyFormat}
             onInsertArticleLink={openArticleLinkPicker}
             onUndo={() => richTextOf(activeTarget)?.undo()}
             onRedo={() => richTextOf(activeTarget)?.redo()}
             onAddBlock={(kind) => setBlocks((current) => insertBlockAfter(current, activeTarget?.blockId ?? null, kind))}
-          />
+          />}
         </div>
 
         <EditorHelpRail

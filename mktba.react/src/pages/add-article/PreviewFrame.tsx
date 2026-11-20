@@ -73,7 +73,7 @@ export const PreviewFrame = ({ width, title, children }: PreviewFrameProps) => {
         ref={frameRef}
         title={title}
         data-testid="article-preview-frame"
-        className="mx-auto block rounded-xl border border-[var(--color-border-soft)] bg-white shadow-sm"
+        className="mx-auto box-content block rounded-xl border border-[var(--color-border-soft)] bg-white shadow-sm"
         style={{
           width,
           height: frameHeight,
