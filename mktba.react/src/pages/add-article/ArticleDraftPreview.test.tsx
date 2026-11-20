@@ -31,16 +31,17 @@ const draft: ArticleDraft = {
 
 const renderPreview = (readerSchoolId: number | null = null) => {
   const setSelectedSchoolId = vi.fn();
-  render(
+  const onClose = vi.fn();
+  const { unmount } = render(
     <LocalizationProvider>
       <MemoryRouter>
         <MazhabContext.Provider value={{ selectedSchoolId: readerSchoolId, setSelectedSchoolId }}>
-          <ArticleDraftPreview draft={draft} article={null} schools={schools} navigationTree={[]} />
+          <ArticleDraftPreview draft={draft} article={null} schools={schools} navigationTree={[]} onClose={onClose} />
         </MazhabContext.Provider>
       </MemoryRouter>
     </LocalizationProvider>,
   );
-  return { setSelectedSchoolId };
+  return { setSelectedSchoolId, onClose, unmount };
 };
 
 const frame = () => screen.getByTestId('article-preview-frame') as HTMLIFrameElement;
@@ -88,6 +89,27 @@ describe('ArticleDraftPreview', () => {
 
     expect(frame().style.width).toBe('375px');
     expect(screen.getByRole('button', { name: 'Телефон · 375 px' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('Given the open preview, When Escape is pressed, Then it asks to close and gives the focus back to where it came from', async () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const { onClose, unmount } = renderPreview();
+
+    const dialog = screen.getByRole('dialog', { name: 'Предпросмотр как у читателя' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Закрыть предпросмотр' }));
+    expect(opener.inert).toBe(true);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(opener.inert).toBe(false);
+    expect(document.body.style.overflow).toBe('');
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
   });
 
   it('Given a link inside the preview, When it is clicked, Then the click does not navigate', async () => {

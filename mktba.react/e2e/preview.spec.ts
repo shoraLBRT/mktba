@@ -20,16 +20,26 @@ test('the editor previews the draft as a reader, with its own mazhab and a phone
     },
   ]);
 
+  // A common laptop-and-up screen: the desktop frame (1280) fits at full size.
+  await page.setViewportSize({ width: 1440, height: 900 });
   await logIn(page);
   // The reader's own saved mazhab, which the preview's switch must leave alone.
   const saved = String(schoolId('hanafi'));
   await page.evaluate((id) => localStorage.setItem('mktba.mazhab', id), saved);
 
   await page.goto(`/admin/articles/${article.id}/edit`);
-  await page.getByRole('button', { name: 'Просмотр' }).click();
+  const previewButton = page.getByRole('button', { name: 'Просмотр' });
+  await previewButton.click();
 
+  // A dialog over the whole window, the editor behind it inert.
+  const dialog = page.getByRole('dialog', { name: 'Предпросмотр как у читателя' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Закрыть предпросмотр' })).toBeFocused();
   const frameElement = page.getByTestId('article-preview-frame');
   await expect(frameElement).toBeVisible();
+  await expect(frameElement).toHaveAttribute('data-scale', '1');
+  const frameWindow = (await (await frameElement.elementHandle())!.contentFrame())!;
+  await expect.poll(() => frameWindow.evaluate('window.innerWidth')).toBe(1280);
   const frame = page.frameLocator('[data-testid="article-preview-frame"]');
   const heading = frame.getByRole('heading', { level: 1, name: title });
   await expect(heading).toBeVisible();
@@ -42,19 +52,20 @@ test('the editor previews the draft as a reader, with its own mazhab and a phone
   await expect(heading).not.toHaveCSS('font-family', /^"?Times/);
 
   await expect(frame.getByText('Мнение ханафитов в предпросмотре.')).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath('preview-desktop.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('preview-desktop.png') });
 
-  await page.getByLabel('Мазхаб').selectOption(String(schoolId('shafii')));
+  await dialog.getByRole('combobox').selectOption(String(schoolId('shafii')));
   await expect(frame.getByText('Мнение шафиитов в предпросмотре.')).toBeVisible();
   await expect(frame.getByText('Мнение ханафитов в предпросмотре.')).toBeHidden();
 
-  await page.getByRole('button', { name: 'Телефон · 375 px' }).click();
-  const frameWindow = (await (await frameElement.elementHandle())!.contentFrame())!;
+  await dialog.getByRole('button', { name: 'Телефон · 375 px' }).click();
   await expect.poll(() => frameWindow.evaluate('window.innerWidth')).toBe(375);
-  // Below `xl` the right sidebar is gone and the mobile overview takes its place, as on a phone.
   await expect(frame.getByText('Мнение шафиитов в предпросмотре.')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Редакт.' }).click();
+  // Escape closes it, from the dialog's own controls, and the focus is back on «Просмотр».
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
   await expect(frameElement).toHaveCount(0);
+  await expect(previewButton).toBeFocused();
   expect(await page.evaluate(() => localStorage.getItem('mktba.mazhab'))).toBe(saved);
 });

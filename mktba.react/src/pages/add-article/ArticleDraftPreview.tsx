@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import { ArticleBreadcrumbs } from '../../components/article/ArticleBreadcrumbs';
 import { ArticleDates } from '../../components/article/ArticleDates';
 import { ArticleFooter } from '../../components/article/ArticleFooter';
@@ -18,6 +19,7 @@ import type { ArticleAuthorDto, NavigationTreeDto, SchoolDto } from '../../share
 import { buildArticlePreviewContent, PREVIEW_WIDTHS, type PreviewWidth } from './articlePreview';
 import type { ArticleDraft } from './articleDraft';
 import type { RelatedLinkDraft } from './metadataHelpers';
+import { PreviewDialog } from './PreviewDialog';
 import { PreviewFrame } from './PreviewFrame';
 
 type ArticleDraftPreviewProps = {
@@ -28,6 +30,7 @@ type ArticleDraftPreviewProps = {
   schools: SchoolDto[];
   /** The editor's tree (every status): breadcrumbs and child articles. */
   navigationTree: NavigationTreeDto | undefined;
+  onClose: () => void;
 };
 
 const toFooterArticle = (link: RelatedLinkDraft, navigationTree: NavigationTreeDto | undefined) => ({
@@ -41,8 +44,9 @@ const toFooterArticle = (link: RelatedLinkDraft, navigationTree: NavigationTreeD
  * `/{slug}` — breadcrumbs, title, dates, the overview, the infobox, the text with the reader's
  * opinion selection and the footer — inside a frame of a phone's, a tablet's or a desktop's width.
  * The mazhab picked here is the preview's own: the reader's saved choice is only where it starts.
+ * It opens as a dialog over the whole window, so a desktop's width fits at full size on such a screen.
  */
-export const ArticleDraftPreview = ({ draft, article, schools, navigationTree }: ArticleDraftPreviewProps) => {
+export const ArticleDraftPreview = ({ draft, article, schools, navigationTree, onClose }: ArticleDraftPreviewProps) => {
   const locale = useLocale();
   const t = locale.addArticlePage.preview;
   const { selectedSchoolId: readerSchoolId } = useMazhab();
@@ -80,40 +84,52 @@ export const ArticleDraftPreview = ({ draft, article, schools, navigationTree }:
   const title = content.title || locale.common.untitled;
 
   return (
-    <section aria-label={t.title} className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-muted)]">
-          {t.mazhab}
-          <select
-            value={schoolId ?? ''}
-            onChange={(event) => setSchoolId(event.target.value ? Number(event.target.value) : null)}
-            className="min-h-8 rounded-lg border border-[var(--color-border-soft)] bg-white px-2 text-xs text-[var(--color-ink-strong)]"
-          >
-            <option value="">{t.noMazhab}</option>
-            {systemSchools.map((school) => (
-              <option key={school.id} value={school.id}>{school.name}</option>
-            ))}
-          </select>
-        </label>
-        <div role="group" aria-label={t.width} className="flex items-center gap-1">
-          {(Object.keys(PREVIEW_WIDTHS) as PreviewWidth[]).map((key) => (
+    <PreviewDialog onClose={onClose}>
+      {(titleId, close) => (
+        <>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--color-border-soft)] bg-white px-4 py-2.5">
+            <h2 id={titleId} className="m-0 text-sm font-semibold text-[var(--color-ink-strong)]">{t.title}</h2>
+            <label className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-muted)]">
+              {t.mazhab}
+              <select
+                value={schoolId ?? ''}
+                onChange={(event) => setSchoolId(event.target.value ? Number(event.target.value) : null)}
+                className="min-h-8 rounded-lg border border-[var(--color-border-soft)] bg-white px-2 text-xs text-[var(--color-ink-strong)]"
+              >
+                <option value="">{t.noMazhab}</option>
+                {systemSchools.map((school) => (
+                  <option key={school.id} value={school.id}>{school.name}</option>
+                ))}
+              </select>
+            </label>
+            <div role="group" aria-label={t.width} className="flex items-center gap-1">
+              {(Object.keys(PREVIEW_WIDTHS) as PreviewWidth[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={width === key}
+                  onClick={() => setWidth(key)}
+                  className={`min-h-8 rounded-lg border px-2.5 text-xs transition-colors ${width === key
+                    ? 'border-[var(--color-brand-forest)] bg-[var(--color-brand-forest)] text-white'
+                    : 'border-[var(--color-border-soft)] bg-white text-[var(--color-ink-muted)] hover:text-[var(--color-ink-strong)]'}`}
+                >
+                  {t.widths[key].replace('{width}', String(PREVIEW_WIDTHS[key]))}
+                </button>
+              ))}
+            </div>
+            <p className="m-0 min-w-0 flex-1 basis-64 text-xs text-[var(--color-ink-subtle)]">{t.note}</p>
             <button
-              key={key}
               type="button"
-              aria-pressed={width === key}
-              onClick={() => setWidth(key)}
-              className={`min-h-8 rounded-lg border px-2.5 text-xs transition-colors ${width === key
-                ? 'border-[var(--color-brand-forest)] bg-[var(--color-brand-forest)] text-white'
-                : 'border-[var(--color-border-soft)] bg-white text-[var(--color-ink-muted)] hover:text-[var(--color-ink-strong)]'}`}
+              onClick={close}
+              aria-label={t.close}
+              data-dialog-close
+              className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-strong)]"
             >
-              {t.widths[key].replace('{width}', String(PREVIEW_WIDTHS[key]))}
+              <X size={16} />
             </button>
-          ))}
-        </div>
-      </div>
-      <p className="m-0 text-xs text-[var(--color-ink-subtle)]">{t.note}</p>
+          </div>
 
-      <PreviewFrame width={PREVIEW_WIDTHS[width]} title={t.frameTitle}>
+          <PreviewFrame width={PREVIEW_WIDTHS[width]} title={t.frameTitle}>
         <div className="flex min-h-screen bg-page-bg text-ink-default">
           {/* The site's navigation sidebar is not rendered; its place is kept, so the column is as wide as on the site. */}
           <div
@@ -170,7 +186,9 @@ export const ArticleDraftPreview = ({ draft, article, schools, navigationTree }:
             />
           </div>
         </div>
-      </PreviewFrame>
-    </section>
+          </PreviewFrame>
+        </>
+      )}
+    </PreviewDialog>
   );
 };

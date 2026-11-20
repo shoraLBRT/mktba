@@ -684,9 +684,10 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                     article={mode.kind === 'edit' ? mode.article : null}
                     schools={schools.available}
                     navigationTree={navigationTreeQuery.data}
+                    onClose={() => setIsPreview(false)}
                   />
-                ) : (
-                  <div className="mx-auto max-w-[720px]">
+                ) : null}
+                <div className="mx-auto max-w-[720px]">
                     <InfoboxEditor {...infoboxEditorProps} />
 
                     <div className="space-y-0.5">
@@ -731,7 +732,6 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                       ))}
                     </div>
                   </div>
-                )}
               </div>
 
             </div>
@@ -746,15 +746,14 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
             />
           </div>
 
-          {/* The formats and new blocks act on the document, which the preview hides. */}
-          {isPreview ? null : <EditorBottomToolbar
+          <EditorBottomToolbar
             disabled={isLocked || saveMutation.isPending}
             onFormat={applyFormat}
             onInsertArticleLink={openArticleLinkPicker}
             onUndo={() => richTextOf(activeTarget)?.undo()}
             onRedo={() => richTextOf(activeTarget)?.redo()}
             onAddBlock={(kind) => setBlocks((current) => insertBlockAfter(current, activeTarget?.blockId ?? null, kind))}
-          />}
+          />
         </div>
 
         <EditorHelpRail

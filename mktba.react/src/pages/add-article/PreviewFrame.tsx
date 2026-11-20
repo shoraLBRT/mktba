@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
+/** The frame's height before its box is measured (and where nothing measures it, as in tests). */
+const FALLBACK_HEIGHT = 720;
+
 type PreviewFrameProps = {
   /** The emulated screen width in CSS pixels: the page's media queries see exactly this viewport. */
   width: number;
@@ -27,7 +30,7 @@ export const PreviewFrame = ({ width, title, children }: PreviewFrameProps) => {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [body, setBody] = useState<HTMLElement | null>(null);
   const scaleBoxRef = useRef<HTMLDivElement>(null);
-  const [availableWidth, setAvailableWidth] = useState<number | null>(null);
+  const [available, setAvailable] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -45,17 +48,18 @@ export const PreviewFrame = ({ width, title, children }: PreviewFrameProps) => {
     return () => frame.removeEventListener('load', attach);
   }, []);
 
-  // A screen wider than the editor's column is shown scaled down, not cut off.
+  // The frame fills the space it is given; a screen wider than that is shown scaled down, not cut off.
   useEffect(() => {
     const box = scaleBoxRef.current;
     if (!box || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(([entry]) => setAvailableWidth(entry.contentRect.width));
+    const observer = new ResizeObserver(([entry]) => setAvailable({ width: entry.contentRect.width, height: entry.contentRect.height }));
     observer.observe(box);
     return () => observer.disconnect();
   }, []);
 
-  const scale = availableWidth !== null && availableWidth < width ? availableWidth / width : 1;
-  const frameHeight = 720;
+  // The frame's border is outside its width (`box-content`), so it needs 2px more.
+  const scale = available !== null && available.width < width + 2 ? available.width / (width + 2) : 1;
+  const frameHeight = available !== null ? Math.max(available.height / scale - 2, 0) : FALLBACK_HEIGHT;
 
   const handleClickCapture = (event: MouseEvent<HTMLDivElement>) => {
     const link = (event.target as Element).closest?.('a');
@@ -68,11 +72,12 @@ export const PreviewFrame = ({ width, title, children }: PreviewFrameProps) => {
   };
 
   return (
-    <div ref={scaleBoxRef} className="w-full" style={{ height: frameHeight * scale }}>
+    <div ref={scaleBoxRef} className="min-h-0 w-full flex-1 overflow-hidden p-4">
       <iframe
         ref={frameRef}
         title={title}
         data-testid="article-preview-frame"
+        data-scale={scale}
         className="mx-auto box-content block rounded-xl border border-[var(--color-border-soft)] bg-white shadow-sm"
         style={{
           width,
