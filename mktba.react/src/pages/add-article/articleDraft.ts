@@ -70,6 +70,13 @@ export const articleDraftFromDto = (article: ArticleContentDto): ArticleDraft =>
 export const initialArticleDraft = (mode: ArticleEditorMode): ArticleDraft =>
   mode.kind === 'edit' ? articleDraftFromDto(mode.article) : createEmptyArticleDraft();
 
+/**
+ * Whether the draft differs from the one last saved (or loaded): the unsaved-edits guard asks
+ * this (E-03, #76), and so will autosave (E-02, #75). Edits undone by hand count as no change.
+ */
+export const hasArticleDraftChanged = (draft: ArticleDraft, baseline: ArticleDraft): boolean =>
+  draft !== baseline && JSON.stringify(draft) !== JSON.stringify(baseline);
+
 /** The slug the slug field shows: the typed one, or the one derived from the title. */
 export const displayedSlug = (draft: ArticleDraft): string =>
   draft.slug ?? (draft.title.trim() ? articleSlugFromTitle(draft.title) : '');

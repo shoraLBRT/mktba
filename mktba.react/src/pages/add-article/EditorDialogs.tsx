@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useLocale } from '../../localization/hooks';
 import { Button } from '../../shared/ui/Button';
@@ -91,6 +91,46 @@ export const AiRunningOverlay = () => {
             <p className="m-0 text-sm font-semibold text-[var(--color-ink-strong)]">{t.aiOverlayTitle}</p>
             <p className="mb-0 mt-1 text-sm text-[var(--color-ink-muted)]">{t.aiOverlayDescription}</p>
           </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+/** Asks before a navigation drops the editor's unsaved edits; staying is the default. */
+export const UnsavedChangesDialog = ({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) => {
+  const t = useLocale().addArticlePage.unsavedChanges;
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    overlayRef.current?.querySelector<HTMLButtonElement>('[data-stay]')?.focus();
+    const stayOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onStay();
+      }
+    };
+    window.addEventListener('keydown', stayOnEscape);
+    return () => window.removeEventListener('keydown', stayOnEscape);
+  }, [onStay]);
+
+  return (
+    <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(20,20,18,0.35)] p-4 backdrop-blur-sm">
+      <Card
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="unsaved-changes-title"
+        aria-describedby="unsaved-changes-description"
+        className="w-full max-w-xl"
+      >
+        <div className="border-b border-[var(--color-border-soft)] px-6 py-5">
+          <h2 id="unsaved-changes-title" className="m-0 text-xl font-semibold text-[var(--color-ink-strong)]">{t.title}</h2>
+        </div>
+        <div className="px-6 py-5">
+          <p id="unsaved-changes-description" className="m-0 text-sm leading-7 text-[var(--color-ink-muted)]">{t.description}</p>
+        </div>
+        <div className="flex justify-end gap-3 border-t border-[var(--color-border-soft)] px-6 py-4">
+          <Button variant="ghost" onClick={onLeave}>{t.leave}</Button>
+          <Button data-stay variant="primary" onClick={onStay}>{t.stay}</Button>
         </div>
       </Card>
     </div>

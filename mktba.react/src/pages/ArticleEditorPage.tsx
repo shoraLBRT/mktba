@@ -22,7 +22,8 @@ import { EditorHelpRail } from './add-article/EditorHelpRail';
 import { InfoboxEditor } from './add-article/InfoboxEditor';
 import { EditorOutlineRail } from './add-article/EditorOutlineRail';
 import { EditorToolbar } from './add-article/EditorToolbar';
-import { AiRunningOverlay, DeleteArticleDialog, EditorNotice, ImportMarkdownDialog, type EditorNoticeValue } from './add-article/EditorDialogs';
+import { AiRunningOverlay, DeleteArticleDialog, EditorNotice, ImportMarkdownDialog, UnsavedChangesDialog, type EditorNoticeValue } from './add-article/EditorDialogs';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 import { getAiAvailability } from './add-article/aiAvailability';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import {
@@ -51,6 +52,7 @@ import {
   buildArticleUpdateDto,
   displayedSlug,
   findArticleDraftProblem,
+  hasArticleDraftChanged,
   initialArticleDraft,
   type ArticleDraft,
   type ArticleDraftProblem,
@@ -174,7 +176,11 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const editorText = locale.addArticleEditor;
   const articleId = mode.kind === 'edit' ? mode.article.id : null;
 
-  const [draft, setDraft] = useState(() => initialArticleDraft(mode));
+  // The draft as last saved (or loaded): what is different from it would be lost by leaving.
+  const [baseline, setBaseline] = useState(() => initialArticleDraft(mode));
+  const [draft, setDraft] = useState(baseline);
+  const hasUnsavedChanges = useMemo(() => hasArticleDraftChanged(draft, baseline), [draft, baseline]);
+  const leaveGuard = useUnsavedChangesGuard(hasUnsavedChanges);
   const setField = <K extends keyof ArticleDraft>(key: K, value: SetStateAction<ArticleDraft[K]>) =>
     setDraft((current) => ({
       ...current,
@@ -245,13 +251,15 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       await updateArticleContent(articleId, payload);
       return payload.slug ?? String(articleId);
     },
-    onSuccess: async (slug) => {
+    onSuccess: async (slug, saved) => {
+      setBaseline(saved);
       if (mode.kind === 'edit') {
         await invalidateArticleQueries(queryClient);
       } else {
         void invalidateArticleQueries(queryClient);
       }
       showNotice('success', mode.kind === 'edit' ? editT.saved : t.saved);
+      leaveGuard.allowLeaving();
       navigate(articleHref(slug));
     },
     onError: (error) =>
@@ -262,6 +270,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     mutationFn: () => deleteArticle(articleId!),
     onSuccess: () => {
       void invalidateArticleQueries(queryClient);
+      leaveGuard.allowLeaving();
       navigate('/');
     },
     onError: (error) => {
@@ -635,6 +644,10 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       ) : null}
 
       {isAiRunning ? <AiRunningOverlay /> : null}
+
+      {leaveGuard.blocker.state === 'blocked' ? (
+        <UnsavedChangesDialog onStay={leaveGuard.blocker.reset} onLeave={leaveGuard.blocker.proceed} />
+      ) : null}
 
       {isDeleteModalOpen ? (
         <DeleteArticleDialog

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { LocalizationProvider } from '../localization/provider';
@@ -40,19 +40,24 @@ const renderAt = (url: string) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE], []);
 
-  return render(
+  // A data router, as in the app: the unsaved-edits guard needs one.
+  const router = createMemoryRouter(
+    [
+      { path: '/admin/articles/new', element: <ArticleEditorPage /> },
+      { path: '/admin/articles/:articleId/edit', element: <ArticleEditorPage /> },
+      { path: '/admin/articles/:articleId/history', element: <p>history-page</p> },
+      { path: '/:slug', element: <p>article-page</p> },
+    ],
+    { initialEntries: [url] },
+  );
+  render(
     <QueryClientProvider client={client}>
       <LocalizationProvider>
-        <MemoryRouter initialEntries={[url]}>
-          <Routes>
-            <Route path="/admin/articles/new" element={<ArticleEditorPage />} />
-            <Route path="/admin/articles/:articleId/edit" element={<ArticleEditorPage />} />
-            <Route path="/:slug" element={<p>article-page</p>} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </LocalizationProvider>
     </QueryClientProvider>,
   );
+  return router;
 };
 
 const titleField = () => screen.getByPlaceholderText('Название статьи...') as HTMLInputElement;
@@ -108,6 +113,53 @@ describe('ArticleEditorPage', () => {
       slug: 'namaz',
       editComment: 'Заголовок',
     }));
+  });
+
+  it('given an untouched article, when the history link is followed, then it opens without asking', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+
+    fireEvent.click(screen.getByText('История правок'));
+
+    expect(await screen.findByText('history-page')).toBeTruthy();
+  });
+
+  it('given unsaved edits, when the history link is followed, then the editor asks and staying keeps the edits', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    renderAt('/admin/articles/7/edit');
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+    fireEvent.click(screen.getByText('История правок'));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Уйти без сохранения?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Остаться' }));
+
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(titleField().value).toBe('Намаз путника');
+    expect(screen.queryByText('history-page')).toBeNull();
+  });
+
+  it('given unsaved edits, when the user chooses to leave, then the history page opens', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    renderAt('/admin/articles/7/edit');
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+    fireEvent.click(screen.getByText('История правок'));
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Уйти без сохранения' }));
+
+    expect(await screen.findByText('history-page')).toBeTruthy();
+  });
+
+  it('given a new article, when it is saved, then its page opens without asking', async () => {
+    vi.mocked(createArticleContent).mockResolvedValue({ ...article, id: 8, slug: 'novaya' });
+    renderAt('/admin/articles/new');
+    fireEvent.change(titleField(), { target: { value: 'Новая' } });
+    fireEvent.change(screen.getByPlaceholderText('Введите текст параграфа...'), { target: { value: 'Текст' } });
+
+    save();
+
+    expect(await screen.findByText('article-page')).toBeTruthy();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 
   it('given an article that cannot be loaded, when the edit address opens, then the load error is shown', async () => {

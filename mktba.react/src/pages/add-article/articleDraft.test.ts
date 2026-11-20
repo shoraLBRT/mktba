@@ -8,6 +8,7 @@ import {
   createEmptyArticleDraft,
   displayedSlug,
   findArticleDraftProblem,
+  hasArticleDraftChanged,
   initialArticleDraft,
   type ArticleDraft,
 } from './articleDraft';
@@ -65,6 +66,30 @@ describe('initialArticleDraft', () => {
     const draft = articleDraftFromDto({ ...article, paragraphs: [] });
 
     expect(draft.blocks).toHaveLength(1);
+  });
+});
+
+describe('hasArticleDraftChanged', () => {
+  it('given the draft as it was loaded, when compared, then nothing has changed', () => {
+    const baseline = initialArticleDraft({ kind: 'edit', article });
+
+    expect(hasArticleDraftChanged(baseline, baseline)).toBe(false);
+    expect(hasArticleDraftChanged(structuredClone(baseline), baseline)).toBe(false);
+  });
+
+  it('given an edit anywhere in the draft, when compared, then it has changed', () => {
+    const baseline = initialArticleDraft({ kind: 'edit', article });
+
+    expect(hasArticleDraftChanged({ ...baseline, title: 'Намаз путника' }, baseline)).toBe(true);
+    expect(hasArticleDraftChanged({ ...baseline, tags: [] }, baseline)).toBe(true);
+    expect(hasArticleDraftChanged({ ...baseline, editComment: 'правка' }, baseline)).toBe(true);
+  });
+
+  it('given an edit undone by hand, when compared, then nothing has changed', () => {
+    const baseline = createEmptyArticleDraft();
+    const edited = { ...baseline, title: 'Черновик' };
+
+    expect(hasArticleDraftChanged({ ...edited, title: '' }, baseline)).toBe(false);
   });
 });
 
