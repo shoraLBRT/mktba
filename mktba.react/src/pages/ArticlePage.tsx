@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
@@ -12,18 +12,14 @@ import { ArticleMeta } from '../components/article/ArticleMeta';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { ArticleStructuredData } from '../components/StructuredData';
 import { ArticleMobileOverview } from '../components/article/ArticleMobileOverview';
-import { ArticleRightSidebar, type TocItem } from '../components/article/ArticleRightSidebar';
+import { ArticleRightSidebar } from '../components/article/ArticleRightSidebar';
 import { ArticleSkeleton } from '../components/article/ArticleSkeleton';
-import { VersionedParagraphBlock, type OpinionTab } from '../components/article/VersionedParagraphBlock';
-import { resolvePaletteKey } from '../components/mazhab/schoolPalette';
-import { resolveAutoOpinionIndex } from '../components/mazhab/opinionSelection';
-import { buildOpinionCaptions, resolveMissingOpinionNote } from '../components/mazhab/opinionCaptions';
-import MarkdownContent from '../components/MarkdownContent';
+import { ArticleParagraphList } from '../components/article/ArticleParagraphs';
+import { useArticleOutline, useRenderedParagraphs, useTocItems } from '../components/article/useArticleParagraphs';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
-import type { SchoolDto } from '../shared/types/ApiTypes';
 import { useMazhab } from '../context/mazhabContext';
 import { METRIKA_GOALS } from '../analytics/metrika';
 import { useReadToEnd } from '../analytics/useReadToEnd';
@@ -34,7 +30,7 @@ import { articleHref, authorHref } from '../shared/slug';
 import { feedbackHref } from '../shared/feedback';
 import { findAdjacentArticles, findArticlePath } from '../shared/articleTree';
 import { estimateReadingMinutes } from '../shared/readingTime';
-import { ARTICLE_OVERVIEW_ANCHOR, buildArticleOutline } from '../shared/articleOutline';
+import { ARTICLE_OVERVIEW_ANCHOR } from '../shared/articleOutline';
 import { useHydrated } from '../shared/useHydrated';
 import { BackToTopButton } from '../components/article/BackToTopButton';
 import { useHashAnchor } from '../components/article/useHashAnchor';
@@ -47,28 +43,6 @@ const ArticlePage: React.FC = () => {
   // `/article/{id}` links from before slugs still open the article and are replaced by its `/{slug}` URL.
   const legacyArticleId = parseLegacyArticleId(requestedSlug);
   const { selectedSchoolId } = useMazhab();
-  // Per-paragraph overrides are scoped to the mazhab they were made under, so
-  // picking a different mazhab drops them without a state-resetting effect.
-  const [overrides, setOverrides] = useState<{
-    schoolId: number | null;
-    byParagraph: Record<number, number>;
-  }>({ schoolId: selectedSchoolId, byParagraph: {} });
-
-  const selectedAlternatives = useMemo(
-    () => (overrides.schoolId === selectedSchoolId ? overrides.byParagraph : {}),
-    [overrides, selectedSchoolId],
-  );
-
-  const setAlternative = (paragraphId: number, index: number) => {
-    setOverrides((current) => ({
-      schoolId: selectedSchoolId,
-      byParagraph:
-        current.schoolId === selectedSchoolId
-          ? { ...current.byParagraph, [paragraphId]: index }
-          : { [paragraphId]: index },
-    }));
-  };
-
   const { data: articleContent, isLoading, error } = useQuery({
     queryKey: articleContentQueryKey(requestedSlug),
     queryFn: () => (legacyArticleId !== null
@@ -114,18 +88,9 @@ const ArticlePage: React.FC = () => {
     };
   }, [articleId, articleContent, track]);
 
-  const tv = locale.versionedParagraph;
-
-  const schoolMap = useMemo<Map<number, SchoolDto>>(() => {
-    const map = new Map<number, SchoolDto>();
-    for (const s of systemSchools ?? []) map.set(s.id, s);
-    for (const s of articleSchools ?? []) map.set(s.id, s);
-    return map;
-  }, [systemSchools, articleSchools]);
-
-  const systemSchoolIds = useMemo(
-    () => (systemSchools ?? []).map((school) => school.id),
-    [systemSchools],
+  const schools = useMemo(
+    () => [...(systemSchools ?? []), ...(articleSchools ?? [])],
+    [systemSchools, articleSchools],
   );
 
   const articlePath = useMemo(
@@ -177,78 +142,9 @@ const ArticlePage: React.FC = () => {
     [articleContent],
   );
 
-  const renderedParagraphs = useMemo(() => {
-    return [...(articleContent?.paragraphs ?? [])]
-      .sort((a, b) => a.order - b.order)
-      .map((paragraph) => {
-        const autoIndex = resolveAutoOpinionIndex(paragraph.opinions, selectedSchoolId);
-        const activeIndex = selectedAlternatives[paragraph.id] ?? autoIndex;
-        const activeOpinion = paragraph.opinions[activeIndex] ?? paragraph.opinions[0];
-
-        const tabs = paragraph.opinions.map<OpinionTab>((opinion) => {
-          const schools = opinion.schoolIds
-            .map((schoolId) => schoolMap.get(schoolId))
-            .filter((school): school is SchoolDto => school !== undefined);
-
-          return {
-            ...buildOpinionCaptions(schools, systemSchoolIds, tv),
-            paletteKey: resolvePaletteKey(schools),
-            isReaderSchool: selectedSchoolId !== null && opinion.schoolIds.includes(selectedSchoolId),
-          };
-        });
-        const note = resolveMissingOpinionNote(
-          paragraph.opinions,
-          activeIndex,
-          selectedSchoolId,
-          selectedSchoolId !== null ? schoolMap.get(selectedSchoolId) : undefined,
-          tv,
-        );
-
-        return {
-          paragraphId: paragraph.id,
-          order: paragraph.order,
-          opinions: paragraph.opinions,
-          activeIndex,
-          activeOpinion,
-          tabs,
-          note,
-          hasAlternatives: paragraph.opinions.length > 1,
-        };
-      });
-  }, [articleContent, selectedAlternatives, schoolMap, selectedSchoolId, systemSchoolIds, tv]);
-
-  // Anchors follow the opinions on screen: the default ones in the server HTML and while hydrating,
-  // the reader's after that. Only the shown opinion's headings get ids, so an id is never repeated
-  // in a hidden panel.
-  const outline = useMemo(
-    () =>
-      buildArticleOutline(
-        renderedParagraphs.map((paragraph) => ({
-          paragraphId: paragraph.paragraphId,
-          content: paragraph.activeOpinion?.content ?? '',
-        })),
-      ).map((paragraph) => ({
-        ...paragraph,
-        headingAnchors: paragraph.headings.map((heading) => ({
-          id: heading.id,
-          text: heading.text,
-          linkLabel: locale.articlePage.headingLink.replace('{title}', heading.text),
-        })),
-      })),
-    [renderedParagraphs, locale.articlePage.headingLink],
-  );
-
-  // A stub has no text to find one's way in, so it has no table of contents at all.
-  const tocItems = useMemo<TocItem[]>(
-    () => outline.length === 0 ? [] : [
-      { id: ARTICLE_OVERVIEW_ANCHOR, label: locale.articlePage.overview, depth: 2 },
-      ...outline.flatMap((paragraph) =>
-        paragraph.headings
-          .filter((heading) => heading.depth <= 3 && heading.text.length > 0)
-          .map<TocItem>((heading) => ({ id: heading.id, label: heading.text, depth: heading.depth === 3 ? 3 : 2 }))),
-    ],
-    [locale.articlePage.overview, outline],
-  );
+  const { renderedParagraphs, setAlternative } = useRenderedParagraphs(articleContent?.paragraphs, schools, selectedSchoolId);
+  const outline = useArticleOutline(renderedParagraphs);
+  const tocItems = useTocItems(outline);
 
   const hydrated = useHydrated();
   useHashAnchor(hydrated && articleContent !== undefined, `${articleId}:${selectedSchoolId ?? ''}`);
@@ -382,56 +278,7 @@ const ArticlePage: React.FC = () => {
             <ArticleInfoboxPanel infobox={articleContent.infobox} />
           </div>
 
-          {renderedParagraphs.length > 0 ? (
-            renderedParagraphs.map((paragraph, index) => {
-              const { anchorId, headingAnchors, startsWithHeading } = outline[index];
-              // A paragraph that opens with a heading is linked through the heading's own anchor.
-              const paragraphLink = startsWithHeading ? null : (
-                <a
-                  href={`#${anchorId}`}
-                  aria-label={locale.articlePage.paragraphLink.replace('{number}', String(index + 1))}
-                  className={`absolute -left-6 ${paragraph.hasAlternatives ? 'top-4' : 'top-1'} hidden h-6 w-6 items-center justify-center rounded text-[13px] text-[var(--color-ink-muted)] no-underline opacity-0 transition-opacity hover:text-[var(--color-brand-forest)] focus-visible:opacity-100 group-hover/paragraph:opacity-100 sm:flex`}
-                >
-                  <span aria-hidden="true">¶</span>
-                </a>
-              );
-
-              if (!paragraph.hasAlternatives) {
-                return (
-                  <section key={paragraph.paragraphId} id={anchorId} className="group/paragraph relative scroll-mt-24 py-0.5">
-                    {paragraphLink}
-                    <div className="article-markdown text-[14.5px] leading-8 text-[var(--color-ink-default)]">
-                      <MarkdownContent content={paragraph.activeOpinion?.content ?? ''} headingAnchors={headingAnchors} />
-                    </div>
-                  </section>
-                );
-              }
-
-              return (
-                <div key={paragraph.paragraphId} id={anchorId} className="group/paragraph relative scroll-mt-24">
-                  {paragraphLink}
-                  <VersionedParagraphBlock
-                    activeIndex={paragraph.activeIndex}
-                    tabs={paragraph.tabs}
-                    note={paragraph.note}
-                    onSelect={(optionIndex) => selectAlternative(paragraph.paragraphId, optionIndex, paragraph.opinions.length)}
-                    panels={paragraph.opinions.map((opinion, opinionIndex) => (
-                      <div key={opinion.id} className="article-markdown">
-                        <MarkdownContent
-                          content={opinion.content}
-                          headingAnchors={opinionIndex === paragraph.activeIndex ? headingAnchors : undefined}
-                        />
-                      </div>
-                    ))}
-                  />
-                </div>
-              );
-            })
-          ) : (
-            <div className="flow-root rounded-3xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-8 py-10 text-center text-[var(--color-ink-muted)] shadow-sm">
-              {locale.articlePage.noContent}
-            </div>
-          )}
+          <ArticleParagraphList paragraphs={renderedParagraphs} outline={outline} onSelect={selectAlternative} />
           {renderedParagraphs.length > 0 && <div ref={textEndRef} aria-hidden="true" />}
           </div>
 
