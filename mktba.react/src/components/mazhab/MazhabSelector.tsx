@@ -224,7 +224,7 @@ export const MazhabSelector = () => {
           type="button"
           onClick={toggleOpen}
           aria-expanded={open}
-          className="flex min-h-8 max-w-[11.5rem] items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--color-ink-default)] transition-colors hover:bg-[var(--color-surface-muted)] sm:max-w-[15rem]"
+          className="flex min-h-8 max-w-[min(15rem,calc(100vw-7rem))] items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--color-ink-default)] transition-colors hover:bg-[var(--color-surface-muted)] sm:max-w-[15rem]"
         >
           <span
             className="h-2 w-2 shrink-0 rounded-full"
