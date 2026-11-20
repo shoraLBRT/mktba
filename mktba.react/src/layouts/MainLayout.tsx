@@ -59,7 +59,9 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-page-bg text-ink-default">
-      <header className="sticky top-0 z-40 flex h-[var(--layout-header-height)] items-stretch border-b border-[var(--color-border-soft)] bg-[rgba(255,255,255,0.94)] backdrop-blur-md">
+      {/* Below `md` the header has no backdrop filter: a filter would make the header the containing block
+          of the fixed mazhab bar inside it, and the bar must sit at the bottom of the viewport. */}
+      <header className="sticky top-0 z-40 flex h-[var(--layout-header-height)] items-stretch border-b border-[var(--color-border-soft)] bg-white md:bg-[rgba(255,255,255,0.94)] md:backdrop-blur-md">
         <div
           className="hidden items-center border-r border-[var(--color-border-soft)] px-4 transition-[width] duration-200 lg:flex"
           style={{ width: logoWidth }}
@@ -83,9 +85,17 @@ const MainLayout: React.FC = () => {
               {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
             </button>
 
+            {/* Below `lg` the brand column is hidden, so the brand itself leads home. */}
             <Link
               to="/"
-              className="ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-brand-forest)]"
+              className="flex h-9 items-center rounded-lg px-2 text-[15px] font-bold tracking-[-0.03em] text-[var(--color-ink-strong)] lg:hidden"
+            >
+              {locale.brand.name}
+            </Link>
+
+            <Link
+              to="/"
+              className="ml-1 hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-brand-forest)] lg:flex"
               title={locale.layout.menu.home}
               aria-label={locale.layout.menu.home}
             >
@@ -109,7 +119,17 @@ const MainLayout: React.FC = () => {
               </kbd>
             </button>
 
-            <MazhabSelector />
+            {/* One picker for every width: in the header from `md` up, below it a bar fixed to the bottom of
+                the screen (R-11, #47); `md:contents` dissolves the bar into the header row. */}
+            <div
+              data-testid="mazhab-bar"
+              className="fixed inset-x-0 bottom-0 z-40 flex min-h-[var(--layout-bottom-bar-height)] items-center justify-between gap-3 border-t border-[var(--color-border-soft)] bg-white px-4 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(28,27,24,0.06)] md:contents"
+            >
+              <span aria-hidden="true" className="text-[12px] font-semibold text-[var(--color-ink-muted)] md:hidden">
+                {locale.layout.mazhabBar.label}
+              </span>
+              <MazhabSelector />
+            </div>
 
             {isAdmin ? (
               <Button
@@ -152,7 +172,7 @@ const MainLayout: React.FC = () => {
 
       {isSearchDialogOpen && <SearchDialog onClose={() => setSearchDialogKey(null)} />}
 
-      <div className="flex min-h-[calc(100vh-var(--layout-header-height))]">
+      <div className="flex min-h-[calc(100vh-var(--layout-header-height))] pb-[calc(var(--layout-bottom-bar-height)+env(safe-area-inset-bottom))] md:pb-0">
         <Sidebar
           collapsed={collapsed}
           mobileOpen={isMobileSidebarOpen}

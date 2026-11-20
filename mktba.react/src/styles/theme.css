@@ -50,6 +50,8 @@
   --radius-card: 18px;
   --radius-pill: 999px;
   --layout-header-height: 48px;
+  /* The mobile bar with the mazhab picker (below `md`), not counting the safe area under it. */
+  --layout-bottom-bar-height: 52px;
   --layout-sidebar-width: 240px;
   --layout-right-sidebar-width: 220px;
 }

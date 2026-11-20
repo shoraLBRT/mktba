@@ -114,6 +114,11 @@
     "tagsTitle": "Теги",
     "relatedArticles": "Связанные статьи"
   },
+  "articleMobileOverview": {
+    "contentsAndSummary": "Содержание и описание",
+    "contents": "Содержание",
+    "summary": "Описание"
+  },
   "articleInfobox": {
     "defaultTitle": "Обзор",
     "noFields": "Инфобокс настроен, но поля пока не заполнены.",
