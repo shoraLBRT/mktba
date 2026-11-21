@@ -724,7 +724,8 @@ describe('ArticleEditorPage', () => {
       id: number,
       number,
       createdAt: '2026-11-0' + number + 'T09:00:00Z',
-      authorEmail: 'author@example.com',
+      authorDisplayName: number === 2 ? 'Абдуллах' : null,
+      authorEmail: number === 2 ? 'author@example.com' : null,
       comment,
       isPublished: false,
     });
@@ -758,8 +759,13 @@ describe('ArticleEditorPage', () => {
 
       const dialog = await openHistory();
 
-      expect((await within(dialog).findByRole('listitem', { name: 'Ревизия 2' })).textContent).toContain('Заголовок');
-      expect(within(dialog).getByRole('listitem', { name: 'Ревизия 1' }).textContent).toContain('Без комментария');
+      const latest = (await within(dialog).findByRole('listitem', { name: 'Ревизия 2' })).textContent;
+      expect(latest).toContain('Заголовок');
+      expect(latest).toContain('Абдуллах');
+      expect(latest).not.toContain('author@example.com');
+      const first = within(dialog).getByRole('listitem', { name: 'Ревизия 1' }).textContent;
+      expect(first).toContain('Без комментария');
+      expect(first).toContain('Автор не указан');
       const title = await within(dialog).findByRole('region', { name: 'Заголовок' });
       expect(within(title).getByText('− Намаз').getAttribute('data-diff')).toBe('removed');
       expect(within(title).getByText('+ Намаз путника').getAttribute('data-diff')).toBe('added');

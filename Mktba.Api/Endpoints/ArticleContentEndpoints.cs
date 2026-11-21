@@ -73,24 +73,24 @@ namespace Mktba.Api.Endpoints
 
         private static void MapRevisionEndpoints(RouteGroupBuilder group)
         {
-            group.MapGet("/{id:int}/revisions", async (int id, ArticleRevisionService service) =>
-                Results.Ok(await service.ListAsync(id)))
+            group.MapGet("/{id:int}/revisions", async (int id, ClaimsPrincipal user, ArticleRevisionService service) =>
+                Results.Ok(await service.ListAsync(id, user.ToArticleViewer())))
             .WithSummary("The article's revisions, newest first.")
             .Produces<List<ArticleRevisionSummaryDto>>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(Policies.CanEditArticles)
             .RequireArticleAccess(ArticleOperationRequirement.Edit);
 
-            group.MapGet("/{id:int}/revisions/{number:int}", async (int id, int number, ArticleRevisionService service) =>
-                Results.Ok(await service.GetAsync(id, number)))
+            group.MapGet("/{id:int}/revisions/{number:int}", async (int id, int number, ClaimsPrincipal user, ArticleRevisionService service) =>
+                Results.Ok(await service.GetAsync(id, number, user.ToArticleViewer())))
             .WithSummary("One revision with its snapshot.")
             .Produces<ArticleRevisionDto>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(Policies.CanEditArticles)
             .RequireArticleAccess(ArticleOperationRequirement.Edit);
 
-            group.MapGet("/{id:int}/revisions/compare", async (int id, int from, int to, ArticleRevisionService service) =>
-                Results.Ok(await service.CompareAsync(id, from, to)))
+            group.MapGet("/{id:int}/revisions/compare", async (int id, int from, int to, ClaimsPrincipal user, ArticleRevisionService service) =>
+                Results.Ok(await service.CompareAsync(id, from, to, user.ToArticleViewer())))
             .WithSummary("Two revisions with their snapshots; the client renders the difference.")
             .Produces<ArticleRevisionComparisonDto>()
             .ProducesApiProblem(StatusCodes.Status404NotFound)
@@ -98,7 +98,7 @@ namespace Mktba.Api.Endpoints
             .RequireArticleAccess(ArticleOperationRequirement.Edit);
 
             group.MapPost("/{id:int}/revisions/{number:int}/restore", async (int id, int number, ArticleRevisionRestoreDto dto, ClaimsPrincipal user, ArticleRevisionService service) =>
-                Results.Ok(await service.RestoreAsync(id, number, dto.Comment, user.GetUserId())))
+                Results.Ok(await service.RestoreAsync(id, number, dto.Comment, user.GetUserId(), user.ToArticleViewer())))
             .WithSummary("Rolls the article back to a revision by saving it as a new revision.")
             .WithDescription(
                 "The working copy is replaced with the revision's snapshot and a new revision is written; "

@@ -66,12 +66,13 @@
     /// <param name="RelatedArticleSlug">Slug of the related article when the revision was saved.</param>
     public record ArticleSnapshotRelatedLinkDto(int RelatedArticleId, string RelatedArticleTitle, string RelatedArticleSlug, int Order);
 
-    /// <summary>One entry of an article's history (admin only).</summary>
+    /// <summary>One entry of an article's history (admins and the article's authors).</summary>
     /// <param name="Id">Stable id of the revision; never reused.</param>
     /// <param name="Number">1, 2, 3… per article, in save order.</param>
     /// <param name="CreatedAt">When the save happened (UTC).</param>
     /// <param name="AuthorId">Who saved; null for the backfilled first revision or a deleted user.</param>
-    /// <param name="AuthorEmail">The saving user's email; admin-only data.</param>
+    /// <param name="AuthorDisplayName">The saving user's display name; null when they have none.</param>
+    /// <param name="AuthorEmail">The saving user's email; given only to admins, null for everyone else.</param>
     /// <param name="Comment">The editor's note about the change, if any.</param>
     /// <param name="IsPublished">True for the revision that was current when the article was last published.</param>
     public record ArticleRevisionSummaryDto(
@@ -79,6 +80,7 @@
         int Number,
         DateTime CreatedAt,
         int? AuthorId,
+        string? AuthorDisplayName,
         string? AuthorEmail,
         string? Comment,
         bool IsPublished);

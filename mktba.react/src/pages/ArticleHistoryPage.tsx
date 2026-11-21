@@ -163,7 +163,7 @@ const RevisionRow = ({ revision, isFrom, isTo, isLatest, restoring, onPickFrom, 
               ) : null}
             </p>
             <p className="m-0 text-xs text-[var(--color-ink-subtle)]">
-              {revisionDateTime.format(new Date(revision.createdAt))} · {revision.authorEmail ?? t.unknownAuthor}
+              {revisionDateTime.format(new Date(revision.createdAt))} · {revision.authorDisplayName ?? revision.authorEmail ?? t.unknownAuthor}
             </p>
             <p className="m-0 text-sm text-[var(--color-ink-default)]">{revision.comment ?? t.noComment}</p>
           </div>

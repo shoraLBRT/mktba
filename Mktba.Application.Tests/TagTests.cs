@@ -231,7 +231,7 @@ public class TagTests : IDisposable
         var id = await CreateAsync("Намаз", ["Фикх", "Намаз"], publish: false);
         await SaveTagsAsync(id, ["Пост"]);
 
-        await _revisions.RestoreAsync(id, 1, comment: null, authorId: null);
+        await _revisions.RestoreAsync(id, 1, comment: null, authorId: null, TestViewers.Admin);
 
         (await ReadAsync(id)).Tags.Should().Equal("Фикх", "Намаз");
     }

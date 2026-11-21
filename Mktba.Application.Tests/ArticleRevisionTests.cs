@@ -71,15 +71,34 @@ public class ArticleRevisionTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenNamedSavingUser_WhenAnAuthorOrAnAdminReadsTheRevision_ThenOnlyTheAdminGetsTheEmail()
+    {
+        var authorId = await AddUserAsync("named@example.com");
+        var user = await _context.Users.SingleAsync(u => u.Id == authorId);
+        user.DisplayName = "Абдуллах";
+        await _context.SaveChangesAsync();
+        var created = await CreateAsync(authorId);
+
+        var asAuthor = await _revisions.GetAsync(created.Id, 1, TestViewers.Author(authorId));
+        var asAdmin = await _revisions.GetAsync(created.Id, 1, TestViewers.Admin);
+
+        asAuthor.Revision.AuthorDisplayName.Should().Be("Абдуллах");
+        asAuthor.Revision.AuthorEmail.Should().BeNull();
+        asAdmin.Revision.AuthorDisplayName.Should().Be("Абдуллах");
+        asAdmin.Revision.AuthorEmail.Should().Be("named@example.com");
+    }
+
+    [Fact]
     public async Task CreateArticleWithContent_WritesRevisionOneWithAuthorCommentAndSnapshot()
     {
         var authorId = await AddUserAsync("author@example.com");
 
         var created = await CreateAsync(authorId, "  Первая версия  ");
 
-        var revision = await _revisions.GetAsync(created.Id, 1);
+        var revision = await _revisions.GetAsync(created.Id, 1, TestViewers.Admin);
         revision.Revision.AuthorId.Should().Be(authorId);
         revision.Revision.AuthorEmail.Should().Be("author@example.com");
+        revision.Revision.AuthorDisplayName.Should().BeNull();
         revision.Revision.Comment.Should().Be("Первая версия");
         revision.Snapshot.SchemaVersion.Should().Be(ArticleSnapshotDto.CurrentSchemaVersion);
         revision.Snapshot.Title.Should().Be("Намаз");
@@ -98,11 +117,11 @@ public class ArticleRevisionTests : IDisposable
 
         await EditAsync(created.Id, "Намаз (правка)", "Второй текст", editorId, "Исправил текст");
 
-        var list = await _revisions.ListAsync(created.Id);
+        var list = await _revisions.ListAsync(created.Id, TestViewers.Admin);
         list.Select(r => r.Number).Should().Equal(2, 1);
         list[0].AuthorId.Should().Be(editorId);
         list[0].Comment.Should().Be("Исправил текст");
-        var second = await _revisions.GetAsync(created.Id, 2);
+        var second = await _revisions.GetAsync(created.Id, 2, TestViewers.Admin);
         second.Snapshot.Title.Should().Be("Намаз (правка)");
         second.Snapshot.Paragraphs.Single().Opinions.Single().Content.Should().Be("Второй текст");
 
@@ -134,7 +153,7 @@ public class ArticleRevisionTests : IDisposable
         var restorerId = await AddUserAsync("restorer@example.com");
         _context.ChangeTracker.Clear();
 
-        var restored = await _revisions.RestoreAsync(created.Id, 1, comment: null, restorerId);
+        var restored = await _revisions.RestoreAsync(created.Id, 1, comment: null, restorerId, TestViewers.Admin);
 
         restored.Number.Should().Be(3);
         restored.AuthorId.Should().Be(restorerId);
@@ -143,8 +162,8 @@ public class ArticleRevisionTests : IDisposable
         var content = await _content.GetContentByArticleIdAsync(created.Id, TestViewers.Admin);
         content.Title.Should().Be("Намаз");
         content.Paragraphs.Single().Opinions.Single().Content.Should().Be("Первый текст");
-        var third = await _revisions.GetAsync(created.Id, 3);
-        third.Snapshot.Should().BeEquivalentTo((await _revisions.GetAsync(created.Id, 1)).Snapshot);
+        var third = await _revisions.GetAsync(created.Id, 3, TestViewers.Admin);
+        third.Snapshot.Should().BeEquivalentTo((await _revisions.GetAsync(created.Id, 1, TestViewers.Admin)).Snapshot);
         (await _context.ArticleRevisions.AsNoTracking().SingleAsync(r => r.Number == 2)).Should().BeEquivalentTo(second);
     }
 
@@ -153,7 +172,7 @@ public class ArticleRevisionTests : IDisposable
     {
         var created = await CreateAsync(authorId: null);
 
-        var act = () => _revisions.RestoreAsync(created.Id, 7, comment: null, authorId: null);
+        var act = () => _revisions.RestoreAsync(created.Id, 7, comment: null, authorId: null, TestViewers.Admin);
 
         (await act.Should().ThrowAsync<NotFoundException>()).Which.Error.Code.Should().Be("revision_not_found");
         (await _context.ArticleRevisions.CountAsync()).Should().Be(1);
@@ -162,7 +181,7 @@ public class ArticleRevisionTests : IDisposable
     [Fact]
     public async Task ListRevisions_WhenArticleDoesNotExist_ThrowsNotFound()
     {
-        var act = () => _revisions.ListAsync(404);
+        var act = () => _revisions.ListAsync(404, TestViewers.Admin);
 
         (await act.Should().ThrowAsync<NotFoundException>()).Which.Error.Code.Should().Be("article_not_found");
     }
@@ -173,7 +192,7 @@ public class ArticleRevisionTests : IDisposable
         var created = await CreateAsync(authorId: null);
         await EditAsync(created.Id, "Другой заголовок", "Второй текст", authorId: null);
 
-        var comparison = await _revisions.CompareAsync(created.Id, 1, 2);
+        var comparison = await _revisions.CompareAsync(created.Id, 1, 2, TestViewers.Admin);
 
         comparison.From.Snapshot.Title.Should().Be("Намаз");
         comparison.To.Snapshot.Title.Should().Be("Другой заголовок");
@@ -187,7 +206,7 @@ public class ArticleRevisionTests : IDisposable
         await _articles.ChangeStatusAsync(created.Id, ArticleStatus.Published, TestViewers.Admin);
         await EditAsync(created.Id, "Правка после публикации", "Второй текст", authorId: null);
 
-        var list = await _revisions.ListAsync(created.Id);
+        var list = await _revisions.ListAsync(created.Id, TestViewers.Admin);
 
         list.Single(r => r.IsPublished).Number.Should().Be(1);
     }

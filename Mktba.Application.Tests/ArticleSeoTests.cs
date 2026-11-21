@@ -178,12 +178,12 @@ public class ArticleSeoTests : IDisposable
         var created = await CreateAsync(new ArticleSeoDto("Первый", "Описание", "/a.png", true));
         (await UpdateSeoAsync(created.Id, new ArticleSeoDto("Второй", null, null, false))).Success.Should().BeTrue();
 
-        var first = await _revisions.GetAsync(created.Id, 1);
+        var first = await _revisions.GetAsync(created.Id, 1, TestViewers.Admin);
         first.Snapshot.SchemaVersion.Should().Be(ArticleSnapshotDto.CurrentSchemaVersion);
         first.Snapshot.Seo.Should().Be(new ArticleSeoDto("Первый", "Описание", "/a.png", true));
 
         _context.ChangeTracker.Clear();
-        await _revisions.RestoreAsync(created.Id, 1, comment: null, authorId: null);
+        await _revisions.RestoreAsync(created.Id, 1, comment: null, authorId: null, TestViewers.Admin);
 
         (await ReloadAsync(created.Id)).Seo.Should().Be(new ArticleSeoDto("Первый", "Описание", "/a.png", true));
     }
@@ -201,7 +201,7 @@ public class ArticleSeoTests : IDisposable
         await _context.SaveChangesAsync();
         _context.ChangeTracker.Clear();
 
-        await _revisions.RestoreAsync(created.Id, 1, comment: null, authorId: null);
+        await _revisions.RestoreAsync(created.Id, 1, comment: null, authorId: null, TestViewers.Admin);
 
         var restored = await ReloadAsync(created.Id);
         restored.Seo.Should().Be(new ArticleSeoDto(null, null, null, false));

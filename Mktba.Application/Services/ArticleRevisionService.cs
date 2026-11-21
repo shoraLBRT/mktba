@@ -6,8 +6,10 @@ using Mktba.Infrastructure.Repositories;
 namespace Mktba.Application.Services
 {
     /// <summary>
-    /// An article's revision history (admin only): list, read, compare and roll back. Revisions are
-    /// written by <see cref="ArticleContentService"/> on every content save and are never changed.
+    /// An article's revision history: list, read, compare and roll back. Revisions are written by
+    /// <see cref="ArticleContentService"/> on every content save and are never changed. Who may open
+    /// an article's history is decided by the endpoint; the saving users' emails go only to a viewer
+    /// who <see cref="ArticleViewer.EditsAnyArticle"/> (an admin), the display names to everyone.
     /// </summary>
     public class ArticleRevisionService
     {
@@ -22,26 +24,27 @@ namespace Mktba.Application.Services
 
         /// <summary>The article's revisions, newest first.</summary>
         /// <exception cref="NotFoundException">No such article.</exception>
-        public async Task<List<ArticleRevisionSummaryDto>> ListAsync(int articleId)
+        public async Task<List<ArticleRevisionSummaryDto>> ListAsync(int articleId, ArticleViewer viewer)
         {
             var article = await RequireArticleAsync(articleId);
             var revisions = await _articleRepo.GetRevisionsAsync(articleId);
-            return revisions.Select(r => Summarize(r, article.PublishedRevisionId)).ToList();
+            return revisions.Select(r => Summarize(r, article.PublishedRevisionId, viewer)).ToList();
         }
 
         /// <exception cref="NotFoundException">No such article or revision.</exception>
-        public async Task<ArticleRevisionDto> GetAsync(int articleId, int number)
+        public async Task<ArticleRevisionDto> GetAsync(int articleId, int number, ArticleViewer viewer)
         {
             var article = await RequireArticleAsync(articleId);
-            return await LoadAsync(article, number);
+            return await LoadAsync(article, number, viewer);
         }
 
         /// <summary>Both revisions with their snapshots; the client renders the difference.</summary>
         /// <exception cref="NotFoundException">No such article or revision.</exception>
-        public async Task<ArticleRevisionComparisonDto> CompareAsync(int articleId, int fromNumber, int toNumber)
+        public async Task<ArticleRevisionComparisonDto> CompareAsync(int articleId, int fromNumber, int toNumber, ArticleViewer viewer)
         {
             var article = await RequireArticleAsync(articleId);
-            return new ArticleRevisionComparisonDto(await LoadAsync(article, fromNumber), await LoadAsync(article, toNumber));
+            return new ArticleRevisionComparisonDto(
+                await LoadAsync(article, fromNumber, viewer), await LoadAsync(article, toNumber, viewer));
         }
 
         /// <summary>
@@ -56,7 +59,8 @@ namespace Mktba.Application.Services
         /// The snapshot no longer fits the current data, e.g. its slug now belongs to another
         /// article or a related article was deleted.
         /// </exception>
-        public async Task<ArticleRevisionSummaryDto> RestoreAsync(int articleId, int number, string? comment, int? authorId)
+        public async Task<ArticleRevisionSummaryDto> RestoreAsync(
+            int articleId, int number, string? comment, int? authorId, ArticleViewer viewer)
         {
             var article = await RequireArticleAsync(articleId);
             var revision = await _articleRepo.GetRevisionAsync(articleId, number)
@@ -74,28 +78,30 @@ namespace Mktba.Application.Services
             var latestNumber = await _articleRepo.GetLatestRevisionNumberAsync(articleId);
             var latest = await _articleRepo.GetRevisionAsync(articleId, latestNumber)
                 ?? throw new NotFoundException(AppErrors.RevisionNotFound(latestNumber));
-            return Summarize(latest, article.PublishedRevisionId);
+            return Summarize(latest, article.PublishedRevisionId, viewer);
         }
 
         private async Task<Article> RequireArticleAsync(int articleId)
             => await _articleRepo.GetByIdAsync(articleId) ?? throw new NotFoundException(AppErrors.ArticleNotFound);
 
-        private async Task<ArticleRevisionDto> LoadAsync(Article article, int number)
+        private async Task<ArticleRevisionDto> LoadAsync(Article article, int number, ArticleViewer viewer)
         {
             var revision = await _articleRepo.GetRevisionAsync(article.Id, number)
                 ?? throw new NotFoundException(AppErrors.RevisionNotFound(number));
             return new ArticleRevisionDto(
-                Summarize(revision, article.PublishedRevisionId),
+                Summarize(revision, article.PublishedRevisionId, viewer),
                 ArticleSnapshots.Deserialize(revision.Snapshot));
         }
 
-        private static ArticleRevisionSummaryDto Summarize(ArticleRevision revision, int? publishedRevisionId)
+        private static ArticleRevisionSummaryDto Summarize(
+            ArticleRevision revision, int? publishedRevisionId, ArticleViewer viewer)
             => new(
                 revision.Id,
                 revision.Number,
                 revision.CreatedAt,
                 revision.AuthorId,
-                revision.Author?.Email,
+                revision.Author?.DisplayName,
+                viewer.EditsAnyArticle ? revision.Author?.Email : null,
                 revision.Comment,
                 revision.Id == publishedRevisionId);
     }

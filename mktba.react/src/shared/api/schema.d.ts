@@ -3502,6 +3502,7 @@ export interface components {
             createdAt: string;
             /** Format: int32 */
             authorId?: number | null;
+            authorDisplayName?: string | null;
             authorEmail?: string | null;
             comment?: string | null;
             isPublished: boolean;
