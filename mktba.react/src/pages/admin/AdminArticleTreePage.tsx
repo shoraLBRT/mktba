@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '../../localization/hooks';
-import { createArticle, moveArticle } from '../../services/adminService';
+import { createArticle, moveArticle, updateArticle } from '../../services/adminService';
 import { useNavigationTree } from '../../hooks/useNavigationTree';
 import { invalidateArticleQueries } from '../../app/queryClient';
 import { useCurrentUser } from '../../auth/useCurrentUser';
 import { ApiError, extractApiErrorMessage } from '../../shared/api-client/apiError';
 import type { NavigationArticleDto } from '../../shared/types/ApiTypes';
 import { collectValidParents } from '../../shared/articleTree';
+import { setSectionCollapsed } from '../../shared/navigationTreeState';
 import { Card } from '../../shared/ui/Card';
 import CreateNodeModal from '../../components/CreateNodeModal';
 import MoveNodeModal from '../../components/MoveNodeModal';
 import NavigationTree from '../../components/NavigationTree';
 import { NavigationTreeSkeleton } from '../../components/Skeleton';
 import { AdminArticlesHeader } from './AdminArticlesHeader';
+import type { TreeMove } from './treeDrop';
+import { useTreeDragAndDrop } from './useTreeDragAndDrop';
 
 type CreateNodeTarget = {
   parentId?: number;
@@ -26,15 +29,15 @@ type MoveNodeTarget = {
   parentId: number | null;
 };
 
-type MoveRequest = {
-  articleId: number;
+type RenameTarget = {
+  article: NavigationArticleDto;
   parentId: number | null;
-  index: number | null;
 };
 
 /**
- * `/admin/articles/tree`: the article tree with its editing actions. Titles open the editor where the
- * user may edit; creating sections is for anyone who writes, moving them in the tree only for admins.
+ * `/admin/articles/tree`: the article tree with its editing actions (A-03, #86). Titles open the
+ * editor where the user may edit; creating sections is for anyone who writes; moving (drag and drop,
+ * the move buttons, the parent picker) and renaming only for admins, as the API allows.
  */
 const AdminArticleTreePage: React.FC = () => {
   const locale = useLocale();
@@ -47,6 +50,8 @@ const AdminArticleTreePage: React.FC = () => {
   const [createError, setCreateError] = useState<string | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveNodeTarget | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
 
   const openCreateModal = (target: CreateNodeTarget) => {
     setCreateError(null);
@@ -57,6 +62,8 @@ const AdminArticleTreePage: React.FC = () => {
     mutationFn: (title: string) => createArticle({ title, parentArticleId: createTarget?.parentId }),
     onSuccess: () => {
       void invalidateArticleQueries(queryClient);
+      // The new child is shown at once even under a collapsed section.
+      if (createTarget?.parentId !== undefined) setSectionCollapsed(createTarget.parentId, false);
       setCreateTarget(null);
       setCreateError(null);
     },
@@ -72,15 +79,34 @@ const AdminArticleTreePage: React.FC = () => {
   });
 
   const moveNodeMutation = useMutation({
-    mutationFn: ({ articleId, parentId, index }: MoveRequest) =>
+    mutationFn: ({ articleId, parentId, index }: TreeMove) =>
       moveArticle(articleId, { parentArticleId: parentId, index }),
-    onSuccess: () => {
+    onSuccess: (_moved, { parentId }) => {
       void invalidateArticleQueries(queryClient);
+      if (parentId !== null) setSectionCollapsed(parentId, false);
       setMoveTarget(null);
       setMoveError(null);
     },
     onError: (moveFailure) => setMoveError(`${locale.navigationTree.moveError}: ${extractApiErrorMessage(moveFailure)}`),
   });
+
+  const renameNodeMutation = useMutation({
+    mutationFn: ({ target, title }: { target: RenameTarget; title: string }) =>
+      updateArticle(target.article.id, { title, parentArticleId: target.parentId }),
+    onSuccess: () => {
+      void invalidateArticleQueries(queryClient);
+      setRenameTarget(null);
+      setRenameError(null);
+    },
+    onError: (renameFailure) => setRenameError(`${locale.renameNode.error}: ${extractApiErrorMessage(renameFailure)}`),
+  });
+
+  const { mutate: moveNode } = moveNodeMutation;
+  const dropMove = useCallback((move: TreeMove) => {
+    setMoveError(null);
+    moveNode(move);
+  }, [moveNode]);
+  const dragAndDrop = useTreeDragAndDrop(dropMove);
 
   const canReorder = canMoveArticles && !moveNodeMutation.isPending;
 
@@ -124,6 +150,15 @@ const AdminArticleTreePage: React.FC = () => {
                     ? (articleId, parentId, index) => moveNodeMutation.mutate({ articleId, parentId, index })
                     : undefined
                 }
+                onRename={
+                  canMoveArticles
+                    ? (article, parentId) => {
+                        setRenameError(null);
+                        setRenameTarget({ article, parentId });
+                      }
+                    : undefined
+                }
+                dragAndDrop={canReorder ? dragAndDrop : undefined}
                 onChangeParent={
                   canReorder
                     ? (article, parentId) => {
@@ -147,6 +182,19 @@ const AdminArticleTreePage: React.FC = () => {
           onClose={() => {
             setCreateTarget(null);
             setCreateError(null);
+          }}
+        />
+      ) : null}
+
+      {renameTarget ? (
+        <CreateNodeModal
+          currentTitle={renameTarget.article.title}
+          isPending={renameNodeMutation.isPending}
+          errorMessage={renameError}
+          onConfirm={(title) => renameNodeMutation.mutate({ target: renameTarget, title })}
+          onClose={() => {
+            setRenameTarget(null);
+            setRenameError(null);
           }}
         />
       ) : null}

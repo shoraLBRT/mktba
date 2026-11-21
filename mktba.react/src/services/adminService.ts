@@ -11,6 +11,7 @@ import type {
   ArticleCreateDto,
   ArticleListPageDto,
   ArticleMoveDto,
+  ArticleUpdateDto,
   ArticleReadDto,
   ArticleStatus,
   UpdateAiProviderSettingsDto,
@@ -63,6 +64,14 @@ export const createArticle = async (dto: ArticleCreateDto): Promise<ArticleReadD
 export const moveArticle = async (id: number, dto: ArticleMoveDto): Promise<ArticleReadDto> => {
   const response = await apiClient.post<ArticleReadDto>(`/articles/${id}/move`, dto);
   return response.data;
+};
+
+/**
+ * Renames the article (`PUT /articles/{id}`). The DTO also sets the parent, so a rename sends the
+ * current one; the slug is kept and no revision is written.
+ */
+export const updateArticle = async (id: number, dto: ArticleUpdateDto): Promise<void> => {
+  await apiClient.put(`/articles/${id}`, dto);
 };
 
 /** One page of the admin article list; only the filters that are set are sent. */

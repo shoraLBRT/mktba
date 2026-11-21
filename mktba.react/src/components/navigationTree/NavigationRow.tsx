@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, FolderInput, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, FolderInput, GripVertical, Pencil, Plus } from 'lucide-react';
 import { Link } from 'react-router';
 import { useLocale } from '../../localization/hooks';
 import { ArticleStatusBadge } from '../article/ArticleStatusBadge';
@@ -19,7 +19,33 @@ export interface NavigationRowActions {
   onMove?: (articleId: number, parentId: number | null, index: number) => void;
   /** Admin: opens the parent picker for the article. */
   onChangeParent?: (article: NavigationArticleDto, parentId: number | null) => void;
+  /** Admin: opens the rename dialog for the article. */
+  onRename?: (article: NavigationArticleDto, parentId: number | null) => void;
+  /**
+   * Admin drag and drop of the rows (A-03). The tree only spreads what it hands over; the logic
+   * lives in the admin chunk (`pages/admin/useTreeDragAndDrop.ts`), out of the public bundle.
+   */
+  dragAndDrop?: TreeRowDragAndDrop;
 }
+
+/** Where a row dropped on another one goes: before it, after it, or in it as its last child. */
+export type TreeDropPosition = 'before' | 'inside' | 'after';
+
+export interface TreeRowDragAndDrop {
+  draggedArticleId: number | null;
+  /** The drop the pointer is over on this row, for its marker; null when none. */
+  dropPositionOf: (articleId: number) => TreeDropPosition | null;
+  /** Spread on the row's drag handle. */
+  handleProps: (article: NavigationArticleDto, parentId: number | null, index: number) => React.HTMLAttributes<HTMLElement>;
+  /** Spread on the row itself, the drop target. */
+  rowProps: (article: NavigationArticleDto, parentId: number | null, index: number) => React.HTMLAttributes<HTMLDivElement>;
+}
+
+const dropMarkerClass: Record<TreeDropPosition, string> = {
+  before: 'shadow-[inset_0_2px_0_var(--color-brand-forest)]',
+  after: 'shadow-[inset_0_-2px_0_var(--color-brand-forest)]',
+  inside: 'ring-2 ring-inset ring-[var(--color-brand-forest)]',
+};
 
 export interface NavigationRowProps extends NavigationRowActions {
   article: NavigationArticleDto;
@@ -86,25 +112,45 @@ export const NavigationRow: React.FC<NavigationRowProps> = React.memo(
     onAddChild,
     onMove,
     onChangeParent,
+    onRename,
+    dragAndDrop,
   }) => {
     const locale = useLocale();
     const childCount = article.children?.length ?? 0;
     const hasChildren = childCount > 0;
     const opensEditor = opensEditorOf(article, showArticleEditActions);
     const isClickable = article.hasContent || opensEditor;
+    const dropPosition = dragAndDrop?.dropPositionOf(article.id) ?? null;
 
     return (
       <div
         ref={rowRef}
+        {...dragAndDrop?.rowProps(article, parentId, index)}
+        data-drop={dropPosition ?? undefined}
         className={[
           rowClass,
           skipOffscreenPaint ? '[content-visibility:auto] [contain-intrinsic-size:auto_28px]' : '',
           isActive
             ? 'bg-[var(--color-brand-forest-soft)] text-[var(--color-brand-forest)]'
             : 'text-[var(--color-ink-default)] hover:bg-[rgba(255,255,255,0.75)] hover:text-[var(--color-ink-strong)]',
+          dropPosition ? dropMarkerClass[dropPosition] : '',
+          dragAndDrop?.draggedArticleId === article.id ? 'opacity-50' : '',
         ].join(' ')}
         style={{ paddingLeft: `${6 + depth * 12}px` }}
       >
+        {dragAndDrop ? (
+          // Pointer only: the keyboard moves a row with its move buttons and the parent picker.
+          <span
+            {...dragAndDrop.handleProps(article, parentId, index)}
+            aria-hidden="true"
+            data-testid="tree-drag-handle"
+            title={locale.navigationTree.dragHandle}
+            className="flex h-[18px] w-3 shrink-0 cursor-grab items-center justify-center text-[var(--color-ink-subtle)] opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100"
+          >
+            <GripVertical size={11} />
+          </span>
+        ) : null}
+
         {hasChildren && !forceExpanded ? (
           <button
             type="button"
@@ -169,6 +215,12 @@ export const NavigationRow: React.FC<NavigationRowProps> = React.memo(
         {onChangeParent ? (
           <ActionButton label={locale.navigationTree.changeParent} onClick={() => onChangeParent(article, parentId)}>
             <FolderInput size={11} />
+          </ActionButton>
+        ) : null}
+
+        {onRename ? (
+          <ActionButton label={locale.navigationTree.rename} onClick={() => onRename(article, parentId)}>
+            <Pencil size={11} />
           </ActionButton>
         ) : null}
 
