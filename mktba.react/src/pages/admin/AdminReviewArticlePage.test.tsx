@@ -39,7 +39,7 @@ const snapshot = (text: string): ArticleSnapshotDto => ({
 });
 
 const revision = (number: number, text: string): ArticleRevisionDto =>
-  ({ id: number, number, createdAt: '2026-11-20T09:00:00Z', isPublished: false, snapshot: snapshot(text) }) as ArticleRevisionDto;
+  ({ revision: { id: number, number, createdAt: '2026-11-20T09:00:00Z', isPublished: false }, snapshot: snapshot(text) });
 
 const renderPage = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
