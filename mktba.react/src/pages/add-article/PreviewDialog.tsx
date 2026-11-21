@@ -8,9 +8,9 @@ type PreviewDialogProps = {
 };
 
 /**
- * A modal dialog over the whole window (E-11, #81). The focus moves to its close button; Escape
- * (also from inside the preview's frame) or the button closes it and returns the focus to where it
- * was, the «Просмотр» button. While it is open the rest of the page is `inert` and hidden from
+ * A modal dialog over the whole window (E-11, #81; the history, E-13 #83, uses it too). The focus
+ * moves to its close button; Escape (also from inside the preview's frame) or the button closes it
+ * and returns the focus to where it was, the button that opened it. While it is open the rest of the page is `inert` and hidden from
  * assistive technology, and the page does not scroll under it.
  */
 export const PreviewDialog = ({ onClose, children }: PreviewDialogProps) => {

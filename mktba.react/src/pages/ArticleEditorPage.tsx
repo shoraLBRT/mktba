@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { flushSync } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
@@ -10,9 +10,10 @@ import { invalidateArticleQueries } from '../app/queryClient';
 import { deleteArticle, getAiProviderSettings, styleMarkdownWithAi } from '../services/adminService';
 import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
-import type { ArticleStatus, NavigationArticleDto } from '../shared/types/ApiTypes';
+import type { ArticleRevisionSummaryDto, ArticleStatus, NavigationArticleDto } from '../shared/types/ApiTypes';
 import { createCustomSchool, deleteCustomSchool, getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { ArticleDraftPreview } from './add-article/ArticleDraftPreview';
+import { EditorHistoryDialog } from './add-article/EditorHistoryDialog';
 import { ArticleAuthorsPanel } from '../components/article/ArticleAuthorsPanel';
 import { ArticleStatusPanel } from '../components/article/ArticleStatusPanel';
 import { DocumentBlockEditor } from './add-article/DocumentBlockEditor';
@@ -63,6 +64,7 @@ import { addRelatedLink, moveRelatedLink, removeRelatedLink } from './add-articl
 import type { EditorBlock } from './add-article/types';
 import {
   applyAiStyledTexts,
+  articleDraftFromDto,
   buildArticleCreateDto,
   buildArticleUpdateDto,
   displayedSlug,
@@ -222,6 +224,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const [importText, setImportText] = useState('');
   const [notice, setNotice] = useState<EditorNoticeValue | null>(null);
   const [isPreview, setIsPreview] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeTarget, setActiveTarget] = useState<EditorTarget | null>(null);
   /** The text the article picker will insert its link into; `null` while the picker is closed. */
   const [linkPickerTarget, setLinkPickerTarget] = useState<EditorTarget | null>(null);
@@ -498,6 +501,22 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     }
   };
 
+  /**
+   * After a rollback in the history (E-13, #83) the server's working copy is the restored revision:
+   * the editor reloads it and makes it the baseline, and the edits it replaced go with their copy.
+   */
+  const reloadAfterRestore = async (from: number, created: ArticleRevisionSummaryDto) => {
+    const fresh = await getArticleContentById(articleId!);
+    queryClient.setQueryData([APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, articleId], fresh);
+    const restored = articleDraftFromDto(fresh);
+    localCopy.clear();
+    setBaseline(restored);
+    setDraft(restored);
+    setIsHistoryOpen(false);
+    showNotice('success', formatMessage(locale.articleHistoryPage.restored, { from, to: created.number }));
+    void invalidateArticleQueries(queryClient);
+  };
+
   const restoreLocalCopy = () => {
     const restored = localCopy.acceptOffer();
     if (restored) {
@@ -681,12 +700,14 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                 <div className="space-y-4">
                   {articleId !== null ? (
                     <>
-                      <Link
-                        to={`/admin/articles/${articleId}/history`}
+                      <button
+                        type="button"
+                        aria-haspopup="dialog"
+                        onClick={() => setIsHistoryOpen(true)}
                         className="inline-block text-sm text-[var(--color-brand-forest)] hover:underline"
                       >
                         {editT.historyLink}
-                      </Link>
+                      </button>
                       {canEditAnyArticle ? (
                         <ArticleAuthorsPanel
                           articleId={articleId}
@@ -720,6 +741,16 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                     schools={schools.available}
                     navigationTree={navigationTreeQuery.data}
                     onClose={() => setIsPreview(false)}
+                  />
+                ) : null}
+                {isHistoryOpen && articleId !== null ? (
+                  <EditorHistoryDialog
+                    articleId={articleId}
+                    draft={draft}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    schools={schools.available}
+                    onRestored={reloadAfterRestore}
+                    onClose={() => setIsHistoryOpen(false)}
                   />
                 ) : null}
                 <div className="mx-auto max-w-[720px]">

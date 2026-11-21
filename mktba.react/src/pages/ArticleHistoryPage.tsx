@@ -15,19 +15,14 @@ import { Button } from '../shared/ui/Button';
 import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
 import type { ArticleRevisionSummaryDto } from '../shared/types/ApiTypes';
-import { compareSnapshots, type DiffLine, type SectionLabels } from './article-history/revisionDiff';
+import { compareSnapshots } from './article-history/revisionDiff';
+import { RevisionDiffSections } from './article-history/RevisionDiffView';
+import { revisionDateTime, useSnapshotLabels } from './article-history/snapshotLabels';
 
-const dateTime = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
-
-const lineClasses: Record<DiffLine['kind'], string> = {
-  same: 'text-[var(--color-ink-muted)]',
-  added: 'bg-emerald-50 text-emerald-900',
-  removed: 'bg-red-50 text-red-800 line-through decoration-red-300',
-};
-
-const linePrefix: Record<DiffLine['kind'], string> = { same: ' ', added: '+', removed: '−' };
-
-/** An article's revision history: every save, a comparison of two revisions and rollback (admin only). */
+/**
+ * An article's revision history on a page of its own: every save, a comparison of two revisions and
+ * rollback. The editor's «История» dialog (E-13, #83) does the same next to the draft.
+ */
 const ArticleHistoryPage = () => {
   const { articleId } = useParams();
   const numericId = Number(articleId);
@@ -62,17 +57,7 @@ const ArticleHistoryPage = () => {
     return (id: number) => names.get(id) ?? `#${id}`;
   }, [systemSchoolsQuery.data, articleSchoolsQuery.data]);
 
-  const labels = useMemo<SectionLabels>(() => ({
-    title: t.sections.title,
-    slug: t.sections.slug,
-    summary: t.sections.summary,
-    tags: t.sections.tags,
-    infobox: t.sections.infobox,
-    relatedLinks: t.sections.relatedLinks,
-    paragraph: (order) => formatMessage(t.sections.paragraph, { order }),
-    opinion: (schools, isDefault) => formatMessage(isDefault ? t.sections.opinionDefault : t.sections.opinion, { schools }),
-    source: (citation) => formatMessage(t.sections.source, { citation }),
-  }), [t]);
+  const labels = useSnapshotLabels();
 
   const sections = useMemo(
     () => (comparisonQuery.data ? compareSnapshots(comparisonQuery.data.from.snapshot, comparisonQuery.data.to.snapshot, labels, schoolName) : []),
@@ -99,9 +84,6 @@ const ArticleHistoryPage = () => {
       </div>
     );
   }
-
-  const changed = sections.filter((section) => section.changed);
-  const unchanged = sections.filter((section) => !section.changed);
 
   return (
     <div className="mx-auto max-w-[960px] space-y-6 px-4 py-8">
@@ -141,24 +123,7 @@ const ArticleHistoryPage = () => {
           {from !== undefined && to !== undefined && from !== to ? (
             <>
               <h2 className="m-0 text-lg font-semibold text-[var(--color-ink-strong)]">{formatMessage(t.compareTitle, { from, to })}</h2>
-              {comparisonQuery.isSuccess && changed.length === 0 ? <p className="m-0 text-sm">{t.noChanges}</p> : null}
-              {changed.map((section) => (
-                <section key={section.key} aria-label={section.label}>
-                  <h3 className="mb-1 text-sm font-semibold text-[var(--color-ink-default)]">{section.label}</h3>
-                  <pre className="m-0 overflow-x-auto whitespace-pre-wrap rounded-xl border border-[var(--color-border-soft)] p-3 text-sm leading-6">
-                    {section.lines.map((line, index) => (
-                      <div key={index} className={lineClasses[line.kind]} data-diff={line.kind}>
-                        {`${linePrefix[line.kind]} ${line.text}`}
-                      </div>
-                    ))}
-                  </pre>
-                </section>
-              ))}
-              {comparisonQuery.isSuccess && unchanged.length > 0 ? (
-                <p className="m-0 text-xs text-[var(--color-ink-subtle)]">
-                  {formatMessage(t.unchangedSections, { sections: unchanged.map((section) => section.label).join(', ') })}
-                </p>
-              ) : null}
+              {comparisonQuery.isSuccess ? <RevisionDiffSections sections={sections} /> : null}
             </>
           ) : (
             <p className="m-0 text-sm text-[var(--color-ink-muted)]">{t.compareHint}</p>
@@ -198,7 +163,7 @@ const RevisionRow = ({ revision, isFrom, isTo, isLatest, restoring, onPickFrom, 
               ) : null}
             </p>
             <p className="m-0 text-xs text-[var(--color-ink-subtle)]">
-              {dateTime.format(new Date(revision.createdAt))} · {revision.authorEmail ?? t.unknownAuthor}
+              {revisionDateTime.format(new Date(revision.createdAt))} · {revision.authorEmail ?? t.unknownAuthor}
             </p>
             <p className="m-0 text-sm text-[var(--color-ink-default)]">{revision.comment ?? t.noComment}</p>
           </div>

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { ArticleContentDto } from '../../shared/types/ApiTypes';
+import type { ArticleContentDto, ArticleSnapshotDto } from '../../shared/types/ApiTypes';
+import { compareSnapshots, type SectionLabels } from '../article-history/revisionDiff';
 import {
   applyAiStyledTexts,
   articleDraftFromDto,
+  articleDraftSnapshot,
   buildArticleCreateDto,
   buildArticleUpdateDto,
   createEmptyArticleDraft,
@@ -181,5 +183,70 @@ describe('applyAiStyledTexts', () => {
     const [first, second] = applied.blocks;
     expect(first.kind === 'versioned' ? first.variants.map((variant) => variant.content) : null).toEqual(['старый', 'новый']);
     expect(second).toBe(blocks[1]);
+  });
+});
+
+describe('articleDraftSnapshot', () => {
+  const labels: SectionLabels = {
+    title: 'Заголовок',
+    slug: 'Адрес',
+    summary: 'Описание',
+    tags: 'Теги',
+    infobox: 'Инфобокс',
+    relatedLinks: 'Связанные',
+    paragraph: (order) => `Абзац ${order}`,
+    opinion: (schools) => schools,
+    source: (citation) => `Источник: ${citation}`,
+  };
+  const hidaya = { id: 3, kind: 'Book' as const, title: 'Хидая', author: 'аль-Маргинани' };
+  const cited: ArticleContentDto = {
+    ...article,
+    paragraphs: [
+      { id: 11, order: 1, opinions: [{ id: 21, content: 'Текст', isDefault: true, schoolIds: [], sources: [{ sourceId: 3, locator: 'т. 1' }] }] },
+      {
+        id: 12,
+        order: 2,
+        opinions: [
+          { id: 22, content: 'По умолчанию', isDefault: true, schoolIds: [1], sources: [] },
+          { id: 23, content: 'Иначе', isDefault: false, schoolIds: [2], sources: [] },
+        ],
+      },
+    ],
+    sources: [hidaya],
+    relatedLinks: [],
+  };
+  const saved: ArticleSnapshotDto = {
+    schemaVersion: 3,
+    title: 'Намаз',
+    slug: 'namaz',
+    summary: 'Кратко',
+    tags: ['фикх'],
+    paragraphs: [
+      { order: 1, opinions: [{ content: 'Текст', isDefault: true, schoolIds: [], sources: [{ sourceId: 3, locator: 'т. 1', kind: 'Book', title: 'Хидая', author: 'аль-Маргинани' }] }] },
+      {
+        order: 2,
+        opinions: [
+          { content: 'По умолчанию', isDefault: true, schoolIds: [1], sources: [] },
+          { content: 'Иначе', isDefault: false, schoolIds: [2], sources: [] },
+        ],
+      },
+    ],
+    relatedLinks: [],
+  };
+  const compare = (draft: ArticleDraft) => compareSnapshots(saved, articleDraftSnapshot(draft), labels, (id) => `школа ${id}`);
+
+  it('given a draft loaded from the saved article, when compared with its revision, then nothing differs', () => {
+    expect(compare(articleDraftFromDto(cited)).filter((section) => section.changed)).toEqual([]);
+  });
+
+  it('given an edited paragraph and a new empty block, when compared, then only the edited paragraph differs', () => {
+    const draft = articleDraftFromDto(cited);
+    const blocks = draft.blocks.map((block) => (block.kind === 'paragraph' ? { ...block, content: 'Новый текст' } : block));
+
+    const changed = compare({ ...draft, blocks: [...blocks, paragraph('empty', '  ')] }).filter((section) => section.changed);
+
+    expect(changed.map((section) => section.key)).toEqual(['paragraph-1']);
+    expect(changed[0].lines).toContainEqual({ kind: 'added', text: 'Новый текст' });
+    expect(changed[0].lines).toContainEqual({ kind: 'same', text: 'Источник: аль-Маргинани. Хидая, т. 1' });
   });
 });
