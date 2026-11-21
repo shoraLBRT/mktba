@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, LogOut, Menu, Plus, X } from 'lucide-react';
+import { ArrowLeft, Home, LogOut, Menu, Plus, X } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -9,6 +9,8 @@ import { logOut } from '../services/session';
 import { cn } from '../shared/lib/cn';
 import { Button } from '../shared/ui/Button';
 import { ADMIN_SECTIONS } from './adminSections';
+
+const ARTICLES_SECTION_PATH = ADMIN_SECTIONS.find((section) => section.id === 'articles')?.path ?? '/admin';
 
 type AdminNavProps = {
   onNavigate?: () => void;
@@ -48,8 +50,11 @@ const AdminNav: React.FC<AdminNavProps> = ({ onNavigate }) => {
  * Every signed-in `/admin/*` page: a header with the user and logout, a menu of the sections the
  * role may open (a drawer behind a menu button on narrow screens), and the page. The public tree
  * and search stay on the public site.
+ *
+ * With `withSections={false}` (the article editor, E-15 #85) the page gets the whole width: no
+ * menu of sections, and a link back to the article list stands where the menu button was.
  */
-const AdminLayout: React.FC = () => {
+const AdminLayout: React.FC<{ withSections?: boolean }> = ({ withSections = true }) => {
   const locale = useLocale();
   const t = locale.adminLayout;
   const navigate = useNavigate();
@@ -63,16 +68,27 @@ const AdminLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[var(--color-page-bg)] text-ink-default">
       <header className="sticky top-0 z-40 flex h-[var(--layout-header-height)] items-center gap-2 border-b border-[var(--color-border-soft)] bg-[rgba(255,255,255,0.94)] px-2 backdrop-blur-md sm:px-4">
-        <button
-          type="button"
-          onClick={() => setMenuOpenOn(isMenuOpen ? null : currentPath)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)] lg:hidden"
-          aria-label={isMenuOpen ? t.menuClose : t.menuOpen}
-          aria-expanded={isMenuOpen}
-          title={isMenuOpen ? t.menuClose : t.menuOpen}
-        >
-          {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
-        </button>
+        {withSections ? (
+          <button
+            type="button"
+            onClick={() => setMenuOpenOn(isMenuOpen ? null : currentPath)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)] lg:hidden"
+            aria-label={isMenuOpen ? t.menuClose : t.menuOpen}
+            aria-expanded={isMenuOpen}
+            title={isMenuOpen ? t.menuClose : t.menuOpen}
+          >
+            {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        ) : (
+          <Link
+            to={ARTICLES_SECTION_PATH}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)]"
+            aria-label={t.backToArticles}
+            title={t.backToArticles}
+          >
+            <ArrowLeft size={18} />
+          </Link>
+        )}
 
         <Link to="/admin" className="flex min-w-0 items-baseline gap-2 leading-none">
           <span className="truncate text-[15px] font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">
@@ -127,11 +143,13 @@ const AdminLayout: React.FC = () => {
       </header>
 
       <div className="flex min-h-[calc(100vh-var(--layout-header-height))]">
-        <div className="sticky top-[var(--layout-header-height)] hidden h-[calc(100vh-var(--layout-header-height))] w-[var(--layout-sidebar-width)] shrink-0 overflow-y-auto border-r border-[var(--color-border-soft)] bg-[var(--color-surface)] lg:block">
-          <AdminNav />
-        </div>
+        {withSections ? (
+          <div className="sticky top-[var(--layout-header-height)] hidden h-[calc(100vh-var(--layout-header-height))] w-[var(--layout-sidebar-width)] shrink-0 overflow-y-auto border-r border-[var(--color-border-soft)] bg-[var(--color-surface)] lg:block">
+            <AdminNav />
+          </div>
+        ) : null}
 
-        {isMenuOpen ? (
+        {withSections && isMenuOpen ? (
           <div className="fixed inset-0 top-[var(--layout-header-height)] z-30 lg:hidden">
             <button
               type="button"

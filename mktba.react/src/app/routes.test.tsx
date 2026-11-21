@@ -376,6 +376,31 @@ describe('AdminLayout', () => {
     expect(screen.getByTestId('path').textContent).toBe(path);
   });
 
+  it.each(['/admin/articles/new', '/admin/articles/7/edit'])(
+    'given the editor at %s, when it opens, then it has the whole width: no menu of sections, a link back to the articles',
+    async (path) => {
+      signInAs('Author');
+
+      renderAt(path);
+
+      expect(await screen.findByText('article-editor-page')).toBeTruthy();
+      expect(screen.queryByRole('navigation', { name: 'Разделы админки' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Открыть меню разделов' })).toBeNull();
+      expect(screen.getByRole('link', { name: 'К списку статей' }).getAttribute('href')).toBe('/admin/articles');
+      expect(screen.getByRole('button', { name: 'Выйти' })).toBeTruthy();
+    },
+  );
+
+  it('given the article list, when it opens, then it keeps the menu of sections', async () => {
+    signInAs('Author');
+
+    renderAt('/admin/articles');
+
+    expect(await screen.findByText('admin-articles-page')).toBeTruthy();
+    expect(screen.getAllByRole('navigation', { name: 'Разделы админки' })).not.toHaveLength(0);
+    expect(screen.queryByRole('link', { name: 'К списку статей' })).toBeNull();
+  });
+
   it('given a public page, when rendered, then it keeps the article tree search and has no admin menu', async () => {
     renderAt('/');
 

@@ -54,7 +54,8 @@ const AdminOnlyRoute = ({ children }: { children: ReactElement }) => {
 };
 
 /**
- * The signed-in `/admin/*` pages in `AdminLayout`. Rendered only in the browser (see
+ * The signed-in `/admin/*` pages in `AdminLayout`; the article editor in the same layout without
+ * the menu of sections, so it has the whole width (E-15, #85). Rendered only in the browser (see
  * `routes/admin.tsx`); `/admin/login` is a public page.
  */
 export const AdminRoutes = () => (
@@ -73,6 +74,13 @@ export const AdminRoutes = () => (
         element={<AdminSectionRoute policy="canEditArticles"><AdminArticleTreePage /></AdminSectionRoute>}
       />
       <Route
+        path="articles/:articleId/history"
+        element={<AdminSectionRoute policy="canEditArticles" padded={false}><ArticleHistoryPage /></AdminSectionRoute>}
+      />
+      <Route path="*" element={<NotFoundPage />} />
+    </Route>
+    <Route element={<AdminOnlyRoute><AdminLayout withSections={false} /></AdminOnlyRoute>}>
+      <Route
         path={underAdmin(APP_CONSTANTS.ROUTES.ADD_ARTICLE)}
         element={<AdminSectionRoute policy="canEditArticles" padded={false}><ArticleEditorPage /></AdminSectionRoute>}
       />
@@ -80,11 +88,6 @@ export const AdminRoutes = () => (
         path="articles/:articleId/edit"
         element={<AdminSectionRoute policy="canEditArticles" padded={false}><ArticleEditorPage /></AdminSectionRoute>}
       />
-      <Route
-        path="articles/:articleId/history"
-        element={<AdminSectionRoute policy="canEditArticles" padded={false}><ArticleHistoryPage /></AdminSectionRoute>}
-      />
-      <Route path="*" element={<NotFoundPage />} />
     </Route>
   </Routes>
 );
