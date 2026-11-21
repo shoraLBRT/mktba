@@ -10,7 +10,7 @@ import { invalidateArticleQueries } from '../app/queryClient';
 import { deleteArticle, getAiProviderSettings, styleMarkdownWithAi } from '../services/adminService';
 import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
-import type { NavigationArticleDto } from '../shared/types/ApiTypes';
+import type { ArticleStatus, NavigationArticleDto } from '../shared/types/ApiTypes';
 import { createCustomSchool, deleteCustomSchool, getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { ArticleDraftPreview } from './add-article/ArticleDraftPreview';
 import { ArticleAuthorsPanel } from '../components/article/ArticleAuthorsPanel';
@@ -27,6 +27,7 @@ import {
   DeleteArticleDialog,
   EditorNotice,
   ImportMarkdownDialog,
+  PrepublishWarningsDialog,
   UnsavedChangesDialog,
   type EditorNoticeValue,
 } from './add-article/EditorDialogs';
@@ -83,6 +84,8 @@ import { InternalLinkWarnings } from './add-article/InternalLinkWarnings';
 import { SlugField } from './add-article/SlugField';
 import { PublicationPanel } from './add-article/PublicationPanel';
 import { seoSnippetOf } from './add-article/seoSnippet';
+import { findPrepublishWarnings, isPublishingMove } from './add-article/prepublishChecks';
+import { PrepublishChecklist } from './add-article/PrepublishChecklist';
 import { useSiteUrl } from '../app/siteUrl';
 import { useBlockDragAndDrop } from './add-article/useBlockDragAndDrop';
 import type { SlashMenuKind } from './add-article/slashMenuKinds';
@@ -241,6 +244,8 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
    * opinion of it (an opinion just added); without one, a block of opinions focuses its default.
    */
   const [focusRequest, setFocusRequest] = useState<{ blockId: string; localId?: string } | null>(null);
+  /** A move to review or publication waiting for the user to go on despite the checklist's warnings. */
+  const [prepublishConfirm, setPrepublishConfirm] = useState<((confirmed: boolean) => void) | null>(null);
   const blockDragAndDrop = useBlockDragAndDrop({
     getBlockElement: (blockId) => blockRefs.current[blockId] ?? null,
     onMove: (blockId, target) => setBlocks((current) => moveBlockTo(current, blockId, target.blockId, target.position)),
@@ -342,6 +347,10 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const brokenLinks = useMemo(
     () => (navigationTreeQuery.data ? findBrokenInternalLinks(blocks, articleOptions) : []),
     [blocks, articleOptions, navigationTreeQuery.data],
+  );
+  const prepublishWarnings = useMemo(
+    () => findPrepublishWarnings(blocks, seoSnippet, brokenLinks),
+    [blocks, seoSnippet, brokenLinks],
   );
 
   const richTextOf = (target: EditorTarget | null) =>
@@ -521,18 +530,31 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
    * editor shows; true when the move may follow (nothing to save, or saved). A draft that fails the
    * save checks or a failed save keeps the status as it is, and the edits stay in the editor.
    */
-  const saveBeforeStatusChange = async (): Promise<boolean> => {
+  const confirmPrepublishWarnings = (target: ArticleStatus): Promise<boolean> =>
+    isPublishingMove(target) && prepublishWarnings.length > 0
+      ? new Promise((resolve) => setPrepublishConfirm(() => resolve))
+      : Promise.resolve(true);
+
+  /**
+   * Before a status move: edits that cannot be saved stop it at once, the checklist's warnings ask
+   * for a confirmation of a move to review or publication, then unsaved edits are saved.
+   */
+  const saveBeforeStatusChange = async (target: ArticleStatus): Promise<boolean> => {
+    if (hasUnsavedChanges) {
+      if (isLocked || saveMutation.isPending) {
+        return false;
+      }
+      const problem = findArticleDraftProblem(draft, mode.kind);
+      if (problem) {
+        showNotice('warning', problemMessage(problem));
+        return false;
+      }
+    }
+    if (!(await confirmPrepublishWarnings(target))) {
+      return false;
+    }
     if (!hasUnsavedChanges) {
       return true;
-    }
-    if (isLocked || saveMutation.isPending) {
-      return false;
-    }
-
-    const problem = findArticleDraftProblem(draft, mode.kind);
-    if (problem) {
-      showNotice('warning', problemMessage(problem));
-      return false;
     }
 
     try {
@@ -789,6 +811,15 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
           )}
           publication={(
             <PublicationPanel
+              checks={(
+                <PrepublishChecklist
+                  warnings={prepublishWarnings}
+                  onJump={(blockId, localId) => {
+                    blockRefs.current[blockId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setFocusRequest({ blockId, localId });
+                  }}
+                />
+              )}
               status={articleId !== null ? (
                 <ArticleStatusPanel
                   articleId={articleId}
@@ -891,6 +922,20 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
           onConfirm={() => {
             setBlocks((current) => convertVersionedToParagraph(current, convertToParagraph.blockId));
             setConvertToParagraph(null);
+          }}
+        />
+      ) : null}
+
+      {prepublishConfirm ? (
+        <PrepublishWarningsDialog
+          count={prepublishWarnings.length}
+          onCancel={() => {
+            prepublishConfirm(false);
+            setPrepublishConfirm(null);
+          }}
+          onConfirm={() => {
+            prepublishConfirm(true);
+            setPrepublishConfirm(null);
           }}
         />
       ) : null}

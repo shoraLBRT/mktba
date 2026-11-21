@@ -661,4 +661,51 @@ describe('ArticleEditorPage', () => {
     await waitFor(() => expect(changeArticleStatus).toHaveBeenCalledWith(7, 'InReview'));
     expect(updateArticleContent).not.toHaveBeenCalled();
   });
+
+  it('given a clean saved article, when it is submitted, then the checklist has no remarks and nothing asks first', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleById).mockResolvedValue(draftArticle(['InReview']));
+    vi.mocked(changeArticleStatus).mockResolvedValue({ ...draftArticle(['Draft']), status: 'InReview' });
+    renderAt('/admin/articles/7/edit');
+
+    expect(within(await screen.findByTestId('prepublish-checklist')).getByText('Замечаний нет.')).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: 'Отправить на проверку' }));
+
+    await waitFor(() => expect(changeArticleStatus).toHaveBeenCalledWith(7, 'InReview'));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('given a title too long for search, when it is submitted, then the editor asks and «Исправить» keeps the status', async () => {
+    const longTitle = 'Очень длинное название статьи о намазе путника, которое не поместится в выдаче';
+    vi.mocked(getArticleContentById).mockResolvedValue({ ...article, title: longTitle });
+    vi.mocked(getArticleById).mockResolvedValue(draftArticle(['InReview']));
+    renderAt('/admin/articles/7/edit');
+
+    const checklist = await screen.findByTestId('prepublish-checklist');
+    expect(within(checklist).getByText(`Заголовок для поиска: ${longTitle.length} из 70 символов`)).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: 'Отправить на проверку' }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText('Замечаний: 1. Всё равно продолжить?')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Исправить' }));
+
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(changeArticleStatus).not.toHaveBeenCalled();
+  });
+
+  it('given remarks and unsaved edits, when the move is confirmed, then the edits are saved and the status moves', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleById).mockResolvedValue(draftArticle(['InReview']));
+    vi.mocked(updateArticleContent).mockResolvedValue();
+    vi.mocked(changeArticleStatus).mockResolvedValue({ ...draftArticle(['Draft']), status: 'InReview' });
+    renderAt('/admin/articles/7/edit');
+    const longTitle = 'Намаз путника: сокращение и объединение молитв в дороге по всем четырём мазхабам';
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: longTitle } });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Сохранить и отправить на проверку' }));
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Продолжить' }));
+
+    await waitFor(() => expect(changeArticleStatus).toHaveBeenCalledWith(7, 'InReview'));
+    expect(updateArticleContent).toHaveBeenCalledWith(7, expect.objectContaining({ title: longTitle }));
+  });
 });

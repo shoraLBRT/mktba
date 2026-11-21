@@ -17,10 +17,11 @@ type ArticleStatusPanelProps = {
    */
   hasUnsavedChanges?: boolean;
   /**
-   * Runs before the status moves (the editor saves its edits there); the move is made only when it
-   * resolves to true, so a save that fails or is refused leaves the status as it was.
+   * Runs before the status moves to `target` (the editor confirms its pre-publication warnings
+   * and saves its edits there); the move is made only when it resolves to true, so a cancelled
+   * confirmation or a save that fails or is refused leaves the status as it was.
    */
-  beforeChange?: () => Promise<boolean>;
+  beforeChange?: (target: ArticleStatus) => Promise<boolean>;
   disabled?: boolean;
 };
 
@@ -50,7 +51,7 @@ export const ArticleStatusPanel = ({
 
   const mutation = useMutation({
     mutationFn: async (status: ArticleStatus): Promise<ArticleStatus | null> => {
-      if (beforeChange && !(await beforeChange())) {
+      if (beforeChange && !(await beforeChange(status))) {
         return null;
       }
       return (await changeArticleStatus(articleId, status)).status;
