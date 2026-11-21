@@ -580,6 +580,29 @@ describe('ArticleEditorPage', () => {
     expect(screen.queryByRole('textbox', { name: 'Введите текст параграфа...' })).toBeNull();
   });
 
+  it('given an article with headings, when a heading is picked in the structure, then its block is scrolled to and its text takes the focus', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({
+      ...article,
+      paragraphs: [
+        { id: 11, order: 1, opinions: [{ id: 21, content: '## Условия', isDefault: true, schoolIds: [], sources: [] }] },
+        { id: 12, order: 2, opinions: [{ id: 22, content: 'Текст статьи', isDefault: true, schoolIds: [], sources: [] }] },
+        { id: 13, order: 3, opinions: [{ id: 23, content: '### Время', isDefault: true, schoolIds: [], sources: [] }] },
+      ],
+    });
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    renderAt('/admin/articles/7/edit');
+    await screen.findByDisplayValue('Намаз');
+
+    const outline = screen.getByRole('navigation', { name: 'Структура статьи' });
+    expect(within(outline).getAllByRole('button').map((button) => button.textContent)).toEqual(['Условия', 'Время']);
+    fireEvent.click(within(outline).getByRole('button', { name: 'Перейти к заголовку «Время»' }));
+
+    const heading = screen.getByDisplayValue('Время');
+    expect(document.activeElement).toBe(heading);
+    expect(scrollIntoView.mock.contexts.some((element) => (element as Element).contains(heading))).toBe(true);
+  });
+
   it('given the / menu, when Escape is pressed, then it closes and the slash stays as text', async () => {
     vi.mocked(getArticleContentById).mockResolvedValue({ ...article, paragraphs: [] });
     renderAt('/admin/articles/7/edit');

@@ -111,6 +111,8 @@
   },
   "addArticleEditor": {
     "outlineTitle": "Структура",
+    "outlineLabel": "Структура статьи",
+    "outlineJump": "Перейти к заголовку «{title}»",
     "outlineEmpty": "Добавьте H2 или H3, чтобы структура появилась здесь.",
     "articleProperties": "Свойства статьи",
     "parentArticle": "Родительская статья",

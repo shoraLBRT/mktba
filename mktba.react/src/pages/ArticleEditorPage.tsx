@@ -675,13 +675,18 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   return (
     <div className="min-h-[calc(100vh-var(--layout-header-height))] bg-[linear-gradient(180deg,#f9f8f5_0%,#f3f2ed_100%)]">
       <div className="mx-auto max-w-[1420px] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex gap-0">
+        {/* E-15 (#85): from lg the structure is the left column and the rail goes under the
+            document; from xl the rail is the right column. Below lg both columns stack. */}
+        <div className="grid grid-cols-1 gap-y-6 lg:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_280px] xl:gap-y-0">
         <EditorOutlineRail
           blocks={blocks}
-          onJumpToBlock={(blockId) => blockRefs.current[blockId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+          onJumpToBlock={(blockId) => {
+            blockRefs.current[blockId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setFocusRequest({ blockId });
+          }}
         />
 
-        <div className="min-w-0 flex-1 xl:px-6">
+        <div className="min-w-0 lg:col-start-2 xl:px-6">
           <div className="mx-auto max-w-[840px]">
             {notice ? <EditorNotice notice={notice} onDismiss={() => setNotice(null)} /> : null}
             {localCopy.offer ? (

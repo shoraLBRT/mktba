@@ -206,8 +206,8 @@ export const EditorHelpRail = ({
     : null;
 
   return (
-    <aside className="hidden xl:block xl:w-[280px] xl:shrink-0">
-      <div className="sticky top-[calc(var(--layout-header-height)+24px)] max-h-[calc(100vh-var(--layout-header-height)-48px)] overflow-y-auto space-y-4 px-4 pb-6">
+    <aside className="min-w-0 lg:col-start-2 xl:col-start-3" data-testid="editor-rail">
+      <div className="mx-auto max-w-[840px] space-y-4 xl:sticky xl:top-[calc(var(--layout-header-height)+24px)] xl:max-h-[calc(100vh-var(--layout-header-height)-48px)] xl:max-w-none xl:overflow-y-auto xl:px-4 xl:pb-6">
         {actions ? <div>{actions}</div> : null}
         {publication}
 

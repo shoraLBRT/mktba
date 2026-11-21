@@ -301,6 +301,7 @@
     "menuOpen": "Открыть меню разделов",
     "menuClose": "Закрыть меню разделов",
     "toSite": "На сайт",
+    "backToArticles": "К списку статей",
     "sections": {
       "dashboard": "Обзор",
       "articles": "Статьи",
