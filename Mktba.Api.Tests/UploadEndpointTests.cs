@@ -86,6 +86,17 @@ public sealed class UploadEndpointTests : IClassFixture<MktbaApiFactory>
         (uploaded!.Width, uploaded.Height).Should().Be((1200, 900));
     }
 
+    [Fact]
+    public async Task GivenMultipartBodyWithoutAnyPart_WhenUploading_ThenItIsABadRequestNotAServerError()
+    {
+        var (reader, _) = await RoleClients.CreateAsync(_factory, UserRole.Reader);
+
+        var response = await reader.PostAsync("/uploads/avatar", new MultipartFormDataContent());
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ErrorCodeAsync(response)).Should().Be("bad_request");
+    }
+
     [Theory]
     [InlineData("0123456789abcdef0123456789abcdef.webp")]
     [InlineData("0123456789abcdef0123456789abcdef.svg")]

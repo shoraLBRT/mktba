@@ -108,9 +108,7 @@ public static class UploadEndpoints
     private static async Task<IResult> UploadAsync(
         ImageUploadPurpose purpose, HttpRequest request, ImageUploadService service, UploadOptions options, CancellationToken cancellationToken)
     {
-        var file = request.HasFormContentType
-            ? (await request.ReadFormAsync(cancellationToken)).Files.GetFile(FileField)
-            : null;
+        var file = request.HasFormContentType ? await ReadFileAsync(request, cancellationToken) : null;
         if (file is null || file.Length == 0)
         {
             throw new ValidationException(AppErrors.UploadFileRequired);
@@ -125,6 +123,19 @@ public static class UploadEndpoints
         var stored = await service.UploadAsync(content, purpose, cancellationToken);
         var url = PublicUrl(stored.Name, options, request);
         return Results.Created(url, new UploadedImageDto(url, stored.ContentType, stored.Width, stored.Height, stored.SizeBytes));
+    }
+
+    /// <summary>The form's <see cref="FileField"/>; a body that is not a readable multipart form is a 400 bad_request.</summary>
+    private static async Task<IFormFile?> ReadFileAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await request.ReadFormAsync(cancellationToken)).Files.GetFile(FileField);
+        }
+        catch (Exception exception) when (exception is InvalidDataException or (IOException and not BadHttpRequestException))
+        {
+            throw new ValidationException(AppErrors.BadRequest);
+        }
     }
 
     /// <summary>Where readers get a stored file: <c>Uploads:PublicBaseUrl</c>, else this API's <c>/files/</c>.</summary>
