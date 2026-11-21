@@ -1066,7 +1066,7 @@
           "Articles"
         ],
         "summary": "Moves an article to another status.",
-        "description": "Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, Archived → Draft. Any other move answers 400 article_status_transition_invalid. Admins make every move; an author only Draft → InReview and InReview → Draft on an article they wrote or co-author, anything else answers 403 forbidden (404 article_not_found for someone else's draft).",
+        "description": "Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, Archived → Draft. Any other move answers 400 article_status_transition_invalid. Admins make every move; an author only Draft → InReview and InReview → Draft on an article they wrote or co-author, anything else answers 403 forbidden (404 article_not_found for someone else's draft). The optional comment (trimmed, at most 2000 characters, else 400 article_status_comment_too_long) is kept with the move in the article's status log, such as a reviewer's reason for returning the article; the answer's lastStatusChange is that move.",
         "parameters": [
           {
             "name": "id",
@@ -1121,6 +1121,49 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/review-queue": {
+      "get": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "The moderation queue: every article waiting for review.",
+        "description": "Lists the InReview articles, submitted longest ago first, without content. Each gives the newest revision (what approval publishes) and the revision last published, if any, so the two can be compared through GET /articles/{id}/revisions/compare. locale filters to one language (an unsupported one answers 400 locale_unsupported); without it every language is listed. Approve or return through POST /articles/{id}/status.",
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewQueueItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3820,6 +3863,9 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "lastStatusChange": {
+            "$ref": "#/components/schemas/ArticleStatusChangeEntryDto"
           }
         },
         "additionalProperties": false
@@ -4214,6 +4260,39 @@
         "properties": {
           "status": {
             "$ref": "#/components/schemas/ArticleStatus"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleStatusChangeEntryDto": {
+        "required": [
+          "changedAt",
+          "fromStatus",
+          "toStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "fromStatus": {
+            "$ref": "#/components/schemas/ArticleStatus"
+          },
+          "toStatus": {
+            "$ref": "#/components/schemas/ArticleStatus"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changedByDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4881,6 +4960,65 @@
             "items": {
               "$ref": "#/components/schemas/RecentArticleDto"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewQueueItemDto": {
+        "required": [
+          "id",
+          "latestRevisionNumber",
+          "locale",
+          "slug",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "authorDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "latestRevisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publishedRevisionNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false

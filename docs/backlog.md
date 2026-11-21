@@ -253,6 +253,7 @@
 - [#34](https://github.com/shoraLBRT/mktba/issues/34) — A-02. Список статей
 - [#86](https://github.com/shoraLBRT/mktba/issues/86) — A-03. Управление деревом
 - [#87](https://github.com/shoraLBRT/mktba/issues/87) — A-04. Очередь модерации
+- [#253](https://github.com/shoraLBRT/mktba/issues/253) — A-04b. Правка опубликованной статьи через модерацию (D4)
 - [#148](https://github.com/shoraLBRT/mktba/issues/148) — A-05. Справочники
 - [#35](https://github.com/shoraLBRT/mktba/issues/35) — A-06. Вся админка на русском через словари
 - [#95](https://github.com/shoraLBRT/mktba/issues/95) — A-07. Сводка на эндпоинте статистики

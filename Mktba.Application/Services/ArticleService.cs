@@ -81,7 +81,36 @@ namespace Mktba.Application.Services
             var article = await _articleRepository.GetByIdWithCoAuthorsAsync(id);
             return article is null || !viewer.CanSee(article)
                 ? null
-                : ToReadDto(article, viewer);
+                : await WithLastStatusChangeAsync(ToReadDto(article, viewer), article, viewer);
+        }
+
+        /// <summary>
+        /// The moderation queue (A-04, #87): every article waiting for review, submitted longest ago
+        /// first, with the revisions a reviewer compares — the one last published (if any) and the newest.
+        /// Who may read it is checked by the API (reviewers only).
+        /// </summary>
+        /// <exception cref="ValidationException">The locale is not supported (locale_unsupported).</exception>
+        public async Task<List<ReviewQueueItemDto>> GetReviewQueueAsync(string? requestedLocale)
+        {
+            var locale = string.IsNullOrWhiteSpace(requestedLocale)
+                ? null
+                : Locales.Normalize(requestedLocale) ?? throw new ValidationException(AppErrors.LocaleUnsupported(requestedLocale));
+
+            var rows = await _articleRepository.GetReviewQueueAsync(locale);
+            return rows.Select(row => new ReviewQueueItemDto
+            {
+                Id = row.Id,
+                Title = row.Title,
+                Slug = row.Slug,
+                Locale = row.Locale,
+                AuthorId = row.AuthorId,
+                AuthorDisplayName = row.AuthorDisplayName,
+                SubmittedAt = row.SubmittedAt,
+                UpdatedAt = row.UpdatedAt,
+                PublishedAt = row.PublishedAt,
+                LatestRevisionNumber = row.LatestRevisionNumber,
+                PublishedRevisionNumber = row.PublishedRevisionNumber,
+            }).ToList();
         }
 
         /// <summary>
@@ -91,11 +120,21 @@ namespace Mktba.Application.Services
         /// A status change is not a content save and leaves <see cref="Article.UpdatedAt"/> alone.
         /// Whether the caller may make the move is checked by the API before (U-02, #30);
         /// <paramref name="viewer"/> only shapes the returned <see cref="ArticleReadDto.AllowedTransitions"/>.
+        /// Every move is logged in the same save as an <see cref="ArticleStatusChange"/> (A-04, #87)
+        /// with <paramref name="comment"/> (trimmed, blank = none) and the latest revision number.
         /// </summary>
+        /// <param name="changedById">The user making the move, recorded in the log.</param>
         /// <exception cref="NotFoundException">The article does not exist.</exception>
-        /// <exception cref="ValidationException">The transition is not allowed.</exception>
-        public async Task<ArticleReadDto> ChangeStatusAsync(int id, ArticleStatus target, ArticleViewer viewer)
+        /// <exception cref="ValidationException">The transition is not allowed, or the comment is too long.</exception>
+        public async Task<ArticleReadDto> ChangeStatusAsync(
+            int id, ArticleStatus target, ArticleViewer viewer, int? changedById = null, string? comment = null)
         {
+            var trimmedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+            if (trimmedComment is { Length: > Infrastructure.Data.MktbaDbContext.StatusChangeCommentMaxLength })
+            {
+                throw new ValidationException(AppErrors.ArticleStatusCommentTooLong);
+            }
+
             var article = await _articleRepository.GetByIdWithCoAuthorsAsync(id)
                 ?? throw new NotFoundException(AppErrors.ArticleNotFound);
 
@@ -104,16 +143,51 @@ namespace Mktba.Application.Services
                 throw new ValidationException(AppErrors.ArticleStatusTransitionInvalid(article.Status, target));
             }
 
+            var now = _clock.GetUtcNow().UtcDateTime;
+            var latestRevisionNumber = await _articleRepository.GetLatestRevisionNumberAsync(id);
+            await _articleRepository.AddStatusChangeAsync(new ArticleStatusChange
+            {
+                ArticleId = id,
+                FromStatus = article.Status,
+                ToStatus = target,
+                ChangedById = changedById,
+                ChangedAt = now,
+                RevisionNumber = latestRevisionNumber == 0 ? null : latestRevisionNumber,
+                Comment = trimmedComment,
+            });
+
             article.Status = target;
             if (target == ArticleStatus.Published)
             {
-                article.PublishedAt ??= _clock.GetUtcNow().UtcDateTime;
+                article.PublishedAt ??= now;
                 article.PublishedRevisionId = await _articleRepository.GetLatestRevisionIdAsync(id);
             }
 
             await _articleRepository.UpdateAsync(article);
             await _articleRepository.SaveChangesAsync();
-            return ToReadDto(article, viewer);
+            return await WithLastStatusChangeAsync(ToReadDto(article, viewer), article, viewer);
+        }
+
+        /// <summary>Adds the latest logged move for a viewer who may edit the article; others get none.</summary>
+        private async Task<ArticleReadDto> WithLastStatusChangeAsync(ArticleReadDto dto, Article article, ArticleViewer viewer)
+        {
+            if (!viewer.CanEdit(article))
+            {
+                return dto;
+            }
+
+            var change = await _articleRepository.GetLatestStatusChangeAsync(article.Id);
+            dto.LastStatusChange = change is null
+                ? null
+                : new ArticleStatusChangeEntryDto
+                {
+                    FromStatus = change.FromStatus,
+                    ToStatus = change.ToStatus,
+                    ChangedAt = change.ChangedAt,
+                    ChangedByDisplayName = change.ChangedBy?.DisplayName,
+                    Comment = change.Comment,
+                };
+            return dto;
         }
 
         /// <summary>The article as <paramref name="viewer"/> sees it: only the status moves they may make are listed.</summary>

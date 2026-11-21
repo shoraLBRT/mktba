@@ -14,6 +14,7 @@ import type {
   ArticleUpdateDto,
   ArticleReadDto,
   ArticleStatus,
+  ReviewQueueItemDto,
   UpdateAiProviderSettingsDto,
   UserSummaryDto,
 } from '../shared/types/ApiTypes';
@@ -29,9 +30,18 @@ export const getArticleById = async (id: number): Promise<ArticleReadDto> => {
   return response.data;
 };
 
-/** Moves the article to another status; the API rejects moves its transition table does not allow. */
-export const changeArticleStatus = async (id: number, status: ArticleStatus): Promise<ArticleReadDto> => {
-  const response = await apiClient.post<ArticleReadDto>(`/articles/${id}/status`, { status });
+/**
+ * Moves the article to another status; the API rejects moves its transition table does not allow.
+ * The comment is kept with the move (A-04: a reviewer's reason for returning the article).
+ */
+export const changeArticleStatus = async (id: number, status: ArticleStatus, comment?: string): Promise<ArticleReadDto> => {
+  const response = await apiClient.post<ArticleReadDto>(`/articles/${id}/status`, { status, comment: comment?.trim() || null });
+  return response.data;
+};
+
+/** The moderation queue (A-04): every article waiting for review, submitted longest ago first (reviewers only). */
+export const getReviewQueue = async (): Promise<ReviewQueueItemDto[]> => {
+  const response = await apiClient.get<ReviewQueueItemDto[]>('/articles/review-queue');
   return response.data;
 };
 

@@ -17,7 +17,8 @@ namespace Mktba.Application.Mappings
                     || !string.IsNullOrWhiteSpace(src.InfoboxSubtitle)
                     || !string.IsNullOrWhiteSpace(src.Summary)))
                 .ForMember(dest => dest.AllowedTransitions, opt => opt.MapFrom(src =>
-                    ArticleStatusTransitions.AllowedFrom(src.Status).ToList()));
+                    ArticleStatusTransitions.AllowedFrom(src.Status).ToList()))
+                .ForMember(dest => dest.LastStatusChange, opt => opt.Ignore());
             CreateMap<ArticleCreateDto, Article>();
             // A parent change goes through ArticleService's move rules, not a plain copy.
             CreateMap<ArticleUpdateDto, Article>()

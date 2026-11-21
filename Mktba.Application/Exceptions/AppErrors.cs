@@ -118,6 +118,11 @@ public static class AppErrors
         new("article_status_transition_invalid", $"An article cannot move from {from} to {to}.",
             With(("from", from.ToString()), ("to", to.ToString())));
 
+    public static AppError ArticleStatusCommentTooLong => new(
+        "article_status_comment_too_long",
+        $"A status change comment must be at most {Infrastructure.Data.MktbaDbContext.StatusChangeCommentMaxLength} characters.",
+        With(("maxLength", Infrastructure.Data.MktbaDbContext.StatusChangeCommentMaxLength)));
+
     public static AppError ArticleBulkTooMany(int max) =>
         new("article_bulk_too_many", $"A bulk action takes at most {max} articles.", With(("max", max)));
 

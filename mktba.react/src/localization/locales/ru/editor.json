@@ -350,7 +350,9 @@
     "authorsSaveError": "Не удалось сохранить авторов",
     "editCommentLabel": "Комментарий к правке",
     "editCommentPlaceholder": "Что изменилось (необязательно)",
-    "historyLink": "История правок"
+    "historyLink": "История правок",
+    "returnedTitle": "Статью вернули на доработку",
+    "returnedBy": "{name}, {date}"
   },
   "articleDraftCopy": {
     "offerTitle": "Найдены несохранённые правки",

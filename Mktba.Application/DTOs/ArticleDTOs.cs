@@ -24,12 +24,55 @@ namespace Mktba.Application.DTOs
         public DateTime? PublishedAt { get; set; }
         /// <summary>Id of the user who created the article; null for articles from before authorship was recorded.</summary>
         public int? AuthorId { get; set; }
+        /// <summary>
+        /// The article's latest status move with its comment (A-04, #87) — how an author learns why a
+        /// reviewer returned the article. Given only to those who may edit the article, on the
+        /// single-article reads and the answer to a status move; null otherwise or when no move was logged.
+        /// </summary>
+        public ArticleStatusChangeEntryDto? LastStatusChange { get; set; }
     }
 
     /// <summary>Request to move an article to another status; see <c>ArticleStatusTransitions</c>.</summary>
     public class ArticleStatusChangeDto
     {
         public ArticleStatus Status { get; set; }
+        /// <summary>
+        /// Optional note kept with the move (A-04, #87), such as the reason a reviewer returns an
+        /// article to its author; trimmed, blank means none, at most 2000 characters.
+        /// </summary>
+        public string? Comment { get; set; }
+    }
+
+    /// <summary>One logged status move of an article (A-04, #87).</summary>
+    public class ArticleStatusChangeEntryDto
+    {
+        public ArticleStatus FromStatus { get; set; }
+        public ArticleStatus ToStatus { get; set; }
+        /// <summary>When the move happened (UTC).</summary>
+        public DateTime ChangedAt { get; set; }
+        /// <summary>The display name of whoever made the move; null when they have none or were deleted.</summary>
+        public string? ChangedByDisplayName { get; set; }
+        public string? Comment { get; set; }
+    }
+
+    /// <summary>One article of the moderation queue (A-04, #87): waiting for review, no content.</summary>
+    public class ReviewQueueItemDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+        public string Locale { get; set; } = string.Empty;
+        public int? AuthorId { get; set; }
+        /// <summary>The author's display name; null when they have none or the article has no author.</summary>
+        public string? AuthorDisplayName { get; set; }
+        /// <summary>When the article was last submitted for review (UTC); null if before moves were logged.</summary>
+        public DateTime? SubmittedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public DateTime? PublishedAt { get; set; }
+        /// <summary>The newest revision — what approval publishes; 0 when the article has none.</summary>
+        public int LatestRevisionNumber { get; set; }
+        /// <summary>The revision last published, to compare with; null when the article was never published.</summary>
+        public int? PublishedRevisionNumber { get; set; }
     }
 
     /// <summary>Request to move an article to another parent and/or position among its siblings.</summary>

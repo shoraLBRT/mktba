@@ -432,6 +432,53 @@ namespace Mktba.Infrastructure.Repositories
                 .Select(r => (int?)r.Id)
                 .FirstOrDefaultAsync(cancellationToken);
 
+        /// <summary>Stages a logged status move (A-04, #87); the log is never updated or pruned.</summary>
+        public Task AddStatusChangeAsync(ArticleStatusChange change, CancellationToken cancellationToken = default)
+            => _context.ArticleStatusChanges.AddAsync(change, cancellationToken).AsTask();
+
+        /// <summary>The article's latest logged status move with the user who made it, or null.</summary>
+        public Task<ArticleStatusChange?> GetLatestStatusChangeAsync(int articleId, CancellationToken cancellationToken = default)
+            => _context.ArticleStatusChanges
+                .AsNoTracking()
+                .Include(c => c.ChangedBy)
+                .Where(c => c.ArticleId == articleId)
+                .OrderByDescending(c => c.ChangedAt)
+                .ThenByDescending(c => c.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        /// <summary>
+        /// Every article waiting for review (InReview), whatever its parent's status: the ones submitted
+        /// longest ago first, those without a logged submission by their last save.
+        /// </summary>
+        public async Task<List<ArticleReviewQueueRow>> GetReviewQueueAsync(string? locale, CancellationToken cancellationToken = default)
+        {
+            var rows = await _dbSet
+                .AsNoTracking()
+                .Where(article => article.Status == ArticleStatus.InReview && (locale == null || article.Locale == locale))
+                .Select(article => new ArticleReviewQueueRow(
+                    article.Id,
+                    article.Title,
+                    article.Slug,
+                    article.Locale,
+                    article.AuthorId,
+                    article.Author == null ? null : article.Author.DisplayName,
+                    article.UpdatedAt,
+                    article.PublishedAt,
+                    _context.ArticleStatusChanges
+                        .Where(c => c.ArticleId == article.Id && c.ToStatus == ArticleStatus.InReview)
+                        .Max(c => (DateTime?)c.ChangedAt),
+                    _context.ArticleRevisions
+                        .Where(r => r.ArticleId == article.Id)
+                        .Max(r => (int?)r.Number) ?? 0,
+                    article.PublishedRevision == null ? null : (int?)article.PublishedRevision.Number))
+                .ToListAsync(cancellationToken);
+
+            return rows
+                .OrderBy(row => row.SubmittedAt ?? row.UpdatedAt)
+                .ThenBy(row => row.Id)
+                .ToList();
+        }
+
         /// <summary>The article's revisions, newest first, with their authors.</summary>
         public Task<List<ArticleRevision>> GetRevisionsAsync(int articleId, CancellationToken cancellationToken = default)
             => _context.ArticleRevisions
