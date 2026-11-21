@@ -2,17 +2,19 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
-import { getMyProfile, updateMyProfile } from '../../services/profileService';
+import { getMyProfile, updateMyProfile, uploadAvatar } from '../../services/profileService';
 import type { UserProfileDto } from '../../shared/types/ApiTypes';
 import AdminProfilePage from './AdminProfilePage';
 
 vi.mock('../../services/profileService', () => ({
   getMyProfile: vi.fn(),
   updateMyProfile: vi.fn(),
+  uploadAvatar: vi.fn(),
 }));
 
 const fetchProfile = vi.mocked(getMyProfile);
 const saveProfile = vi.mocked(updateMyProfile);
+const upload = vi.mocked(uploadAvatar);
 
 const profile = (patch: Partial<UserProfileDto> = {}): UserProfileDto => ({
   userId: 7,
@@ -44,6 +46,7 @@ describe('AdminProfilePage', () => {
   beforeEach(() => {
     fetchProfile.mockReset().mockResolvedValue(profile());
     saveProfile.mockReset();
+    upload.mockReset();
   });
 
   it('given an empty profile, when it opens, then says the profile is hidden without a name', async () => {
@@ -133,5 +136,40 @@ describe('AdminProfilePage', () => {
 
     expect(await screen.findByText(/уже занят другим пользователем/)).toBeTruthy();
     expect(nameInput().value).toBe('Иван');
+  });
+
+  it('given a picked image, when it is uploaded, then its address fills the avatar field and is saved with the profile', async () => {
+    const url = 'http://localhost:5172/files/0123456789abcdef0123456789abcdef.webp';
+    upload.mockResolvedValue({ url, contentType: 'image/webp', width: 512, height: 512, sizeBytes: 2048 });
+    saveProfile.mockResolvedValue(profile({ avatarUrl: url }));
+    renderPage();
+    await waitFor(() => expect(nameInput().matches(':disabled')).toBe(false));
+    const file = new File([new Uint8Array([0x89, 0x50])], 'me.png', { type: 'image/png' });
+
+    fireEvent.change(screen.getByTestId('profile-avatar-file'), { target: { files: [file] } });
+
+    await waitFor(() => expect((screen.getByLabelText(/^Ссылка на аватар/) as HTMLInputElement).value).toBe(url));
+    expect(upload).toHaveBeenCalledWith(file, expect.anything());
+    expect(screen.getByTestId('profile-avatar-preview').getAttribute('src')).toBe(url);
+    expect(saveProfile).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }));
+
+    await waitFor(() => expect(saveProfile).toHaveBeenCalled());
+    expect(saveProfile.mock.calls[0][0].avatarUrl).toBe(url);
+  });
+
+  it('given a picked file that is too large or not an image, when picked, then nothing is uploaded and the reason is shown', async () => {
+    renderPage();
+    await waitFor(() => expect(nameInput().matches(':disabled')).toBe(false));
+    const huge = new File([new Uint8Array(11 * 1024 * 1024)], 'huge.png', { type: 'image/png' });
+    const svg = new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' });
+
+    fireEvent.change(screen.getByTestId('profile-avatar-file'), { target: { files: [huge] } });
+    expect(await screen.findByText('Файл больше 10 МБ.')).toBeTruthy();
+    fireEvent.change(screen.getByTestId('profile-avatar-file'), { target: { files: [svg] } });
+    expect(await screen.findByText('Подойдёт картинка JPEG, PNG или WebP.')).toBeTruthy();
+
+    expect(upload).not.toHaveBeenCalled();
   });
 });

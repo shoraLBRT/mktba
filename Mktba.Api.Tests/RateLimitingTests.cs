@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Mktba.Application.DTOs;
+using Mktba.Domain.Entities;
 
 namespace Mktba.Api.Tests;
 
@@ -14,6 +15,7 @@ public sealed class RateLimitingTests
 {
     private const int AuthLimit = 3;
     private const int AiLimit = 2;
+    private const int UploadLimit = 2;
 
     private static readonly object WrongCredentials = new { Email = "nobody@mktba.test", Password = "Wrong-password-1" };
 
@@ -114,12 +116,35 @@ public sealed class RateLimitingTests
         otherAdmin.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task GivenUploadLimitReachedByOneUser_WhenUploadingAgain_ThenOnlyThatUserGets429()
+    {
+        await using var factory = CreateFactory();
+        // Both users share one IP: the upload limit (U-08, #73) follows the user, not the address.
+        var (first, _) = await RoleClients.CreateAsync(factory, UserRole.Reader);
+        var (second, _) = await RoleClients.CreateAsync(factory, UserRole.Reader);
+        for (var i = 0; i < UploadLimit; i++)
+        {
+            var allowed = await first.PostAsync("/uploads/avatar", new MultipartFormDataContent());
+            allowed.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        }
+
+        var limited = await first.PostAsync("/uploads/avatar", new MultipartFormDataContent());
+        var otherUser = await second.PostAsync("/uploads/avatar", new MultipartFormDataContent());
+
+        limited.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        limited.Headers.RetryAfter.Should().NotBeNull();
+        otherUser.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     private static MktbaApiFactory CreateFactory() => new("Testing", MktbaApiFactory.TestSigningKey, new Dictionary<string, string>
     {
         ["RateLimiting:Auth:PermitLimit"] = AuthLimit.ToString(),
         ["RateLimiting:Auth:WindowSeconds"] = "3600",
         ["RateLimiting:Ai:PermitLimit"] = AiLimit.ToString(),
         ["RateLimiting:Ai:WindowSeconds"] = "3600",
+        ["RateLimiting:Uploads:PermitLimit"] = UploadLimit.ToString(),
+        ["RateLimiting:Uploads:WindowSeconds"] = "3600",
     });
 
     private static HttpClient CreateClientFromIp(MktbaApiFactory factory, string ip)

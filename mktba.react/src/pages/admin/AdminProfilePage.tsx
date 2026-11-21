@@ -1,12 +1,12 @@
-import React, { useState, type ReactNode } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useRef, useState, type ReactNode } from 'react';
+import { Plus, Trash2, Upload } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { NoticeBanner } from '../../components/admin/NoticeBanner';
 import { useNotice } from '../../components/admin/useNotice';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
-import { getMyProfile, updateMyProfile } from '../../services/profileService';
+import { getMyProfile, updateMyProfile, uploadAvatar } from '../../services/profileService';
 import {
   PROFILE_BIO_MAX_LENGTH,
   PROFILE_DEGREE_MAX_LENGTH,
@@ -23,6 +23,7 @@ import {
 } from '../../shared/profile';
 import { SLUG_MAX_LENGTH } from '../../shared/slug';
 import { SOCIAL_IMAGE_URL_MAX_LENGTH } from '../../shared/seo';
+import { findUploadFileProblem, UPLOAD_IMAGE_ACCEPT, UPLOAD_MAX_BYTES } from '../../shared/upload';
 import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
 import { Input } from '../../shared/ui/Input';
@@ -64,7 +65,38 @@ const AdminProfilePage: React.FC = () => {
     onError: (error) => showNotice('error', `${t.saveFailed}: ${(error as Error).message}`),
   });
 
-  const save = (event: React.FormEvent) => {
+  // The upload only stores the image (U-08): its address goes into the field and is saved with the profile.
+  const avatarFileInput = useRef<HTMLInputElement>(null);
+  const uploadMutation = useMutation({
+    mutationFn: uploadAvatar,
+    onSuccess: (uploaded) => {
+      setDraftOverride((current) => ({ ...(current ?? profileDraftFromDto(profileQuery.data)), avatarUrl: uploaded.url }));
+      showNotice('success', t.avatarUploaded);
+    },
+    onError: (error) => showNotice('error', `${t.avatarUploadFailed}: ${(error as Error).message}`),
+  });
+
+  const pickAvatar = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Cleared, so picking the same file again after an error is a change too.
+    event.target.value = '';
+    if (!file) return;
+
+    const problem = findUploadFileProblem(file);
+    if (problem) {
+      showNotice(
+        'warning',
+        problem === 'tooLarge'
+          ? formatMessage(t.avatarTooLarge, { max: UPLOAD_MAX_BYTES / (1024 * 1024) })
+          : t.avatarTypeUnsupported,
+      );
+      return;
+    }
+
+    uploadMutation.mutate(file);
+  };
+
+  const save =(event: React.FormEvent) => {
     event.preventDefault();
     const problem = validateProfileDraft(draft);
     if (problem) {
@@ -125,16 +157,49 @@ const AdminProfilePage: React.FC = () => {
                 </Field>
               </div>
 
-              <Field label={t.avatarUrl} hint={t.avatarUrlHint}>
-                <Input
-                  name="profile-avatar-url"
-                  autoComplete="off"
-                  inputMode="url"
-                  maxLength={SOCIAL_IMAGE_URL_MAX_LENGTH}
-                  value={draft.avatarUrl}
-                  onChange={(event) => change({ avatarUrl: event.target.value })}
-                />
-              </Field>
+              <div className="flex items-start gap-4">
+                {draft.avatarUrl.trim() ? (
+                  <img
+                    src={draft.avatarUrl.trim()}
+                    alt={t.avatarPreviewAlt}
+                    width={64}
+                    height={64}
+                    referrerPolicy="no-referrer"
+                    data-testid="profile-avatar-preview"
+                    className="h-16 w-16 shrink-0 rounded-full border border-[var(--color-border-soft)] object-cover"
+                  />
+                ) : null}
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Field label={t.avatarUrl} hint={t.avatarUrlHint}>
+                    <Input
+                      name="profile-avatar-url"
+                      autoComplete="off"
+                      inputMode="url"
+                      maxLength={SOCIAL_IMAGE_URL_MAX_LENGTH}
+                      value={draft.avatarUrl}
+                      onChange={(event) => change({ avatarUrl: event.target.value })}
+                    />
+                  </Field>
+                  <input
+                    ref={avatarFileInput}
+                    type="file"
+                    accept={UPLOAD_IMAGE_ACCEPT}
+                    className="sr-only"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    data-testid="profile-avatar-file"
+                    onChange={pickAvatar}
+                  />
+                  <Button
+                    type="button"
+                    disabled={uploadMutation.isPending}
+                    onClick={() => avatarFileInput.current?.click()}
+                  >
+                    <Upload className="h-4 w-4" aria-hidden="true" />
+                    {uploadMutation.isPending ? t.avatarUploading : t.avatarUpload}
+                  </Button>
+                </div>
+              </div>
 
               <Field label={t.bio} hint={formatMessage(t.bioHint, { max: PROFILE_BIO_MAX_LENGTH })}>
                 <Textarea

@@ -9,6 +9,7 @@ using Mktba.Application.Configuration;
 using Mktba.Application.Mappings;
 using Mktba.Infrastructure;
 using Mktba.Infrastructure.Data;
+using Mktba.Infrastructure.Storage;
 using Mktba.Infrastructure.UnitOfWork;
 using Mktba.Api.Endpoints;
 using Mktba.Api.Infrastructure;
@@ -27,6 +28,10 @@ builder.Services.AddApplication();
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<FeedbackOptions>(builder.Configuration.GetSection(FeedbackOptions.SectionName));
+builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
+builder.Services.AddFileStorage(
+    builder.Configuration.GetSection(FileStorageOptions.SectionName).Get<FileStorageOptions>() ?? new FileStorageOptions(),
+    builder.Environment.ContentRootPath);
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddAutoMapper(
@@ -161,6 +166,7 @@ app.MapProfileEndpoints();
 app.MapInviteEndpoints();
 app.MapSearchEndpoints();
 app.MapFeedbackEndpoints();
+app.MapUploadEndpoints();
 
 app.Run();
 

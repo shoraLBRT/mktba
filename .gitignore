@@ -374,3 +374,6 @@ FodyWeavers.xsd
 *.db-shm
 *.db-wal
 
+
+# Uploaded files of the Local storage (U-08)
+Mktba.Api/App_Data/

@@ -30,6 +30,9 @@ public sealed class RateLimitingOptions
     /// The cap on all visitors together is <c>Feedback:Intake:MaxPerHour</c>.
     /// </summary>
     public RateLimitRule Feedback { get; set; } = new() { PermitLimit = 5, WindowSeconds = 600 };
+
+    /// <summary>File uploads (<c>/uploads/*</c>, U-08 #73), partitioned by user id (by client IP for a request without one).</summary>
+    public RateLimitRule Uploads { get; set; } = new() { PermitLimit = 30, WindowSeconds = 3600 };
 }
 
 public sealed class RateLimitRule
@@ -45,6 +48,7 @@ internal static class RateLimitingSetup
     public const string SessionPolicy = "session";
     public const string AiPolicy = "ai";
     public const string FeedbackPolicy = "feedback";
+    public const string UploadPolicy = "uploads";
 
     public static IServiceCollection AddMktbaRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -69,14 +73,9 @@ internal static class RateLimitingSetup
                 "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 options.Feedback));
 
-            limiter.AddPolicy(AiPolicy, context =>
-            {
-                var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var partition = userId is not null
-                    ? "user:" + userId
-                    : "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
-                return FixedWindow(partition, options.Ai);
-            });
+            limiter.AddPolicy(AiPolicy, context => FixedWindow(UserOrIp(context), options.Ai));
+
+            limiter.AddPolicy(UploadPolicy, context => FixedWindow(UserOrIp(context), options.Uploads));
 
             limiter.OnRejected = (context, cancellationToken) =>
             {
@@ -93,6 +92,14 @@ internal static class RateLimitingSetup
                     cancellationToken));
             };
         });
+    }
+
+    private static string UserOrIp(HttpContext context)
+    {
+        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return userId is not null
+            ? "user:" + userId
+            : "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
     }
 
     private static RateLimitPartition<string> FixedWindow(string partitionKey, RateLimitRule rule) =>
