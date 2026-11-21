@@ -16,6 +16,8 @@ const labelClass = 'mb-2 block text-[11px] font-semibold uppercase tracking-[0.1
 type PublicationPanelProps = {
   /** The status block of a saved article (`ArticleStatusPanel`); absent for a new one, which starts as a draft. */
   status?: ReactNode;
+  /** The pre-publication checklist (`PrepublishChecklist`, E-14 #84). */
+  checks: ReactNode;
   /** The slug field (`SlugField`). */
   slug: ReactNode;
   /** The revision comment; absent for a new article, whose first save has no revision to describe. */
@@ -32,7 +34,7 @@ type PublicationPanelProps = {
  * moves it may make, its address, the comment for the next revision and the SEO fields with their
  * search-result preview — everything that decides how and when readers get the article.
  */
-export const PublicationPanel = ({ status, slug, editComment, seo, onSeoChange, snippet, url, disabled }: PublicationPanelProps) => {
+export const PublicationPanel = ({ status, checks, slug, editComment, seo, onSeoChange, snippet, url, disabled }: PublicationPanelProps) => {
   const locale = useLocale();
   const t = locale.addArticlePage.publication;
   const editT = locale.editArticlePage;
@@ -52,6 +54,7 @@ export const PublicationPanel = ({ status, slug, editComment, seo, onSeoChange, 
             <p className="mb-0 text-[11px] text-[var(--color-ink-subtle)]">{t.newArticleStatus}</p>
           </div>
         )}
+        {checks}
         {slug}
         {editComment ? (
           <div>

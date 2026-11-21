@@ -87,7 +87,7 @@ describe('ArticleStatusPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Сохранить и отправить на проверку' }));
 
-    await waitFor(() => expect(beforeChange).toHaveBeenCalled());
+    await waitFor(() => expect(beforeChange).toHaveBeenCalledWith('InReview'));
     expect(screen.getByText(/будут сохранены перед сменой статуса/)).toBeTruthy();
     expect(changeStatus).not.toHaveBeenCalled();
     expect(onChanged).not.toHaveBeenCalled();
