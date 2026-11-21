@@ -29,12 +29,12 @@ const article = (overrides: Partial<ArticleReadDto>): ArticleReadDto => ({
   ...overrides,
 });
 
-const renderPanel = (onChanged = vi.fn(), onError = vi.fn()) => {
+const renderPanel = (onChanged = vi.fn(), onError = vi.fn(), extra: Partial<Parameters<typeof ArticleStatusPanel>[0]> = {}) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
       <LocalizationProvider>
-        <ArticleStatusPanel articleId={7} onChanged={onChanged} onError={onError} />
+        <ArticleStatusPanel articleId={7} onChanged={onChanged} onError={onError} {...extra} />
       </LocalizationProvider>
     </QueryClientProvider>,
   );
@@ -77,6 +77,19 @@ describe('ArticleStatusPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Отправить на проверку' }));
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.stringContaining('Статью нельзя перевести')));
+    expect(onChanged).not.toHaveBeenCalled();
+  });
+
+  it('given unsaved edits, when the save before the move is refused, then the status is not changed', async () => {
+    fetchArticle.mockResolvedValue(article({}));
+    const beforeChange = vi.fn(async () => false);
+    const { onChanged } = renderPanel(vi.fn(), vi.fn(), { hasUnsavedChanges: true, beforeChange });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Сохранить и отправить на проверку' }));
+
+    await waitFor(() => expect(beforeChange).toHaveBeenCalled());
+    expect(screen.getByText(/будут сохранены перед сменой статуса/)).toBeTruthy();
+    expect(changeStatus).not.toHaveBeenCalled();
     expect(onChanged).not.toHaveBeenCalled();
   });
 });

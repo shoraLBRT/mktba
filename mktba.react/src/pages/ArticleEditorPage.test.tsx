@@ -6,7 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { LocalizationProvider } from '../localization/provider';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
-import type { ArticleContentDto, NavigationArticleDto } from '../shared/types/ApiTypes';
+import { changeArticleStatus, getArticleById } from '../services/adminService';
+import type { ArticleContentDto, ArticleReadDto, ArticleStatus, NavigationArticleDto } from '../shared/types/ApiTypes';
 import { getSystemSchools } from '../services/schoolService';
 import { localDraftCopyKey, readLocalDraftCopy, writeLocalDraftCopy } from './add-article/localDraftCopy';
 import { articleDraftFromDto } from './add-article/articleDraft';
@@ -67,6 +68,20 @@ const renderAt = (url: string, navigationTree: NavigationArticleDto[] = []) => {
   return router;
 };
 
+/** The admin read of article 7: a draft with the given allowed moves. */
+const draftArticle = (allowedTransitions: ArticleStatus[]): ArticleReadDto => ({
+  id: 7,
+  title: 'Намаз',
+  slug: 'namaz',
+  parentArticleId: null,
+  order: 0,
+  status: 'Draft',
+  allowedTransitions,
+  createdAt: '2026-11-01T09:00:00Z',
+  updatedAt: '2026-11-01T09:00:00Z',
+  hasContent: true,
+});
+
 const titleField = () => screen.getByPlaceholderText('Название статьи...') as HTMLInputElement;
 /** A paragraph's rich-text editor; TipTap hangs its instance on the editable element. */
 const paragraphText = () => screen.getByRole('textbox', { name: 'Введите текст параграфа...' }) as HTMLElement & { editor: Editor };
@@ -84,6 +99,8 @@ describe('ArticleEditorPage', () => {
     vi.mocked(updateArticleContent).mockReset();
     vi.mocked(getArticleContentById).mockReset();
     vi.mocked(getSystemSchools).mockResolvedValue([]);
+    vi.mocked(changeArticleStatus).mockReset();
+    vi.mocked(getArticleById).mockResolvedValue(draftArticle([]));
     window.localStorage.clear();
   });
 
@@ -569,5 +586,79 @@ describe('ArticleEditorPage', () => {
     renderAt('/admin/articles/7/edit');
 
     await waitFor(() => expect(screen.getByText('Не удалось загрузить статью')).toBeTruthy());
+  });
+
+  it('given the edit address, when the article loads, then the publication panel shows the status, the address and the search snippet', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    renderAt('/admin/articles/7/edit');
+
+    const panel = await screen.findByTestId('publication-panel');
+    expect(await within(panel).findByText('Черновик')).toBeTruthy();
+    expect((within(panel).getByLabelText('Адрес статьи') as HTMLInputElement).value).toBe('namaz');
+    const seoSection = within(panel).getByTestId('seo-fields') as HTMLDetailsElement;
+    seoSection.open = true;
+    fireEvent(seoSection, new Event('toggle'));
+    const snippet = within(panel).getByTestId('seo-snippet');
+    expect(within(snippet).getByText('Намаз')).toBeTruthy();
+    expect(within(snippet).getByText('Текст статьи')).toBeTruthy();
+  });
+
+  it('given unsaved edits, when the article is submitted for review, then the edits are saved first and the editor stays open', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleById).mockResolvedValue(draftArticle(['InReview']));
+    vi.mocked(updateArticleContent).mockResolvedValue();
+    vi.mocked(changeArticleStatus).mockResolvedValue({ ...draftArticle(['Draft']), status: 'InReview' });
+    renderAt('/admin/articles/7/edit');
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+    fireEvent.change(screen.getByLabelText('Комментарий к правке'), { target: { value: 'Заголовок' } });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Сохранить и отправить на проверку' }));
+
+    await waitFor(() => expect(changeArticleStatus).toHaveBeenCalledWith(7, 'InReview'));
+    expect(updateArticleContent).toHaveBeenCalledWith(7, expect.objectContaining({ title: 'Намаз путника', editComment: 'Заголовок' }));
+    expect(vi.mocked(updateArticleContent).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(changeArticleStatus).mock.invocationCallOrder[0]);
+    expect(await screen.findByText('Статус изменён: На проверке')).toBeTruthy();
+    expect(screen.queryByText('article-page')).toBeNull();
+    expect((screen.getByLabelText('Комментарий к правке') as HTMLInputElement).value).toBe('');
+    expect(screen.getByDisplayValue('Намаз путника')).toBeTruthy();
+  });
+
+  it('given unsaved edits the save refuses, when the article is submitted, then the status stays and the edits are kept', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleById).mockResolvedValue(draftArticle(['InReview']));
+    renderAt('/admin/articles/7/edit');
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: '' } });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Сохранить и отправить на проверку' }));
+
+    expect(await screen.findByText('Укажите заголовок статьи')).toBeTruthy();
+    expect(updateArticleContent).not.toHaveBeenCalled();
+    expect(changeArticleStatus).not.toHaveBeenCalled();
+  });
+
+  it('given a save that fails, when the article is submitted, then the status is not changed', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleById).mockResolvedValue(draftArticle(['InReview']));
+    vi.mocked(updateArticleContent).mockRejectedValue(new Error('сеть недоступна'));
+    renderAt('/admin/articles/7/edit');
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Сохранить и отправить на проверку' }));
+
+    expect(await screen.findByText(/сеть недоступна/)).toBeTruthy();
+    expect(changeArticleStatus).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Намаз путника')).toBeTruthy();
+  });
+
+  it('given no edits, when the article is submitted, then only the status moves', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleById).mockResolvedValue(draftArticle(['InReview']));
+    vi.mocked(changeArticleStatus).mockResolvedValue({ ...draftArticle(['Draft']), status: 'InReview' });
+    renderAt('/admin/articles/7/edit');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Отправить на проверку' }));
+
+    await waitFor(() => expect(changeArticleStatus).toHaveBeenCalledWith(7, 'InReview'));
+    expect(updateArticleContent).not.toHaveBeenCalled();
   });
 });
