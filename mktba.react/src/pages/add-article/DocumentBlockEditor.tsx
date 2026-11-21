@@ -33,6 +33,8 @@ type DocumentBlockEditorProps = {
   onFocusTarget: (target: EditorTarget) => void;
   /** Ctrl/⌘+K in a rich text: the page opens its link dialog for that text. */
   onRequestLink: (target: EditorTarget) => void;
+  /** An image file pasted or dropped into a text of the block (U-08). */
+  onImageFile: (target: EditorTarget, file: File) => void;
   onChangePlain: (blockId: string, content: string) => void;
   onChangeVersion: (blockId: string, localId: string, content: string) => void;
   onSetDefault: (blockId: string, localId: string) => void;
@@ -154,6 +156,7 @@ export const DocumentBlockEditor = ({
   richTextRef,
   onFocusTarget,
   onRequestLink,
+  onImageFile,
   onChangePlain,
   onChangeVersion,
   onSetDefault,
@@ -320,6 +323,7 @@ export const DocumentBlockEditor = ({
           targetKey={targetKey}
           onFocusTarget={onFocusTarget}
           onRequestLink={onRequestLink}
+          onImageFile={onImageFile}
           onChangeVersion={onChangeVersion}
           onSetDefault={onSetDefault}
           onToggleSchool={onToggleSchool}
@@ -336,6 +340,7 @@ export const DocumentBlockEditor = ({
               disabled={disabled}
               onFocus={() => onFocusTarget({ blockId: block.id, localId: null })}
               onRequestLink={() => onRequestLink({ blockId: block.id, localId: null })}
+              onImageFile={(file) => onImageFile({ blockId: block.id, localId: null }, file)}
               onKeyDown={slashMenu.onKeyDown}
               onChange={(content) => onChangePlain(block.id, content)}
               className="text-[15px]"

@@ -3,6 +3,7 @@ import {
   FileSymlink,
   Heading2,
   Heading3,
+  ImagePlus,
   Italic,
   Link as LinkIcon,
   List,
@@ -24,6 +25,8 @@ type EditorBottomToolbarProps = {
   onFormat: (action: FormatAction) => void;
   /** Opens the article picker; the link goes where the cursor of the active text is. */
   onInsertArticleLink: () => void;
+  /** Opens the file picker; the uploaded image goes where the cursor of the active text is (U-08). */
+  onInsertImage: () => void;
   /** Undo and redo in the rich text that has the focus (also Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y). */
   onUndo: () => void;
   onRedo: () => void;
@@ -53,7 +56,7 @@ const ToolbarIconButton = ({
   </button>
 );
 
-export const EditorBottomToolbar = ({ disabled, onFormat, onInsertArticleLink, onUndo, onRedo, onAddBlock }: EditorBottomToolbarProps) => {
+export const EditorBottomToolbar = ({ disabled, onFormat, onInsertArticleLink, onInsertImage, onUndo, onRedo, onAddBlock }: EditorBottomToolbarProps) => {
   const locale = useLocale();
   const t = locale.addArticleEditor.bottomToolbar;
   const addActions: Array<{ kind: PlainBlockKind; label: string; icon: typeof Pilcrow }> = [
@@ -70,6 +73,7 @@ export const EditorBottomToolbar = ({ disabled, onFormat, onInsertArticleLink, o
           <ToolbarIconButton icon={Italic} label={t.formatting.italic} onClick={() => onFormat('italic')} disabled={disabled} />
           <ToolbarIconButton icon={LinkIcon} label={t.formatting.link} onClick={() => onFormat('link')} disabled={disabled} />
           <ToolbarIconButton icon={FileSymlink} label={t.formatting.articleLink} onClick={onInsertArticleLink} disabled={disabled} />
+          <ToolbarIconButton icon={ImagePlus} label={t.formatting.image} onClick={onInsertImage} disabled={disabled} />
           <ToolbarIconButton icon={List} label={t.formatting.bulletList} onClick={() => onFormat('bulletList')} disabled={disabled} />
           <ToolbarIconButton icon={ListOrdered} label={t.formatting.orderedList} onClick={() => onFormat('orderedList')} disabled={disabled} />
           <ToolbarIconButton icon={Quote} label={t.formatting.quote} onClick={() => onFormat('quote')} disabled={disabled} />

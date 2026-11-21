@@ -5,6 +5,8 @@ import StarterKit from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extensions';
 import { useLocale } from '../../../localization/hooks';
 import { cn } from '../../../shared/lib/cn';
+import { TextSelection } from '@tiptap/pm/state';
+import { firstImageFile, pastedImageFile } from '../imageMarkdown';
 import { PasteCleanup } from './editorExtensions';
 import { documentToMarkdown, markdownToDocument, normalizeMarkdown, RAW_BLOCK, RAW_INLINE } from './markdownDocument';
 import { RawMarkdownBlock, RawMarkdownInline } from './rawMarkdown';
@@ -23,6 +25,8 @@ export type RichTextHandle = {
   setLink: (href: string | null) => void;
   /** Links the selection to the article, or inserts its title as linked text; the link text is selected afterwards. */
   insertArticleLink: (article: { title: string; href: string }) => void;
+  /** Inserts an image's Markdown (`![alt](url)`, U-08) at the selection as one raw inline piece. */
+  insertImage: (markdown: string) => void;
   undo: () => void;
   redo: () => void;
 };
@@ -36,6 +40,8 @@ type RichTextEditorProps = {
   onRequestLink: () => void;
   /** A key pressed in the text, before the editor handles it; true when the caller took it (the `/` menu). */
   onKeyDown?: (event: KeyboardEvent) => boolean;
+  /** An image file pasted or dropped into the text; the selection is already where it goes. */
+  onImageFile?: (file: File) => void;
   handleRef: (handle: RichTextHandle | null) => void;
   disabled: boolean;
   placeholder: string;
@@ -110,6 +116,9 @@ const createHandle = (editor: Editor): RichTextHandle => ({
       .setTextSelection({ from, to: from + title.length })
       .run();
   },
+  insertImage: (markdown) => {
+    editor.chain().focus().insertContent({ type: RAW_INLINE, attrs: { source: markdown } }).run();
+  },
   undo: () => {
     editor.chain().focus().undo().run();
   },
@@ -130,15 +139,16 @@ export const RichTextEditor = ({
   onFocus,
   onRequestLink,
   onKeyDown,
+  onImageFile,
   handleRef,
   disabled,
   placeholder,
   className,
 }: RichTextEditorProps) => {
   const t = useLocale().addArticleEditor.richText;
-  const callbacks = useRef({ onChange, onFocus, onKeyDown, handleRef, placeholder });
+  const callbacks = useRef({ onChange, onFocus, onKeyDown, onImageFile, handleRef, placeholder });
   useLayoutEffect(() => {
-    callbacks.current = { onChange, onFocus, onKeyDown, handleRef, placeholder };
+    callbacks.current = { onChange, onFocus, onKeyDown, onImageFile, handleRef, placeholder };
   });
 
   /** The last value given from outside (loaded, restored, imported, styled by the AI) and its normal form. */
@@ -172,6 +182,26 @@ export const RichTextEditor = ({
         class: cn('rich-text-editor article-markdown', className),
       }),
       handleKeyDown: (_view, event) => callbacks.current.onKeyDown?.(event) ?? false,
+      // An image file goes to the page, which uploads it (U-08); these run before PasteCleanup's paste.
+      handlePaste: (_view, event) => {
+        const image = pastedImageFile(event.clipboardData);
+        const take = callbacks.current.onImageFile;
+        if (!image || !take) return false;
+        take(image);
+        return true;
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        const image = moved ? null : firstImageFile(event.dataTransfer?.files);
+        const take = callbacks.current.onImageFile;
+        if (!image || !take) return false;
+        event.preventDefault();
+        const position = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        if (position) {
+          view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(position.pos))));
+        }
+        take(image);
+        return true;
+      },
     },
     onUpdate: ({ editor: updated }) => {
       const markdown = documentToMarkdown(updated.getJSON());

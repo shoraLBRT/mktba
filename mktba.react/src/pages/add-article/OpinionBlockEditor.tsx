@@ -214,6 +214,7 @@ type OpinionBlockEditorProps = {
   targetKey: (blockId: string, localId: string | null) => string;
   onFocusTarget: (target: EditorTarget) => void;
   onRequestLink: (target: EditorTarget) => void;
+  onImageFile: (target: EditorTarget, file: File) => void;
   onChangeVersion: (blockId: string, localId: string, content: string) => void;
   onSetDefault: (blockId: string, localId: string) => void;
   onToggleSchool: (blockId: string, localId: string, schoolId: number) => void;
@@ -236,6 +237,7 @@ export const OpinionBlockEditor = ({
   targetKey,
   onFocusTarget,
   onRequestLink,
+  onImageFile,
   onChangeVersion,
   onSetDefault,
   onToggleSchool,
@@ -358,6 +360,7 @@ export const OpinionBlockEditor = ({
           disabled={disabled}
           onFocus={() => onFocusTarget({ blockId: block.id, localId: selectedVariant.localId })}
           onRequestLink={() => onRequestLink({ blockId: block.id, localId: selectedVariant.localId })}
+          onImageFile={(file) => onImageFile({ blockId: block.id, localId: selectedVariant.localId }, file)}
           onChange={(content) => onChangeVersion(block.id, selectedVariant.localId, content)}
           className="py-1 text-[14px]"
           placeholder={formatMessage(t.versionTextPlaceholder, { label: selectedLabel })}

@@ -128,6 +128,15 @@
     color: var(--color-ink-muted);
   }
 
+  /* An image in the text (U-08): never wider than the column, its own line, height from its proportions. */
+  .article-markdown img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 4px 0 12px;
+    border-radius: 8px;
+  }
+
   .article-markdown pre {
     margin: 0 0 12px;
     overflow-x: auto;
