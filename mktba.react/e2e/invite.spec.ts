@@ -35,7 +35,7 @@ test('an author invited by an admin writes and submits an article but cannot pub
   await declineAnalytics(author);
   await register(author, `author-${stamp}@mktba.local`, token);
   await expect(author).toHaveURL(/\/admin$/);
-  await expect(author.getByRole('navigation', { name: 'Разделы админки' }).getByRole('link', { name: 'Статьи' })).toBeVisible();
+  await expect(author.getByRole('navigation', { name: 'Разделы админки' }).getByRole('link', { name: 'Статьи', exact: true })).toBeVisible();
   await expect(author.getByRole('link', { name: 'Пользователи и приглашения' })).toHaveCount(0);
 
   await author.getByRole('button', { name: 'Добавить статью' }).click();
