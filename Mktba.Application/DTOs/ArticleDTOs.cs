@@ -123,6 +123,8 @@ namespace Mktba.Application.DTOs
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? PublishedAt { get; set; }
+        /// <summary>The latest logged status move (with a reviewer's comment, if any); only for articles the caller may edit.</summary>
+        public ArticleStatusChangeEntryDto? LastStatusChange { get; set; }
     }
 
     /// <summary>One page of the admin article list.</summary>

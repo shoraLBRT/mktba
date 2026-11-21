@@ -26,6 +26,7 @@ namespace Mktba.Infrastructure.Repositories
     /// </summary>
     /// <param name="Search">Case-insensitive substring of the title or the slug.</param>
     /// <param name="Tag">The comparison key of one tag (<c>Tag.NormalizedName</c>): articles carrying that tag.</param>
+    /// <param name="Mine">Only the articles the viewer writes or co-writes (the author's cabinet, P-02 #90).</param>
     public sealed record ArticleListQuery(
         string? Search,
         ArticleStatus? Status,
@@ -35,7 +36,8 @@ namespace Mktba.Infrastructure.Repositories
         ArticleListSort Sort,
         SortDirection Direction,
         int Page,
-        int PageSize);
+        int PageSize,
+        bool Mine = false);
 
     /// <summary>An article as the admin list shows it, projected in SQL without its content rows.</summary>
     /// <param name="Tags">The tag names in order.</param>

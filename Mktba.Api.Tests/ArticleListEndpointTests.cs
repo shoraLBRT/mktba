@@ -71,6 +71,33 @@ public sealed class ArticleListEndpointTests : IClassFixture<MktbaApiFactory>
     }
 
     [Fact]
+    public async Task GivenOwnCoAuthoredAndOthersArticles_WhenListingMine_ThenOnlyOwnAndCoAuthoredAreListedWithTheLastMove()
+    {
+        var (admin, adminId) = await RoleClients.CreateAsync(_factory, UserRole.Admin);
+        var (author, authorId) = await RoleClients.CreateAsync(_factory, UserRole.Author);
+        var marker = Guid.NewGuid().ToString("N")[..8];
+        var own = await CreateAsync(author, $"{marker} свой");
+        var coAuthored = await CreateAsync(admin, $"{marker} соавторство");
+        (await admin.PutAsJsonAsync($"/articles/{coAuthored.Id}/authors", new ArticleAuthorsDto { AuthorId = adminId, CoAuthorIds = [authorId] }))
+            .EnsureSuccessStatusCode();
+        var othersPublished = await CreateAsync(admin, $"{marker} чужая опубликованная");
+        await ApiJson.PublishAsync(admin, othersPublished.Id);
+        (await author.PostAsJsonAsync($"/articles/{own.Id}/status", new { status = "InReview" })).EnsureSuccessStatusCode();
+        (await admin.PostAsJsonAsync($"/articles/{own.Id}/status", new { status = "Draft", comment = "Добавьте источники." }))
+            .EnsureSuccessStatusCode();
+
+        var mine = await ListAsync(author, $"search={marker}&mine=true&sort=Title&dir=Asc");
+        var all = await ListAsync(author, $"search={marker}");
+
+        mine.Items.Select(item => item.Id).Should().BeEquivalentTo([own.Id, coAuthored.Id]);
+        var returned = mine.Items.Single(item => item.Id == own.Id);
+        returned.LastStatusChange!.ToStatus.Should().Be(ArticleStatus.Draft);
+        returned.LastStatusChange.Comment.Should().Be("Добавьте источники.");
+        mine.Items.Single(item => item.Id == coAuthored.Id).LastStatusChange.Should().BeNull();
+        all.Items.Single(item => item.Id == othersPublished.Id).LastStatusChange.Should().BeNull("only editors of an article read its moves");
+    }
+
+    [Fact]
     public async Task GivenAMixOfArticles_WhenAnAuthorSubmitsThemInBulk_ThenEachIsReportedOnItsOwn()
     {
         var (admin, _) = await RoleClients.CreateAsync(_factory, UserRole.Admin);

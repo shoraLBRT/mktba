@@ -31,18 +31,20 @@ namespace Mktba.Api.Endpoints
                 ArticleListSort? sort,
                 SortDirection? dir,
                 int? page,
-                int? pageSize) =>
+                int? pageSize,
+                bool? mine) =>
                 Results.Ok(await service.GetListAsync(
                     new ArticleListQuery(
                         search, status, authorId, tag, locale,
                         sort ?? ArticleListSort.UpdatedAt, dir ?? SortDirection.Desc,
-                        page ?? 1, pageSize ?? ArticleService.DefaultPageSize),
+                        page ?? 1, pageSize ?? ArticleService.DefaultPageSize, mine ?? false),
                     user.ToArticleViewer())))
             .WithSummary("One page of the admin article list, filtered and sorted.")
             .WithDescription(
                 "Lists the articles the caller may see (an author: Published ones plus their own), without "
                 + "their content. search matches the title or slug case-insensitively; status, authorId, tag "
-                + "(one whole tag) and locale filter exactly. sort is UpdatedAt (default), CreatedAt, "
+                + "(one whole tag) and locale filter exactly; mine=true keeps only the articles the caller writes or co-writes. "
+                + "Each item gives lastStatusChange (the latest move and its comment) when the caller may edit the article. sort is UpdatedAt (default), CreatedAt, "
                 + "PublishedAt (never-published last), Title or Status (workflow order); dir is Desc (default) "
                 + "or Asc; enum values are case-sensitive names. page is 1-based; pageSize defaults to 20 and is kept within 1 to 100.")
             .Produces<ArticleListPageDto>()

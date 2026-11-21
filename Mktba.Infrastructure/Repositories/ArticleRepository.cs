@@ -144,6 +144,14 @@ namespace Mktba.Infrastructure.Repositories
                 articles = articles.Where(article => article.AuthorId == authorId);
             }
 
+            if (query.Mine)
+            {
+                var userId = viewer.UserId;
+                articles = articles.Where(article =>
+                    userId != null
+                    && (article.AuthorId == userId || article.CoAuthors.Any(coAuthor => coAuthor.UserId == userId)));
+            }
+
             if (!string.IsNullOrWhiteSpace(query.Tag))
             {
                 var tagKey = query.Tag;
@@ -445,6 +453,30 @@ namespace Mktba.Infrastructure.Repositories
                 .OrderByDescending(c => c.ChangedAt)
                 .ThenByDescending(c => c.Id)
                 .FirstOrDefaultAsync(cancellationToken);
+
+        /// <summary>
+        /// The latest logged move of each of <paramref name="articleIds"/> that has one. Reads the moves of
+        /// those articles only (a list page holds at most 100) and picks the latest per article in memory.
+        /// </summary>
+        public async Task<Dictionary<int, ArticleStatusChange>> GetLatestStatusChangesAsync(
+            IReadOnlyCollection<int> articleIds, CancellationToken cancellationToken = default)
+        {
+            if (articleIds.Count == 0)
+            {
+                return new Dictionary<int, ArticleStatusChange>();
+            }
+
+            var changes = await _context.ArticleStatusChanges
+                .AsNoTracking()
+                .Include(c => c.ChangedBy)
+                .Where(c => articleIds.Contains(c.ArticleId))
+                .ToListAsync(cancellationToken);
+            return changes
+                .GroupBy(c => c.ArticleId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.OrderByDescending(c => c.ChangedAt).ThenByDescending(c => c.Id).First());
+        }
 
         /// <summary>
         /// Every article waiting for review (InReview), whatever its parent's status: the ones submitted
