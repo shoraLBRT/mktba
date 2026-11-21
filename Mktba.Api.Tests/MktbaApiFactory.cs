@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mktba.Application.Services.Feedback;
 using Mktba.Infrastructure.Data;
+using Mktba.Infrastructure.Storage;
 
 namespace Mktba.Api.Tests;
 
@@ -40,6 +41,7 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
         ["RateLimiting:Auth:PermitLimit"] = "10000",
         ["RateLimiting:Ai:PermitLimit"] = "10000",
         ["RateLimiting:Feedback:PermitLimit"] = "10000",
+        ["RateLimiting:Uploads:PermitLimit"] = "10000",
         ["Feedback:Intake:MaxPerHour"] = "0",
     };
 
@@ -90,11 +92,27 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
             // The developer's appsettings.local.json may hold a real GitHub App key: tests never reach GitHub.
             services.RemoveAll<IFeedbackIssueTracker>();
             services.AddSingleton(IssueTracker ?? new NoIssueTracker());
+
+            // Uploaded files go to a directory of this factory only, removed with it.
+            services.RemoveAll<IFileStorage>();
+            services.AddSingleton<IFileStorage>(new LocalFileStorage(StorageRoot));
         });
     }
 
     /// <summary>A stand-in issue tracker for the feedback worker; null (the default) means none is configured.</summary>
     internal IFeedbackIssueTracker? IssueTracker { get; init; }
+
+    /// <summary>Where this factory's API stores uploaded files.</summary>
+    internal string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), $"mktba-api-tests-files-{Guid.NewGuid():N}");
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing && Directory.Exists(StorageRoot))
+        {
+            Directory.Delete(StorageRoot, recursive: true);
+        }
+    }
 
     /// <summary>A tracker that is never configured: feedback stays pending and nothing is sent anywhere.</summary>
     private sealed class NoIssueTracker : IFeedbackIssueTracker

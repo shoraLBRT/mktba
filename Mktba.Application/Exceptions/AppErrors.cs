@@ -263,6 +263,22 @@ public static class AppErrors
     public static AppError FeedbackLimitReached =>
         new("feedback_limit_reached", "Too many feedback messages were received lately. Try again later.");
 
+    // Uploads (U-08)
+    public static AppError UploadFileRequired => new("upload_file_required", "Attach the file as the form field 'file'.");
+
+    public static AppError UploadTooLarge(int maxMegabytes) =>
+        new("upload_too_large", $"The file cannot be larger than {maxMegabytes} MB.", With(("maxMegabytes", maxMegabytes)));
+
+    public static AppError UploadTypeUnsupported =>
+        new("upload_type_unsupported", "Only JPEG, PNG and WebP images can be uploaded.");
+
+    public static AppError FileNotFound => new("file_not_found", "There is no such file.");
+
+    public static AppError UploadImageInvalid => new("upload_image_invalid", "The image could not be read.");
+
+    public static AppError UploadImageTooManyPixels(int maxMegapixels) =>
+        new("upload_image_too_many_pixels", $"The image cannot have more than {maxMegapixels} megapixels.", With(("maxMegapixels", maxMegapixels)));
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }

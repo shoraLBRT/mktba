@@ -47,6 +47,7 @@ export type UserSummaryDto = Schemas['UserSummaryDto'];
 export type ProfileLinkDto = Schemas['ProfileLinkDto'];
 export type UserProfileDto = Schemas['UserProfileDto'];
 export type UserProfileWriteDto = Schemas['UserProfileWriteDto'];
+export type UploadedImageDto = Schemas['UploadedImageDto'];
 export type PublicProfileDto = Schemas['PublicProfileDto'];
 export type AuthorArticleDto = Schemas['AuthorArticleDto'];
 export type AuthorArticlesDto = Schemas['AuthorArticlesDto'];

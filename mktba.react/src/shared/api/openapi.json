@@ -2898,6 +2898,190 @@
         }
       }
     },
+    "/files/{name}": {
+      "get": {
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "A stored file, by name.",
+        "description": "Public. Served with its own content type (only images are stored), nosniff and a year-long immutable cache. Answers 404 file_not_found.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploads/avatar": {
+      "post": {
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Uploads an avatar image; any signed-in user.",
+        "description": "At most 512 px on the longer side. The profile is not changed: save the returned url as avatarUrl. The file goes as the multipart form field file. The format is read from the file itself, not from its name or Content-Type: only JPEG, PNG and WebP; the image is turned upright, scaled down and re-encoded as WebP without any metadata. Answers 400 with upload_file_required, upload_too_large (params.maxMegabytes), upload_type_unsupported, upload_image_invalid or upload_image_too_many_pixels (params.maxMegapixels); 429 too_many_requests past the per-user upload limit.",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedImageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploads/images": {
+      "post": {
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Uploads an image for an article; authors and admins.",
+        "description": "At most 2048 px on the longer side. The file goes as the multipart form field file. The format is read from the file itself, not from its name or Content-Type: only JPEG, PNG and WebP; the image is turned upright, scaled down and re-encoded as WebP without any metadata. Answers 400 with upload_file_required, upload_too_large (params.maxMegabytes), upload_type_unsupported, upload_image_invalid or upload_image_too_many_pixels (params.maxMegapixels); 429 too_many_requests past the per-user upload limit.",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedImageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users": {
       "get": {
         "tags": [
@@ -5432,6 +5616,37 @@
           "markdownStylingSystemPrompt": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UploadedImageDto": {
+        "required": [
+          "contentType",
+          "height",
+          "sizeBytes",
+          "url",
+          "width"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mktba.Application.Services;
 using Mktba.Application.Services.Feedback;
+using Mktba.Application.Services.Uploads;
 
 namespace Mktba.Application
 {
@@ -30,6 +31,7 @@ namespace Mktba.Application
             services.AddScoped<UserAdminService>();
             services.AddScoped<UserProfileService>();
             services.AddScoped<FeedbackService>();
+            services.AddScoped<ImageUploadService>();
             services.AddScoped<FeedbackDeliveryService>();
             services.AddSingleton<IFeedbackIssueTracker, GitHubIssueClient>();
             return services;

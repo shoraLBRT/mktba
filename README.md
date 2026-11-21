@@ -283,6 +283,44 @@ User-Agent не сохраняются.
 открытым issue, а контакт — нет. Для отправки нужен JavaScript. Списка обращений в админке пока
 нет (F-04, #163).
 
+#### Загрузка файлов (U-08, #73)
+
+`POST /uploads/avatar` (любой вошедший пользователь) и `POST /uploads/images` (авторы и админы)
+принимают картинку полем `file` формы `multipart/form-data` и отвечают `201` с
+`{ url, contentType, width, height, sizeBytes }`. Профиль сам не меняется: форма «Мой профиль»
+кладёт `url` в поле аватара, и он сохраняется вместе с профилем.
+
+- **Проверка.** Формат определяется по первым байтам файла, а не по имени и не по `Content-Type`
+  клиента: принимаются только JPEG, PNG и WebP (SVG, GIF, HTML — `upload_type_unsupported`).
+  Размер — до `Uploads:MaxBytes` (10 МБ), картинка — до `Uploads:MaxPixels` (40 Мп; проверяется
+  по заголовку до декодирования).
+- **Обработка** (SkiaSharp, MIT). Картинка поворачивается по EXIF, уменьшается (аватар — до
+  512 px по длинной стороне, картинка статьи — до 2048 px) и заново кодируется в WebP, поэтому
+  от файла остаются только пиксели: EXIF (камера, GPS), XMP и прочие метаданные не сохраняются.
+- **Имена.** Файл хранится под случайным именем `<32 hex>.webp`; ничего из присланного в имя не
+  попадает. Файлы не меняются и не удаляются (учёта загрузок и чистки пока нет).
+- **Раздача.** `GET /files/{name}` — публично, с типом `image/webp`, `X-Content-Type-Options:
+  nosniff`, `Content-Security-Policy: default-src 'none'; sandbox` и кешем на год (`immutable`).
+- **Частота.** `RateLimiting:Uploads` — 30 загрузок в час на пользователя.
+
+Где лежат файлы — секция `Storage`:
+
+| Ключ | По умолчанию | Смысл |
+| --- | --- | --- |
+| `Storage:Provider` | `Local` | `Local` — каталог на машине API; `S3` — бакет S3-совместимого хранилища |
+| `Storage:Local:RootPath` | `App_Data/uploads` | каталог (относительный путь — от корня API); на сервере — на постоянном томе |
+| `Storage:S3:ServiceUrl` | — | адрес сервиса, например `https://storage.yandexcloud.net` или `http://localhost:9000` (MinIO); пусто — сам AWS |
+| `Storage:S3:Region` | `ru-central1` | регион подписи |
+| `Storage:S3:Bucket` | — | бакет (обязателен для `S3`) |
+| `Storage:S3:KeyPrefix` | — | префикс ключей, например `uploads/` |
+| `Storage:S3:AccessKey` / `SecretKey` | — | ключи доступа — только в user secrets, `appsettings.local.json` или переменных окружения (`Storage__S3__SecretKey`); пусто — стандартная цепочка AWS |
+| `Storage:S3:ForcePathStyle` | `false` | `true` для MinIO |
+| `Uploads:PublicBaseUrl` | — | адрес, под которым файлы доступны читателям (публичный бакет или CDN), с `/` на конце; пусто — `GET /files/` этого же API |
+
+Объекты пишутся без ACL (приватными): если бакет не публичный, оставьте `PublicBaseUrl` пустым —
+API сам отдаст файл из бакета. Если API стоит за прокси, а `PublicBaseUrl` пуст, настройте
+`ForwardedHeaders`, иначе в `url` попадёт внутренний адрес и схема.
+
 ### Frontend
 
 ```bash
