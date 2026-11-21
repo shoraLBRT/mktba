@@ -102,6 +102,19 @@ export const getArticleList = async (params: ArticleListParams): Promise<Article
   return response.data;
 };
 
+/**
+ * One page of the signed-in user's own articles — written or co-written (P-02, #90), newest edit
+ * first; each item carries its latest status move, so a reviewer's comment can be shown.
+ */
+export const getMyArticles = async (status: ArticleStatus | null, page: number): Promise<ArticleListPageDto> => {
+  const response = await apiClient.get<ArticleListPageDto>('/articles/admin-list', {
+    params: { mine: true, status: status ?? undefined, page, pageSize: MY_ARTICLES_PAGE_SIZE },
+  });
+  return response.data;
+};
+
+export const MY_ARTICLES_PAGE_SIZE = 20;
+
 /** Moves each article to the status on its own; the result says per article whether it moved and, if not, why. */
 export const bulkChangeArticleStatus = async (dto: ArticleBulkStatusDto): Promise<ArticleBulkResultDto> => {
   const response = await apiClient.post<ArticleBulkResultDto>('/articles/bulk/status', dto);

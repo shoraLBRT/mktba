@@ -795,7 +795,7 @@ export interface paths {
         };
         /**
          * One page of the admin article list, filtered and sorted.
-         * @description Lists the articles the caller may see (an author: Published ones plus their own), without their content. search matches the title or slug case-insensitively; status, authorId, tag (one whole tag) and locale filter exactly. sort is UpdatedAt (default), CreatedAt, PublishedAt (never-published last), Title or Status (workflow order); dir is Desc (default) or Asc; enum values are case-sensitive names. page is 1-based; pageSize defaults to 20 and is kept within 1 to 100.
+         * @description Lists the articles the caller may see (an author: Published ones plus their own), without their content. search matches the title or slug case-insensitively; status, authorId, tag (one whole tag) and locale filter exactly; mine=true keeps only the articles the caller writes or co-writes. Each item gives lastStatusChange (the latest move and its comment) when the caller may edit the article. sort is UpdatedAt (default), CreatedAt, PublishedAt (never-published last), Title or Status (workflow order); dir is Desc (default) or Asc; enum values are case-sensitive names. page is 1-based; pageSize defaults to 20 and is kept within 1 to 100.
          */
         get: {
             parameters: {
@@ -809,6 +809,7 @@ export interface paths {
                     dir?: string;
                     page?: number;
                     pageSize?: number;
+                    mine?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -3702,6 +3703,7 @@ export interface components {
             updatedAt: string;
             /** Format: date-time */
             publishedAt?: string | null;
+            lastStatusChange?: components["schemas"]["ArticleStatusChangeEntryDto"];
         };
         ArticleListPageDto: {
             items: components["schemas"]["ArticleListItemDto"][];

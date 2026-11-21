@@ -32,7 +32,7 @@ const returnedAt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeSty
  * The reviewer's comment while a returned article is a draft again (A-04, #87): the latest move was
  * InReview → Draft and came with a comment. Plain text, as typed.
  */
-const ReturnedForRevisionNote = ({ article }: { article: ArticleReadDto }) => {
+export const ReturnedForRevisionNote = ({ article }: { article: Pick<ArticleReadDto, 'status' | 'lastStatusChange'> }) => {
   const t = useLocale().editArticlePage;
   const change = article.lastStatusChange;
   if (article.status !== 'Draft' || !change || change.fromStatus !== 'InReview' || change.toStatus !== 'Draft' || !change.comment) {

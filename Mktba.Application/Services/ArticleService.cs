@@ -46,16 +46,18 @@ namespace Mktba.Application.Services
                 Tag = string.IsNullOrWhiteSpace(query.Tag) ? null : TagRules.KeyOf(TagRules.Normalize(query.Tag)),
             };
             var (rows, total) = await _articleRepository.GetListPageAsync(bounded, viewer);
+            var editable = rows.Where(row => viewer.CanEdit(row.AuthorId, row.CoAuthorIds)).Select(row => row.Id).ToList();
+            var lastChanges = await _articleRepository.GetLatestStatusChangesAsync(editable);
             return new ArticleListPageDto
             {
-                Items = rows.Select(row => ToListItemDto(row, viewer)).ToList(),
+                Items = rows.Select(row => ToListItemDto(row, viewer, lastChanges.GetValueOrDefault(row.Id))).ToList(),
                 Total = total,
                 Page = bounded.Page,
                 PageSize = bounded.PageSize,
             };
         }
 
-        private static ArticleListItemDto ToListItemDto(ArticleListRow row, ArticleViewer viewer) => new()
+        private static ArticleListItemDto ToListItemDto(ArticleListRow row, ArticleViewer viewer, ArticleStatusChange? lastChange) => new()
         {
             Id = row.Id,
             Title = row.Title,
@@ -73,6 +75,7 @@ namespace Mktba.Application.Services
             CreatedAt = row.CreatedAt,
             UpdatedAt = row.UpdatedAt,
             PublishedAt = row.PublishedAt,
+            LastStatusChange = lastChange is null ? null : ToStatusChangeEntryDto(lastChange),
         };
 
         /// <summary>One article; one <paramref name="viewer"/> may not see counts as missing.</summary>
@@ -177,18 +180,18 @@ namespace Mktba.Application.Services
             }
 
             var change = await _articleRepository.GetLatestStatusChangeAsync(article.Id);
-            dto.LastStatusChange = change is null
-                ? null
-                : new ArticleStatusChangeEntryDto
-                {
-                    FromStatus = change.FromStatus,
-                    ToStatus = change.ToStatus,
-                    ChangedAt = change.ChangedAt,
-                    ChangedByDisplayName = change.ChangedBy?.DisplayName,
-                    Comment = change.Comment,
-                };
+            dto.LastStatusChange = change is null ? null : ToStatusChangeEntryDto(change);
             return dto;
         }
+
+        private static ArticleStatusChangeEntryDto ToStatusChangeEntryDto(ArticleStatusChange change) => new()
+        {
+            FromStatus = change.FromStatus,
+            ToStatus = change.ToStatus,
+            ChangedAt = change.ChangedAt,
+            ChangedByDisplayName = change.ChangedBy?.DisplayName,
+            Comment = change.Comment,
+        };
 
         /// <summary>The article as <paramref name="viewer"/> sees it: only the status moves they may make are listed.</summary>
         private ArticleReadDto ToReadDto(Article article, ArticleViewer viewer)

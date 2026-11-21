@@ -7,6 +7,7 @@ import AdminAiSettingsPage from '../pages/admin/AdminAiSettingsPage';
 import AdminArticlesPage from '../pages/admin/AdminArticlesPage';
 import AdminArticleTreePage from '../pages/admin/AdminArticleTreePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import AdminMyArticlesPage from '../pages/admin/AdminMyArticlesPage';
 import AdminMaintenancePage from '../pages/admin/AdminMaintenancePage';
 import AdminProfilePage from '../pages/admin/AdminProfilePage';
 import AdminReviewArticlePage from '../pages/admin/AdminReviewArticlePage';
@@ -25,6 +26,7 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 const SECTION_PAGES: Record<AdminSectionId, ReactElement> = {
   dashboard: <AdminDashboardPage />,
   articles: <AdminArticlesPage />,
+  mine: <AdminMyArticlesPage />,
   tags: <AdminTagsPage />,
   review: <AdminReviewQueuePage />,
   users: <AdminUsersPage />,
