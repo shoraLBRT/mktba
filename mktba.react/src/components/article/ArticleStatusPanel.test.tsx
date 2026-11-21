@@ -92,4 +92,42 @@ describe('ArticleStatusPanel', () => {
     expect(changeStatus).not.toHaveBeenCalled();
     expect(onChanged).not.toHaveBeenCalled();
   });
+
+  it('given a draft a reviewer returned with a comment, when rendered, then shows the comment and who returned it', async () => {
+    fetchArticle.mockResolvedValue(article({
+      lastStatusChange: {
+        fromStatus: 'InReview',
+        toStatus: 'Draft',
+        changedAt: '2026-11-20T10:00:00Z',
+        changedByDisplayName: 'Рецензент',
+        comment: 'Добавьте источники.',
+      },
+    }));
+
+    renderPanel();
+
+    const note = await screen.findByTestId('returned-for-revision');
+    expect(note.textContent).toContain('Статью вернули на доработку');
+    expect(note.textContent).toContain('Рецензент');
+    expect(note.textContent).toContain('Добавьте источники.');
+  });
+
+  it('given the article was submitted again after the return, when rendered, then the old comment is not shown', async () => {
+    fetchArticle.mockResolvedValue(article({
+      status: 'InReview',
+      allowedTransitions: ['Draft'],
+      lastStatusChange: {
+        fromStatus: 'Draft',
+        toStatus: 'InReview',
+        changedAt: '2026-11-20T11:00:00Z',
+        changedByDisplayName: 'Автор',
+        comment: null,
+      },
+    }));
+
+    renderPanel();
+
+    expect(await screen.findByText('На проверке')).toBeTruthy();
+    expect(screen.queryByTestId('returned-for-revision')).toBeNull();
+  });
 });

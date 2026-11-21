@@ -1105,7 +1105,7 @@ export interface paths {
         put?: never;
         /**
          * Moves an article to another status.
-         * @description Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, Archived → Draft. Any other move answers 400 article_status_transition_invalid. Admins make every move; an author only Draft → InReview and InReview → Draft on an article they wrote or co-author, anything else answers 403 forbidden (404 article_not_found for someone else's draft).
+         * @description Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, Archived → Draft. Any other move answers 400 article_status_transition_invalid. Admins make every move; an author only Draft → InReview and InReview → Draft on an article they wrote or co-author, anything else answers 403 forbidden (404 article_not_found for someone else's draft). The optional comment (trimmed, at most 2000 characters, else 400 article_status_comment_too_long) is kept with the move in the article's status log, such as a reviewer's reason for returning the article; the answer's lastStatusChange is that move.
          */
         post: {
             parameters: {
@@ -1160,6 +1160,56 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/review-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The moderation queue: every article waiting for review.
+         * @description Lists the InReview articles, submitted longest ago first, without content. Each gives the newest revision (what approval publishes) and the revision last published, if any, so the two can be compared through GET /articles/{id}/revisions/compare. locale filters to one language (an unsupported one answers 400 locale_unsupported); without it every language is listed. Approve or return through POST /articles/{id}/status.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    locale?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewQueueItemDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3491,6 +3541,7 @@ export interface components {
             publishedAt?: string | null;
             /** Format: int32 */
             authorId?: number | null;
+            lastStatusChange?: components["schemas"]["ArticleStatusChangeEntryDto"];
         };
         ArticleRelatedLinkCreateDto: {
             /** Format: int32 */
@@ -3596,6 +3647,15 @@ export interface components {
         ArticleStatus: "Draft" | "InReview" | "Published" | "Archived";
         ArticleStatusChangeDto: {
             status: components["schemas"]["ArticleStatus"];
+            comment?: string | null;
+        };
+        ArticleStatusChangeEntryDto: {
+            fromStatus: components["schemas"]["ArticleStatus"];
+            toStatus: components["schemas"]["ArticleStatus"];
+            /** Format: date-time */
+            changedAt: string;
+            changedByDisplayName?: string | null;
+            comment?: string | null;
         };
         ArticleTagDto: {
             name: string;
@@ -3776,6 +3836,26 @@ export interface components {
         RecentArticlesDto: {
             new: components["schemas"]["RecentArticleDto"][];
             updated: components["schemas"]["RecentArticleDto"][];
+        };
+        ReviewQueueItemDto: {
+            /** Format: int32 */
+            id: number;
+            title: string;
+            slug: string;
+            locale: string;
+            /** Format: int32 */
+            authorId?: number | null;
+            authorDisplayName?: string | null;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: int32 */
+            latestRevisionNumber: number;
+            /** Format: int32 */
+            publishedRevisionNumber?: number | null;
         };
         SchoolCreateDto: {
             slug: string;

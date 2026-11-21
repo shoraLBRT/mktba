@@ -9,6 +9,8 @@ import AdminArticleTreePage from '../pages/admin/AdminArticleTreePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminMaintenancePage from '../pages/admin/AdminMaintenancePage';
 import AdminProfilePage from '../pages/admin/AdminProfilePage';
+import AdminReviewArticlePage from '../pages/admin/AdminReviewArticlePage';
+import AdminReviewQueuePage from '../pages/admin/AdminReviewQueuePage';
 import AdminSessionsPage from '../pages/admin/AdminSessionsPage';
 import AdminTagsPage from '../pages/admin/AdminTagsPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
@@ -24,6 +26,7 @@ const SECTION_PAGES: Record<AdminSectionId, ReactElement> = {
   dashboard: <AdminDashboardPage />,
   articles: <AdminArticlesPage />,
   tags: <AdminTagsPage />,
+  review: <AdminReviewQueuePage />,
   users: <AdminUsersPage />,
   sessions: <AdminSessionsPage />,
   profile: <AdminProfilePage />,
@@ -72,6 +75,10 @@ export const AdminRoutes = () => (
       <Route
         path="articles/tree"
         element={<AdminSectionRoute policy="canEditArticles"><AdminArticleTreePage /></AdminSectionRoute>}
+      />
+      <Route
+        path="review/:articleId"
+        element={<AdminSectionRoute policy="canReviewArticles"><AdminReviewArticlePage /></AdminSectionRoute>}
       />
       <Route
         path="articles/:articleId/history"
