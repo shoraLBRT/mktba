@@ -244,7 +244,7 @@
 - [#90](https://github.com/shoraLBRT/mktba/issues/90) — P-02. Кабинет автора
 - [#91](https://github.com/shoraLBRT/mktba/issues/91) — P-03. Дашборд автора
 - [#92](https://github.com/shoraLBRT/mktba/issues/92) — P-04. График активности
-- [#93](https://github.com/shoraLBRT/mktba/issues/93) — P-05. Редактирование профиля
+- [#93](https://github.com/shoraLBRT/mktba/issues/93) — P-05. Редактирование профиля (профиль готов; настройки уведомлений — вместе с первыми уведомлениями)
 - [#94](https://github.com/shoraLBRT/mktba/issues/94) — P-06. Автор на странице статьи
 
 ### Эпик 6 — Админка

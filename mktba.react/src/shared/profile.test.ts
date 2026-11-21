@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildProfileDto,
+  effectiveProfileSlug,
+  findProfileDraftProblems,
   isValidProfileLinkUrl,
   profileDraftFromDto,
+  profileFieldOfApiError,
   profileSlugFromName,
-  validateProfileDraft,
   type ProfileDraft,
 } from './profile';
 
@@ -44,34 +46,78 @@ describe('isValidProfileLinkUrl', () => {
   );
 });
 
-describe('validateProfileDraft', () => {
+describe('findProfileDraftProblems', () => {
   it('given a full valid draft, then there is no problem', () => {
     expect(
-      validateProfileDraft(
+      findProfileDraftProblems(
         draft({ slug: 'Ivan-Ivanov', avatarUrl: '/media/ivan.png', links: [{ label: 'Сайт', url: 'https://example.com' }] }),
       ),
-    ).toBeNull();
+    ).toEqual({});
   });
 
   it('given a slug without a name, then the name is needed', () => {
-    expect(validateProfileDraft(draft({ displayName: ' ', slug: 'ivan' }))).toBe('slugNeedsName');
+    expect(findProfileDraftProblems(draft({ displayName: ' ', slug: 'ivan' }))).toEqual({ slug: 'slugNeedsName' });
   });
 
   it.each(['иван', 'ivan--ivanov', '12345', 'ivan ivanov'])('given the slug %j, then it is invalid', (slug) => {
-    expect(validateProfileDraft(draft({ slug }))).toBe('slugInvalid');
+    expect(findProfileDraftProblems(draft({ slug }))).toEqual({ slug: 'slugInvalid' });
   });
 
   it('given an avatar that is neither http(s) nor a site path, then it is invalid', () => {
-    expect(validateProfileDraft(draft({ avatarUrl: 'javascript:alert(1)' }))).toBe('avatarUrlInvalid');
+    expect(findProfileDraftProblems(draft({ avatarUrl: 'javascript:alert(1)' }))).toEqual({ avatarUrl: 'avatarUrlInvalid' });
   });
 
-  it('given a link without a label or with a bad address, then says which', () => {
-    expect(validateProfileDraft(draft({ links: [{ label: '', url: 'https://example.com' }] }))).toBe('linkLabelRequired');
-    expect(validateProfileDraft(draft({ links: [{ label: 'Сайт', url: 'example.com' }] }))).toBe('linkUrlInvalid');
+  it('given several bad fields, then names each of them by its row, in the form order', () => {
+    const problems = findProfileDraftProblems(
+      draft({
+        slug: 'иван',
+        avatarUrl: 'ftp://x',
+        links: [
+          { label: 'Сайт', url: 'https://example.com' },
+          { label: '', url: 'example.com' },
+        ],
+      }),
+    );
+
+    expect(problems).toEqual({
+      slug: 'slugInvalid',
+      avatarUrl: 'avatarUrlInvalid',
+      linkLabel1: 'linkLabelRequired',
+      linkUrl1: 'linkUrlInvalid',
+    });
+    expect(Object.keys(problems)[0]).toBe('slug');
   });
 
   it('given a completely empty link row, then it is ignored', () => {
-    expect(validateProfileDraft(draft({ links: [{ label: ' ', url: '' }] }))).toBeNull();
+    expect(findProfileDraftProblems(draft({ links: [{ label: ' ', url: '' }] }))).toEqual({});
+  });
+});
+
+describe('effectiveProfileSlug', () => {
+  it('given no name, then there is no address', () => {
+    expect(effectiveProfileSlug(draft({ displayName: ' ', slug: 'ivan' }), 'ivan')).toBeNull();
+  });
+
+  it('given a typed slug, then it wins over the saved one, lower-cased', () => {
+    expect(effectiveProfileSlug(draft({ slug: ' Ivan ' }), 'old')).toBe('ivan');
+  });
+
+  it('given a blank slug, then the saved one is kept, else the name is transliterated', () => {
+    expect(effectiveProfileSlug(draft(), 'old')).toBe('old');
+    expect(effectiveProfileSlug(draft(), null)).toBe('ivan-ivanov');
+  });
+});
+
+describe('profileFieldOfApiError', () => {
+  it.each([
+    ['profile_slug_taken', 'slug'],
+    ['profile_slug_invalid', 'slug'],
+    ['profile_display_name_required', 'slug'],
+    ['profile_avatar_url_invalid', 'avatarUrl'],
+    ['profile_links_too_many', null],
+    [undefined, null],
+  ])('given %j, then the field is %j', (code, field) => {
+    expect(profileFieldOfApiError(code)).toBe(field);
   });
 });
 
