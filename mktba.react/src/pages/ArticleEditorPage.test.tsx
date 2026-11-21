@@ -7,8 +7,9 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import { LocalizationProvider } from '../localization/provider';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
 import { changeArticleStatus, getArticleById } from '../services/adminService';
-import type { ArticleContentDto, ArticleReadDto, ArticleStatus, NavigationArticleDto } from '../shared/types/ApiTypes';
+import type { ArticleContentDto, ArticleReadDto, ArticleRevisionSummaryDto, ArticleSnapshotDto, ArticleStatus, NavigationArticleDto } from '../shared/types/ApiTypes';
 import { getSystemSchools } from '../services/schoolService';
+import { getArticleRevision, getArticleRevisions, restoreArticleRevision } from '../services/Article/revisionService';
 import { localDraftCopyKey, readLocalDraftCopy, writeLocalDraftCopy } from './add-article/localDraftCopy';
 import { articleDraftFromDto } from './add-article/articleDraft';
 import ArticleEditorPage from './ArticleEditorPage';
@@ -24,6 +25,11 @@ vi.mock('../services/adminService', () => ({
   getAiProviderSettings: vi.fn(),
   getArticleById: vi.fn(async () => ({ id: 7, title: 'Намаз', status: 'Draft', allowedTransitions: [] })),
   styleMarkdownWithAi: vi.fn(),
+}));
+vi.mock('../services/Article/revisionService', () => ({
+  getArticleRevision: vi.fn(),
+  getArticleRevisions: vi.fn(async () => []),
+  restoreArticleRevision: vi.fn(),
 }));
 vi.mock('../auth/useCurrentUser', () => ({
   useCurrentUser: () => ({ user: { id: 1, email: 'author@example.com', role: 'Author' }, role: undefined, can: () => false }),
@@ -91,6 +97,11 @@ const typeInParagraph = (text: string) =>
     fireEvent.focus(paragraphText());
     paragraphText().editor.chain().focus('end').insertContent(text).run();
   });
+/** Leaves the editor for the history page, through the link in the history dialog. */
+const openHistoryPage = async () => {
+  fireEvent.click(screen.getByRole('button', { name: 'История правок' }));
+  fireEvent.click(await screen.findByRole('link', { name: 'Открыть отдельной страницей' }));
+};
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
 
 describe('ArticleEditorPage', () => {
@@ -127,7 +138,7 @@ describe('ArticleEditorPage', () => {
 
     expect(await screen.findByDisplayValue('Намаз')).toBeTruthy();
     expect(paragraphText().textContent).toBe('Текст статьи');
-    expect(screen.getByText('История правок').getAttribute('href')).toBe('/admin/articles/7/history');
+    expect(screen.getByRole('button', { name: 'История правок' })).toBeTruthy();
     expect(screen.getByLabelText('Комментарий к правке')).toBeTruthy();
   });
 
@@ -154,7 +165,7 @@ describe('ArticleEditorPage', () => {
     renderAt('/admin/articles/7/edit');
     await screen.findByDisplayValue('Намаз');
 
-    fireEvent.click(screen.getByText('История правок'));
+    await openHistoryPage();
 
     expect(await screen.findByText('history-page')).toBeTruthy();
   });
@@ -166,7 +177,7 @@ describe('ArticleEditorPage', () => {
     await screen.findByDisplayValue('Намаз');
     expect(paragraphText().textContent).toBe('Обычный курсив и * звёздочка с мягким переносом');
 
-    fireEvent.click(screen.getByText('История правок'));
+    await openHistoryPage();
 
     expect(await screen.findByText('history-page')).toBeTruthy();
   });
@@ -180,7 +191,7 @@ describe('ArticleEditorPage', () => {
       paragraphText().editor.commands.undo();
     });
 
-    fireEvent.click(screen.getByText('История правок'));
+    await openHistoryPage();
 
     expect(await screen.findByText('history-page')).toBeTruthy();
   });
@@ -206,7 +217,7 @@ describe('ArticleEditorPage', () => {
     renderAt('/admin/articles/7/edit');
     fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
 
-    fireEvent.click(screen.getByText('История правок'));
+    await openHistoryPage();
     const dialog = await screen.findByRole('alertdialog', { name: 'Уйти без сохранения?' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Остаться' }));
 
@@ -220,7 +231,7 @@ describe('ArticleEditorPage', () => {
     renderAt('/admin/articles/7/edit');
     fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
 
-    fireEvent.click(screen.getByText('История правок'));
+    await openHistoryPage();
     fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Уйти без сохранения' }));
 
     expect(await screen.findByText('history-page')).toBeTruthy();
@@ -302,7 +313,7 @@ describe('ArticleEditorPage', () => {
     renderAt('/admin/articles/7/edit');
     fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
 
-    fireEvent.click(screen.getByText('История правок'));
+    await openHistoryPage();
     fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Уйти без сохранения' }));
 
     expect(await screen.findByText('history-page')).toBeTruthy();
@@ -707,5 +718,105 @@ describe('ArticleEditorPage', () => {
 
     await waitFor(() => expect(changeArticleStatus).toHaveBeenCalledWith(7, 'InReview'));
     expect(updateArticleContent).toHaveBeenCalledWith(7, expect.objectContaining({ title: longTitle }));
+  });
+  describe('history in the editor (E-13)', () => {
+    const revision = (number: number, comment: string | null): ArticleRevisionSummaryDto => ({
+      id: number,
+      number,
+      createdAt: '2026-11-0' + number + 'T09:00:00Z',
+      authorEmail: 'author@example.com',
+      comment,
+      isPublished: false,
+    });
+    const snapshotOf = (title: string): ArticleSnapshotDto => ({
+      schemaVersion: 3,
+      title,
+      slug: 'namaz',
+      tags: [],
+      paragraphs: [{ order: 1, opinions: [{ content: 'Текст статьи', isDefault: true, schoolIds: [], sources: [] }] }],
+      relatedLinks: [],
+    });
+
+    beforeEach(() => {
+      vi.mocked(getArticleRevisions).mockResolvedValue([revision(2, 'Заголовок'), revision(1, null)]);
+      vi.mocked(getArticleRevision).mockImplementation(async (_id, number) => ({
+        revision: revision(number, null),
+        snapshot: snapshotOf(number === 2 ? 'Намаз' : 'Старый намаз'),
+      }));
+      vi.mocked(restoreArticleRevision).mockReset();
+    });
+
+    const openHistory = async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'История правок' }));
+      return screen.findByRole('dialog', { name: 'История правок' });
+    };
+
+    it('given unsaved edits, when the history opens, then it lists the revisions and compares the draft with the last one', async () => {
+      vi.mocked(getArticleContentById).mockResolvedValue(article);
+      renderAt('/admin/articles/7/edit');
+      fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+      const dialog = await openHistory();
+
+      expect((await within(dialog).findByRole('listitem', { name: 'Ревизия 2' })).textContent).toContain('Заголовок');
+      expect(within(dialog).getByRole('listitem', { name: 'Ревизия 1' }).textContent).toContain('Без комментария');
+      const title = await within(dialog).findByRole('region', { name: 'Заголовок' });
+      expect(within(title).getByText('− Намаз').getAttribute('data-diff')).toBe('removed');
+      expect(within(title).getByText('+ Намаз путника').getAttribute('data-diff')).toBe('added');
+      expect(within(dialog).queryByRole('region', { name: 'Абзац 1' })).toBeNull();
+    });
+
+    it('given two revisions picked, when compared, then the difference between them is shown', async () => {
+      vi.mocked(getArticleContentById).mockResolvedValue(article);
+      renderAt('/admin/articles/7/edit');
+      await screen.findByDisplayValue('Намаз');
+      const dialog = await openHistory();
+
+      fireEvent.change(await within(dialog).findByLabelText('Было'), { target: { value: '1' } });
+      fireEvent.change(within(dialog).getByLabelText('Стало'), { target: { value: '2' } });
+
+      const title = await within(dialog).findByRole('region', { name: 'Заголовок' });
+      expect(within(title).getByText('− Старый намаз')).toBeTruthy();
+      expect(within(title).getByText('+ Намаз')).toBeTruthy();
+    });
+
+    it('given unsaved edits, when a revision is restored, then the editor warns first and then holds the restored article as saved', async () => {
+      vi.mocked(getArticleContentById).mockResolvedValueOnce(article).mockResolvedValue({ ...article, title: 'Старый намаз' });
+      vi.mocked(restoreArticleRevision).mockResolvedValue(revision(3, 'Назад'));
+      renderAt('/admin/articles/7/edit');
+      fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+      const dialog = await openHistory();
+      const row = await within(dialog).findByRole('listitem', { name: 'Ревизия 1' });
+      expect(within(dialog).getByRole('listitem', { name: 'Ревизия 2' }).querySelector('button')).toBeNull();
+
+      fireEvent.click(within(row).getByRole('button', { name: 'Откатить к этой ревизии' }));
+      expect(within(row).getByText('Несохранённые правки в редакторе пропадут.')).toBeTruthy();
+      fireEvent.change(within(row).getByLabelText('Комментарий к откату (необязательно)'), { target: { value: 'Назад' } });
+      fireEvent.click(within(row).getByRole('button', { name: 'Подтвердить откат' }));
+
+      expect(await screen.findByText('Статья откачена к ревизии 1; сохранена как ревизия 3')).toBeTruthy();
+      expect(restoreArticleRevision).toHaveBeenCalledWith(7, 1, 'Назад');
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(titleField().value).toBe('Старый намаз');
+      expect(readLocalDraftCopy(localDraftCopyKey(1, 7))).toBeNull();
+      await openHistoryPage();
+      expect(await screen.findByText('history-page')).toBeTruthy();
+    });
+
+    it('given a rollback the server refuses, when confirmed, then the error is shown and the edits stay', async () => {
+      vi.mocked(getArticleContentById).mockResolvedValue(article);
+      vi.mocked(restoreArticleRevision).mockRejectedValue(new Error('Адрес занят'));
+      renderAt('/admin/articles/7/edit');
+      fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+      const dialog = await openHistory();
+      const row = await within(dialog).findByRole('listitem', { name: 'Ревизия 1' });
+
+      fireEvent.click(within(row).getByRole('button', { name: 'Откатить к этой ревизии' }));
+      fireEvent.click(within(row).getByRole('button', { name: 'Подтвердить откат' }));
+
+      expect((await within(dialog).findByRole('alert')).textContent).toBe('Не удалось откатить статью: Адрес занят');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Закрыть историю' }));
+      expect(titleField().value).toBe('Намаз путника');
+    });
   });
 });

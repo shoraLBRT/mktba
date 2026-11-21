@@ -196,6 +196,11 @@ test('leaving the editor with unsaved edits asks first, and a saved draft leaves
   const title = `E2E правки ${stamp}`;
   const titleField = page.getByRole('textbox', { name: 'Название статьи...' });
   const leaveDialog = page.getByRole('alertdialog', { name: 'Уйти без сохранения?' });
+  // The history page is opened from the editor's history dialog.
+  const openHistoryPage = async () => {
+    await page.getByRole('button', { name: 'История правок' }).click();
+    await page.getByRole('dialog', { name: 'История правок' }).getByRole('link', { name: 'Открыть отдельной страницей' }).click();
+  };
   await logIn(page);
 
   // Saving a new article goes to it without asking.
@@ -209,12 +214,12 @@ test('leaving the editor with unsaved edits asks first, and a saved draft leaves
   await (await openAdminArticleTree(page)).getByRole('link', { name: title, exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/articles\/\d+\/edit$/);
   const editUrl = page.url();
-  await page.getByRole('link', { name: 'История правок' }).click();
+  await openHistoryPage();
   await expect(page).toHaveURL(/\/history$/);
 
   await page.goto(editUrl);
   await titleField.fill(`${title} (не сохранено)`);
-  await page.getByRole('link', { name: 'История правок' }).click();
+  await openHistoryPage();
   await expect(leaveDialog).toBeVisible();
   await expect(leaveDialog.getByRole('button', { name: 'Остаться' })).toBeFocused();
   await leaveDialog.getByRole('button', { name: 'Остаться' }).click();
@@ -222,7 +227,7 @@ test('leaving the editor with unsaved edits asks first, and a saved draft leaves
   await expect(page).toHaveURL(editUrl);
   await expect(titleField).toHaveValue(`${title} (не сохранено)`);
 
-  await page.getByRole('link', { name: 'История правок' }).click();
+  await openHistoryPage();
   await leaveDialog.getByRole('button', { name: 'Уйти без сохранения' }).click();
   await expect(page).toHaveURL(/\/history$/);
 
@@ -255,19 +260,26 @@ test('an edit is kept in the history, can be compared and rolled back', async ({
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByText('Испорченный текст.')).toBeVisible();
 
+  // The editor's history: the last save compared with the one before, then rolled back in place.
   await page.goto(editUrl);
-  await page.getByRole('link', { name: 'История правок' }).click();
-  await expect(page).toHaveURL(/\/admin\/articles\/\d+\/history$/);
-  await expect(page.getByText('Неудачная правка')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Сравнение ревизий 1 и 2' })).toBeVisible();
-  const paragraph = page.getByRole('region', { name: 'Абзац 1' });
+  await page.getByRole('button', { name: 'История правок' }).click();
+  const history = page.getByRole('dialog', { name: 'История правок' });
+  await expect(history.getByText('Неудачная правка')).toBeVisible();
+  const paragraph = history.getByRole('region', { name: 'Абзац 1' });
   await expect(paragraph.locator('[data-diff="removed"]')).toContainText('Исходный текст.');
   await expect(paragraph.locator('[data-diff="added"]')).toContainText('Испорченный текст.');
 
-  const first = page.getByRole('listitem').filter({ hasText: 'Ревизия 1' });
+  const first = history.getByRole('listitem', { name: 'Ревизия 1' });
   await first.getByRole('button', { name: 'Откатить к этой ревизии' }).click();
   await first.getByRole('button', { name: 'Подтвердить откат' }).click();
-  await expect(page.getByRole('status')).toContainText('сохранена как ревизия 3');
+  await expect(page.getByText('Статья откачена к ревизии 1; сохранена как ревизия 3')).toBeVisible();
+  await expect(history).toBeHidden();
+  await expect(page.getByRole('textbox', { name: 'Введите текст параграфа...' })).toHaveText('Исходный текст.');
+
+  // The page of its own lists the rollback as the newest revision.
+  await page.getByRole('button', { name: 'История правок' }).click();
+  await history.getByRole('link', { name: 'Открыть отдельной страницей' }).click();
+  await expect(page).toHaveURL(/\/admin\/articles\/\d+\/history$/);
   await expect(page.getByText('Откат к ревизии 1')).toBeVisible();
 
   await page.goto(editUrl.replace(/\/edit$/, '').replace('/admin/articles/', '/article/'));

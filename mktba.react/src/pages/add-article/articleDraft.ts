@@ -1,4 +1,4 @@
-import type { ArticleContentCreateDto, ArticleContentDto } from '../../shared/types/ApiTypes';
+import type { ArticleContentCreateDto, ArticleContentDto, ArticleSnapshotDto, SourceDto } from '../../shared/types/ApiTypes';
 import { buildSeoDto, emptySeoDraft, isValidSocialImageUrl, seoDraftFromDto, type SeoDraft } from '../../shared/seo';
 import { articleSlugFromTitle, isReservedArticleSlug, isValidSlug } from '../../shared/slug';
 import {
@@ -149,6 +149,50 @@ export const buildArticleUpdateDto = (draft: ArticleDraft, articleId: number): A
       // Read-only on the server: it reports the related article's current slug.
       relatedArticleSlug: '',
     })),
+  };
+};
+
+/**
+ * The draft as the revision its save would write (E-13, #83), so the history can compare it with
+ * a saved revision: the same paragraphs, orders and trimming as the update DTO, each citation with
+ * the directory entry the editor shows.
+ */
+export const articleDraftSnapshot = (draft: ArticleDraft): ArticleSnapshotDto => {
+  const dto = buildArticleUpdateDto(draft, 0);
+  const sources = new Map<number, SourceDto>();
+  draft.blocks.forEach((block) => {
+    const citations = block.kind === 'versioned' ? block.variants.flatMap((variant) => variant.sources ?? []) : block.sources ?? [];
+    citations.forEach((citation) => sources.set(citation.source.id, citation.source));
+  });
+
+  return {
+    schemaVersion: 3,
+    title: dto.title,
+    slug: dto.slug ?? '',
+    summary: dto.summary ?? null,
+    tags: dto.tags ?? [],
+    infobox: dto.infobox,
+    paragraphs: dto.paragraphs.map((paragraph) => ({
+      order: paragraph.order,
+      opinions: paragraph.opinions.map((opinion) => ({
+        content: opinion.content,
+        isDefault: opinion.isDefault,
+        schoolIds: opinion.schoolIds ?? [],
+        sources: (opinion.sources ?? []).flatMap(({ sourceId, locator }) => {
+          const source = sources.get(sourceId);
+          return source
+            ? [{ sourceId, locator, kind: source.kind, title: source.title, author: source.author, details: source.details, url: source.url }]
+            : [];
+        }),
+      })),
+    })),
+    relatedLinks: (dto.relatedLinks ?? []).map((link) => ({
+      relatedArticleId: link.relatedArticleId,
+      relatedArticleTitle: link.relatedArticleTitle,
+      relatedArticleSlug: link.relatedArticleSlug,
+      order: link.order,
+    })),
+    seo: dto.seo,
   };
 };
 

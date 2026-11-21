@@ -1,10 +1,11 @@
 import apiClient from '../../shared/api-client/ApiClient';
 import type {
   ArticleRevisionComparisonDto,
+  ArticleRevisionDto,
   ArticleRevisionSummaryDto,
 } from '../../shared/types/ApiTypes';
 
-/** The article's revisions, newest first (admin only). */
+/** The article's revisions, newest first (admins, and authors for their own articles). */
 export const getArticleRevisions = async (articleId: number): Promise<ArticleRevisionSummaryDto[]> => {
   const response = await apiClient.get<ArticleRevisionSummaryDto[]>(`/articles/${articleId}/revisions`);
   return response.data;
@@ -32,5 +33,11 @@ export const restoreArticleRevision = async (
     `/articles/${articleId}/revisions/${number}/restore`,
     { comment: comment?.trim() || null },
   );
+  return response.data;
+};
+
+/** One revision with its snapshot. */
+export const getArticleRevision = async (articleId: number, number: number): Promise<ArticleRevisionDto> => {
+  const response = await apiClient.get<ArticleRevisionDto>(`/articles/${articleId}/revisions/${number}`);
   return response.data;
 };
