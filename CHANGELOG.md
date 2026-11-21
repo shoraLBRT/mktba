@@ -1,5 +1,57 @@
 # Changelog
 
+## [0.2.0](https://github.com/shoraLBRT/mktba/compare/v0.1.0...v0.2.0) (2026-11-21)
+
+
+### Features
+
+* accept anonymous feedback and file it as GitHub issues through a GitHub App ([#224](https://github.com/shoraLBRT/mktba/issues/224)) ([4f92327](https://github.com/shoraLBRT/mktba/commit/4f92327abe632a21bfe88baa47eaba3205394fe4))
+* add child, related and previous/next articles at the bottom of the article ([#219](https://github.com/shoraLBRT/mktba/issues/219)) ([c09c82d](https://github.com/shoraLBRT/mktba/commit/c09c82de82033f25ce01dba39345f61af18e66bc))
+* add full-text search with a results page and a Ctrl+K dialog ([#221](https://github.com/shoraLBRT/mktba/issues/221)) ([ab18433](https://github.com/shoraLBRT/mktba/commit/ab18433b92fdcb73d40b0325d6a183ff335368b7))
+* add heading and paragraph anchors, a full table of contents and a back-to-top button ([#218](https://github.com/shoraLBRT/mktba/issues/218)) ([bc58915](https://github.com/shoraLBRT/mktba/commit/bc5891528b7cd02267c55d811077bcf3837d52ce))
+* add loading skeletons and empty states for the navigation tree and article stubs ([#232](https://github.com/shoraLBRT/mktba/issues/232)) ([6327b77](https://github.com/shoraLBRT/mktba/commit/6327b7701274aae3ab1a61c9377e917d77c11013))
+* add saved collapsing, auto-expand, child counts and arrow keys to the navigation tree ([#220](https://github.com/shoraLBRT/mktba/issues/220)) ([a633cd2](https://github.com/shoraLBRT/mktba/commit/a633cd231d82671e5ecc30f5978f0dd0ccb631bd))
+* add sources with citations on opinions and a sources block under the article ([#223](https://github.com/shoraLBRT/mktba/issues/223)) ([431c4f2](https://github.com/shoraLBRT/mktba/commit/431c4f27637d463eb58d16e910035da7dddc6c31))
+* add the anonymous feedback form with entries in the site footer and under the article ([#226](https://github.com/shoraLBRT/mktba/issues/226)) ([ecb7741](https://github.com/shoraLBRT/mktba/commit/ecb77412571d059b63ec3fbe8c2a61b9101d03cd))
+* add the home page with sections, new and updated articles and a title search ([#216](https://github.com/shoraLBRT/mktba/issues/216)) ([c3b7bb7](https://github.com/shoraLBRT/mktba/commit/c3b7bb7389975bdcac6b3f0481ea94340b39d059))
+* add the mobile layout with a contents disclosure and a bottom mazhab bar ([#233](https://github.com/shoraLBRT/mktba/issues/233)) ([9bb4155](https://github.com/shoraLBRT/mktba/commit/9bb4155628c4f27aaaa4aefe606f0a56bbb12a41))
+* add the public author page with the author's articles and Person structured data ([#228](https://github.com/shoraLBRT/mktba/issues/228)) ([87c48fc](https://github.com/shoraLBRT/mktba/commit/87c48fc21b39e1b9fbd5c43efabd90d0d0ac0f43))
+* add user profiles with a public read by slug and a my-profile form ([#227](https://github.com/shoraLBRT/mktba/issues/227)) ([48c24ab](https://github.com/shoraLBRT/mktba/commit/48c24ab8e699db9f9218685d20359e321cb15725))
+* **admin:** add the author's cabinet with own articles by status ([#257](https://github.com/shoraLBRT/mktba/issues/257)) ([bd5cf80](https://github.com/shoraLBRT/mktba/commit/bd5cf80b1e5ce629577cd4e35a8854b4f6bad8f3))
+* **admin:** add the moderation queue with comparison, approval and return ([#254](https://github.com/shoraLBRT/mktba/issues/254)) ([0c23669](https://github.com/shoraLBRT/mktba/commit/0c23669723ca066b1c2c233e7761238197280e63))
+* **admin:** drag, rename and create sections in the admin tree ([#252](https://github.com/shoraLBRT/mktba/issues/252)) ([e8dfec2](https://github.com/shoraLBRT/mktba/commit/e8dfec2a191b3d981d836c0fe338fef132eac32a))
+* **admin:** show profile problems at their fields and preview the author page address ([#258](https://github.com/shoraLBRT/mktba/issues/258)) ([12c584e](https://github.com/shoraLBRT/mktba/commit/12c584e76abf4fdd4ba827a5ca9a9df28a52644e))
+* **api:** add image uploads with local and S3 storage and the avatar upload ([#255](https://github.com/shoraLBRT/mktba/issues/255)) ([3f35d5c](https://github.com/shoraLBRT/mktba/commit/3f35d5c79d04a1da3ef84ca63a3bc8b5cfda6996))
+* **editor:** ask before leaving the article editor with unsaved edits ([#236](https://github.com/shoraLBRT/mktba/issues/236)) ([2d04cb5](https://github.com/shoraLBRT/mktba/commit/2d04cb53296122c72ba5a10ae85e02d616376308))
+* **editor:** check the draft before review or publication ([#247](https://github.com/shoraLBRT/mktba/issues/247)) ([59ac02b](https://github.com/shoraLBRT/mktba/commit/59ac02bb0356871487f769bf030de31a1df3896c))
+* **editor:** drag, duplicate and convert blocks, and pick a block kind from a / menu ([#243](https://github.com/shoraLBRT/mktba/issues/243)) ([35db48b](https://github.com/shoraLBRT/mktba/commit/35db48ba9607e9e1b63a306e684763442356b9c4))
+* **editor:** edit paragraphs and opinions as rich text with TipTap ([#242](https://github.com/shoraLBRT/mktba/issues/242)) ([54703e6](https://github.com/shoraLBRT/mktba/commit/54703e67521d8c9709d17ec9bdbf7fea7c1afc32))
+* **editor:** gather status, slug, SEO and revision comment in one publication panel ([#246](https://github.com/shoraLBRT/mktba/issues/246)) ([731d215](https://github.com/shoraLBRT/mktba/commit/731d215071491c452a86358ca4af796e5aaa2d37))
+* **editor:** give the editor the whole width with a clickable structure on the left ([#251](https://github.com/shoraLBRT/mktba/issues/251)) ([3b6f82f](https://github.com/shoraLBRT/mktba/commit/3b6f82f85a42eecc253dc7142da5dc0e21ec8ba3))
+* **editor:** keep a local copy of unsaved article edits with a save indicator ([#241](https://github.com/shoraLBRT/mktba/issues/241)) ([e3a2ec0](https://github.com/shoraLBRT/mktba/commit/e3a2ec0014145d2969a32df4271c264786d5bf9f))
+* **editor:** link articles from the editor and warn about broken internal links ([#239](https://github.com/shoraLBRT/mktba/issues/239)) ([7a1aba6](https://github.com/shoraLBRT/mktba/commit/7a1aba6f74267e4afb546ae3814c69f337b090d2))
+* **editor:** name opinion tabs by school and add opinions by picking a school ([#244](https://github.com/shoraLBRT/mktba/issues/244)) ([ef627e0](https://github.com/shoraLBRT/mktba/commit/ef627e0f0cc6d7f9d8ed89a4d6da1e0d201aed48))
+* **editor:** preview the draft as a reader with mazhab and screen width switches ([#245](https://github.com/shoraLBRT/mktba/issues/245)) ([03aef83](https://github.com/shoraLBRT/mktba/commit/03aef83c4f978037529ab1f81daf9d14c2e66931))
+* **editor:** show the revision history in the editor with compare and rollback ([#248](https://github.com/shoraLBRT/mktba/issues/248)) ([7df354f](https://github.com/shoraLBRT/mktba/commit/7df354ffafb1e8e08d87c423b45607fe03e11f41))
+* **editor:** upload images into the article text ([#256](https://github.com/shoraLBRT/mktba/issues/256)) ([5440ee7](https://github.com/shoraLBRT/mktba/commit/5440ee7acc51d41bdd94fdd14e9d20e51676780d))
+* move the mazhab picker to the header with a first-visit hint and a shareable link ([#213](https://github.com/shoraLBRT/mktba/issues/213)) ([2cd8305](https://github.com/shoraLBRT/mktba/commit/2cd8305472437f87ef97f0f7e40e472c4dba628f))
+* rate-limit feedback, add a honeypot field and keep visitor text inert in the GitHub issue ([#225](https://github.com/shoraLBRT/mktba/issues/225)) ([a3f1828](https://github.com/shoraLBRT/mktba/commit/a3f1828584d0f617137deb092437d841ec9497ed))
+* render only the rows in view in navigation trees above 300 articles ([#222](https://github.com/shoraLBRT/mktba/issues/222)) ([54ca9f0](https://github.com/shoraLBRT/mktba/commit/54ca9f0bdfb188b7c1952989782a5e9e7444df79))
+* serve articles at /{slug} and redirect old /article URLs ([#230](https://github.com/shoraLBRT/mktba/issues/230)) ([f8d2b33](https://github.com/shoraLBRT/mktba/commit/f8d2b33d5e3062aae77f5b9d31b93bba2aea6884))
+* show breadcrumbs on stub articles and the reading time in the article header ([#217](https://github.com/shoraLBRT/mktba/issues/217)) ([4370b18](https://github.com/shoraLBRT/mktba/commit/4370b1825aa173565e15789ef7b336c84270ca43))
+* show the article's authors in the header with links to their pages and Person JSON-LD ([#229](https://github.com/shoraLBRT/mktba/issues/229)) ([7299f70](https://github.com/shoraLBRT/mktba/commit/7299f70ab36cbb70c44a3ef216158ca629a1efa6))
+* **tags:** make tags an entity with a tag page, rename and merge ([#240](https://github.com/shoraLBRT/mktba/issues/240)) ([c0f2fed](https://github.com/shoraLBRT/mktba/commit/c0f2fed9877626df412a993758b878cd6faef25f))
+
+
+### Bug Fixes
+
+* **api:** apply migrations only in Development or with an explicit --migrate step ([#234](https://github.com/shoraLBRT/mktba/issues/234)) ([81696bc](https://github.com/shoraLBRT/mktba/commit/81696bc0cb3968938aa73beb152bf68be49f5991))
+* **api:** give revision author emails only to admins ([#250](https://github.com/shoraLBRT/mktba/issues/250)) ([29f0e44](https://github.com/shoraLBRT/mktba/commit/29f0e44cf5f3b2dd08b3de29c2b7f4758051c14f))
+* **editor:** merge the create and edit article pages into one ArticleEditorPage ([#235](https://github.com/shoraLBRT/mktba/issues/235)) ([f580ad3](https://github.com/shoraLBRT/mktba/commit/f580ad3d648a9dfa90b306a05bec36c078a229ab))
+* keep the infobox clear of the text, wrap long values and collapse it on phones ([#215](https://github.com/shoraLBRT/mktba/issues/215)) ([b6da2d0](https://github.com/shoraLBRT/mktba/commit/b6da2d0f707f66fdcca255ec6eda924bceee6f7f))
+* **profile:** keep the profile form closed for typing until the saved profile is loaded ([#237](https://github.com/shoraLBRT/mktba/issues/237)) ([4c9c2cd](https://github.com/shoraLBRT/mktba/commit/4c9c2cdbb424cf67bac0a9076dd7a033460f88a6))
+* send Metrika hits on SPA navigations and report mazhab, search, ToC and read-to-end goals ([#231](https://github.com/shoraLBRT/mktba/issues/231)) ([4eb7266](https://github.com/shoraLBRT/mktba/commit/4eb7266e0a07508eb9ae068ebf932f907837fa31))
+
 ## 0.1.0 (2026-11-19)
 
 
