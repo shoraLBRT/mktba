@@ -94,8 +94,8 @@ public class ArticleSourcesTests : IClassFixture<PostgresDatabaseFixture>
         await UpdateAsync(created);
         await WithSourcesAsync(service => service.UpdateAsync(source.Id, new SourceWriteDto(SourceKind.Book, "Новое название (ревизия)", "Автор", null, null)));
 
-        var revision = await WithRevisionsAsync(service => service.GetAsync(created.Id, 1));
-        await WithRevisionsAsync(service => service.RestoreAsync(created.Id, 1, null, null));
+        var revision = await WithRevisionsAsync(service => service.GetAsync(created.Id, 1, TestViewers.Admin));
+        await WithRevisionsAsync(service => service.RestoreAsync(created.Id, 1, null, null, TestViewers.Admin));
 
         revision.Snapshot.SchemaVersion.Should().Be(3);
         revision.Snapshot.Paragraphs[0].Opinions[0].Sources.Should().Equal(
@@ -116,11 +116,11 @@ public class ArticleSourcesTests : IClassFixture<PostgresDatabaseFixture>
         await UpdateAsync(created);
         await DeleteSourceAsync(deleted.Id);
 
-        await WithRevisionsAsync(service => service.RestoreAsync(created.Id, 1, null, null));
+        await WithRevisionsAsync(service => service.RestoreAsync(created.Id, 1, null, null, TestViewers.Admin));
 
         var restored = await ReadAsync(created.Id);
         restored.Paragraphs[0].Opinions[0].Sources.Should().Equal(new OpinionSourceDto(kept.Id, "с. 2"));
-        var old = await WithRevisionsAsync(service => service.GetAsync(created.Id, 1));
+        var old = await WithRevisionsAsync(service => service.GetAsync(created.Id, 1, TestViewers.Admin));
         old.Snapshot.Paragraphs[0].Opinions[0].Sources!.Select(s => s.Title).Should().Equal("Будет удалён (откат)", "Останется (откат)");
     }
 
@@ -140,8 +140,8 @@ public class ArticleSourcesTests : IClassFixture<PostgresDatabaseFixture>
             await context.SaveChangesAsync();
         }
 
-        var old = await WithRevisionsAsync(service => service.GetAsync(created.Id, 1));
-        await WithRevisionsAsync(service => service.RestoreAsync(created.Id, 1, null, null));
+        var old = await WithRevisionsAsync(service => service.GetAsync(created.Id, 1, TestViewers.Admin));
+        await WithRevisionsAsync(service => service.RestoreAsync(created.Id, 1, null, null, TestViewers.Admin));
 
         old.Snapshot.Paragraphs[0].Opinions[0].Sources.Should().BeNull();
         var restored = await ReadAsync(created.Id);

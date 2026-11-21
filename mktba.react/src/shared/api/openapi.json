@@ -3917,6 +3917,10 @@
             "format": "int32",
             "nullable": true
           },
+          "authorDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
           "authorEmail": {
             "type": "string",
             "nullable": true

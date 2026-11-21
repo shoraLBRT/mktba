@@ -3,10 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Mktba.Application.DTOs;
+using Mktba.Domain.Entities;
 
 namespace Mktba.Api.Tests;
 
-/// <summary>M-04 (#25): saves write revisions with the saving admin; history and rollback are admin-only.</summary>
+/// <summary>M-04 (#25): saves write revisions with the saving admin; history and rollback for admins and the article's authors, emails only for admins (#249).</summary>
 public sealed class ArticleRevisionEndpointTests : IClassFixture<MktbaApiFactory>
 {
     private const string AdminEmail = "admin@mktba.test";
@@ -34,6 +35,52 @@ public sealed class ArticleRevisionEndpointTests : IClassFixture<MktbaApiFactory
             $"/articles/{created.Id}/revisions/compare?from=1&to=2", ApiJson.Options);
         comparison!.From.Snapshot.Title.Should().Be("Статья с историей");
         comparison.To.Snapshot.Title.Should().Be("Статья с историей (правка)");
+    }
+
+    [Fact]
+    public async Task GivenAuthorAndAdminSaves_WhenAuthorReadsTheHistory_ThenDisplayNamesButNoEmails()
+    {
+        var admin = await CreateAdminClientAsync();
+        var (author, _) = await RoleClients.CreateAsync(_factory, UserRole.Author);
+        var name = $"Автор {Guid.NewGuid().ToString("N")[..10]}";
+        (await author.PutAsJsonAsync("/profile", new UserProfileWriteDto(name, null, null, null, null, null, null), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        var created = await CreateArticleAsync(author, "Статья автора с историей");
+        await UpdateAsync(admin, created, "Статья автора с историей (правка)", "Второй текст", null);
+
+        var list = await author.GetFromJsonAsync<List<ArticleRevisionSummaryDto>>($"/articles/{created.Id}/revisions", ApiJson.Options);
+        var revision = await author.GetFromJsonAsync<ArticleRevisionDto>($"/articles/{created.Id}/revisions/1", ApiJson.Options);
+        var comparison = await author.GetFromJsonAsync<ArticleRevisionComparisonDto>(
+            $"/articles/{created.Id}/revisions/compare?from=1&to=2", ApiJson.Options);
+        var restore = await author.PostAsJsonAsync($"/articles/{created.Id}/revisions/1/restore", new { comment = (string?)null });
+        var restored = await restore.Content.ReadFromJsonAsync<ArticleRevisionSummaryDto>(ApiJson.Options);
+
+        list!.Select(r => (r.Number, r.AuthorDisplayName, r.AuthorEmail)).Should().Equal((2, null, null), (1, name, null));
+        revision!.Revision.AuthorDisplayName.Should().Be(name);
+        revision.Revision.AuthorEmail.Should().BeNull();
+        comparison!.From.Revision.AuthorEmail.Should().BeNull();
+        comparison.To.Revision.AuthorEmail.Should().BeNull();
+        restored!.AuthorDisplayName.Should().Be(name);
+        restored.AuthorEmail.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GivenAuthorAndAdminSaves_WhenAdminReadsTheHistory_ThenEmailsAndDisplayNames()
+    {
+        var admin = await CreateAdminClientAsync();
+        var (author, _) = await RoleClients.CreateAsync(_factory, UserRole.Author);
+        var name = $"Автор {Guid.NewGuid().ToString("N")[..10]}";
+        (await author.PutAsJsonAsync("/profile", new UserProfileWriteDto(name, null, null, null, null, null, null), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        var created = await CreateArticleAsync(author, "Статья автора для администратора");
+        await UpdateAsync(admin, created, "Статья автора для администратора (правка)", "Второй текст", null);
+
+        var list = await admin.GetFromJsonAsync<List<ArticleRevisionSummaryDto>>($"/articles/{created.Id}/revisions", ApiJson.Options);
+
+        list![0].AuthorDisplayName.Should().BeNull();
+        list[0].AuthorEmail.Should().Be(AdminEmail);
+        list[1].AuthorDisplayName.Should().Be(name);
+        list[1].AuthorEmail.Should().StartWith("author-");
     }
 
     [Fact]
