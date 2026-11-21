@@ -1,5 +1,5 @@
 import React, { useRef, useState, type ReactNode } from 'react';
-import { Plus, Trash2, Upload } from 'lucide-react';
+import { ExternalLink, Plus, Trash2, Upload } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { NoticeBanner } from '../../components/admin/NoticeBanner';
 import { useNotice } from '../../components/admin/useNotice';
@@ -7,6 +7,8 @@ import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
 import { getMyProfile, updateMyProfile, uploadAvatar } from '../../services/profileService';
+import { useSiteUrl } from '../../app/siteUrl';
+import { toApiError } from '../../shared/api-client/apiError';
 import {
   PROFILE_BIO_MAX_LENGTH,
   PROFILE_DEGREE_MAX_LENGTH,
@@ -16,12 +18,15 @@ import {
   PROFILE_LINK_URL_MAX_LENGTH,
   PROFILE_MAX_LINKS,
   buildProfileDto,
+  effectiveProfileSlug,
+  findProfileDraftProblems,
   profileDraftFromDto,
+  profileFieldOfApiError,
   profileSlugFromName,
-  validateProfileDraft,
   type ProfileDraft,
+  type ProfileFieldKey,
 } from '../../shared/profile';
-import { SLUG_MAX_LENGTH } from '../../shared/slug';
+import { SLUG_MAX_LENGTH, authorHref } from '../../shared/slug';
 import { SOCIAL_IMAGE_URL_MAX_LENGTH } from '../../shared/seo';
 import { findUploadFileProblem, UPLOAD_IMAGE_ACCEPT, UPLOAD_MAX_BYTES } from '../../shared/upload';
 import { Button } from '../../shared/ui/Button';
@@ -29,7 +34,11 @@ import { Card } from '../../shared/ui/Card';
 import { Input } from '../../shared/ui/Input';
 import { Textarea } from '../../shared/ui/Textarea';
 
-const Field = ({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) => (
+const fieldId = (key: ProfileFieldKey) => `profile-${key}`;
+const errorId = (key: ProfileFieldKey) => `profile-${key}-error`;
+
+
+const Field = ({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) => (
   <label className="block">
     <span className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">{label}</span>
     {children}
@@ -38,19 +47,28 @@ const Field = ({ label, hint, children }: { label: string; hint?: string; childr
 );
 
 /**
- * `/admin/profile`: the signed-in user's own profile (U-07, #72) — the minimal form that fills in
- * what the public author page (P-01, #89) and the article's author line (P-06, #94) will show.
+ * `/admin/profile`: the signed-in user's own profile (U-07, #72; P-05, #93) — what the public author
+ * page (P-01, #89) and the article's author line (P-06, #94) show. Problems are shown at their
+ * fields (the client checks mirror `UserProfileRules`; the API's slug and avatar refusals land there
+ * too), and the address the page will have is previewed as it is typed.
  */
 const AdminProfilePage: React.FC = () => {
   const locale = useLocale();
   const t = locale.profilePage;
   const queryClient = useQueryClient();
   const { notice, showNotice, clearNotice } = useNotice();
+  const siteUrl = useSiteUrl();
   const [draftOverride, setDraftOverride] = useState<ProfileDraft | null>(null);
+  // Field problems are shown from the first save attempt on, then follow every edit.
+  const [checked, setChecked] = useState(false);
+  const [apiFieldError, setApiFieldError] = useState<{ key: ProfileFieldKey; message: string } | null>(null);
 
   const profileQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.MY_PROFILE], queryFn: getMyProfile });
   const draft = draftOverride ?? profileDraftFromDto(profileQuery.data);
-  const change = (patch: Partial<ProfileDraft>) => setDraftOverride({ ...draft, ...patch });
+  const change = (patch: Partial<ProfileDraft>) => {
+    setDraftOverride({ ...draft, ...patch });
+    setApiFieldError(null);
+  };
   const changeLink = (index: number, patch: Partial<ProfileDraft['links'][number]>) =>
     change({ links: draft.links.map((link, position) => (position === index ? { ...link, ...patch } : link)) });
 
@@ -60,9 +78,21 @@ const AdminProfilePage: React.FC = () => {
       queryClient.setQueryData([APP_CONSTANTS.QUERY_KEYS.MY_PROFILE], saved);
       void queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_USERS] });
       setDraftOverride(null);
+      setChecked(false);
       showNotice('success', t.saved);
     },
-    onError: (error) => showNotice('error', `${t.saveFailed}: ${(error as Error).message}`),
+    onError: (error) => {
+      const apiError = toApiError(error);
+      const key = profileFieldOfApiError(apiError.code);
+      if (key) {
+        setApiFieldError({ key, message: apiError.message });
+        clearNotice();
+        document.getElementById(fieldId(key))?.focus();
+        return;
+      }
+
+      showNotice('error', `${t.saveFailed}: ${apiError.message}`);
+    },
   });
 
   // The upload only stores the image (U-08): its address goes into the field and is saved with the profile.
@@ -96,11 +126,33 @@ const AdminProfilePage: React.FC = () => {
     uploadMutation.mutate(file);
   };
 
-  const save =(event: React.FormEvent) => {
+  const problems = findProfileDraftProblems(draft);
+  const errorOf = (key: ProfileFieldKey): string | undefined => {
+    if (apiFieldError?.key === key) return apiFieldError.message;
+    const problem = checked ? problems[key] : undefined;
+    return problem ? t.errors[problem] : undefined;
+  };
+  /** The id, `aria-invalid` and `aria-describedby` of the input whose problem `fieldError` renders. */
+  const fieldA11y = (key: ProfileFieldKey) => {
+    const error = errorOf(key);
+    return { id: fieldId(key), 'aria-invalid': error ? true : undefined, 'aria-describedby': error ? errorId(key) : undefined };
+  };
+  const fieldError = (key: ProfileFieldKey) => {
+    const error = errorOf(key);
+    return error ? (
+      <span id={errorId(key)} className="mt-1 block text-xs font-medium text-red-700">
+        {error}
+      </span>
+    ) : null;
+  };
+
+  const save = (event: React.FormEvent) => {
     event.preventDefault();
-    const problem = validateProfileDraft(draft);
-    if (problem) {
-      showNotice('warning', t.errors[problem]);
+    setChecked(true);
+    const firstProblem = Object.keys(problems)[0] as ProfileFieldKey | undefined;
+    if (firstProblem) {
+      clearNotice();
+      document.getElementById(fieldId(firstProblem))?.focus();
       return;
     }
 
@@ -108,6 +160,9 @@ const AdminProfilePage: React.FC = () => {
   };
 
   const derivedSlug = draft.displayName.trim() ? profileSlugFromName(draft.displayName) : '';
+  const savedSlug = profileQuery.data?.slug ?? null;
+  const pageSlug = effectiveProfileSlug(draft, savedSlug);
+  const publicPageHref = profileQuery.data?.isPublic && savedSlug ? authorHref(savedSlug) : null;
   const visibility = !profileQuery.data?.displayName
     ? t.visibilityNoName
     : profileQuery.data.isPublic
@@ -132,6 +187,20 @@ const AdminProfilePage: React.FC = () => {
             <fieldset disabled={profileQuery.isLoading} className="m-0 min-w-0 space-y-5 border-0 p-0">
               <p data-testid="profile-visibility" className="rounded-lg bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-ink-default)]">
                 {visibility}
+                {publicPageHref ? (
+                  <>
+                    {' '}
+                    <a
+                      href={publicPageHref}
+                      target="_blank"
+                      rel="noopener"
+                      className="inline-flex items-center gap-1 font-medium text-[var(--color-brand-forest)] underline"
+                    >
+                      {t.openPublicPage}
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  </>
+                ) : null}
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -144,8 +213,21 @@ const AdminProfilePage: React.FC = () => {
                     onChange={(event) => change({ displayName: event.target.value })}
                   />
                 </Field>
-                <Field label={t.slug} hint={t.slugHint}>
+                <Field
+                  label={t.slug}
+                  hint={
+                    <>
+                      {t.slugHint}
+                      {pageSlug && !problems.slug ? (
+                        <span data-testid="profile-address-preview" className="mt-1 block break-all font-mono text-[var(--color-ink-default)]">
+                          {formatMessage(t.publicAddress, { url: `${siteUrl}${authorHref(pageSlug)}` })}
+                        </span>
+                      ) : null}
+                    </>
+                  }
+                >
                   <Input
+                    {...fieldA11y('slug')}
                     name="profile-slug"
                     autoComplete="off"
                     spellCheck={false}
@@ -154,6 +236,7 @@ const AdminProfilePage: React.FC = () => {
                     placeholder={derivedSlug}
                     onChange={(event) => change({ slug: event.target.value })}
                   />
+                  {fieldError('slug')}
                 </Field>
               </div>
 
@@ -172,6 +255,7 @@ const AdminProfilePage: React.FC = () => {
                 <div className="min-w-0 flex-1 space-y-2">
                   <Field label={t.avatarUrl} hint={t.avatarUrlHint}>
                     <Input
+                      {...fieldA11y('avatarUrl')}
                       name="profile-avatar-url"
                       autoComplete="off"
                       inputMode="url"
@@ -179,6 +263,7 @@ const AdminProfilePage: React.FC = () => {
                       value={draft.avatarUrl}
                       onChange={(event) => change({ avatarUrl: event.target.value })}
                     />
+                    {fieldError('avatarUrl')}
                   </Field>
                   <input
                     ref={avatarFileInput}
@@ -239,24 +324,30 @@ const AdminProfilePage: React.FC = () => {
                 <p className="text-xs text-[var(--color-ink-muted)]">{formatMessage(t.linksHint, { max: PROFILE_MAX_LINKS })}</p>
                 {draft.links.map((link, index) => (
                   // The rows have no identity of their own: they are edited in place and removed by position.
-                  <div key={index} className="flex flex-wrap items-center gap-2">
-                    <Input
-                      className="sm:w-48"
-                      aria-label={formatMessage(t.linkLabel, { number: index + 1 })}
-                      placeholder={t.linkLabelPlaceholder}
-                      maxLength={PROFILE_LINK_LABEL_MAX_LENGTH}
-                      value={link.label}
-                      onChange={(event) => changeLink(index, { label: event.target.value })}
-                    />
-                    <Input
-                      className="min-w-0 flex-1"
-                      aria-label={formatMessage(t.linkUrl, { number: index + 1 })}
-                      placeholder={t.linkUrlPlaceholder}
-                      inputMode="url"
-                      maxLength={PROFILE_LINK_URL_MAX_LENGTH}
-                      value={link.url}
-                      onChange={(event) => changeLink(index, { url: event.target.value })}
-                    />
+                  <div key={index} className="flex flex-wrap items-start gap-2">
+                    <div className="w-full sm:w-48">
+                      <Input
+                        {...fieldA11y(`linkLabel${index}`)}
+                        aria-label={formatMessage(t.linkLabel, { number: index + 1 })}
+                        placeholder={t.linkLabelPlaceholder}
+                        maxLength={PROFILE_LINK_LABEL_MAX_LENGTH}
+                        value={link.label}
+                        onChange={(event) => changeLink(index, { label: event.target.value })}
+                      />
+                      {fieldError(`linkLabel${index}`)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Input
+                        {...fieldA11y(`linkUrl${index}`)}
+                        aria-label={formatMessage(t.linkUrl, { number: index + 1 })}
+                        placeholder={t.linkUrlPlaceholder}
+                        inputMode="url"
+                        maxLength={PROFILE_LINK_URL_MAX_LENGTH}
+                        value={link.url}
+                        onChange={(event) => changeLink(index, { url: event.target.value })}
+                      />
+                      {fieldError(`linkUrl${index}`)}
+                    </div>
                     <Button
                       variant="ghost"
                       aria-label={formatMessage(t.removeLink, { number: index + 1 })}

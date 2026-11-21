@@ -68,22 +68,53 @@ export const isValidProfileLinkUrl = (value: string): boolean => {
 /** A link row the user left completely empty is dropped on save rather than reported. */
 const isBlankLink = (link: ProfileLinkDraft): boolean => link.label.trim() === '' && link.url.trim() === '';
 
-/** The first problem the API would refuse the draft for, or null. Lengths are capped by the inputs. */
-export const validateProfileDraft = (draft: ProfileDraft): ProfileDraftError | null => {
+/** A form field a problem belongs to: the slug, the avatar, or the label / address of the link row `N` (from 0). */
+export type ProfileFieldKey = 'slug' | 'avatarUrl' | `linkLabel${number}` | `linkUrl${number}`;
+
+/** What is wrong with each field. Keys are in the form's order, so the first one is where focus goes. */
+export type ProfileDraftProblems = Partial<Record<ProfileFieldKey, ProfileDraftError>>;
+
+/** Every problem the API would refuse the draft for, by field; empty when none. Lengths are capped by the inputs. */
+export const findProfileDraftProblems = (draft: ProfileDraft): ProfileDraftProblems => {
+  const problems: ProfileDraftProblems = {};
   const slug = draft.slug.trim().toLowerCase();
   if (slug !== '') {
-    if (draft.displayName.trim() === '') return 'slugNeedsName';
-    if (!isValidSlug(slug)) return 'slugInvalid';
+    if (draft.displayName.trim() === '') problems.slug = 'slugNeedsName';
+    else if (!isValidSlug(slug)) problems.slug = 'slugInvalid';
   }
 
-  if (!isValidSocialImageUrl(draft.avatarUrl)) return 'avatarUrlInvalid';
+  if (!isValidSocialImageUrl(draft.avatarUrl)) problems.avatarUrl = 'avatarUrlInvalid';
 
-  for (const link of draft.links.filter((candidate) => !isBlankLink(candidate))) {
-    if (link.label.trim() === '') return 'linkLabelRequired';
-    if (!isValidProfileLinkUrl(link.url)) return 'linkUrlInvalid';
+  draft.links.forEach((link, index) => {
+    if (isBlankLink(link)) return;
+    if (link.label.trim() === '') problems[`linkLabel${index}`] = 'linkLabelRequired';
+    if (!isValidProfileLinkUrl(link.url)) problems[`linkUrl${index}`] = 'linkUrlInvalid';
+  });
+
+  return problems;
+};
+
+/**
+ * The address the profile page will have after a save, or null while there is no name: the typed
+ * slug, else the saved one (a blank slug keeps it), else the one the API derives from the name.
+ */
+export const effectiveProfileSlug = (draft: ProfileDraft, savedSlug: string | null | undefined): string | null => {
+  if (draft.displayName.trim() === '') return null;
+  return draft.slug.trim().toLowerCase() || savedSlug || profileSlugFromName(draft.displayName);
+};
+
+/** The field an API error code of `PUT /profile` belongs to, or null for a form-wide error. */
+export const profileFieldOfApiError = (code: string | undefined): ProfileFieldKey | null => {
+  switch (code) {
+    case 'profile_slug_invalid':
+    case 'profile_slug_taken':
+    case 'profile_display_name_required':
+      return 'slug';
+    case 'profile_avatar_url_invalid':
+      return 'avatarUrl';
+    default:
+      return null;
   }
-
-  return null;
 };
 
 /** The draft as sent to the API: blanks become null, empty link rows are dropped. */

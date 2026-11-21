@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
 import { getMyProfile, updateMyProfile, uploadAvatar } from '../../services/profileService';
+import { ApiError } from '../../shared/api-client/apiError';
 import type { UserProfileDto } from '../../shared/types/ApiTypes';
 import AdminProfilePage from './AdminProfilePage';
 
@@ -108,7 +109,22 @@ describe('AdminProfilePage', () => {
     await waitFor(() => expect(nameInput().value).toBe('Иван'));
     expect(slugInput().value).toBe('ivan');
     expect((screen.getByLabelText('Адрес ссылки 1') as HTMLInputElement).value).toBe('https://example.com');
-    expect(screen.getByTestId('profile-visibility').textContent).toBe('Профиль открыт читателям.');
+    expect(screen.getByTestId('profile-visibility').textContent).toBe('Профиль открыт читателям. Открыть страницу автора');
+    expect(screen.getByRole('link', { name: 'Открыть страницу автора' }).getAttribute('href')).toBe('/authors/ivan');
+    expect(screen.getByTestId('profile-address-preview').textContent).toBe(`Страница автора: ${window.location.origin}/authors/ivan`);
+  });
+
+  it('given a hidden profile, when a name is typed, then the address is previewed from it and there is no link to a page yet', async () => {
+    renderPage();
+    await waitFor(() => expect(nameInput().matches(':disabled')).toBe(false));
+    expect(screen.queryByTestId('profile-address-preview')).toBeNull();
+
+    fireEvent.change(nameInput(), { target: { value: 'Иван Иванов' } });
+    expect(screen.getByTestId('profile-address-preview').textContent).toContain('/authors/ivan-ivanov');
+    fireEvent.change(slugInput(), { target: { value: 'Ivan' } });
+    expect(screen.getByTestId('profile-address-preview').textContent).toContain('/authors/ivan');
+
+    expect(screen.queryByRole('link', { name: 'Открыть страницу автора' })).toBeNull();
   });
 
   it('given a link with a bad address, when saving, then warns and does not call the API', async () => {
@@ -121,8 +137,51 @@ describe('AdminProfilePage', () => {
     fireEvent.change(screen.getByLabelText('Адрес ссылки 1'), { target: { value: 'javascript:alert(1)' } });
     fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }));
 
-    expect(await screen.findByText('Адрес ссылки должен начинаться с http:// или https://.')).toBeTruthy();
+    const url = screen.getByLabelText('Адрес ссылки 1');
+    expect(url.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(url.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Адрес ссылки должен начинаться с http:// или https://.',
+    );
+    expect(document.activeElement).toBe(url);
+    expect(screen.getByLabelText('Подпись ссылки 1').getAttribute('aria-invalid')).toBeNull();
     expect(saveProfile).not.toHaveBeenCalled();
+
+    fireEvent.change(url, { target: { value: 'https://example.com' } });
+    expect(url.getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('given a bad slug and avatar, when saving, then both fields say why and the first one takes the focus', async () => {
+    renderPage();
+    await waitFor(() => expect(nameInput().matches(':disabled')).toBe(false));
+    fireEvent.change(slugInput(), { target: { value: 'ivan' } });
+    fireEvent.change(screen.getByLabelText(/^Ссылка на аватар/), { target: { value: 'javascript:alert(1)' } });
+    // No message before the first attempt to save.
+    expect(slugInput().getAttribute('aria-invalid')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }));
+
+    expect(slugInput().getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByText('Чтобы задать адрес профиля, укажите имя.')).toBeTruthy();
+    expect(screen.getByLabelText(/^Ссылка на аватар/).getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(slugInput());
+    expect(saveProfile).not.toHaveBeenCalled();
+  });
+
+  it('given the API says the slug is taken, when saving, then the message is at the slug field until it is changed', async () => {
+    saveProfile.mockRejectedValue(new ApiError('Адрес профиля «ivan» уже занят.', 409, 'profile_slug_taken'));
+    renderPage();
+    await waitFor(() => expect(nameInput().matches(':disabled')).toBe(false));
+    fireEvent.change(nameInput(), { target: { value: 'Иван' } });
+    fireEvent.change(slugInput(), { target: { value: 'ivan' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }));
+
+    await waitFor(() => expect(slugInput().getAttribute('aria-invalid')).toBe('true'));
+    expect(document.getElementById(slugInput().getAttribute('aria-describedby') ?? '')?.textContent).toBe('Адрес профиля «ivan» уже занят.');
+    expect(document.activeElement).toBe(slugInput());
+
+    fireEvent.change(slugInput(), { target: { value: 'ivan-2' } });
+    expect(slugInput().getAttribute('aria-invalid')).toBeNull();
   });
 
   it('given the API refuses the save, when saving, then shows its message and keeps what was typed', async () => {

@@ -32,7 +32,8 @@ test('a user fills in their profile and readers get it by its address, without t
   await page.getByLabel('Адрес ссылки 1').fill('https://example.com/e2e');
   await page.getByRole('button', { name: 'Сохранить профиль' }).click();
   await expect(page.getByText('Профиль сохранён')).toBeVisible();
-  await expect(page.getByTestId('profile-visibility')).toHaveText('Профиль открыт читателям.');
+  await expect(page.getByTestId('profile-visibility')).toContainText('Профиль открыт читателям.');
+  await expect(page.getByRole('link', { name: 'Открыть страницу автора' })).toHaveAttribute('href', `/authors/${slug}`);
 
   await page.reload();
 
