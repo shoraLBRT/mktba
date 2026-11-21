@@ -317,6 +317,7 @@ describe('AdminLayout', () => {
     expect([...sectionLinks()].map((link) => link.textContent)).toEqual([
       'Обзор',
       'Статьи',
+      'Мои статьи',
       'Теги',
       'Модерация',
       'Пользователи и приглашения',
@@ -339,6 +340,7 @@ describe('AdminLayout', () => {
     expect([...sectionLinks()].map((link) => link.getAttribute('href'))).toEqual([
       '/admin',
       '/admin/articles',
+      '/admin/my-articles',
       '/admin/sessions',
       '/admin/profile',
     ]);
