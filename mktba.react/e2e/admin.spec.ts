@@ -473,3 +473,39 @@ test('an admin links another article from the editor, a broken link only warns, 
   await expect(page).toHaveURL(new RegExp(`/${target.slug}$`));
   await expect(page.getByText('Статья, на которую ссылаются.')).toBeVisible();
 });
+
+test('an author uploads an image into the text and readers see it from the uploads address', async ({ page }) => {
+  const stamp = Date.now();
+  const title = `E2E картинка ${stamp}`;
+  const slug = `e2e-kartinka-${stamp}`;
+  // A 1×1 PNG: the server re-encodes it as WebP.
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await logIn(page);
+
+  await page.goto('/admin/articles/new');
+  await page.getByRole('textbox', { name: 'Название статьи...' }).fill(title);
+  const paragraph = page.getByRole('textbox', { name: 'Введите текст параграфа...' });
+  await paragraph.fill('Текст до картинки. ');
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Картинка', exact: true }).click();
+  await (await chooser).setFiles({ name: 'kaaba.png', mimeType: 'image/png', buffer: png });
+
+  const dialog = page.getByRole('dialog', { name: 'Картинка' });
+  await expect(dialog.getByRole('status')).toHaveText('Загружено, 1 × 1 px');
+  await dialog.getByRole('textbox', { name: 'Описание картинки' }).fill('Кааба');
+  await dialog.getByRole('button', { name: 'Вставить' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(paragraph).toContainText(/!\[Кааба\]\(http[^)]+\/files\/[0-9a-f]{32}\.webp\)/);
+
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`^[^/]+//[^/]+/${slug}$`));
+
+  const image = page.getByRole('img', { name: 'Кааба' });
+  await expect(image).toHaveAttribute('loading', 'lazy');
+  await image.scrollIntoViewIfNeeded();
+  await expect.poll(() => image.evaluate((element) => {
+    // The e2e project has no DOM types; this runs in the page.
+    const loaded = element as unknown as { complete: boolean; naturalWidth: number };
+    return loaded.complete && loaded.naturalWidth;
+  })).toBe(1);
+});

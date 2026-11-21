@@ -81,6 +81,8 @@ import { applyMarkdownFormat, insertArticleLink, type FormattedText } from './ad
 import { findBrokenInternalLinks, type ArticleLinkTarget } from './add-article/internalLinks';
 import { InternalLinkDialog } from './add-article/InternalLinkDialog';
 import { ExternalLinkDialog } from './add-article/ExternalLinkDialog';
+import { ImageUploadDialog } from './add-article/ImageUploadDialog';
+import { UPLOAD_IMAGE_ACCEPT } from '../shared/upload';
 import type { RichTextHandle } from './add-article/richText/RichTextEditor';
 import { InternalLinkWarnings } from './add-article/InternalLinkWarnings';
 import { SlugField } from './add-article/SlugField';
@@ -228,6 +230,11 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const [activeTarget, setActiveTarget] = useState<EditorTarget | null>(null);
   /** The text the article picker will insert its link into; `null` while the picker is closed. */
   const [linkPickerTarget, setLinkPickerTarget] = useState<EditorTarget | null>(null);
+  /** The image being uploaded (U-08) and the text it goes into. */
+  const [imageUpload, setImageUpload] = useState<{ target: EditorTarget; file: File } | null>(null);
+  /** The text «Картинка» was pressed in, while the file picker is open. */
+  const imagePickerTarget = useRef<EditorTarget | null>(null);
+  const imageFileInput = useRef<HTMLInputElement | null>(null);
   /** The rich text the external-link dialog edits a link in, with the address it opened with. */
   const [externalLink, setExternalLink] = useState<{ target: EditorTarget; href: string } | null>(null);
   const [isAiRunning, setIsAiRunning] = useState(false);
@@ -474,6 +481,36 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     if (activeTarget && !isLocked) {
       setLinkPickerTarget(activeTarget);
     }
+  };
+
+  const openImagePicker = () => {
+    // Images go into rich text only: a heading is one line of text.
+    if (activeTarget && !isLocked && richTextOf(activeTarget)) {
+      imagePickerTarget.current = activeTarget;
+      imageFileInput.current?.click();
+    }
+  };
+
+  const pickImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Cleared, so picking the same file again is a change too.
+    event.target.value = '';
+    const target = imagePickerTarget.current;
+    if (file && target) {
+      setImageUpload({ target, file });
+    }
+  };
+
+  const closeImageUpload = () => {
+    const target = imageUpload?.target ?? null;
+    setImageUpload(null);
+    richTextOf(target)?.focus();
+  };
+
+  const insertUploadedImage = (markdown: string) => {
+    const target = imageUpload?.target ?? null;
+    setImageUpload(null);
+    richTextOf(target)?.insertImage(markdown);
   };
 
   const insertPickedArticleLink = (article: ArticleLinkTarget) => {
@@ -782,6 +819,9 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                           availableSchools={schools.available}
                           onFocusTarget={setActiveTarget}
                           onRequestLink={openExternalLinkDialog}
+                          onImageFile={(target, file) => {
+                            if (!isLocked) setImageUpload({ target, file });
+                          }}
                           onChangePlain={(blockId, content) => setBlocks((current) => updatePlainBlockContent(current, blockId, content))}
                           onChangeVersion={(blockId, localId, content) => setBlocks((current) => updateVersionContent(current, blockId, localId, content))}
                           onSetDefault={(blockId, localId) => setBlocks((current) => setDefaultVersion(current, blockId, localId))}
@@ -821,6 +861,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
             disabled={isLocked || saveMutation.isPending}
             onFormat={applyFormat}
             onInsertArticleLink={openArticleLinkPicker}
+            onInsertImage={openImagePicker}
             onUndo={() => richTextOf(activeTarget)?.undo()}
             onRedo={() => richTextOf(activeTarget)?.redo()}
             onAddBlock={(kind) => setBlocks((current) => insertBlockAfter(current, activeTarget?.blockId ?? null, kind))}
@@ -935,6 +976,21 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
           onPick={insertPickedArticleLink}
           onClose={() => setLinkPickerTarget(null)}
         />
+      ) : null}
+
+      <input
+        ref={imageFileInput}
+        type="file"
+        accept={UPLOAD_IMAGE_ACCEPT}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        data-testid="editor-image-file"
+        onChange={pickImage}
+      />
+
+      {imageUpload ? (
+        <ImageUploadDialog file={imageUpload.file} onInsert={insertUploadedImage} onClose={closeImageUpload} />
       ) : null}
 
       {externalLink ? (

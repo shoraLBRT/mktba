@@ -68,4 +68,42 @@ describe('RichTextEditor', () => {
 
     expect(onRequestLink).toHaveBeenCalledTimes(1);
   });
+
+  it('given an uploaded image, when inserted at the caret, then its Markdown is written there as it is', () => {
+    const { element, handle, onChange } = renderEditor('До после');
+
+    act(() => {
+      element.editor.commands.setTextSelection(4);
+      handle().insertImage('![Схема \\[1\\]](/files/abc.webp)');
+    });
+
+    expect(onChange).toHaveBeenLastCalledWith('До ![Схема \\[1\\]](/files/abc.webp)после');
+  });
+
+  it('given an image file pasted without text, when pasted, then the page gets the file and the text is unchanged', () => {
+    const onImageFile = vi.fn();
+    const onChange = vi.fn();
+    render(
+      <LocalizationProvider>
+        <RichTextEditor
+          value="Текст"
+          onChange={onChange}
+          onFocus={() => undefined}
+          onRequestLink={() => undefined}
+          onImageFile={onImageFile}
+          handleRef={() => undefined}
+          disabled={false}
+          placeholder="Текст"
+        />
+      </LocalizationProvider>,
+    );
+    const image = new File(['x'], 'shot.png', { type: 'image/png' });
+
+    fireEvent.paste(screen.getByRole('textbox', { name: 'Текст' }), {
+      clipboardData: { types: ['Files'], files: [image], getData: () => '' },
+    });
+
+    expect(onImageFile).toHaveBeenCalledWith(image);
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });
