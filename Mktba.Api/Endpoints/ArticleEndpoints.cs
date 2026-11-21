@@ -131,17 +131,32 @@ namespace Mktba.Api.Endpoints
 
             group.MapPost("/{id:int}/status", async (int id, ArticleStatusChangeDto dto, ClaimsPrincipal user, ArticleService service, ArticleAccessGuard guard) =>
                 await guard.CheckAsync(user, id, ArticleOperationRequirement.ChangeStatus(dto.Status))
-                ?? Results.Ok(await service.ChangeStatusAsync(id, dto.Status, user.ToArticleViewer())))
+                ?? Results.Ok(await service.ChangeStatusAsync(id, dto.Status, user.ToArticleViewer(), user.GetUserId(), dto.Comment)))
             .WithSummary("Moves an article to another status.")
             .WithDescription(
                 "Allowed: Draft → InReview, InReview → Published, InReview → Draft, Published → Archived, "
                 + "Archived → Draft. Any other move answers 400 article_status_transition_invalid. Admins "
                 + "make every move; an author only Draft → InReview and InReview → Draft on an article they "
                 + "wrote or co-author, anything else answers 403 forbidden (404 article_not_found for "
-                + "someone else's draft).")
+                + "someone else's draft). The optional comment (trimmed, at most 2000 characters, else 400 "
+                + "article_status_comment_too_long) is kept with the move in the article's status log, such as "
+                + "a reviewer's reason for returning the article; the answer's lastStatusChange is that move.")
             .Produces<ArticleReadDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound)
             .RequireAuthorization(Policies.CanEditArticles);
+
+            group.MapGet("/review-queue", async (string? locale, ArticleService service) =>
+                Results.Ok(await service.GetReviewQueueAsync(locale)))
+            .WithSummary("The moderation queue: every article waiting for review.")
+            .WithDescription(
+                "Lists the InReview articles, submitted longest ago first, without content. Each gives the "
+                + "newest revision (what approval publishes) and the revision last published, if any, so the "
+                + "two can be compared through GET /articles/{id}/revisions/compare. locale filters to one "
+                + "language (an unsupported one answers 400 locale_unsupported); without it every language is listed. "
+                + "Approve or return through POST /articles/{id}/status.")
+            .Produces<List<ReviewQueueItemDto>>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(Policies.CanReviewArticles);
 
             group.MapPost("/{id:int}/move", async (int id, ArticleMoveDto dto, ArticleService service) =>
                 Results.Ok(await service.MoveAsync(id, dto)))
@@ -197,7 +212,7 @@ namespace Mktba.Api.Endpoints
 
             try
             {
-                await service.ChangeStatusAsync(id, target, user.ToArticleViewer());
+                await service.ChangeStatusAsync(id, target, user.ToArticleViewer(), user.GetUserId());
                 return new ArticleBulkItemResultDto { Id = id, Ok = true };
             }
             catch (AppException failure)

@@ -93,6 +93,8 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         // A-02 (#34): each article is then checked like a single status move.
         ["GET /articles/admin-list"] = Policies.CanEditArticles,
         ["POST /articles/bulk/status"] = Policies.CanEditArticles,
+        // A-04 (#87): the moderation queue is for reviewers only.
+        ["GET /articles/review-queue"] = Policies.CanReviewArticles,
 
         ["POST /admin/cleanup"] = Policies.CanConfigure,
         ["GET /admin/ai-settings"] = Policies.CanConfigure,

@@ -303,6 +303,49 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("ArticleSlugRedirects");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleStatusChange", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ChangedById")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int?>("RevisionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedById");
+
+                    b.HasIndex("ArticleId", "ChangedAt");
+
+                    b.ToTable("ArticleStatusChanges");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleTag", b =>
                 {
                     b.Property<int>("ArticleId")
@@ -963,6 +1006,24 @@ namespace Mktba.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Article");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleStatusChange", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "ChangedBy")
+                        .WithMany()
+                        .HasForeignKey("ChangedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Article");
+
+                    b.Navigation("ChangedBy");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleTag", b =>

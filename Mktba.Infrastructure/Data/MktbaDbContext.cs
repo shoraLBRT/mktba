@@ -16,6 +16,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<DeletedArticleSlug> DeletedArticleSlugs { get; set; } = null!;
         public DbSet<ArticleCoAuthor> ArticleCoAuthors { get; set; } = null!;
         public DbSet<ArticleRevision> ArticleRevisions { get; set; } = null!;
+        public DbSet<ArticleStatusChange> ArticleStatusChanges { get; set; } = null!;
         public DbSet<Paragraph> Paragraphs { get; set; } = null!;
         public DbSet<Opinion> Opinions { get; set; } = null!;
         public DbSet<School> Schools { get; set; } = null!;
@@ -40,6 +41,9 @@ namespace Mktba.Infrastructure.Data
 
         /// <summary>Longest edit comment on a revision.</summary>
         public const int RevisionCommentMaxLength = 500;
+
+        /// <summary>Longest comment of a status move (A-04, #87): a reviewer's reason for returning an article.</summary>
+        public const int StatusChangeCommentMaxLength = 2000;
 
         /// <summary>Longest article slug; the slug rules in the application layer use the same limit.</summary>
         public const int ArticleSlugMaxLength = 80;
@@ -208,6 +212,24 @@ namespace Mktba.Infrastructure.Data
                 .Property(r => r.Snapshot)
                 .HasColumnType("jsonb")
                 .IsRequired();
+
+            // Status moves (A-04, #87): append-only log; deleting the article drops it, deleting a user keeps it.
+            modelBuilder.Entity<ArticleStatusChange>(change =>
+            {
+                change.HasOne(c => c.Article)
+                    .WithMany()
+                    .HasForeignKey(c => c.ArticleId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                change.HasOne(c => c.ChangedBy)
+                    .WithMany()
+                    .HasForeignKey(c => c.ChangedById)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+                change.Property(c => c.FromStatus).HasConversion<string>().HasMaxLength(16).IsRequired();
+                change.Property(c => c.ToStatus).HasConversion<string>().HasMaxLength(16).IsRequired();
+                change.Property(c => c.Comment).HasMaxLength(StatusChangeCommentMaxLength);
+                change.HasIndex(c => new { c.ArticleId, c.ChangedAt });
+            });
 
             modelBuilder.Entity<Article>()
                 .HasOne(a => a.PublishedRevision)
