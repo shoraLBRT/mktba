@@ -743,6 +743,10 @@ export interface paths {
             };
         };
         put?: never;
+        /**
+         * Creates an empty article (a section of the tree) with a title and a parent.
+         * @description The title is trimmed; an empty one answers 400 article_title_required. The article is a Draft, placed last under the parent, with a slug made from the title.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -763,6 +767,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ArticleReadDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
             };
@@ -999,7 +1012,10 @@ export interface paths {
                 };
             };
         };
-        /** @description Deletes the article. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug. */
+        /**
+         * Renames an article and sets its parent.
+         * @description Sets the title (trimmed; an empty one answers 400 article_title_required) and the parent: send the current parent to only rename. A changed parent is checked like POST /articles/{id}/move (article_parent_not_found, article_move_cycle) and places the article last under it. The slug is kept; no revision is written, UpdatedAt is set.
+         */
         put: {
             parameters: {
                 query?: never;
@@ -1022,6 +1038,15 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
                 /** @description Not Found */
                 404: {
                     headers: {
@@ -1034,6 +1059,7 @@ export interface paths {
             };
         };
         post?: never;
+        /** @description Deletes the article. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug. */
         delete: {
             parameters: {
                 query?: never;

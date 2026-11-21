@@ -127,9 +127,11 @@ namespace Mktba.Application.Services
         }
 
         /// <param name="authorId">The creating user, recorded as the article's author.</param>
+        /// <exception cref="ValidationException">The title is empty or white space (article_title_required).</exception>
         public async Task<ArticleReadDto> CreateAsync(ArticleCreateDto createDto, int? authorId)
         {
             var article = _mapper.Map<Article>(createDto);
+            article.Title = RequiredTitle(createDto.Title);
             ArticleTimestamps.StampCreated(article, authorId, _clock);
             article.Order = await _articleRepository.GetNextSiblingOrderAsync(article.ParentArticleId);
             article.Slug = await new ArticleSlugAssigner(_articleRepository).GenerateUniqueAsync(article.Title, article.Locale, articleId: null);
@@ -139,8 +141,15 @@ namespace Mktba.Application.Services
             return _mapper.Map<ArticleReadDto>(article);
         }
 
+        /// <summary>
+        /// Renames the article and, when the parent differs, moves it last under the new one (the
+        /// tree's rename, A-03). The slug stays as it is; no revision is written.
+        /// </summary>
+        /// <exception cref="NotFoundException">The article does not exist.</exception>
+        /// <exception cref="ValidationException">The title is empty, or the parent is unknown or inside the article's own subtree.</exception>
         public async Task UpdateAsync(int id, ArticleUpdateDto updateDto)
         {
+            var title = RequiredTitle(updateDto.Title);
             var article = await _articleRepository.GetByIdAsync(id);
             if (article is null)
             {
@@ -148,6 +157,7 @@ namespace Mktba.Application.Services
             }
 
             _mapper.Map(updateDto, article);
+            article.Title = title;
             if (updateDto.ParentArticleId != article.ParentArticleId)
             {
                 await PlaceAsync(article, updateDto.ParentArticleId, index: null);
@@ -206,6 +216,11 @@ namespace Mktba.Application.Services
                     .Where(sibling => sibling.Id != article.Id));
             }
         }
+
+        private static string RequiredTitle(string? title) =>
+            string.IsNullOrWhiteSpace(title)
+                ? throw new ValidationException(AppErrors.ArticleTitleRequired)
+                : title.Trim();
 
         private static void Renumber(IEnumerable<Article> siblings)
         {
