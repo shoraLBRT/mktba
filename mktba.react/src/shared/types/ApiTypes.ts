@@ -39,6 +39,7 @@ export type ArticleBulkItemResultDto = Schemas['ArticleBulkItemResultDto'];
 export type ArticleBulkResultDto = Schemas['ArticleBulkResultDto'];
 export type ArticleCreateDto = Schemas['ArticleCreateDto'];
 export type ArticleMoveDto = Schemas['ArticleMoveDto'];
+export type ArticleUpdateDto = Schemas['ArticleUpdateDto'];
 export type ArticleAuthorsDto = Schemas['ArticleAuthorsDto'];
 export type UserSummaryDto = Schemas['UserSummaryDto'];
 export type ProfileLinkDto = Schemas['ProfileLinkDto'];

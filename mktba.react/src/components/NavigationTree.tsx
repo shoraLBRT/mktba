@@ -148,6 +148,8 @@ const NavigationTree: React.FC<NavigationTreeProps> = ({
   onAddChild,
   onMove,
   onChangeParent,
+  onRename,
+  dragAndDrop,
 }) => {
   const location = useLocation();
   const hydrated = useHydrated();
@@ -176,7 +178,7 @@ const NavigationTree: React.FC<NavigationTreeProps> = ({
     expandSections(ancestors.map((ancestor) => ancestor.id));
   }, [activeArticleId, navigationTree]);
 
-  const actions: NavigationRowActions = { showArticleEditActions, forceExpanded, onNavigate, onAddChild, onMove, onChangeParent };
+  const actions: NavigationRowActions = { showArticleEditActions, forceExpanded, onNavigate, onAddChild, onMove, onChangeParent, onRename, dragAndDrop };
 
   if (windowed) {
     return <WindowedNavigationList navigationTree={navigationTree} activeArticleId={activeArticleId} {...actions} />;

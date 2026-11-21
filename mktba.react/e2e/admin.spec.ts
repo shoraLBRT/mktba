@@ -332,6 +332,53 @@ test('an admin reorders sections and moves one under another parent', async ({ p
   await expect(row(first)).toHaveAttribute('style', /padding-left: 6px/);
 });
 
+test('an admin drags sections in the tree and renames one, and the server keeps both', async ({ page }) => {
+  const stamp = Date.now();
+  const parent = `E2E перетаскивание ${stamp}`;
+  const first = `E2E альфа ${stamp}`;
+  const second = `E2E бета ${stamp}`;
+  const renamed = `E2E гамма ${stamp}`;
+  await logIn(page);
+  const sidebar = await openAdminArticleTree(page);
+  const row = (title: string) => sidebar.getByRole('link', { name: title, exact: true }).locator('..');
+  const childTitles = row(parent).locator('xpath=following-sibling::ul[1]').getByRole('link');
+  const create = async (title: string, under?: string) => {
+    if (under) {
+      await row(under).hover();
+      await row(under).getByRole('button', { name: 'Добавить подраздел' }).click();
+    } else {
+      await sidebar.getByRole('button', { name: 'Новый раздел' }).click();
+    }
+    await page.getByPlaceholder('Название раздела').fill(title);
+    await page.getByRole('button', { name: 'Создать', exact: true }).click();
+    await expect(row(title)).toBeVisible();
+  };
+
+  await create(parent);
+  await create(first);
+  await create(second, parent);
+
+  // The middle of a row takes the dragged one as its last child.
+  await row(first).hover();
+  await row(first).getByTestId('tree-drag-handle').dragTo(row(parent));
+  await expect(childTitles).toHaveText([second, first]);
+
+  // The upper quarter of a row puts the dragged one before it.
+  await row(first).hover();
+  await row(first).getByTestId('tree-drag-handle').dragTo(row(second), { targetPosition: { x: 40, y: 1 } });
+  await expect(childTitles).toHaveText([first, second]);
+
+  await row(second).hover();
+  await row(second).getByRole('button', { name: 'Переименовать' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Переименование' });
+  await dialog.getByLabel('Название раздела').fill(renamed);
+  await dialog.getByRole('button', { name: 'Сохранить' }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.reload();
+  await expect(childTitles).toHaveText([first, renamed]);
+});
+
 test('an admin cites a new source in the editor, and readers see it under the published article', async ({ page, browser, request }) => {
   const stamp = Date.now();
   const title = `E2E источники ${stamp}`;

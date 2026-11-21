@@ -190,6 +190,45 @@ public class ArticleOrderTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateAsync_GivenNewTitleAndTheSameParent_RenamesInPlaceKeepingSlugOrderAndRevisions()
+    {
+        var parent = await Create("Раздел");
+        var first = await Create("Первая", parent);
+        await Create("Вторая", parent);
+        var slugBefore = (await _context.Articles.FindAsync(first))!.Slug;
+
+        await _articles.UpdateAsync(first, new ArticleUpdateDto { Title = "  Новое имя  ", ParentArticleId = parent });
+
+        var renamed = (await _context.Articles.FindAsync(first))!;
+        renamed.Title.Should().Be("Новое имя");
+        renamed.Slug.Should().Be(slugBefore);
+        (await TitlesUnder(parent)).Should().Equal("Новое имя", "Вторая");
+        _context.ArticleRevisions.Count(revision => revision.ArticleId == first).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task UpdateAsync_GivenBlankTitle_ThrowsTitleRequiredAndKeepsTheOldTitle(string title)
+    {
+        var article = await Create("Статья");
+
+        var update = () => _articles.UpdateAsync(article, new ArticleUpdateDto { Title = title });
+
+        (await update.Should().ThrowAsync<ValidationException>()).Which.Error.Code.Should().Be("article_title_required");
+        (await _context.Articles.FindAsync(article))!.Title.Should().Be("Статья");
+    }
+
+    [Fact]
+    public async Task CreateAsync_GivenBlankTitle_ThrowsTitleRequiredAndCreatesNothing()
+    {
+        var create = () => _articles.CreateAsync(new ArticleCreateDto { Title = " " }, null);
+
+        (await create.Should().ThrowAsync<ValidationException>()).Which.Error.Code.Should().Be("article_title_required");
+        _context.Articles.Count().Should().Be(0);
+    }
+
+    [Fact]
     public async Task GetTreeAsync_GivenOrderDifferentFromIds_ListsSiblingsByOrderThenId()
     {
         var parent = new Article { Title = "Раздел" };

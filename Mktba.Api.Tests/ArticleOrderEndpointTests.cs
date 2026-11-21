@@ -80,6 +80,31 @@ public sealed class ArticleOrderEndpointTests : IClassFixture<MktbaApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task GivenArticleUnderParent_WhenRenamedWithTheSameParent_ThenTreeShowsTheNewTitleInPlace()
+    {
+        var admin = await CreateAdminClientAsync();
+        var parent = await CreateAsync(admin, "Раздел переименования");
+        var first = await CreateAsync(admin, "Старое имя", parent.Id);
+        await CreateAsync(admin, "Соседка", parent.Id);
+
+        var response = await admin.PutAsJsonAsync($"/articles/{first.Id}", new ArticleUpdateDto { Title = " Новое имя ", ParentArticleId = parent.Id });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await ChildTitlesAsync(admin, parent.Id)).Should().Equal("Новое имя", "Соседка");
+    }
+
+    [Fact]
+    public async Task GivenBlankTitle_WhenRenaming_ThenReturns400TitleRequired()
+    {
+        var admin = await CreateAdminClientAsync();
+        var article = await CreateAsync(admin, "Без имени не оставить");
+
+        var response = await admin.PutAsJsonAsync($"/articles/{article.Id}", new ArticleUpdateDto { Title = "  " });
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest, "article_title_required");
+    }
+
     private static async Task AssertProblemAsync(HttpResponseMessage response, HttpStatusCode status, string code)
     {
         response.StatusCode.Should().Be(status);

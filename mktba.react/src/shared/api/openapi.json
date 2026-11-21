@@ -698,6 +698,8 @@
         "tags": [
           "Articles"
         ],
+        "summary": "Creates an empty article (a section of the tree) with a title and a parent.",
+        "description": "The title is trimmed; an empty one answers 400 article_title_required. The article is a Draft, placed last under the parent, with a slug made from the title.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -715,6 +717,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ArticleReadDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
                 }
               }
             }
@@ -966,7 +978,8 @@
         "tags": [
           "Articles"
         ],
-        "description": "Deletes the article. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug.",
+        "summary": "Renames an article and sets its parent.",
+        "description": "Sets the title (trimmed; an empty one answers 400 article_title_required) and the parent: send the current parent to only rename. A changed parent is checked like POST /articles/{id}/move (article_parent_not_found, article_move_cycle) and places the article last under it. The slug is kept; no revision is written, UpdatedAt is set.",
         "parameters": [
           {
             "name": "id",
@@ -992,6 +1005,16 @@
           "204": {
             "description": "No Content"
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -1008,6 +1031,7 @@
         "tags": [
           "Articles"
         ],
+        "description": "Deletes the article. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug.",
         "parameters": [
           {
             "name": "id",

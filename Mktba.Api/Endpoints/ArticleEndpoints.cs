@@ -105,18 +105,28 @@ namespace Mktba.Api.Endpoints
             {
                 var createdArticle = await service.CreateAsync(createDto, user.GetUserId());
                 return Results.Created($"/articles/{createdArticle.Id}", createdArticle);
-            }).Produces<ArticleReadDto>(StatusCodes.Status201Created).RequireAuthorization(Policies.CanEditArticles);
+            })
+            .WithSummary("Creates an empty article (a section of the tree) with a title and a parent.")
+            .WithDescription(
+                "The title is trimmed; an empty one answers 400 article_title_required. The article is a "
+                + "Draft, placed last under the parent, with a slug made from the title.")
+            .Produces<ArticleReadDto>(StatusCodes.Status201Created)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(Policies.CanEditArticles);
 
             group.MapPut("/{id:int}", async (int id, ArticleUpdateDto updateDto, ArticleService service) =>
             {
                 await service.UpdateAsync(id, updateDto);
                 return Results.NoContent();
             })
+            .WithSummary("Renames an article and sets its parent.")
             .WithDescription(
-                "Deletes the article. If it was ever published, its current and old slugs are recorded, so "
-                + "reading them by slug answers 410 article_gone until another article takes the slug.")
+                "Sets the title (trimmed; an empty one answers 400 article_title_required) and the parent: "
+                + "send the current parent to only rename. A changed parent is checked like "
+                + "POST /articles/{id}/move (article_parent_not_found, article_move_cycle) and places the "
+                + "article last under it. The slug is kept; no revision is written, UpdatedAt is set.")
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
             .RequireAuthorization(Policies.CanEditAnyArticle);
 
             group.MapPost("/{id:int}/status", async (int id, ArticleStatusChangeDto dto, ClaimsPrincipal user, ArticleService service, ArticleAccessGuard guard) =>
@@ -166,7 +176,13 @@ namespace Mktba.Api.Endpoints
             {
                 await service.DeleteAsync(id);
                 return Results.NoContent();
-            }).Produces(StatusCodes.Status204NoContent).ProducesApiProblem(StatusCodes.Status404NotFound).RequireAuthorization(Policies.CanEditAnyArticle);
+            })
+            .WithDescription(
+                "Deletes the article. If it was ever published, its current and old slugs are recorded, so "
+                + "reading them by slug answers 410 article_gone until another article takes the slug.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(Policies.CanEditAnyArticle);
 
             return builder;
         }
