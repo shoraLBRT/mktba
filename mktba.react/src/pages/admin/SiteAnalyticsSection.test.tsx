@@ -41,6 +41,7 @@ const analytics: SiteAnalyticsDto = {
   ],
   viewsWithoutSchool: 6,
   aggregatedAtUtc: '2026-11-20T14:00:00Z',
+  previous: { from: '2026-11-17', to: '2026-11-18', totals: { articleViews: 6, visitors: 7, searches: 0 } },
   webVitals: [
     { metric: 'WebVitalLcp', samples: 4, p75: 3120.4, good: 2, needsImprovement: 1, poor: 1 },
     { metric: 'WebVitalInp', samples: 2, p75: 150, good: 2, needsImprovement: 0, poor: 0 },
@@ -61,7 +62,7 @@ describe('SiteAnalyticsSection', () => {
     expect(within(await screen.findByTestId('site-analytics-views')).getByText('12')).toBeTruthy();
     expect(within(screen.getByTestId('site-analytics-visitors')).getByText('7')).toBeTruthy();
     expect(within(screen.getByTestId('site-analytics-searches')).getByText('3')).toBeTruthy();
-    expect(fetchAnalytics).toHaveBeenCalledWith(30);
+    expect(fetchAnalytics).toHaveBeenCalledWith({ days: 30 });
 
     const days = screen.getAllByTestId('site-analytics-day');
     expect(days).toHaveLength(2);
@@ -93,7 +94,7 @@ describe('SiteAnalyticsSection', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '7 дн.' }));
 
-    expect(fetchAnalytics).toHaveBeenLastCalledWith(7);
+    expect(fetchAnalytics).toHaveBeenLastCalledWith({ days: 7 });
     expect(screen.getByRole('button', { name: '7 дн.' }).getAttribute('aria-pressed')).toBe('true');
   });
 
@@ -113,6 +114,71 @@ describe('SiteAnalyticsSection', () => {
     expect(await screen.findByText('За этот период событий нет.')).toBeTruthy();
     expect(screen.getByTestId('site-analytics-freshness').textContent).toMatch(/ещё не построены/);
     expect(screen.queryByTestId('site-analytics-top-articles')).toBeNull();
+  });
+
+  it('given the previous period, when shown, then gives each total its change and the dates compared with', async () => {
+    fetchAnalytics.mockResolvedValue(analytics);
+    renderSection();
+
+    expect((await screen.findByTestId('site-analytics-views-change')).textContent).toBe('+100% к предыдущему (6)');
+    expect(screen.getByTestId('site-analytics-visitors-change').textContent).toBe('Как в предыдущем периоде');
+    expect(screen.getByTestId('site-analytics-searches-change').textContent).toBe('В предыдущем периоде — 0');
+    expect(screen.getByTestId('site-analytics-comparison').textContent).toMatch(/^Сравнение с предыдущим периодом той же длины: 17 нояб.* — 18 нояб/);
+  });
+
+  it('given a range picked by hand, when applied, then asks for those days, and refuses a reversed range', async () => {
+    fetchAnalytics.mockResolvedValue(analytics);
+    renderSection();
+    await screen.findByTestId('site-analytics-views');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Свой период' }));
+    fireEvent.change(screen.getByLabelText('С'), { target: { value: '2026-10-10' } });
+    fireEvent.change(screen.getByLabelText('По'), { target: { value: '2026-10-01' } });
+    expect(screen.getByRole('alert').textContent).toBe('Начало периода должно быть не позже конца.');
+    expect((screen.getByRole('button', { name: 'Показать' }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('По'), { target: { value: '2026-10-20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Показать' }));
+
+    expect(fetchAnalytics).toHaveBeenLastCalledWith({ from: '2026-10-10', to: '2026-10-20' });
+    expect(screen.getByRole('button', { name: 'Свой период' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('given a filter, when typed, then narrows the top articles; each opens its statistics over the same days', async () => {
+    fetchAnalytics.mockResolvedValue(analytics);
+    renderSection();
+    const top = await screen.findByTestId('site-analytics-top-articles');
+
+    expect(within(top).getByRole('link', { name: 'Статистика' }).getAttribute('href')).toBe(
+      '/admin/articles/1/analytics?from=2026-11-19&to=2026-11-20',
+    );
+
+    fireEvent.change(screen.getByTestId('site-analytics-filter'), { target: { value: 'нама' } });
+    expect(within(screen.getByTestId('site-analytics-top-articles')).getAllByRole('row')).toHaveLength(2);
+
+    fireEvent.change(screen.getByTestId('site-analytics-filter'), { target: { value: 'зякат' } });
+    expect(screen.queryByTestId('site-analytics-top-articles')).toBeNull();
+    expect(screen.getByText('Под фильтр ничего не подходит.')).toBeTruthy();
+  });
+
+  it('given the CSV button of the daily table, when pressed, then hands the browser its rows', async () => {
+    fetchAnalytics.mockResolvedValue(analytics);
+    const blobs: Blob[] = [];
+    const createObjectURL = vi.fn((blob: Blob) => {
+      blobs.push(blob);
+      return 'blob:csv';
+    });
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    renderSection();
+    await screen.findByTestId('site-analytics-views');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Скачать CSV: По дням' }));
+
+    expect(click).toHaveBeenCalledTimes(1);
+    const text = await blobs[0].text();
+    expect(text).toContain('День,Просмотры статей,Посетители,Поиски\r\n2026-11-19,7,3,2\r\n2026-11-20,5,4,1\r\n');
+    click.mockRestore();
   });
 
   it('given the request fails, when shown, then says so', async () => {

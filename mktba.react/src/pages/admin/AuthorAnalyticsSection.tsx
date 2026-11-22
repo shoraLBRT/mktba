@@ -3,12 +3,22 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
-import { getAuthorAnalytics } from '../../services/adminService';
+import { type AnalyticsPeriodQuery, getAuthorAnalytics } from '../../services/adminService';
 import type { AuthorAnalyticsDto, ReadDepthDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
 import { BarChart } from './BarChart';
-import { Freshness, PeriodSwitch, SchoolShares, StatCard } from './analyticsParts';
-import { SECONDARY_COLOR, VIEWS_COLOR, dailyGeometry, formatDay, share } from './analyticsFormat';
+import {
+  CardHeading,
+  ComparisonNote,
+  CsvButton,
+  FilterInput,
+  Freshness,
+  PeriodPicker,
+  SchoolShares,
+  StatCard,
+} from './analyticsParts';
+import { SECONDARY_COLOR, VIEWS_COLOR, dailyGeometry, formatDay, matchesFilter, share } from './analyticsFormat';
+import { DEFAULT_PERIOD, articleStatsHref, periodKey } from './analyticsPeriod';
 
 // Kept here rather than in APP_CONSTANTS, which the article page loads too.
 const AUTHOR_ANALYTICS_QUERY_KEY = 'authorAnalytics';
@@ -21,6 +31,8 @@ const TEST_IDS = {
   day: 'author-analytics-day',
   schools: 'author-analytics-schools',
   freshness: 'author-analytics-freshness',
+  comparison: 'author-analytics-comparison',
+  filter: 'author-analytics-filter',
 };
 
 const DEPTHS: { key: keyof Omit<ReadDepthDto, 'views'>; label: 'depth25' | 'depth50' | 'depth75' | 'depth100' }[] = [
@@ -56,12 +68,21 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
   const locale = useLocale();
   const t = locale.authorDashboard;
   const common = locale.siteAnalytics;
+  const tools = locale.analyticsTools;
+  const [filter, setFilter] = useState('');
+  const topArticles = data.topArticles.filter((article) => matchesFilter(filter, article.title, article.slug));
+  const previous = data.previous.totals;
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard testId={TEST_IDS.views} label={t.views} value={data.totals.views} />
-        <StatCard testId={TEST_IDS.readers} label={t.readers} value={data.totals.readers} hint={t.readersHint} />
-        <StatCard testId={TEST_IDS.articles} label={t.articlesViewed} value={data.totals.articlesViewed} />
+        <StatCard testId={TEST_IDS.views} label={t.views} value={data.totals.views} previous={previous.views} />
+        <StatCard testId={TEST_IDS.readers} label={t.readers} value={data.totals.readers} previous={previous.readers} hint={t.readersHint} />
+        <StatCard
+          testId={TEST_IDS.articles}
+          label={t.articlesViewed}
+          value={data.totals.articlesViewed}
+          previous={previous.articlesViewed}
+        />
         <StatCard
           testId={TEST_IDS.finished}
           label={t.finished}
@@ -69,9 +90,17 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
           hint={t.finishedHint}
         />
       </div>
+      <ComparisonNote previous={data.previous} testId={TEST_IDS.comparison} />
 
       <Card className="p-6">
-        <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.dailyTitle}</h3>
+        <CardHeading title={t.dailyTitle}>
+          <CsvButton
+            table={t.dailyTitle}
+            name="my-daily"
+            period={data}
+            rows={() => [[tools.dayColumn, t.views, t.readers], ...data.daily.map((day) => [day.day, day.views, day.readers])]}
+          />
+        </CardHeading>
         {data.totals.views === 0 ? <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{t.empty}</p> : null}
         <BarChart
           label={t.dailyLabel}
@@ -92,9 +121,31 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
       </Card>
 
       <Card className="p-6">
-        <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.topArticlesTitle}</h3>
-        {data.topArticles.length === 0 ? (
-          <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t.empty}</p>
+        <CardHeading title={t.topArticlesTitle}>
+          <CsvButton
+            table={t.topArticlesTitle}
+            name="my-top-articles"
+            period={data}
+            rows={() => [
+              [tools.articleIdColumn, tools.titleColumn, tools.slugColumn, common.viewsColumn, common.readersColumn, t.finishedColumn],
+              ...topArticles.map((article) => [
+                article.articleId,
+                article.title,
+                article.slug,
+                article.views,
+                article.readers,
+                share(article.depth.reachedDepth100, article.depth.views),
+              ]),
+            ]}
+          />
+        </CardHeading>
+        {data.topArticles.length > 0 ? (
+          <div className="mt-3">
+            <FilterInput value={filter} onChange={setFilter} testId={TEST_IDS.filter} />
+          </div>
+        ) : null}
+        {topArticles.length === 0 ? (
+          <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{data.topArticles.length === 0 ? t.empty : tools.filterNothing}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="mt-3 w-full text-sm" data-testid="author-analytics-top-articles">
@@ -107,7 +158,7 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
                 </tr>
               </thead>
               <tbody>
-                {data.topArticles.map((article) => (
+                {topArticles.map((article) => (
                   <tr key={article.articleId} className="border-t border-[var(--color-border-soft)]">
                     <td className="py-2 pr-3">
                       <Link to={`/${article.slug}`} className="text-[var(--color-brand-forest)] hover:underline">
@@ -115,7 +166,7 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
                       </Link>
                       {' · '}
                       <Link
-                        to={`/admin/articles/${article.articleId}/analytics`}
+                        to={articleStatsHref(article.articleId, data)}
                         className="text-xs text-[var(--color-ink-muted)] hover:underline"
                       >
                         {locale.articleAnalytics.openLink}
@@ -165,10 +216,10 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
  */
 export const AuthorAnalyticsSection: React.FC = () => {
   const t = useLocale().authorDashboard;
-  const [days, setDays] = useState<number>(30);
+  const [period, setPeriod] = useState<AnalyticsPeriodQuery>(DEFAULT_PERIOD);
   const query = useQuery({
-    queryKey: [AUTHOR_ANALYTICS_QUERY_KEY, days],
-    queryFn: () => getAuthorAnalytics(days),
+    queryKey: [AUTHOR_ANALYTICS_QUERY_KEY, periodKey(period)],
+    queryFn: () => getAuthorAnalytics(period),
   });
 
   const body = () => {
@@ -186,7 +237,7 @@ export const AuthorAnalyticsSection: React.FC = () => {
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-ink-muted)]">{t.description}</p>
         </div>
-        <PeriodSwitch days={days} onChange={setDays} />
+        <PeriodPicker value={period} onChange={setPeriod} />
       </div>
       {body()}
     </section>

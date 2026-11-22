@@ -34,17 +34,26 @@ namespace Mktba.Application.DTOs
     public record SiteWebVitalDto(AnalyticsEventType Metric, int Samples, double? P75, int Good, int NeedsImprovement, int Poor);
 
     /// <summary>
+    /// The totals of the period of the same length just before the one shown (N-08, #102), to compare with.
+    /// </summary>
+    /// <param name="From">The first day of the previous period.</param>
+    /// <param name="To">The day before the shown period's first day.</param>
+    public record AnalyticsPreviousPeriodDto<TTotals>(DateOnly From, DateOnly To, TTotals Totals)
+        where TTotals : class;
+
+    /// <summary>
     /// The admin dashboard's statistics over the last <paramref name="Days"/> UTC days, today included
     /// (N-05, #99), read from the daily summaries (N-04, #98).
     /// </summary>
     /// <param name="From">The first day of the period.</param>
-    /// <param name="To">The last day: today (UTC), so far.</param>
+    /// <param name="To">The last day: today (UTC) unless a range was asked for.</param>
     /// <param name="Daily">Every day of the period, oldest first, zeros for a day without events.</param>
     /// <param name="TopArticles">The most viewed articles, most views first, at most ten.</param>
     /// <param name="Schools">Article views by the mazhab the reader had chosen, most views first.</param>
     /// <param name="ViewsWithoutSchool">Article views of readers who had not chosen a mazhab.</param>
     /// <param name="AggregatedAtUtc">When the latest of these days was last built; null when none was.</param>
     /// <param name="WebVitals">LCP, INP and CLS of real page loads over the period (N-11, #153), always all three, in that order.</param>
+    /// <param name="Previous">The totals of the period of the same length just before (N-08, #102).</param>
     public record SiteAnalyticsDto(
         int Days,
         DateOnly From,
@@ -55,5 +64,6 @@ namespace Mktba.Application.DTOs
         IReadOnlyList<AnalyticsSchoolTotalDto> Schools,
         int ViewsWithoutSchool,
         DateTime? AggregatedAtUtc,
-        IReadOnlyList<SiteWebVitalDto> WebVitals);
+        IReadOnlyList<SiteWebVitalDto> WebVitals,
+        AnalyticsPreviousPeriodDto<SiteAnalyticsTotalsDto> Previous);
 }

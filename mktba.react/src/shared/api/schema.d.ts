@@ -305,12 +305,14 @@ export interface paths {
         };
         /**
          * The whole site's own statistics over the last days, for the admin dashboard.
-         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest first, zeros when nothing happened. visitors and readers summed over several days are visitor-days (the anonymous visitor id changes every UTC day). topArticles: the ten most viewed articles (title and slug null when deleted); schools: article views by the mazhab the reader had chosen, viewsWithoutSchool the rest. Traffic sources and devices are in Yandex Metrika, not here.
+         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. The period: days (30 by default, kept within 1 to 365) ending today (UTC), or from and to (yyyy-MM-dd, both included; to missing or later than today is today, from missing is days before to; 400 analytics_period_invalid when from is after to, analytics_period_too_long beyond 365 days). daily has every day, oldest first, zeros when nothing happened. visitors and readers summed over several days are visitor-days (the anonymous visitor id changes every UTC day). topArticles: the ten most viewed articles (title and slug null when deleted); schools: article views by the mazhab the reader had chosen, viewsWithoutSchool the rest. Traffic sources and devices are in Yandex Metrika, not here. previous: the totals of as many days just before the period, to compare with.
          */
         get: {
             parameters: {
                 query?: {
                     days?: number;
+                    from?: string;
+                    to?: string;
                 };
                 header?: never;
                 path?: never;
@@ -325,6 +327,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["SiteAnalyticsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
             };
@@ -346,12 +357,14 @@ export interface paths {
         };
         /**
          * What readers searched for with the site's search over the last days, and what found nothing.
-         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). Queries are in lower case and counted for a day only when at least minSearchers distinct visitors made them that day (a phrase one person typed is never shown, nor kept once the day is final); totals count every search. topQueries: the twenty most searched; queriesWithoutResults: the twenty that most often found no article. searchers summed over several days are searcher-days. Search phrases from external search engines are in Yandex Metrika, not here.
+         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. The period: days (30 by default, kept within 1 to 365) ending today (UTC), or from and to (yyyy-MM-dd, both included; to missing or later than today is today, from missing is days before to; 400 analytics_period_invalid when from is after to, analytics_period_too_long beyond 365 days). Queries are in lower case and counted for a day only when at least minSearchers distinct visitors made them that day (a phrase one person typed is never shown, nor kept once the day is final); totals count every search. topQueries: the twenty most searched; queriesWithoutResults: the twenty that most often found no article. searchers summed over several days are searcher-days. Search phrases from external search engines are in Yandex Metrika, not here. previous: the totals of as many days just before the period, to compare with.
          */
         get: {
             parameters: {
                 query?: {
                     days?: number;
+                    from?: string;
+                    to?: string;
                 };
                 header?: never;
                 path?: never;
@@ -366,6 +379,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["SearchAnalyticsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
             };
@@ -387,12 +409,14 @@ export interface paths {
         };
         /**
          * What to write, finish or refresh next: unread articles, stubs with readers, blocks missing a mazhab, out-of-date articles.
-         * @description Views are read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). The articles are taken as they are now: Published only, every language. articlesWithoutViews: articles with content, Published before the period began, not viewed in it, oldest publication first. stubsWithTraffic: stubs (no text, infobox or summary) viewed in the period, most views first. uncoveredBlocks: blocks of two or more opinions with no opinion linked to one or more canonical mazhabs (their readers get the default opinion), most views by those mazhabs' readers first. staleArticles: articles with content not saved for staleAfterDays days, most views first. Each list holds at most 50 entries; total counts them all. readers are reader-days.
+         * @description Views are read from the daily summaries, rebuilt every hour: today is counted so far. The period: days (30 by default, kept within 1 to 365) ending today (UTC), or from and to (yyyy-MM-dd, both included; to missing or later than today is today, from missing is days before to; 400 analytics_period_invalid when from is after to, analytics_period_too_long beyond 365 days). The articles are taken as they are now: Published only, every language. articlesWithoutViews: articles with content, Published before the period began, not viewed in it, oldest publication first. stubsWithTraffic: stubs (no text, infobox or summary) viewed in the period, most views first. uncoveredBlocks: blocks of two or more opinions with no opinion linked to one or more canonical mazhabs (their readers get the default opinion), most views by those mazhabs' readers first. staleArticles: articles with content not saved for staleAfterDays days, most views first. Each list holds at most 50 entries; total counts them all. readers are reader-days.
          */
         get: {
             parameters: {
                 query?: {
                     days?: number;
+                    from?: string;
+                    to?: string;
                 };
                 header?: never;
                 path?: never;
@@ -407,6 +431,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ContentAnalyticsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
             };
@@ -428,12 +461,14 @@ export interface paths {
         };
         /**
          * The signed-in author's statistics over the last days: only the articles they write or co-write.
-         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest first: views of the user's articles and the readers who viewed any of them, as counted on that day's authorship. readers summed over several days are reader-days (the anonymous visitor id changes every UTC day). topArticles (at most ten), depth, schools and viewsWithoutSchool cover only the articles the user writes or co-writes now; depth counts the views that reached 25, 50, 75 and 100 % of the text. An admin gets their own articles here too; the whole site is /analytics/site.
+         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. The period: days (30 by default, kept within 1 to 365) ending today (UTC), or from and to (yyyy-MM-dd, both included; to missing or later than today is today, from missing is days before to; 400 analytics_period_invalid when from is after to, analytics_period_too_long beyond 365 days). daily has every day, oldest first: views of the user's articles and the readers who viewed any of them, as counted on that day's authorship. readers summed over several days are reader-days (the anonymous visitor id changes every UTC day). topArticles (at most ten), depth, schools and viewsWithoutSchool cover only the articles the user writes or co-writes now; depth counts the views that reached 25, 50, 75 and 100 % of the text. An admin gets their own articles here too; the whole site is /analytics/site. previous: the totals of as many days just before the period, to compare with.
          */
         get: {
             parameters: {
                 query?: {
                     days?: number;
+                    from?: string;
+                    to?: string;
                 };
                 header?: never;
                 path?: never;
@@ -448,6 +483,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["AuthorAnalyticsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
                 /** @description Unauthorized */
@@ -478,12 +522,14 @@ export interface paths {
         };
         /**
          * One article's statistics over the last days: views, readers, read depth, mazhabs, opinion switches, link clicks.
-         * @description For an admin, or the article's own author or co-author (as for the article's history): another author gets 403 forbidden for a Published article and 404 article_not_found for one they may not see, as does an article that does not exist. Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest first, zeros when nothing happened. readers summed over several days are reader-days (the anonymous visitor id changes every UTC day). depth counts the views that reached 25, 50, 75 and 100 % of the text; schools: views by the mazhab the reader had chosen, viewsWithoutSchool the rest; internalLinkClicks: links followed from the article to another page of the site.
+         * @description For an admin, or the article's own author or co-author (as for the article's history): another author gets 403 forbidden for a Published article and 404 article_not_found for one they may not see, as does an article that does not exist. Read from the daily summaries, rebuilt every hour: today is counted so far. The period: days (30 by default, kept within 1 to 365) ending today (UTC), or from and to (yyyy-MM-dd, both included; to missing or later than today is today, from missing is days before to; 400 analytics_period_invalid when from is after to, analytics_period_too_long beyond 365 days). daily has every day, oldest first, zeros when nothing happened. readers summed over several days are reader-days (the anonymous visitor id changes every UTC day). depth counts the views that reached 25, 50, 75 and 100 % of the text; schools: views by the mazhab the reader had chosen, viewsWithoutSchool the rest; internalLinkClicks: links followed from the article to another page of the site. previous: the totals of as many days just before the period, to compare with.
          */
         get: {
             parameters: {
                 query?: {
                     days?: number;
+                    from?: string;
+                    to?: string;
                 };
                 header?: never;
                 path: {
@@ -500,6 +546,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ArticleAnalyticsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
                 /** @description Forbidden */
@@ -4442,6 +4497,7 @@ export interface components {
             viewsWithoutSchool: number;
             /** Format: date-time */
             aggregatedAtUtc?: string | null;
+            previous: components["schemas"]["ArticleAnalyticsTotalsDtoAnalyticsPreviousPeriodDto"];
         };
         ArticleAnalyticsTotalsDto: {
             /** Format: int32 */
@@ -4454,6 +4510,13 @@ export interface components {
             opinionSwitches: number;
             /** Format: int32 */
             internalLinkClicks: number;
+        };
+        ArticleAnalyticsTotalsDtoAnalyticsPreviousPeriodDto: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["ArticleAnalyticsTotalsDto"];
         };
         ArticleAuthorDto: {
             displayName: string;
@@ -4791,6 +4854,7 @@ export interface components {
             viewsWithoutSchool: number;
             /** Format: date-time */
             aggregatedAtUtc?: string | null;
+            previous: components["schemas"]["AuthorAnalyticsTotalsDtoAnalyticsPreviousPeriodDto"];
         };
         AuthorAnalyticsTotalsDto: {
             /** Format: int32 */
@@ -4799,6 +4863,13 @@ export interface components {
             readers: number;
             /** Format: int32 */
             articlesViewed: number;
+        };
+        AuthorAnalyticsTotalsDtoAnalyticsPreviousPeriodDto: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["AuthorAnalyticsTotalsDto"];
         };
         AuthorArticleDto: {
             /** Format: int32 */
@@ -5089,12 +5160,20 @@ export interface components {
             minSearchers: number;
             /** Format: date-time */
             aggregatedAtUtc?: string | null;
+            previous: components["schemas"]["SearchAnalyticsTotalsDtoAnalyticsPreviousPeriodDto"];
         };
         SearchAnalyticsTotalsDto: {
             /** Format: int32 */
             searches: number;
             /** Format: int32 */
             searchesWithoutResults: number;
+        };
+        SearchAnalyticsTotalsDtoAnalyticsPreviousPeriodDto: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["SearchAnalyticsTotalsDto"];
         };
         SearchQueryTotalDto: {
             query: string;
@@ -5168,6 +5247,7 @@ export interface components {
             /** Format: date-time */
             aggregatedAtUtc?: string | null;
             webVitals: components["schemas"]["SiteWebVitalDto"][];
+            previous: components["schemas"]["SiteAnalyticsTotalsDtoAnalyticsPreviousPeriodDto"];
         };
         SiteAnalyticsTotalsDto: {
             /** Format: int32 */
@@ -5176,6 +5256,13 @@ export interface components {
             visitors: number;
             /** Format: int32 */
             searches: number;
+        };
+        SiteAnalyticsTotalsDtoAnalyticsPreviousPeriodDto: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["SiteAnalyticsTotalsDto"];
         };
         SiteWebVitalDto: {
             metric: components["schemas"]["AnalyticsEventType"];

@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
-import { getArticleAnalytics } from '../../services/adminService';
+import { type AnalyticsPeriodQuery, getArticleAnalytics } from '../../services/adminService';
 import type { ArticleAnalyticsDto } from '../../shared/types/ApiTypes';
 import { articleHref } from '../../shared/slug';
 import { Card } from '../../shared/ui/Card';
 import { BarChart } from './BarChart';
 import { DepthBars } from './AuthorAnalyticsSection';
-import { Freshness, PeriodSwitch, SchoolShares, StatCard } from './analyticsParts';
-import { SECONDARY_COLOR, VIEWS_COLOR, dailyGeometry, formatDay, share } from './analyticsFormat';
+import { CardHeading, ComparisonNote, CsvButton, Freshness, PeriodPicker, SchoolShares, StatCard } from './analyticsParts';
+import { ANALYTICS_PERIODS, SECONDARY_COLOR, VIEWS_COLOR, dailyGeometry, formatDay, share } from './analyticsFormat';
+import { periodFromSearch, periodKey } from './analyticsPeriod';
 
 // Kept here rather than in APP_CONSTANTS, which the article page loads too.
 const ARTICLE_ANALYTICS_QUERY_KEY = 'articleAnalytics';
@@ -27,6 +28,7 @@ const TEST_IDS = {
   schools: 'article-analytics-schools',
   freshness: 'article-analytics-freshness',
   unavailable: 'article-analytics-unavailable',
+  comparison: 'article-analytics-comparison',
 };
 
 const linkClass = 'text-sm text-[var(--color-brand-forest)] hover:underline';
@@ -35,11 +37,13 @@ const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
   const locale = useLocale();
   const t = locale.articleAnalytics;
   const common = locale.siteAnalytics;
+  const tools = locale.analyticsTools;
+  const previous = data.previous.totals;
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard testId={TEST_IDS.views} label={t.views} value={data.totals.views} />
-        <StatCard testId={TEST_IDS.readers} label={t.readers} value={data.totals.readers} hint={t.readersHint} />
+        <StatCard testId={TEST_IDS.views} label={t.views} value={data.totals.views} previous={previous.views} />
+        <StatCard testId={TEST_IDS.readers} label={t.readers} value={data.totals.readers} previous={previous.readers} hint={t.readersHint} />
         <StatCard
           testId={TEST_IDS.finished}
           label={t.finished}
@@ -50,13 +54,31 @@ const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
           testId={TEST_IDS.switches}
           label={t.opinionSwitches}
           value={data.totals.opinionSwitches}
+          previous={previous.opinionSwitches}
           hint={formatMessage(t.opinionSwitchesHint, { shown: data.totals.opinionsShown })}
         />
-        <StatCard testId={TEST_IDS.clicks} label={t.linkClicks} value={data.totals.internalLinkClicks} hint={t.linkClicksHint} />
+        <StatCard
+          testId={TEST_IDS.clicks}
+          label={t.linkClicks}
+          value={data.totals.internalLinkClicks}
+          previous={previous.internalLinkClicks}
+          hint={t.linkClicksHint}
+        />
       </div>
+      <ComparisonNote previous={data.previous} testId={TEST_IDS.comparison} />
 
       <Card className="p-6">
-        <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.dailyTitle}</h3>
+        <CardHeading title={t.dailyTitle}>
+          <CsvButton
+            table={t.dailyTitle}
+            name={`article-${data.articleId}-daily`}
+            period={data}
+            rows={() => [
+              [tools.dayColumn, t.views, t.readers, t.opinionSwitches, t.linkClicks],
+              ...data.daily.map((day) => [day.day, day.views, day.readers, day.opinionSwitches, day.internalLinkClicks]),
+            ]}
+          />
+        </CardHeading>
         {data.totals.views === 0 ? <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{t.empty}</p> : null}
         <BarChart
           label={t.dailyLabel}
@@ -116,10 +138,12 @@ const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
 const AdminArticleAnalyticsPage: React.FC = () => {
   const t = useLocale().articleAnalytics;
   const articleId = Number(useParams().articleId);
-  const [days, setDays] = useState<number>(30);
+  // Opened from a dashboard, the page shows the same days (N-08 drill-down).
+  const [search] = useSearchParams();
+  const [period, setPeriod] = useState<AnalyticsPeriodQuery>(() => periodFromSearch(search, ANALYTICS_PERIODS));
   const query = useQuery({
-    queryKey: [ARTICLE_ANALYTICS_QUERY_KEY, articleId, days],
-    queryFn: () => getArticleAnalytics(articleId, days),
+    queryKey: [ARTICLE_ANALYTICS_QUERY_KEY, articleId, periodKey(period)],
+    queryFn: () => getArticleAnalytics(articleId, period),
     enabled: Number.isInteger(articleId) && articleId > 0,
     retry: (count, error) => !(isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0)) && count < 2,
   });
@@ -152,7 +176,7 @@ const AdminArticleAnalyticsPage: React.FC = () => {
             </p>
           ) : null}
         </div>
-        {unavailable ? null : <PeriodSwitch days={days} onChange={setDays} />}
+        {unavailable ? null : <PeriodPicker value={period} onChange={setPeriod} />}
       </div>
       {body()}
     </section>

@@ -41,6 +41,7 @@ const analytics: ArticleAnalyticsDto = {
   schools: [{ schoolId: 3, name: 'Ханафитский', views: 4, readers: 3 }],
   viewsWithoutSchool: 6,
   aggregatedAtUtc: '2026-11-20T14:00:00Z',
+  previous: { from: '2026-11-17', to: '2026-11-18', totals: { views: 5, readers: 5, opinionsShown: 0, opinionSwitches: 0, internalLinkClicks: 4 } },
 };
 
 const httpError = (status: number) =>
@@ -59,7 +60,7 @@ describe('AdminArticleAnalyticsPage', () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Намаз' })).toBeTruthy();
-    expect(fetchAnalytics).toHaveBeenCalledWith(7, 30);
+    expect(fetchAnalytics).toHaveBeenCalledWith(7, { days: 30 });
     expect(within(screen.getByTestId('article-analytics-views')).getByText('10')).toBeTruthy();
     expect(within(screen.getByTestId('article-analytics-finished')).getByText('40%')).toBeTruthy();
     expect(within(screen.getByTestId('article-analytics-switches')).getByText('3')).toBeTruthy();
@@ -77,7 +78,19 @@ describe('AdminArticleAnalyticsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /7/ }));
 
-    expect(fetchAnalytics).toHaveBeenLastCalledWith(7, 7);
+    expect(fetchAnalytics).toHaveBeenLastCalledWith(7, { days: 7 });
+  });
+
+  it('opened from a dashboard, shows the same days and compares them with the days before', async () => {
+    fetchAnalytics.mockResolvedValue(analytics);
+
+    renderPage('/admin/articles/7/analytics?from=2026-10-01&to=2026-10-31');
+
+    expect((await screen.findByTestId('article-analytics-views-change')).textContent).toBe('+100% к предыдущему (5)');
+    expect(fetchAnalytics).toHaveBeenCalledWith(7, { from: '2026-10-01', to: '2026-10-31' });
+    expect(screen.getByRole('button', { name: 'Свой период' }).getAttribute('aria-pressed')).toBe('true');
+    expect((screen.getByLabelText('С') as HTMLInputElement).value).toBe('2026-10-01');
+    expect(screen.getByTestId('article-analytics-clicks-change').textContent).toBe('−50% к предыдущему (4)');
   });
 
   it.each([403, 404])('says the statistics are unavailable on %i', async (status) => {

@@ -16,11 +16,12 @@ namespace Mktba.Application.DTOs
     /// included (N-06, #100), read from the daily summaries (N-04, #98).
     /// </summary>
     /// <param name="From">The first day of the period.</param>
-    /// <param name="To">The last day: today (UTC), so far.</param>
+    /// <param name="To">The last day: today (UTC) unless a range was asked for.</param>
     /// <param name="TopQueries">The most searched queries, most searches first, at most twenty.</param>
     /// <param name="QueriesWithoutResults">Queries that found nothing at least once, most such searches first, at most twenty.</param>
     /// <param name="MinSearchers">A query is listed for a day only when at least this many distinct visitors made it that day.</param>
     /// <param name="AggregatedAtUtc">When the latest of these days was last built; null when none was.</param>
+    /// <param name="Previous">The totals of the period of the same length just before (N-08, #102).</param>
     public record SearchAnalyticsDto(
         int Days,
         DateOnly From,
@@ -29,5 +30,6 @@ namespace Mktba.Application.DTOs
         IReadOnlyList<SearchQueryTotalDto> TopQueries,
         IReadOnlyList<SearchQueryTotalDto> QueriesWithoutResults,
         int MinSearchers,
-        DateTime? AggregatedAtUtc);
+        DateTime? AggregatedAtUtc,
+        AnalyticsPreviousPeriodDto<SearchAnalyticsTotalsDto> Previous);
 }

@@ -131,6 +131,37 @@ public abstract class SiteAnalyticsScenarios : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetAsync_GivenAPickedRange_ReadsItsDaysAndComparesWithAsManyDaysBefore()
+    {
+        var (popular, _, _) = await SeedArticlesAsync();
+        await using (var context = CreateContext())
+        {
+            context.AnalyticsDays.AddRange(
+                SiteDay(Today.AddDays(-14), views: 1000, visitors: 1000, searches: 1000),
+                SiteDay(Today.AddDays(-13), views: 4, visitors: 3, searches: 2),
+                SiteDay(Today.AddDays(-11), views: 6, visitors: 1, searches: 0),
+                SiteDay(Today.AddDays(-10), views: 9, visitors: 5, searches: 1),
+                SiteDay(Today.AddDays(-8), views: 1, visitors: 1, searches: 1),
+                SiteDay(Today.AddDays(-7), views: 500, visitors: 500, searches: 500));
+            context.AnalyticsArticleDays.AddRange(
+                ArticleDay(Today.AddDays(-11), popular, views: 6, readers: 1),
+                ArticleDay(Today.AddDays(-7), popular, views: 500, readers: 500));
+            await context.SaveChangesAsync();
+        }
+
+        var result = await GetAsync(new AnalyticsPeriod(Today.AddDays(-10), Today.AddDays(-8)));
+
+        result.Days.Should().Be(3);
+        result.From.Should().Be(Today.AddDays(-10));
+        result.To.Should().Be(Today.AddDays(-8));
+        result.Daily.Select(d => d.ArticleViews).Should().Equal(9, 0, 1);
+        result.Totals.Should().Be(new SiteAnalyticsTotalsDto(10, 6, 2));
+        result.TopArticles.Should().BeEmpty("the article was viewed only outside the period");
+        result.Previous.Should().Be(new AnalyticsPreviousPeriodDto<SiteAnalyticsTotalsDto>(
+            Today.AddDays(-13), Today.AddDays(-11), new SiteAnalyticsTotalsDto(10, 4, 2)));
+    }
+
+    [Fact]
     public async Task GetAsync_GivenMoreArticlesThanTheTop_ReturnsTheMostViewedOnes()
     {
         await using (var context = CreateContext())
@@ -154,6 +185,13 @@ public abstract class SiteAnalyticsScenarios : IAsyncLifetime
         await using var context = CreateContext();
         return await new SiteAnalyticsService(new AnalyticsSummaryRepository(context), new FeedbackTests.FakeClock(Now))
             .GetAsync(days);
+    }
+
+    private async Task<SiteAnalyticsDto> GetAsync(AnalyticsPeriod period)
+    {
+        await using var context = CreateContext();
+        return await new SiteAnalyticsService(new AnalyticsSummaryRepository(context), new FeedbackTests.FakeClock(Now))
+            .GetAsync(period);
     }
 
     private async Task<(int Popular, int Quiet, int Deleted)> SeedArticlesAsync()

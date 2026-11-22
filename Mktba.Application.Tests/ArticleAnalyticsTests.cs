@@ -110,6 +110,32 @@ public abstract class ArticleAnalyticsScenarios : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetAsync_GivenAPickedRange_ComparesItsTotalsWithAsManyDaysBefore()
+    {
+        var (article, other) = await SeedArticlesAsync();
+        await using (var context = CreateContext())
+        {
+            context.AnalyticsArticleDays.AddRange(
+                new AnalyticsArticleDay { Day = Today.AddDays(-5), ArticleId = article, Views = 100, Readers = 100 },
+                new AnalyticsArticleDay { Day = Today.AddDays(-4), ArticleId = article, Views = 3, Readers = 2, OpinionsShown = 4, OpinionSwitches = 1, InternalLinkClicks = 2 },
+                new AnalyticsArticleDay { Day = Today.AddDays(-4), ArticleId = other, Views = 50, Readers = 50 },
+                new AnalyticsArticleDay { Day = Today.AddDays(-2), ArticleId = article, Views = 7, Readers = 5, OpinionsShown = 1 },
+                new AnalyticsArticleDay { Day = Today, ArticleId = article, Views = 40, Readers = 40 });
+            await context.SaveChangesAsync();
+        }
+
+        await using var read = CreateContext();
+        var result = await new ArticleAnalyticsService(new AnalyticsSummaryRepository(read), new FeedbackTests.FakeClock(Now))
+            .GetAsync(article, new AnalyticsPeriod(Today.AddDays(-2), Today.AddDays(-1)));
+
+        result.Days.Should().Be(2);
+        result.Daily.Select(d => d.Views).Should().Equal(7, 0);
+        result.Totals.Should().Be(new ArticleAnalyticsTotalsDto(7, 5, 1, 0, 0));
+        result.Previous.Should().Be(new AnalyticsPreviousPeriodDto<ArticleAnalyticsTotalsDto>(
+            Today.AddDays(-4), Today.AddDays(-3), new ArticleAnalyticsTotalsDto(3, 2, 4, 1, 2)));
+    }
+
+    [Fact]
     public async Task GetAsync_GivenAnUnknownArticle_ThrowsNotFound()
     {
         var act = () => GetAsync(987654321, 7);

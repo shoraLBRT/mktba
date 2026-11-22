@@ -1,5 +1,6 @@
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
+using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
 
 namespace Mktba.Application.Services.Analytics;
@@ -26,7 +27,12 @@ public class ArticleAnalyticsService
 
     /// <summary>The last <paramref name="days"/> UTC days (kept within 1 to <see cref="MaxDays"/>) of one article, today included.</summary>
     /// <exception cref="NotFoundException"><c>article_not_found</c>: no such article.</exception>
-    public async Task<ArticleAnalyticsDto> GetAsync(int articleId, int days, CancellationToken cancellationToken = default)
+    public Task<ArticleAnalyticsDto> GetAsync(int articleId, int days, CancellationToken cancellationToken = default)
+        => GetAsync(articleId, AnalyticsPeriod.Last(days, DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime)), cancellationToken);
+
+    /// <summary>The days of <paramref name="period"/> of one article, its totals compared with the period of the same length just before it (N-08, #102).</summary>
+    /// <exception cref="NotFoundException"><c>article_not_found</c>: no such article.</exception>
+    public async Task<ArticleAnalyticsDto> GetAsync(int articleId, AnalyticsPeriod period, CancellationToken cancellationToken = default)
     {
         var names = await _summaries.GetArticleNamesAsync([articleId], cancellationToken);
         if (!names.TryGetValue(articleId, out var name))
@@ -34,24 +40,16 @@ public class ArticleAnalyticsService
             throw new NotFoundException(AppErrors.ArticleNotFound);
         }
 
-        var count = Math.Clamp(days, 1, MaxDays);
-        var to = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
-        var from = to.AddDays(-(count - 1));
+        var (from, to) = period;
 
         var rows = await _summaries.GetArticleDaysAsync(articleId, from, to, cancellationToken);
         var byDay = rows.ToDictionary(d => d.Day);
-        var daily = Enumerable.Range(0, count)
-            .Select(index => from.AddDays(index))
+        var daily = period.EachDay()
             .Select(day => byDay.TryGetValue(day, out var row)
                 ? new ArticleAnalyticsDayDto(day, row.Views, row.Readers, row.OpinionSwitches, row.InternalLinkClicks)
                 : new ArticleAnalyticsDayDto(day, 0, 0, 0, 0))
             .ToList();
-        var totals = new ArticleAnalyticsTotalsDto(
-            rows.Sum(r => r.Views),
-            rows.Sum(r => r.Readers),
-            rows.Sum(r => r.OpinionsShown),
-            rows.Sum(r => r.OpinionSwitches),
-            rows.Sum(r => r.InternalLinkClicks));
+        var totals = TotalsOf(rows);
         var depth = new ReadDepthDto(
             totals.Views,
             rows.Sum(r => r.ReachedDepth25),
@@ -66,12 +64,14 @@ public class ArticleAnalyticsService
             .ToList();
 
         var siteDays = await _summaries.GetSiteDaysAsync(from, to, cancellationToken);
+        var previous = period.Previous;
+        var previousRows = await _summaries.GetArticleDaysAsync(articleId, previous.From, previous.To, cancellationToken);
 
         return new ArticleAnalyticsDto(
             articleId,
             name.Title,
             name.Slug,
-            count,
+            period.Days,
             from,
             to,
             totals,
@@ -79,6 +79,14 @@ public class ArticleAnalyticsService
             depth,
             schools,
             Math.Max(0, totals.Views - schools.Sum(s => s.Views)),
-            siteDays.Count == 0 ? null : siteDays.Max(d => d.AggregatedAtUtc));
+            siteDays.Count == 0 ? null : siteDays.Max(d => d.AggregatedAtUtc),
+            new AnalyticsPreviousPeriodDto<ArticleAnalyticsTotalsDto>(previous.From, previous.To, TotalsOf(previousRows)));
     }
+
+    private static ArticleAnalyticsTotalsDto TotalsOf(IReadOnlyCollection<AnalyticsArticleDay> rows) => new(
+        rows.Sum(r => r.Views),
+        rows.Sum(r => r.Readers),
+        rows.Sum(r => r.OpinionsShown),
+        rows.Sum(r => r.OpinionSwitches),
+        rows.Sum(r => r.InternalLinkClicks));
 }

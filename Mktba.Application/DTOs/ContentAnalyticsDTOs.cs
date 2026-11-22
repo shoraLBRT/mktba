@@ -49,7 +49,7 @@ namespace Mktba.Application.DTOs
     /// Published ones.
     /// </summary>
     /// <param name="From">The first day of the period.</param>
-    /// <param name="To">The last day: today (UTC), so far.</param>
+    /// <param name="To">The last day: today (UTC) unless a range was asked for.</param>
     /// <param name="ArticlesWithoutViews">Articles with content, Published before the period began, with no view in it; oldest publication first.</param>
     /// <param name="StubsWithTraffic">Stubs (no text, infobox or summary yet) with views in the period; most views first.</param>
     /// <param name="UncoveredBlocks">Blocks of opinions missing a canonical mazhab; most views by those mazhabs' readers first.</param>
