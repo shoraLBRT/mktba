@@ -12,7 +12,8 @@ public sealed record AnalyticsEventFacts(
     short? ScrollDepth,
     Guid? VisitorId,
     string? Query,
-    int? ResultCount);
+    int? ResultCount,
+    double? MetricValue = null);
 
 /// <summary>Who an article is by and what it is tagged with, as it is now.</summary>
 public sealed record ArticleAttribution(int ArticleId, IReadOnlyList<int> AuthorIds, IReadOnlyList<int> TagIds);
@@ -24,7 +25,8 @@ public sealed record AnalyticsDaySummaries(
     IReadOnlyList<AnalyticsArticleSchoolDay> ArticleSchools,
     IReadOnlyList<AnalyticsAuthorDay> Authors,
     IReadOnlyList<AnalyticsTagDay> Tags,
-    IReadOnlyList<AnalyticsSearchDay> Searches);
+    IReadOnlyList<AnalyticsSearchDay> Searches,
+    IReadOnlyList<AnalyticsWebVitalDay> WebVitals);
 
 /// <summary>The views and readers of one article (or one mazhab) added up over a period of days.</summary>
 /// <param name="Readers">Reader-days: visitor ids change every UTC day, so the days' readers are added up.</param>
@@ -78,7 +80,7 @@ public class AnalyticsSummaryRepository
     public IAsyncEnumerable<AnalyticsEventFacts> StreamEventsAsync(DateTime fromUtc, DateTime toUtc)
         => _context.AnalyticsEvents.AsNoTracking()
             .Where(e => e.OccurredAtUtc >= fromUtc && e.OccurredAtUtc < toUtc)
-            .Select(e => new AnalyticsEventFacts(e.Type, e.ArticleId, e.SchoolId, e.ScrollDepth, e.VisitorId, e.Query, e.ResultCount))
+            .Select(e => new AnalyticsEventFacts(e.Type, e.ArticleId, e.SchoolId, e.ScrollDepth, e.VisitorId, e.Query, e.ResultCount, e.MetricValue))
             .AsAsyncEnumerable();
 
     /// <summary>The authors (the author and the co-authors) and the tags of each of <paramref name="articleIds"/> that still exists.</summary>
@@ -122,6 +124,7 @@ public class AnalyticsSummaryRepository
         await DeleteAsync(_context.AnalyticsAuthorDays.Where(d => d.Day == day), cancellationToken);
         await DeleteAsync(_context.AnalyticsTagDays.Where(d => d.Day == day), cancellationToken);
         await DeleteAsync(_context.AnalyticsSearchDays.Where(d => d.Day == day), cancellationToken);
+        await DeleteAsync(_context.AnalyticsWebVitalDays.Where(d => d.Day == day), cancellationToken);
 
         _context.AnalyticsDays.Add(summaries.Site);
         _context.AnalyticsArticleDays.AddRange(summaries.Articles);
@@ -129,6 +132,7 @@ public class AnalyticsSummaryRepository
         _context.AnalyticsAuthorDays.AddRange(summaries.Authors);
         _context.AnalyticsTagDays.AddRange(summaries.Tags);
         _context.AnalyticsSearchDays.AddRange(summaries.Searches);
+        _context.AnalyticsWebVitalDays.AddRange(summaries.WebVitals);
         await _context.SaveChangesAsync(cancellationToken);
         _context.ChangeTracker.Clear();
 
@@ -143,6 +147,12 @@ public class AnalyticsSummaryRepository
         => _context.AnalyticsDays.AsNoTracking()
             .Where(d => d.Day >= from && d.Day <= to)
             .OrderBy(d => d.Day)
+            .ToListAsync(cancellationToken);
+
+    /// <summary>The Web Vital rows (N-11, #153) of the days in [<paramref name="from"/>, <paramref name="to"/>].</summary>
+    public Task<List<AnalyticsWebVitalDay>> GetWebVitalDaysAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+        => _context.AnalyticsWebVitalDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to)
             .ToListAsync(cancellationToken);
 
     /// <summary>

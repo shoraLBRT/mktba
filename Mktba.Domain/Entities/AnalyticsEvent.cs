@@ -63,6 +63,13 @@ public class AnalyticsEvent
 
     /// <summary>The site-relative path a link in the article led to, without query and fragment (<see cref="AnalyticsEventType.InternalLinkClick"/>).</summary>
     public string? TargetPath { get; set; }
+
+    /// <summary>
+    /// The measured value of a Web Vital (N-11, #153): milliseconds for
+    /// <see cref="AnalyticsEventType.WebVitalLcp"/> and <see cref="AnalyticsEventType.WebVitalInp"/>,
+    /// a unitless layout-shift score for <see cref="AnalyticsEventType.WebVitalCls"/>.
+    /// </summary>
+    public double? MetricValue { get; set; }
 }
 
 /// <summary>What happened. Stored by name; values start at 1, so a request without a type is not read as one.</summary>
@@ -85,4 +92,13 @@ public enum AnalyticsEventType
 
     /// <summary>The reader followed a link in the article to another page of the site.</summary>
     InternalLinkClick = 6,
+
+    /// <summary>Largest Contentful Paint of a page load, in milliseconds (N-11, #153).</summary>
+    WebVitalLcp = 7,
+
+    /// <summary>Interaction to Next Paint of a page load, in milliseconds (N-11, #153).</summary>
+    WebVitalInp = 8,
+
+    /// <summary>Cumulative Layout Shift of a page load, a unitless score (N-11, #153).</summary>
+    WebVitalCls = 9,
 }

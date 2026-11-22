@@ -40,6 +40,7 @@ public sealed class AnalyticsDayAccumulator
     private readonly Dictionary<int, ArticleCounts> _articles = [];
     private readonly Dictionary<(int ArticleId, int SchoolId), ViewCounts> _articleSchools = [];
     private readonly Dictionary<string, SearchCounts> _searches = new(StringComparer.Ordinal);
+    private readonly Dictionary<AnalyticsEventType, List<double>> _webVitals = [];
     private readonly HashSet<Guid> _visitors = [];
     private int _articleViews;
     private int _searchCount;
@@ -63,6 +64,17 @@ public sealed class AnalyticsDayAccumulator
         if (e.Type == AnalyticsEventType.Search)
         {
             AddSearch(e);
+            return;
+        }
+
+        if (WebVitals.IsWebVital(e.Type))
+        {
+            if (e.MetricValue is { } value)
+            {
+                var values = _webVitals.TryGetValue(e.Type, out var found) ? found : _webVitals[e.Type] = [];
+                values.Add(value);
+            }
+
             return;
         }
 
@@ -196,7 +208,17 @@ public sealed class AnalyticsDayAccumulator
                     Searches = pair.Value.Searches,
                     Searchers = pair.Value.Searchers.Count,
                     SearchesWithoutResults = pair.Value.WithoutResults,
-                }).ToList());
+                }).ToList(),
+            _webVitals.Select(pair => new AnalyticsWebVitalDay
+            {
+                Day = _day,
+                Metric = pair.Key,
+                Samples = pair.Value.Count,
+                P75 = WebVitals.P75(pair.Value),
+                Good = pair.Value.Count(v => v <= WebVitals.GoodLimit(pair.Key)),
+                NeedsImprovement = pair.Value.Count(v => v > WebVitals.GoodLimit(pair.Key) && v <= WebVitals.PoorLimit(pair.Key)),
+                Poor = pair.Value.Count(v => v > WebVitals.PoorLimit(pair.Key)),
+            }).ToList());
     }
 
     private void AddSearch(AnalyticsEventFacts e)

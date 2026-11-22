@@ -136,3 +136,26 @@ public class AnalyticsSearchDay
     /// <summary>Of <see cref="Searches"/>, those that found no article (N-06, #100).</summary>
     public int SearchesWithoutResults { get; set; }
 }
+
+/// <summary>
+/// One Web Vital of the site's real page loads on one UTC day (N-11, #153): how many were measured,
+/// their 75th percentile and how many fell into each of the metric's ratings.
+/// </summary>
+public class AnalyticsWebVitalDay
+{
+    public DateOnly Day { get; set; }
+
+    /// <summary>The metric: <see cref="AnalyticsEventType.WebVitalLcp"/>, <see cref="AnalyticsEventType.WebVitalInp"/> or <see cref="AnalyticsEventType.WebVitalCls"/>.</summary>
+    public AnalyticsEventType Metric { get; set; }
+
+    public int Samples { get; set; }
+
+    /// <summary>The 75th percentile (nearest rank) of the day's values, in the metric's unit.</summary>
+    public double P75 { get; set; }
+
+    public int Good { get; set; }
+
+    public int NeedsImprovement { get; set; }
+
+    public int Poor { get; set; }
+}

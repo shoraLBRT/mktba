@@ -1,3 +1,5 @@
+using Mktba.Domain.Entities;
+
 namespace Mktba.Application.DTOs
 {
     /// <summary>One UTC day of the site's own statistics (N-05, #99).</summary>
@@ -23,6 +25,15 @@ namespace Mktba.Application.DTOs
     public record AnalyticsSchoolTotalDto(int SchoolId, string? Name, int Views, int Readers);
 
     /// <summary>
+    /// One Web Vital of the site's real page loads over the period (N-11, #153), from the daily summaries.
+    /// </summary>
+    /// <param name="Metric">WebVitalLcp, WebVitalInp or WebVitalCls.</param>
+    /// <param name="Samples">Page loads measured.</param>
+    /// <param name="P75">The days' 75th percentiles averaged by their samples (milliseconds for LCP and INP, a score for CLS); null without samples.</param>
+    /// <param name="Good">Page loads rated good; <paramref name="NeedsImprovement"/> and <paramref name="Poor"/> the others, by Google's thresholds.</param>
+    public record SiteWebVitalDto(AnalyticsEventType Metric, int Samples, double? P75, int Good, int NeedsImprovement, int Poor);
+
+    /// <summary>
     /// The admin dashboard's statistics over the last <paramref name="Days"/> UTC days, today included
     /// (N-05, #99), read from the daily summaries (N-04, #98).
     /// </summary>
@@ -33,6 +44,7 @@ namespace Mktba.Application.DTOs
     /// <param name="Schools">Article views by the mazhab the reader had chosen, most views first.</param>
     /// <param name="ViewsWithoutSchool">Article views of readers who had not chosen a mazhab.</param>
     /// <param name="AggregatedAtUtc">When the latest of these days was last built; null when none was.</param>
+    /// <param name="WebVitals">LCP, INP and CLS of real page loads over the period (N-11, #153), always all three, in that order.</param>
     public record SiteAnalyticsDto(
         int Days,
         DateOnly From,
@@ -42,5 +54,6 @@ namespace Mktba.Application.DTOs
         IReadOnlyList<AnalyticsArticleTotalDto> TopArticles,
         IReadOnlyList<AnalyticsSchoolTotalDto> Schools,
         int ViewsWithoutSchool,
-        DateTime? AggregatedAtUtc);
+        DateTime? AggregatedAtUtc,
+        IReadOnlyList<SiteWebVitalDto> WebVitals);
 }

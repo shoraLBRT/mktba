@@ -64,6 +64,31 @@ public sealed class AnalyticsEndpointTests : IClassFixture<MktbaApiFactory>
     }
 
     [Fact]
+    public async Task GivenWebVitals_WhenPosting_ThenValidOnesAreStoredOncePerViewWithoutAnArticle()
+    {
+        var viewId = Guid.NewGuid();
+
+        var response = await PostAsync(
+            new { type = "WebVitalLcp", viewId, value = 1834.5, articleId = 999_999 },
+            new { type = "WebVitalLcp", viewId, value = 2000.0 },
+            new { type = "WebVitalInp", viewId, value = 120.0 },
+            new { type = "WebVitalCls", viewId, value = 0.04 },
+            new { type = "WebVitalInp", viewId = Guid.NewGuid(), value = 60_001.0 },
+            new { type = "WebVitalCls", viewId = Guid.NewGuid(), value = -1.0 },
+            new { type = "WebVitalLcp", viewId = Guid.NewGuid() });
+
+        (await response.Content.ReadFromJsonAsync<AnalyticsAcceptedDto>(ApiJson.Options))!.Accepted.Should().Be(3);
+        var stored = await LoadAsync(viewId);
+        stored.Select(e => (e.Type, e.MetricValue)).Should().BeEquivalentTo(new[]
+        {
+            (AnalyticsEventType.WebVitalLcp, (double?)1834.5),
+            (AnalyticsEventType.WebVitalInp, (double?)120.0),
+            (AnalyticsEventType.WebVitalCls, (double?)0.04),
+        });
+        stored.Should().OnlyContain(e => e.ArticleId == null && e.SchoolId == null);
+    }
+
+    [Fact]
     public async Task GivenSearches_WhenPosting_ThenEachIsStoredWithWhatTheSiteSearchFindsForIt()
     {
         _factory.SearchResults["пятничная молитва"] = 7;
