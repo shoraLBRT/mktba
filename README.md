@@ -138,8 +138,10 @@ refresh-токен в cookie `mktba_refresh`. Фронтенд держит acce
   сессия жива, поэтому выход действует сразу, а не через 15 минут.
 - **Развёртывание:** фронтенд и API должны быть *same-site* (например, `mktba.ru` и
   `api.mktba.ru`, или один хост с прокси `/api` → API — тогда `Auth__RefreshCookiePath=/api/auth`).
-  CORS сейчас разрешает с credentials только loopback-origin'ы (локальная разработка: Vite `:5173`
-  и API `:5172` — разные origin, но один site); для другого origin политику нужно расширить.
+  Стенд (X-01) так и устроен: сайт `mktba.ru`, API `api.mktba.ru`, путь cookie по умолчанию.
+  CORS с credentials разрешает loopback-origin'ы (локальная разработка: Vite `:5173` и API `:5172` —
+  разные origin, но один site) и точные origin'ы из `Cors:AllowedOrigins`
+  (`Cors__AllowedOrigins__0=https://mktba.ru`; схема, хост и порт, без пути — иначе API не стартует).
   Токены, выданные до U-03 (без id сессии), больше не принимаются — после обновления всем нужно
   войти заново.
 
@@ -188,8 +190,10 @@ refresh-токен в cookie `mktba_refresh`. Фронтенд держит acce
 | `ForwardedHeaders:KnownNetworks` | Сети прокси в записи CIDR, например `ForwardedHeaders__KnownNetworks__0=172.18.0.0/16` (сеть Docker) |
 | `ForwardedHeaders:ForwardLimit` | Сколько прокси стоит перед API (по умолчанию 1) |
 
-Читается только `X-Forwarded-For`; схема и хост запроса не меняются. Прокси должен сам
-выставлять этот заголовок (в nginx — `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`).
+От этих прокси читаются `X-Forwarded-For` и `X-Forwarded-Proto` (прокси снимает TLS, а схема
+запроса остаётся `https`, как у посетителя); хост не меняется — прокси передаёт исходный. Прокси
+должен сам выставлять эти заголовки (Caddy делает это по умолчанию; в nginx —
+`proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` и `X-Forwarded-Proto $scheme`).
 
 #### Обратная связь и GitHub App (F-02, F-03)
 
@@ -433,6 +437,55 @@ API не переиспользуется, чтобы тест не попал �
 повторный прогон по той же БД работает с тем же паролем. Другая БД — `E2E_DB_CONNECTION`
 (строка подключения Npgsql). В CI это джоб `e2e`; при падении HTML-отчёт лежит в артефакте
 `playwright-report`.
+
+## Развёртывание (X-01)
+
+Стенд — staging или продакшен — описан в `deploy/`: `docker-compose.yml`, `Caddyfile` и
+`.env.example`. Корневой `docker-compose.yml` — только база для локальной разработки.
+
+```text
+интернет ─443/80─> caddy ─┬─ mktba.ru ─────> web (react-router-serve, :3000) ─┐ API_INTERNAL_URL
+                          └─ api.mktba.ru ─> api (ASP.NET, :8080) <────────────┘ http://api:8080
+                                             └─> postgres (наружу не открыт)
+```
+
+| Сервис | Образ | Что делает |
+| --- | --- | --- |
+| `caddy` | `caddy:2.10-alpine` | единственный, кто открывает порты; сам получает и продлевает сертификаты Let's Encrypt (тома `caddy_data`, `caddy_config`) |
+| `web` | `mktba.react/Dockerfile` | SSR-сервер; `VITE_API_BASE_URL=https://<API_HOST>` зашит при сборке, поэтому у каждого стенда свой образ |
+| `migrate` | `Mktba.Api/Dockerfile` | `--migrate`: миграции и справочные данные, потом выход; `api` стартует только после его успеха |
+| `api` | `Mktba.Api/Dockerfile` | API; загрузки — `Storage:Provider=Local` на томе `uploads` (до беты, решение владельца 2026-11-21) |
+| `postgres` | `postgres:16-alpine` | база на томе `pgdata` |
+
+Решения стенда:
+
+- **Два хоста одного сайта:** `mktba.ru` — сайт, `api.mktba.ru` — API. Они same-site, поэтому
+  refresh-cookie (`SameSite=Strict`, `Path=/auth`) работает без изменений; браузер ходит в API
+  по CORS с credentials, и `Cors__AllowedOrigins__0=https://<SITE_HOST>` разрешает ровно сайт.
+- **TLS снимает Caddy.** API доверяет `X-Forwarded-For` / `X-Forwarded-Proto` только из сети
+  `proxy` с фиксированной подсетью (`PROXY_SUBNET`, по умолчанию `172.30.63.0/24`), поэтому лимиты
+  считаются по IP посетителя, а ссылки на загрузки — `https://<API_HOST>/files/...`.
+- **Staging = тот же файл с другим `.env`:** `COMPOSE_PROJECT_NAME=mktba-staging`,
+  `SITE_HOST=staging.mktba.ru`, `API_HOST=api.staging.mktba.ru`, `ASPNETCORE_ENVIRONMENT=Staging`.
+
+Запуск на сервере (Docker с плагином compose):
+
+```bash
+cp deploy/.env.example deploy/.env   # заполнить; файл в .gitignore и в репозиторий не попадает
+docker compose -f deploy/docker-compose.yml up -d --build
+```
+
+Что нужно до первого запуска:
+
+1. DNS: записи A/AAAA `SITE_HOST` и `API_HOST` на сервер; открытые порты 80 и 443 (TCP, 443/UDP для HTTP/3).
+2. В `deploy/.env`: `ACME_EMAIL`, `POSTGRES_PASSWORD`, `JWT_SIGNING_KEY` (`openssl rand -base64 48`);
+   по желанию — `FEEDBACK_GITHUB_PRIVATE_KEY` (PEM одной строкой с `\n`) и `METRIKA_ID`.
+3. Сразу после первого запуска зарегистрировать первого админа на `https://<SITE_HOST>/admin/login`:
+   первая регистрация без приглашения становится админом.
+4. Резервные копии томов `pgdata` и `uploads` (X-04, #158).
+
+CI (джоб `docker`) проверяет `deploy/docker-compose.yml` и `Caddyfile` и собирает оба образа, ничего
+не публикуя; публикация образов и деплой — X-02 (#64).
 
 ## Лицензия
 

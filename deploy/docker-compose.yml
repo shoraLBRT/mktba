@@ -1,0 +1,119 @@
+# The whole stand (X-01, #63): Caddy (TLS, reverse proxy) -> web (SSR) and api -> postgres.
+# One file for staging and production; the stand is chosen by deploy/.env (see .env.example):
+#   cp deploy/.env.example deploy/.env    # fill in, never commit
+#   docker compose -f deploy/docker-compose.yml up -d --build
+# The root docker-compose.yml stays the local-development database only.
+
+name: ${COMPOSE_PROJECT_NAME:-mktba}
+
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+  ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=mktba;Username=mktba;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+  Auth__JwtSigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in deploy/.env}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mktba
+      POSTGRES_USER: mktba
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mktba -d mktba"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  # Applies the migrations and the reference data, then exits (X-03): the API itself never migrates
+  # outside Development.
+  migrate:
+    image: ${MKTBA_IMAGE_PREFIX:-mktba}-api:${MKTBA_TAG:-local}
+    build:
+      context: ..
+      dockerfile: Mktba.Api/Dockerfile
+    command: ["--migrate"]
+    restart: "no"
+    environment:
+      <<: *api-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
+  api:
+    image: ${MKTBA_IMAGE_PREFIX:-mktba}-api:${MKTBA_TAG:-local}
+    restart: unless-stopped
+    environment:
+      <<: *api-environment
+      # The browser calls the API from the site's origin with the refresh cookie.
+      Cors__AllowedOrigins__0: https://${SITE_HOST:?set SITE_HOST in deploy/.env}
+      # Caddy is the only proxy in front of the API; it sets X-Forwarded-For and X-Forwarded-Proto.
+      ForwardedHeaders__KnownNetworks__0: ${PROXY_SUBNET:-172.30.63.0/24}
+      Uploads__PublicBaseUrl: https://${API_HOST:?set API_HOST in deploy/.env}/files/
+      Storage__Provider: Local
+      Storage__Local__RootPath: /app/App_Data/uploads
+      Feedback__SiteUrl: https://${SITE_HOST}
+      Feedback__GitHub__PrivateKey: ${FEEDBACK_GITHUB_PRIVATE_KEY:-}
+    volumes:
+      - uploads:/app/App_Data/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [backend, proxy]
+
+  web:
+    image: ${MKTBA_IMAGE_PREFIX:-mktba}-web:${MKTBA_TAG:-local}
+    build:
+      context: ../mktba.react
+      args:
+        VITE_API_BASE_URL: https://${API_HOST}
+        VITE_METRIKA_ID: ${METRIKA_ID:-}
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      API_INTERNAL_URL: http://api:8080
+      PUBLIC_SITE_URL: https://${SITE_HOST}
+    depends_on:
+      - api
+    networks: [proxy]
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_HOST: ${SITE_HOST}
+      API_HOST: ${API_HOST}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    networks: [proxy]
+
+networks:
+  # Not reachable from outside: only Caddy publishes ports.
+  backend:
+  # Fixed subnet: the API trusts X-Forwarded-* only from here (ForwardedHeaders:KnownNetworks).
+  proxy:
+    ipam:
+      config:
+        - subnet: ${PROXY_SUBNET:-172.30.63.0/24}
+
+volumes:
+  pgdata:
+  # Uploaded images (Storage:Provider=Local until the beta); back it up together with the database.
+  uploads:
+  # Caddy's certificates and ACME account: losing it means re-issuing every certificate.
+  caddy_data:
+  caddy_config:
