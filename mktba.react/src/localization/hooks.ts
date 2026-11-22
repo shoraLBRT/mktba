@@ -1,5 +1,6 @@
-import { useCallback, useContext } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import { LocalizationContext } from './context';
+import { formatDate, formatNumber, formatPlural, type DateStyle, type PluralForms } from './format';
 import { localizedPath } from './language';
 
 const useLocalizationContext = () => {
@@ -23,4 +24,21 @@ export const useLanguage = () => useLocalizationContext().language;
 export const useLocalizedPath = () => {
   const language = useLanguage();
   return useCallback((path: string) => localizedPath(language, path), [language]);
+};
+
+/**
+ * Plurals, numbers and dates in the reader's language (I-04, #108): `plural(t.found, 5)`,
+ * `number(12345)`, `date(iso)` / `date(iso, 'short')`. Never a hard-coded `'ru-RU'`.
+ */
+export const useFormat = () => {
+  const language = useLanguage();
+  return useMemo(
+    () => ({
+      plural: (forms: PluralForms, count: number, params?: Record<string, string | number>) =>
+        formatPlural(language, forms, count, params),
+      number: (value: number, options?: Intl.NumberFormatOptions) => formatNumber(language, value, options),
+      date: (value: string | Date, style?: DateStyle) => formatDate(language, value, style),
+    }),
+    [language],
+  );
 };

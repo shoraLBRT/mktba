@@ -2,12 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { REVIEW_QUEUE_QUERY_KEY } from './review/reviewQueue';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useFormat, useLocale } from '../../localization/hooks';
 import { getReviewQueue } from '../../services/adminService';
 import { extractApiErrorMessage } from '../../shared/api-client/apiError';
 import type { ReviewQueueItemDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
-import { revisionDateTime } from '../article-history/snapshotLabels';
 
 /** The moderation queue (A-04, #87): the articles waiting for review, submitted longest ago first. */
 const AdminReviewQueuePage = () => {
@@ -44,9 +43,10 @@ const AdminReviewQueuePage = () => {
 
 const ReviewQueueRow = ({ item }: { item: ReviewQueueItemDto }) => {
   const t = useLocale().adminReview;
+  const format = useFormat();
   const submitted = item.submittedAt
-    ? formatMessage(t.submittedAt, { date: revisionDateTime.format(new Date(item.submittedAt)) })
-    : formatMessage(t.updatedAt, { date: revisionDateTime.format(new Date(item.updatedAt)) });
+    ? formatMessage(t.submittedAt, { date: format.date(item.submittedAt, 'longDateTime') })
+    : formatMessage(t.updatedAt, { date: format.date(item.updatedAt, 'longDateTime') });
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-4" data-testid={`review-item-${item.id}`}>

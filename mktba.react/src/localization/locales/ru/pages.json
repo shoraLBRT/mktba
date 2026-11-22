@@ -42,7 +42,7 @@
     "loading": "Ищем…",
     "error": "Не удалось выполнить поиск.",
     "retry": "Попробовать ещё раз",
-    "found": "Найдено статей: {count}",
+    "found": { "one": "Найдена {count} статья", "few": "Найдено {count} статьи", "many": "Найдено {count} статей", "other": "Найдено {count} статьи" },
     "resultsLabel": "Результаты поиска",
     "empty": {
       "title": "По запросу {query} ничего не найдено.",
@@ -477,7 +477,7 @@
     "kicker": "Тег",
     "title": "Тег «{name}»",
     "metaDescription": "Статьи mktba с тегом «{name}».",
-    "articlesCount": "Статей: {count}",
+    "articlesCount": { "one": "{count} статья", "few": "{count} статьи", "many": "{count} статей", "other": "{count} статьи" },
     "articlesLabel": "Статьи с этим тегом",
     "pagesLabel": "Страницы списка статей",
     "loadError": "Не удалось загрузить страницу тега."
@@ -490,7 +490,7 @@
     "selfDeclaredNote": "Указано самим автором. Редакция mktba эти сведения пока не проверяла.",
     "linksLabel": "Ссылки автора",
     "articlesTitle": "Статьи",
-    "articlesCount": "Всего: {count}",
+    "articlesCount": { "one": "{count} статья", "few": "{count} статьи", "many": "{count} статей", "other": "{count} статьи" },
     "articlesEmpty": "У автора пока нет статей, открытых читателям.",
     "pagesLabel": "Страницы списка статей",
     "loadError": "Не удалось загрузить страницу автора.",

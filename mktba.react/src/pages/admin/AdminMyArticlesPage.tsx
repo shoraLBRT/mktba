@@ -6,11 +6,10 @@ import { ArticleStatusBadge } from '../../components/article/ArticleStatusBadge'
 import { ReturnedForRevisionNote } from '../../components/article/ArticleStatusPanel';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useFormat, useLocale } from '../../localization/hooks';
 import { changeArticleStatus, getMyArticles, MY_ARTICLES_PAGE_SIZE } from '../../services/adminService';
 import { extractApiErrorMessage } from '../../shared/api-client/apiError';
 import { ARTICLE_STATUSES } from '../../shared/articleListParams';
-import { formatShortRussianDate } from '../../shared/lib/formatDate';
 import { articleHref } from '../../shared/slug';
 import type { ArticleListItemDto, ArticleStatus } from '../../shared/types/ApiTypes';
 import { Button } from '../../shared/ui/Button';
@@ -106,6 +105,7 @@ const AdminMyArticlesPage = () => {
 
 const MyArticleRow = ({ item }: { item: ArticleListItemDto }) => {
   const locale = useLocale();
+  const format = useFormat();
   const t = locale.adminMyArticles;
   const queryClient = useQueryClient();
   const moves = item.allowedTransitions.filter((target) => QUICK_MOVES.includes(target));
@@ -125,7 +125,7 @@ const MyArticleRow = ({ item }: { item: ArticleListItemDto }) => {
             <ArticleStatusBadge status={item.status} compact />
           </p>
           <p className="m-0 text-xs text-[var(--color-ink-subtle)]">
-            {formatMessage(t.updated, { date: formatShortRussianDate(item.updatedAt) })}
+            {formatMessage(t.updated, { date: format.date(item.updatedAt, 'short') })}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

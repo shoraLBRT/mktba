@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
-import { formatRussianDate } from '../../shared/lib/formatDate';
 import { ArticleDates } from './ArticleDates';
 
 const renderDates = (publishedAt?: string | null, updatedAt?: string | null, readingMinutes?: number | null) =>
@@ -11,12 +10,6 @@ const renderDates = (publishedAt?: string | null, updatedAt?: string | null, rea
       <ArticleDates publishedAt={publishedAt} updatedAt={updatedAt} readingMinutes={readingMinutes} />
     </LocalizationProvider>,
   );
-
-describe('formatRussianDate', () => {
-  it('given a UTC timestamp, when formatted, then reads as a Russian calendar date of that UTC day', () => {
-    expect(formatRussianDate('2026-11-01T23:30:00Z')).toMatch(/^1 ноября 2026/);
-  });
-});
 
 describe('ArticleDates', () => {
   it('given publication and a later update, when rendered, then shows both lines', () => {

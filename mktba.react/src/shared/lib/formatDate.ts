@@ -1,12 +1,7 @@
-const russianDate = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+import { formatDate } from '../../localization/format';
 
 /**
- * An API timestamp (UTC, ISO 8601) as a Russian calendar date, e.g. «1 ноября 2026 г.».
- * Dates are shown in UTC so every reader sees the same day.
+ * @deprecated Use `useFormat().date(iso, 'short')` (I-04, #108): it follows the reader's language.
+ * Kept only for the admin article list until it moves over.
  */
-export const formatRussianDate = (iso: string): string => russianDate.format(new Date(iso));
-
-const shortRussianDate = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
-
-/** An API timestamp (UTC, ISO 8601) as a short Russian date for tables, e.g. «01.11.2026». */
-export const formatShortRussianDate = (iso: string): string => shortRussianDate.format(new Date(iso));
+export const formatShortRussianDate = (iso: string): string => formatDate('ru', iso, 'short');

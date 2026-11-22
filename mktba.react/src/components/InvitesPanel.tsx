@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { Copy, KeyRound } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { USER_ROLES } from '../auth/roleAccess';
-import { useLocale } from '../localization/hooks';
+import { useFormat, useLocale } from '../localization/hooks';
 import { createInvite, getInvites, revokeInvite } from '../services/inviteService';
 import type { InviteCreatedDto, InviteStatus, UserRole } from '../shared/types/ApiTypes';
 import { cn } from '../shared/lib/cn';
@@ -21,7 +21,6 @@ const STATUS_CLASS: Record<InviteStatus, string> = {
   Expired: 'bg-[var(--color-surface-muted)] text-[var(--color-ink-subtle)]',
 };
 
-const dateTime = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
 
 const selectClass = 'h-9 w-full rounded-lg border border-[var(--color-border-soft)] bg-white px-2 text-sm';
 const labelClass = 'mb-1 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]';
@@ -33,6 +32,7 @@ type InvitesPanelProps = {
 /** Invites with a role (U-04): create one, see each one's status, revoke an unused one. */
 export const InvitesPanel = ({ onNotice }: InvitesPanelProps) => {
   const locale = useLocale();
+  const format = useFormat();
   const t = locale.adminPage;
   const fieldId = useId();
   const queryClient = useQueryClient();
@@ -173,7 +173,7 @@ export const InvitesPanel = ({ onNotice }: InvitesPanelProps) => {
                   {invite.note ? <span className="ml-2 font-normal text-[var(--color-ink-muted)]">{invite.note}</span> : null}
                 </p>
                 <p className="text-xs text-[var(--color-ink-muted)]">
-                  {t.inviteCreatedBy}: {invite.createdByEmail} · {t.inviteExpires}: {dateTime.format(new Date(invite.expiresAtUtc))}
+                  {t.inviteCreatedBy}: {invite.createdByEmail} · {t.inviteExpires}: {format.date(invite.expiresAtUtc, 'dateTime')}
                   {invite.usedByEmail ? ` · ${t.inviteUsedBy}: ${invite.usedByEmail}` : ''}
                 </p>
               </div>

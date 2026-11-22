@@ -1,6 +1,5 @@
 import { Link } from 'react-router';
-import { useLocale } from '../localization/hooks';
-import { formatRussianDate } from '../shared/lib/formatDate';
+import { useFormat, useLocale } from '../localization/hooks';
 import { articleHref } from '../shared/slug';
 import type { AuthorArticleDto } from '../shared/types/ApiTypes';
 
@@ -12,14 +11,15 @@ const linkClass = 'text-[var(--color-brand-forest)] underline-offset-2 hover:und
  */
 export const ArticleListEntry = ({ article }: { article: AuthorArticleDto }) => {
   const t = useLocale().articlePage;
+  const format = useFormat();
   // A save on the day of publication is not news: the second date is shown from the next day on.
-  const edited = formatRussianDate(article.updatedAt) !== formatRussianDate(article.publishedAt) && article.updatedAt > article.publishedAt;
+  const edited = format.date(article.updatedAt) !== format.date(article.publishedAt) && article.updatedAt > article.publishedAt;
   const date = (template: string, iso: string) => {
     const [before, after = ''] = template.split('{date}');
     return (
       <>
         {before}
-        <time dateTime={new Date(iso).toISOString()}>{formatRussianDate(iso)}</time>
+        <time dateTime={new Date(iso).toISOString()}>{format.date(iso)}</time>
         {after}
       </>
     );

@@ -1,14 +1,13 @@
 import { LogOut, MonitorSmartphone } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { useLocale } from '../localization/hooks';
+import { useFormat, useLocale } from '../localization/hooks';
 import { endSession, getSessions, logOutEverywhere } from '../services/authService';
 import { Button } from '../shared/ui/Button';
 import { Card } from '../shared/ui/Card';
 
 const SESSIONS_QUERY_KEY = 'auth-sessions';
 
-const dateTime = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
 
 type SessionsPanelProps = {
   onError: (message: string) => void;
@@ -18,6 +17,7 @@ type SessionsPanelProps = {
 /** The signed-in user's devices (U-03): end one, or sign out everywhere. */
 export const SessionsPanel = ({ onError, onEnded }: SessionsPanelProps) => {
   const t = useLocale().adminPage;
+  const format = useFormat();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const sessionsQuery = useQuery({ queryKey: [SESSIONS_QUERY_KEY], queryFn: getSessions });
@@ -63,8 +63,8 @@ export const SessionsPanel = ({ onError, onEnded }: SessionsPanelProps) => {
                   ) : null}
                 </p>
                 <p className="text-xs text-[var(--color-ink-muted)]">
-                  {t.sessionsStarted}: {dateTime.format(new Date(session.startedAtUtc))} · {t.sessionsLastActive}:{' '}
-                  {dateTime.format(new Date(session.lastActiveAtUtc))}
+                  {t.sessionsStarted}: {format.date(session.startedAtUtc, 'dateTime')} · {t.sessionsLastActive}:{' '}
+                  {format.date(session.lastActiveAtUtc, 'dateTime')}
                   {session.ipAddress ? ` · ${session.ipAddress}` : ''}
                 </p>
               </div>
