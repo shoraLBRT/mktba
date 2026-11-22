@@ -30,10 +30,11 @@ const DEPTHS: { key: keyof Omit<ReadDepthDto, 'views'>; label: 'depth25' | 'dept
   { key: 'reachedDepth100', label: 'depth100' },
 ];
 
-const DepthBars: React.FC<{ depth: ReadDepthDto }> = ({ depth }) => {
+/** How far the views got, as bars of the share of views; also on the article statistics page (N-09, #103). */
+export const DepthBars: React.FC<{ depth: ReadDepthDto; testId?: string }> = ({ depth, testId = 'author-analytics-depth' }) => {
   const t = useLocale().authorDashboard;
   return (
-    <ul className="space-y-2" data-testid="author-analytics-depth">
+    <ul className="space-y-2" data-testid={testId}>
       {DEPTHS.map(({ key, label }) => (
         <li key={key}>
           <div className="flex justify-between gap-3 text-sm">
@@ -111,6 +112,13 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
                     <td className="py-2 pr-3">
                       <Link to={`/${article.slug}`} className="text-[var(--color-brand-forest)] hover:underline">
                         {article.title}
+                      </Link>
+                      {' · '}
+                      <Link
+                        to={`/admin/articles/${article.articleId}/analytics`}
+                        className="text-xs text-[var(--color-ink-muted)] hover:underline"
+                      >
+                        {locale.articleAnalytics.openLink}
                       </Link>
                     </td>
                     <td className="py-2 text-right tabular-nums">{article.views}</td>

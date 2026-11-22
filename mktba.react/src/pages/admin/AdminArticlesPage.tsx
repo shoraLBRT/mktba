@@ -186,7 +186,17 @@ const AdminArticlesPage = () => {
         ) : (
           <span className="font-medium text-[var(--color-ink-strong)]">{item.title}</span>
         )}
-        <div className="text-[11px] text-[var(--color-ink-subtle)]">{item.slug}</div>
+        <div className="text-[11px] text-[var(--color-ink-subtle)]">
+          {item.slug}
+          {item.canEdit ? (
+            <>
+              {' · '}
+              <Link to={`/admin/articles/${item.id}/analytics`} className="text-[var(--color-brand-forest)] hover:underline">
+                {locale.articleAnalytics.openLink}
+              </Link>
+            </>
+          ) : null}
+        </div>
       </div>
     );
   };

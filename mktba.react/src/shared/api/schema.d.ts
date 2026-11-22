@@ -469,6 +469,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/analytics/articles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One article's statistics over the last days: views, readers, read depth, mazhabs, opinion switches, link clicks.
+         * @description For an admin, or the article's own author or co-author (as for the article's history): another author gets 403 forbidden for a Published article and 404 article_not_found for one they may not see, as does an article that does not exist. Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest first, zeros when nothing happened. readers summed over several days are reader-days (the anonymous visitor id changes every UTC day). depth counts the views that reached 25, 50, 75 and 100 % of the text; schools: views by the mazhab the reader had chosen, viewsWithoutSchool the rest; internalLinkClicks: links followed from the article to another page of the site.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleAnalyticsDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}/content": {
         parameters: {
             query?: never;
@@ -4347,6 +4408,50 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             traceId: string;
+        };
+        ArticleAnalyticsDayDto: {
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            readers: number;
+            /** Format: int32 */
+            opinionSwitches: number;
+            /** Format: int32 */
+            internalLinkClicks: number;
+        };
+        ArticleAnalyticsDto: {
+            /** Format: int32 */
+            articleId: number;
+            title: string;
+            slug: string;
+            /** Format: int32 */
+            days: number;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["ArticleAnalyticsTotalsDto"];
+            daily: components["schemas"]["ArticleAnalyticsDayDto"][];
+            depth: components["schemas"]["ReadDepthDto"];
+            schools: components["schemas"]["AnalyticsSchoolTotalDto"][];
+            /** Format: int32 */
+            viewsWithoutSchool: number;
+            /** Format: date-time */
+            aggregatedAtUtc?: string | null;
+        };
+        ArticleAnalyticsTotalsDto: {
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            readers: number;
+            /** Format: int32 */
+            opinionsShown: number;
+            /** Format: int32 */
+            opinionSwitches: number;
+            /** Format: int32 */
+            internalLinkClicks: number;
         };
         ArticleAuthorDto: {
             displayName: string;

@@ -282,6 +282,13 @@ public class AnalyticsSummaryRepository
             .OrderBy(d => d.Day)
             .ToListAsync(cancellationToken);
 
+    /// <summary>The summary of one article for each built day in [<paramref name="from"/>, <paramref name="to"/>], oldest first (N-09, #103).</summary>
+    public Task<List<AnalyticsArticleDay>> GetArticleDaysAsync(int articleId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+        => _context.AnalyticsArticleDays.AsNoTracking()
+            .Where(d => d.ArticleId == articleId && d.Day >= from && d.Day <= to)
+            .OrderBy(d => d.Day)
+            .ToListAsync(cancellationToken);
+
     /// <summary>
     /// The views, readers and read depth of each of <paramref name="articleIds"/> viewed in [<paramref name="from"/>, <paramref name="to"/>],
     /// most views first (then the lower id) (P-03, #91).

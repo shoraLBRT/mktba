@@ -100,6 +100,25 @@ public static class AnalyticsEndpoints
             .ProducesApiProblem(StatusCodes.Status401Unauthorized)
             .RequireAuthorization(Policies.CanEditArticles);
 
+        builder.MapGet("/analytics/articles/{id:int}", async (int id, int? days, ArticleAnalyticsService service, CancellationToken ct) =>
+                Results.Ok(await service.GetAsync(id, days ?? ArticleAnalyticsService.DefaultDays, ct)))
+            .WithTags("Analytics")
+            .WithSummary("One article's statistics over the last days: views, readers, read depth, mazhabs, opinion switches, link clicks.")
+            .WithDescription(
+                "For an admin, or the article's own author or co-author (as for the article's history): "
+                + "another author gets 403 forbidden for a Published article and 404 article_not_found for "
+                + "one they may not see, as does an article that does not exist. Read from the daily "
+                + "summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept "
+                + "within 1 to 365; the period ends today (UTC). daily has every day, oldest first, zeros "
+                + "when nothing happened. readers summed over several days are reader-days (the anonymous "
+                + "visitor id changes every UTC day). depth counts the views that reached 25, 50, 75 and "
+                + "100 % of the text; schools: views by the mazhab the reader had chosen, viewsWithoutSchool "
+                + "the rest; internalLinkClicks: links followed from the article to another page of the site.")
+            .Produces<ArticleAnalyticsDto>()
+            .ProducesApiProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(Policies.CanEditArticles)
+            .RequireArticleAccess(ArticleOperationRequirement.Edit);
+
         return builder;
     }
 }

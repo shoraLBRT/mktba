@@ -130,6 +130,7 @@ const MyArticleRow = ({ item }: { item: ArticleListItemDto }) => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {item.canEdit && <Link to={`/admin/articles/${item.id}/edit`} className={linkClass}>{t.edit}</Link>}
+          {item.canEdit && <Link to={`/admin/articles/${item.id}/analytics`} className={linkClass}>{locale.articleAnalytics.openLink}</Link>}
           {item.status === 'Published' && <Link to={articleHref(item.slug)} className={linkClass}>{t.openOnSite}</Link>}
           {moves.map((target) => (
             <Button key={target} className="px-3 py-1.5" disabled={mutation.isPending} onClick={() => mutation.mutate(target)}>

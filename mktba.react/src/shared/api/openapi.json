@@ -370,6 +370,66 @@
         }
       }
     },
+    "/analytics/articles/{id}": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "One article's statistics over the last days: views, readers, read depth, mazhabs, opinion switches, link clicks.",
+        "description": "For an admin, or the article's own author or co-author (as for the article's history): another author gets 403 forbidden for a Published article and 404 article_not_found for one they may not see, as does an article that does not exist. Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest first, zeros when nothing happened. readers summed over several days are reader-days (the anonymous visitor id changes every UTC day). depth counts the views that reached 25, 50, 75 and 100 % of the text; schools: views by the mazhab the reader had chosen, viewsWithoutSchool the rest; internalLinkClicks: links followed from the article to another page of the site.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleAnalyticsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/{id}/content": {
       "get": {
         "tags": [
@@ -4219,6 +4279,140 @@
           },
           "traceId": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleAnalyticsDayDto": {
+        "required": [
+          "day",
+          "internalLinkClicks",
+          "opinionSwitches",
+          "readers",
+          "views"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "readers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opinionSwitches": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "internalLinkClicks": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleAnalyticsDto": {
+        "required": [
+          "articleId",
+          "daily",
+          "days",
+          "depth",
+          "from",
+          "schools",
+          "slug",
+          "title",
+          "to",
+          "totals",
+          "viewsWithoutSchool"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ArticleAnalyticsTotalsDto"
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleAnalyticsDayDto"
+            }
+          },
+          "depth": {
+            "$ref": "#/components/schemas/ReadDepthDto"
+          },
+          "schools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsSchoolTotalDto"
+            }
+          },
+          "viewsWithoutSchool": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aggregatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleAnalyticsTotalsDto": {
+        "required": [
+          "internalLinkClicks",
+          "opinionsShown",
+          "opinionSwitches",
+          "readers",
+          "views"
+        ],
+        "type": "object",
+        "properties": {
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "readers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opinionsShown": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opinionSwitches": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "internalLinkClicks": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

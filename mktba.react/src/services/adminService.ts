@@ -15,6 +15,7 @@ import type {
   ArticleReadDto,
   ArticleStatus,
   ArticleSummaryDto,
+  ArticleAnalyticsDto,
   AuthorAnalyticsDto,
   ContentAnalyticsDto,
   SearchAnalyticsDto,
@@ -186,5 +187,11 @@ export const getContentAnalytics = async (days: number): Promise<ContentAnalytic
 /** The author dashboard (P-03): the signed-in user's own articles over the last `days` UTC days, today included. */
 export const getAuthorAnalytics = async (days: number): Promise<AuthorAnalyticsDto> => {
   const response = await apiClient.get<AuthorAnalyticsDto>('/analytics/me', { params: { days } });
+  return response.data;
+};
+
+/** One article's statistics (N-09, #103): an admin any article, an author their own. */
+export const getArticleAnalytics = async (articleId: number, days: number): Promise<ArticleAnalyticsDto> => {
+  const response = await apiClient.get<ArticleAnalyticsDto>(`/analytics/articles/${articleId}`, { params: { days } });
   return response.data;
 };
