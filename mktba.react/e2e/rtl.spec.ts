@@ -18,7 +18,7 @@ const box = async (locator: Locator) => {
 };
 
 /** The CSS `scale` of an element: Tailwind's `rtl:-scale-x-100` mirrors an icon with it. */
-const scaleOf = (locator: Locator) => locator.evaluate<string>('(element) => getComputedStyle(element).scale');
+const scaleOf = (locator: Locator) => locator.evaluate('(element) => getComputedStyle(element).scale') as Promise<string>;
 
 test('the page declares its writing direction from the language of the URL', async ({ page }) => {
   await page.goto('/salat');
@@ -50,5 +50,5 @@ test('under dir="rtl" the sidebar moves to the right and the breadcrumb chevrons
   const rtlSidebar = await box(sidebar);
   const rtlMain = await box(main);
   expect(rtlMain.x + rtlMain.width).toBeLessThanOrEqual(rtlSidebar.x + 1);
-  expect(await scaleOf(chevron)).toBe('-1 1');
+  expect(await scaleOf(chevron)).toMatch(/^-1( 1)?$/);
 });

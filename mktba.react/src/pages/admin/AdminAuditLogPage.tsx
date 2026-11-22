@@ -105,11 +105,11 @@ const AdminAuditLogPage = () => {
             <table aria-label={t.tableLabel} className="w-full border-collapse text-sm">
               <thead className="bg-[var(--color-page-panel)] text-[12px] text-[var(--color-ink-muted)]">
                 <tr>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.occurredAt}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.actor}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.action}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.target}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.change}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.occurredAt}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.actor}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.action}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.target}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.change}</th>
                 </tr>
               </thead>
               <tbody>
