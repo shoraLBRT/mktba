@@ -3,8 +3,17 @@ import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import { formatMessage } from '../localization';
 import { useLocale } from '../localization/hooks';
 import { adminLogin, adminRegister, getAuthStatus } from '../services/authService';
+import { toApiError, translateApiError } from '../shared/api-client/apiError';
+import {
+  findPasswordProblem,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  passwordFieldOfApiError,
+  type PasswordProblem,
+} from '../shared/password';
 import { Button } from '../shared/ui/Button';
 import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
@@ -12,8 +21,15 @@ import { Input } from '../shared/ui/Input';
 type FormValues = {
   email: string;
   password: string;
+  passwordConfirm: string;
   inviteToken: string;
 };
+
+type FieldKey = keyof FormValues;
+/** A key of `adminLoginPage.errors`, or a new-password rule named by its API error code. */
+type FieldProblem = 'emailRequired' | 'passwordRequired' | 'passwordMismatch' | 'inviteTokenRequired' | PasswordProblem;
+
+const labelClassName = 'mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]';
 
 const AdminLoginPage: React.FC = () => {
   const locale = useLocale();
@@ -22,9 +38,13 @@ const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [formValues, setFormValues] = useState<FormValues>({ email: '', password: '', inviteToken: '' });
+  const [formValues, setFormValues] = useState<FormValues>({ email: '', password: '', passwordConfirm: '', inviteToken: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Field problems are shown from the first submit on, then follow every edit (as on the profile page).
+  const [checked, setChecked] = useState(false);
+  const [apiFieldError, setApiFieldError] = useState<{ key: FieldKey; message: string } | null>(null);
   const fieldId = useId();
+  const idOf = (key: FieldKey) => `${fieldId}-${key}`;
 
   const statusQuery = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.AUTH_STATUS],
@@ -45,27 +65,81 @@ const AdminLoginPage: React.FC = () => {
       void queryClient.invalidateQueries({ queryKey: [APP_CONSTANTS.QUERY_KEYS.AUTH_STATUS] });
       navigate('/admin');
     },
-    onError: (error) => setErrorMessage((error as Error).message),
+    onError: (error) => {
+      const apiError = toApiError(error);
+      const key = passwordFieldOfApiError(apiError.code);
+      if (!key) {
+        setErrorMessage(apiError.message);
+        return;
+      }
+
+      setApiFieldError({ key, message: apiError.message });
+      document.getElementById(idOf(key))?.focus();
+    },
   });
 
   const requiresInvite = !statusQuery.data?.requiresBootstrapAdmin;
   const isBusy = loginMutation.isPending || registerMutation.isPending;
 
+  // Signing in checks only that the fields are filled: the new-password rules do not apply to old passwords.
+  const problems: Partial<Record<FieldKey, FieldProblem>> = {};
+  if (!formValues.email.trim()) problems.email = 'emailRequired';
+  if (!formValues.password.trim()) problems.password = 'passwordRequired';
+  else if (isRegisterMode) {
+    const passwordProblem = findPasswordProblem(formValues.password, formValues.email);
+    if (passwordProblem) problems.password = passwordProblem;
+  }
+  if (isRegisterMode && formValues.passwordConfirm !== formValues.password) problems.passwordConfirm = 'passwordMismatch';
+  if (isRegisterMode && requiresInvite && !formValues.inviteToken.trim()) problems.inviteToken = 'inviteTokenRequired';
+
+  const errorOf = (key: FieldKey): string | undefined => {
+    if (apiFieldError?.key === key) return apiFieldError.message;
+    const problem = checked ? problems[key] : undefined;
+    if (!problem) return undefined;
+    return problem.startsWith('password_')
+      ? translateApiError(problem, { minLength: PASSWORD_MIN_LENGTH, maxLength: PASSWORD_MAX_LENGTH })
+      : t.errors[problem as keyof typeof t.errors];
+  };
+  /** The id, `aria-invalid` and `aria-describedby` of a field; the password's hint describes it in registration. */
+  const fieldA11y = (key: FieldKey) => {
+    const error = errorOf(key);
+    const describedBy = [
+      key === 'password' && isRegisterMode ? `${idOf(key)}-hint` : null,
+      error ? `${idOf(key)}-error` : null,
+    ].filter(Boolean);
+    return {
+      id: idOf(key),
+      'aria-invalid': error ? true : undefined,
+      'aria-describedby': describedBy.length ? describedBy.join(' ') : undefined,
+    };
+  };
+  const fieldError = (key: FieldKey) => {
+    const error = errorOf(key);
+    return error ? (
+      <span id={`${idOf(key)}-error`} className="mt-1 block text-xs font-medium text-red-700">
+        {error}
+      </span>
+    ) : null;
+  };
+  const change = (key: FieldKey) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    setFormValues((current) => ({ ...current, [key]: value }));
+    setApiFieldError(null);
+  };
+
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
+    setApiFieldError(null);
+    setChecked(true);
 
-    if (!formValues.email.trim() || !formValues.password.trim()) {
-      setErrorMessage(t.fillCredentials);
+    const firstProblem = (['email', 'password', 'passwordConfirm', 'inviteToken'] as const).find((key) => problems[key]);
+    if (firstProblem) {
+      document.getElementById(idOf(firstProblem))?.focus();
       return;
     }
 
     if (isRegisterMode) {
-      if (requiresInvite && !formValues.inviteToken.trim()) {
-        setErrorMessage(t.inviteTokenRequired);
-        return;
-      }
-
       registerMutation.mutate({
         email: formValues.email.trim(),
         password: formValues.password,
@@ -129,56 +203,80 @@ const AdminLoginPage: React.FC = () => {
             ) : null}
 
             {errorMessage ? (
-              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div role="alert" className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {errorMessage}
               </div>
             ) : null}
 
-            <form className="space-y-4" onSubmit={submit}>
+            <form className="space-y-4" noValidate onSubmit={submit}>
               <div>
-                <label htmlFor={`${fieldId}-email`} className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
+                <label htmlFor={idOf('email')} className={labelClassName}>
                   {t.emailLabel}
                 </label>
                 <div className="relative">
                   <Mail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                   <Input
-                    id={`${fieldId}-email`}
+                    {...fieldA11y('email')}
+                    type="email"
                     autoComplete="email"
                     value={formValues.email}
-                    onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))}
+                    onChange={change('email')}
                     className="h-12 pl-10"
                   />
                 </div>
+                {fieldError('email')}
               </div>
 
               <div>
-                <label htmlFor={`${fieldId}-password`} className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
+                <label htmlFor={idOf('password')} className={labelClassName}>
                   {t.passwordLabel}
                 </label>
                 <div className="relative">
                   <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                   <Input
-                    id={`${fieldId}-password`}
+                    {...fieldA11y('password')}
                     type="password"
                     autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                     value={formValues.password}
-                    onChange={(event) => setFormValues((current) => ({ ...current, password: event.target.value }))}
+                    onChange={change('password')}
                     className="h-12 pl-10"
                   />
                 </div>
+                {isRegisterMode ? (
+                  <span id={`${idOf('password')}-hint`} className="mt-1 block text-xs text-[var(--color-ink-subtle)]">
+                    {formatMessage(t.passwordHint, { min: PASSWORD_MIN_LENGTH })}
+                  </span>
+                ) : null}
+                {fieldError('password')}
               </div>
+
+              {isRegisterMode ? (
+                <div>
+                  <label htmlFor={idOf('passwordConfirm')} className={labelClassName}>
+                    {t.passwordConfirmLabel}
+                  </label>
+                  <div className="relative">
+                    <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
+                    <Input
+                      {...fieldA11y('passwordConfirm')}
+                      type="password"
+                      autoComplete="new-password"
+                      value={formValues.passwordConfirm}
+                      onChange={change('passwordConfirm')}
+                      className="h-12 pl-10"
+                    />
+                  </div>
+                  {fieldError('passwordConfirm')}
+                </div>
+              ) : null}
 
               {isRegisterMode && requiresInvite ? (
                 <div>
-                  <label htmlFor={`${fieldId}-inviteToken`} className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-subtle)]">
+                  <label htmlFor={idOf('inviteToken')} className={labelClassName}>
                     {t.inviteTokenLabel}
                   </label>
-                  <Input
-                    id={`${fieldId}-inviteToken`}
-                    value={formValues.inviteToken}
-                    onChange={(event) => setFormValues((current) => ({ ...current, inviteToken: event.target.value }))}
-                    className="h-12"
-                  />
+                  <Input {...fieldA11y('inviteToken')} value={formValues.inviteToken} onChange={change('inviteToken')} className="h-12" />
+                  {fieldError('inviteToken')}
                 </div>
               ) : null}
 
@@ -190,6 +288,8 @@ const AdminLoginPage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setErrorMessage(null);
+                    setApiFieldError(null);
+                    setChecked(false);
                     setIsRegisterMode((state) => !state);
                   }}
                 >

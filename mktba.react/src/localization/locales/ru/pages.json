@@ -268,14 +268,20 @@
     "loginTitle": "Вход администратора",
     "emailLabel": "Email",
     "passwordLabel": "Пароль",
+    "passwordConfirmLabel": "Повторите пароль",
+    "passwordHint": "Не короче {min} символов. Подойдёт фраза из нескольких слов.",
     "inviteTokenLabel": "Код приглашения",
     "firstAdminHint": "Первый зарегистрировавшийся станет администратором без приглашения",
     "registerAction": "Зарегистрироваться",
     "loginAction": "Войти",
     "haveAccount": "У меня уже есть аккаунт",
     "createAccount": "Зарегистрироваться по приглашению",
-    "fillCredentials": "Заполните email и пароль.",
-    "inviteTokenRequired": "Укажите код приглашения.",
+    "errors": {
+      "emailRequired": "Укажите email.",
+      "passwordRequired": "Укажите пароль.",
+      "passwordMismatch": "Пароли не совпадают.",
+      "inviteTokenRequired": "Укажите код приглашения."
+    },
     "heroEyebrow": "Admin access",
     "featureCards": [
       [
