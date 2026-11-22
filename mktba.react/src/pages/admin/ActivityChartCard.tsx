@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useLanguage, useLocale } from '../../localization/hooks';
 import { getMyActivity } from '../../services/profileService';
 import { Card } from '../../shared/ui/Card';
 import { BarChart } from './BarChart';
@@ -17,6 +17,7 @@ const WEEK_TEST_ID = 'activity-week';
  */
 export const ActivityChartCard: React.FC = () => {
   const t = useLocale().activityChart;
+  const language = useLanguage();
   const activityQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.MY_ACTIVITY], queryFn: () => getMyActivity() });
   const weeks = activityQuery.data?.weeks ?? [];
   const totals = weeks.reduce(
@@ -46,9 +47,9 @@ export const ActivityChartCard: React.FC = () => {
           ]}
           groups={weeks.map((week) => ({
             key: week.weekStart,
-            label: formatWeekStart(week.weekStart),
+            label: formatWeekStart(language, week.weekStart),
             title: formatMessage(t.weekSummary, {
-              date: formatWeekStart(week.weekStart),
+              date: formatWeekStart(language, week.weekStart),
               edits: week.edits,
               publications: week.publications,
             }),

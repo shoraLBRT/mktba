@@ -76,6 +76,12 @@ const DATE_STYLES = {
   long: { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
   /** «01.11.2026» / «11/01/2026», for tables. */
   short: { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' },
+  /** «1 нояб.» / «Nov 1», for days of the statistics (UTC, as the API counts them). */
+  dayMonth: { day: 'numeric', month: 'short', timeZone: 'UTC' },
+  /** «1 нояб. 2026 г.», local time. */
+  mediumDate: { dateStyle: 'medium' },
+  /** «01.11.2026, 14:05», local time. */
+  shortDateTime: { dateStyle: 'short', timeStyle: 'short' },
   /** «1 нояб. 2026 г., 14:05», local time. */
   dateTime: { dateStyle: 'medium', timeStyle: 'short' },
   /** «1 ноября 2026 г. в 14:05», local time. */

@@ -7,7 +7,7 @@ import { invalidateArticleQueries } from '../../app/queryClient';
 import { useCurrentUser } from '../../auth/useCurrentUser';
 import { ArticleStatusBadge } from '../../components/article/ArticleStatusBadge';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useFormat, useLocale } from '../../localization/hooks';
 import { bulkChangeArticleStatus, getArticleList, getUsers } from '../../services/adminService';
 import { extractApiErrorMessage, translateApiError } from '../../shared/api-client/apiError';
 import {
@@ -19,7 +19,6 @@ import {
   type ArticleListParams,
   type ArticleListSort,
 } from '../../shared/articleListParams';
-import { formatShortRussianDate } from '../../shared/lib/formatDate';
 import { articleHref } from '../../shared/slug';
 import type { ArticleListItemDto, ArticleStatus } from '../../shared/types/ApiTypes';
 import { Button } from '../../shared/ui/Button';
@@ -64,6 +63,7 @@ const useDebouncedFilter = (value: string, commit: (next: string) => void) => {
  */
 const AdminArticlesPage = () => {
   const locale = useLocale();
+  const format = useFormat();
   const t = locale.adminArticleList;
   const queryClient = useQueryClient();
   const { user, can } = useCurrentUser();
@@ -392,9 +392,9 @@ const AdminArticlesPage = () => {
                       </div>
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{item.paragraphCount}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-[var(--color-ink-muted)]">{formatShortRussianDate(item.updatedAt)}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-[var(--color-ink-muted)]">{format.date(item.updatedAt, 'short')}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-[var(--color-ink-muted)]">
-                      {item.publishedAt ? formatShortRussianDate(item.publishedAt) : t.noValue}
+                      {item.publishedAt ? format.date(item.publishedAt, 'short') : t.noValue}
                     </td>
                   </tr>
                 ))}

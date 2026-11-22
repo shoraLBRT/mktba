@@ -1,3 +1,6 @@
+import { formatDate } from '../../localization/format';
+import type { Language } from '../../localization/language';
+
 /** The numbers and colors the statistics dashboards share: the site's (N-05, #99) and the author's (P-03, #91). */
 
 /** The periods the dashboards offer, in days ending today (UTC). */
@@ -7,9 +10,7 @@ export const VIEWS_COLOR = 'var(--color-brand-forest)';
 export const SECONDARY_COLOR = 'var(--color-ink-subtle)';
 
 // Days are UTC calendar days (the API's), so they are printed in UTC too.
-const dayFormat = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-export const formatDay = (day: string) => dayFormat.format(new Date(`${day}T00:00:00Z`));
-export const timeFormat = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+export const formatDay = (language: Language, day: string) => formatDate(language, `${day}T00:00:00Z`, 'dayMonth');
 
 /** `part` as a whole percentage of `total`; 0% of nothing. */
 export const share = (part: number, total: number) => (total > 0 ? `${Math.round((part / total) * 100)}%` : '0%');

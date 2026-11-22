@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useLanguage, useLocale } from '../../localization/hooks';
 import { type AnalyticsPeriodQuery, getAuthorAnalytics } from '../../services/adminService';
 import type { AuthorAnalyticsDto, ReadDepthDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
@@ -66,6 +66,7 @@ export const DepthBars: React.FC<{ depth: ReadDepthDto; testId?: string }> = ({ 
 
 const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
   const locale = useLocale();
+  const language = useLanguage();
   const t = locale.authorDashboard;
   const common = locale.siteAnalytics;
   const tools = locale.analyticsTools;
@@ -111,8 +112,8 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
           ]}
           groups={data.daily.map((day) => ({
             key: day.day,
-            label: formatDay(day.day),
-            title: formatMessage(t.daySummary, { date: formatDay(day.day), views: day.views, readers: day.readers }),
+            label: formatDay(language, day.day),
+            title: formatMessage(t.daySummary, { date: formatDay(language, day.day), views: day.views, readers: day.readers }),
             values: [day.views, day.readers],
           }))}
           geometry={dailyGeometry(data.daily.length)}
