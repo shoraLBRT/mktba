@@ -3,7 +3,7 @@ import { roleAllows } from './roleAccess';
 
 describe('roleAllows', () => {
   it('given an admin, when checking every policy, then all pass', () => {
-    for (const policy of ['canEditArticles', 'canEditAnyArticle', 'canReviewArticles', 'canManageUsers', 'canConfigure'] as const) {
+    for (const policy of ['canEditArticles', 'canEditAnyArticle', 'canReviewArticles', 'canManageUsers', 'canConfigure', 'canViewSiteAnalytics'] as const) {
       expect(roleAllows('Admin', policy)).toBe(true);
     }
   });
@@ -13,6 +13,7 @@ describe('roleAllows', () => {
     expect(roleAllows('Author', 'canEditAnyArticle')).toBe(false);
     expect(roleAllows('Author', 'canConfigure')).toBe(false);
     expect(roleAllows('Author', 'canManageUsers')).toBe(false);
+    expect(roleAllows('Author', 'canViewSiteAnalytics')).toBe(false);
   });
 
   it('given a reader or scholar, when checking editorial policies, then none pass', () => {

@@ -21,6 +21,8 @@ const POLICY_ROLES = {
   canManageUsers: ['Admin'],
   /** AI provider settings and maintenance. */
   canConfigure: ['Admin'],
+  /** The whole site's own statistics on the dashboard. */
+  canViewSiteAnalytics: ['Admin'],
 } as const satisfies Record<string, readonly UserRole[]>;
 
 export type RolePolicy = keyof typeof POLICY_ROLES;

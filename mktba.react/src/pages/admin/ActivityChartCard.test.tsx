@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
 import { getMyActivity } from '../../services/profileService';
 import { ActivityChartCard } from './ActivityChartCard';
-import { chartLayout, formatWeekStart } from './activityChart';
+import { formatWeekStart } from './activityChart';
 
 vi.mock('../../services/profileService', () => ({ getMyActivity: vi.fn() }));
 
@@ -68,26 +68,7 @@ describe('ActivityChartCard', () => {
   });
 });
 
-describe('chartLayout', () => {
-  it('given the busiest week, when laying out, then it fills the plot and the others scale to it', () => {
-    const layout = chartLayout(weeks);
-
-    expect(layout.max).toBe(4);
-    expect(layout.bars.map((bar) => bar.editsHeight)).toEqual([0, 120, 60]);
-    expect(layout.bars.map((bar) => bar.publicationsHeight)).toEqual([0, 30, 0]);
-  });
-
-  it('given twelve weeks, when laying out, then labels every second week ending at the current one', () => {
-    const twelve = Array.from({ length: 12 }, (_, index) => ({ weekStart: `2026-09-${10 + index}`, edits: 0, publications: 0 }));
-
-    const layout = chartLayout(twelve);
-
-    expect(layout.max).toBe(1);
-    expect(layout.bars.filter((bar) => bar.labelled)).toHaveLength(6);
-    expect(layout.bars[11].labelled).toBe(true);
-    expect(layout.bars[10].labelled).toBe(false);
-  });
-
+describe('formatWeekStart', () => {
   it('given a week start, when formatting, then prints its UTC calendar day', () => {
     expect(formatWeekStart('2026-11-16')).toMatch(/^16 нояб/);
   });

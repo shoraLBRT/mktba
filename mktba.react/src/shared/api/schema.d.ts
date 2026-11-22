@@ -296,6 +296,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/analytics/site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The whole site's own statistics over the last days, for the admin dashboard.
+         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest first, zeros when nothing happened. visitors and readers summed over several days are visitor-days (the anonymous visitor id changes every UTC day). topArticles: the ten most viewed articles (title and slug null when deleted); schools: article views by the mazhab the reader had chosen, viewsWithoutSchool the rest. Traffic sources and devices are in Yandex Metrika, not here.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SiteAnalyticsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}/content": {
         parameters: {
             query?: never;
@@ -4063,6 +4104,16 @@ export interface components {
             /** Format: int32 */
             accepted: number;
         };
+        AnalyticsArticleTotalDto: {
+            /** Format: int32 */
+            articleId: number;
+            title?: string | null;
+            slug?: string | null;
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            readers: number;
+        };
         AnalyticsEventBatchDto: {
             events?: components["schemas"]["AnalyticsEventDto"][] | null;
         };
@@ -4087,6 +4138,15 @@ export interface components {
         };
         /** @enum {string} */
         AnalyticsEventType: "ArticleView" | "OpinionShown" | "OpinionSwitched" | "Search" | "ScrollDepth" | "InternalLinkClick";
+        AnalyticsSchoolTotalDto: {
+            /** Format: int32 */
+            schoolId: number;
+            name?: string | null;
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            readers: number;
+        };
         ApiProblemDetails: {
             title: string;
             /** Format: int32 */
@@ -4656,6 +4716,40 @@ export interface components {
             userAgent?: string | null;
             ipAddress?: string | null;
             isCurrent: boolean;
+        };
+        SiteAnalyticsDayDto: {
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            articleViews: number;
+            /** Format: int32 */
+            visitors: number;
+            /** Format: int32 */
+            searches: number;
+        };
+        SiteAnalyticsDto: {
+            /** Format: int32 */
+            days: number;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["SiteAnalyticsTotalsDto"];
+            daily: components["schemas"]["SiteAnalyticsDayDto"][];
+            topArticles: components["schemas"]["AnalyticsArticleTotalDto"][];
+            schools: components["schemas"]["AnalyticsSchoolTotalDto"][];
+            /** Format: int32 */
+            viewsWithoutSchool: number;
+            /** Format: date-time */
+            aggregatedAtUtc?: string | null;
+        };
+        SiteAnalyticsTotalsDto: {
+            /** Format: int32 */
+            articleViews: number;
+            /** Format: int32 */
+            visitors: number;
+            /** Format: int32 */
+            searches: number;
         };
         SitemapArticleDto: {
             slug: string;
