@@ -1,0 +1,26 @@
+{
+  "versionedParagraph": {
+    "label": "Madhab opinion: {school}",
+    "labelSeveral": "Opinion of the madhabs: {schools}",
+    "labelConsensus": "All madhabs agree",
+    "labelCommon": "Common opinion",
+    "tabConsensus": "All madhabs",
+    "tabCommon": "Common opinion",
+    "versions": "Madhabs:",
+    "readerSchool": ", your madhab",
+    "schoolTab": {
+      "hanafi": "Hanafis",
+      "maliki": "Malikis",
+      "shafii": "Shafi'is",
+      "hanbali": "Hanbalis"
+    },
+    "schoolGenitive": {
+      "hanafi": "the Hanafis",
+      "maliki": "the Malikis",
+      "shafii": "the Shafi'is",
+      "hanbali": "the Hanbalis"
+    },
+    "noOwnOpinion": "There is no separate opinion of {school} here, so the common one is shown",
+    "noOwnOpinionUnnamed": "The selected madhab has no separate opinion here, so the common one is shown"
+  }
+}

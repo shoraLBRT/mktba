@@ -225,9 +225,9 @@ describe('language in the URL (I-01, #105)', () => {
     await waitFor(() => expect(document.documentElement.lang).toBe('en'));
     expect(document.head.querySelector('meta[property="og:locale"]')?.getAttribute('content')).toBe('en_US');
     expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.test/en/');
-    // No `en` dictionary yet (#109): the Russian strings, kept out of the index.
+    // The English interface (#109), still out of the index: `en` is not in SERVED_LOCALES until #104.
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
-    expect(document.title).toBe('mktba — исламская wiki');
+    expect(document.title).toBe('mktba: an Islamic wiki');
   });
 
   it('given /, when rendered, then the page is Russian', async () => {
@@ -245,7 +245,7 @@ describe('language in the URL (I-01, #105)', () => {
     expect(await screen.findByRole('heading', { name: 'Намаз', level: 1 })).toBeTruthy();
     expect(getArticleContentBySlug).toHaveBeenCalledWith('prayer', 'en');
     expect(screen.getByTestId('path').textContent).toBe('/en/prayer');
-    const homeLinks = screen.getAllByRole('link', { name: 'Главная' });
+    const homeLinks = screen.getAllByRole('link', { name: 'Home' });
     expect(homeLinks.length).toBeGreaterThan(0);
     homeLinks.forEach((link) => expect(link.getAttribute('href')).toBe('/en/'));
   });

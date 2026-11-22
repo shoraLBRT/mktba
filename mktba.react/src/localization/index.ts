@@ -1,7 +1,7 @@
 import { DEFAULT_LANGUAGE, type Language } from './language';
-import { dictionaries as loadedDictionaries } from './loader';
+import { dictionaries as loadedDictionaries, localeFileLanguages } from './loader';
 
-export { loadLocaleChunk } from './loader';
+export { isLanguageLoaded, loadLanguage, loadLocaleChunk } from './loader';
 export type { LazyLocaleChunk } from './chunks';
 
 /**
@@ -30,14 +30,15 @@ export type Locale = (typeof dictionaries)['ru'];
 export const locale: Locale = dictionaries.ru;
 
 /**
- * The dictionary of a language. A language without its own files yet (`en` until #109) reads the
- * default one; one with files falls back to it key by key (`loader.ts`).
+ * The dictionary of a language. A language with files falls back to the default one key by key
+ * (`loader.ts`); until `loadLanguage` has loaded it (the provider waits for that), and for a language
+ * without files, this is the default dictionary.
  */
 export const dictionaryFor = (language: Language): Locale =>
   ((dictionaries as Record<string, unknown>)[language] ?? dictionaries[DEFAULT_LANGUAGE]) as Locale;
 
-/** Whether the language has a dictionary of its own, not only the default one's strings. */
-export const hasOwnDictionary = (language: Language): boolean => language in dictionaries;
+/** Whether the language has dictionary files of its own, not only the default one's strings. */
+export const hasOwnDictionary = (language: Language): boolean => localeFileLanguages.has(language);
 
 export {
   formatDate,
