@@ -168,3 +168,17 @@ jobs:
         run: docker build --file Mktba.Api/Dockerfile --tag mktba-api:ci .
       - name: Build the web image
         run: docker build --build-arg VITE_API_BASE_URL=https://api.mktba.example --tag mktba-web:ci mktba.react
+      - name: Check deploy/deploy.sh and scripts/test-deploy.sh
+        run: shellcheck deploy/deploy.sh scripts/test-deploy.sh
+      # X-02 (#64): deploy, redeploy and roll back a throwaway stand built from these images.
+      - name: Test deploy/deploy.sh
+        run: bash scripts/test-deploy.sh
+
+  # Lints every workflow (and the shell in their run steps) with actionlint.
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run actionlint
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.7 -color

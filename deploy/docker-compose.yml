@@ -2,6 +2,7 @@
 # One file for staging and production; the stand is chosen by deploy/.env (see .env.example):
 #   cp deploy/.env.example deploy/.env    # fill in, never commit
 #   docker compose -f deploy/docker-compose.yml up -d --build
+# CI deploys published images with deploy/deploy.sh instead (X-02, #64; README «Деплой из CI»).
 # The root docker-compose.yml stays the local-development database only.
 
 name: ${COMPOSE_PROJECT_NAME:-mktba}
@@ -69,7 +70,9 @@ services:
     networks: [backend, proxy]
 
   web:
-    image: ${MKTBA_IMAGE_PREFIX:-mktba}-web:${MKTBA_TAG:-local}
+    # Built per stand (VITE_* are baked in), so CI tags it <tag>-<stand>: MKTBA_WEB_TAG_SUFFIX is
+    # -staging or -production (X-02, #64), empty for a local build.
+    image: ${MKTBA_IMAGE_PREFIX:-mktba}-web:${MKTBA_TAG:-local}${MKTBA_WEB_TAG_SUFFIX:-}
     build:
       context: ../mktba.react
       args:

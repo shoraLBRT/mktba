@@ -92,7 +92,7 @@ docker run --rm -e ConnectionStrings__DefaultConnection=... <образ> --migra
 ```
 
 Команда идемпотентна: повторный запуск на актуальной базе ничего не меняет. Порядок деплоя —
-сначала `--migrate`, потом новая версия API (этот шаг использует деплой из CI, X-02 #64).
+сначала `--migrate`, потом новая версия API (так делает деплой из CI, X-02 #64, ниже).
 Демо-контента в API нет вовсе — его создаёт только скрипт `scripts/seed-demo-content.mjs` (ниже).
 
 #### Ключ подписи JWT
@@ -487,8 +487,65 @@ docker compose -f deploy/docker-compose.yml up -d --build
    первая регистрация без приглашения становится админом.
 4. Резервные копии томов `pgdata` и `uploads` (X-04, #158).
 
-CI (джоб `docker`) проверяет `deploy/docker-compose.yml` и `Caddyfile` и собирает оба образа, ничего
-не публикуя; публикация образов и деплой — X-02 (#64).
+CI на каждом PR (джоб `docker`) проверяет `deploy/docker-compose.yml` и `Caddyfile`, собирает оба
+образа, ничего не публикуя, и прогоняет `scripts/test-deploy.sh`: временный стенд из этих образов
+разворачивается `deploy.sh`, обновляется на второй тег и откатывается обратно. Джоб `actionlint`
+проверяет workflow.
+
+### Деплой из CI (X-02)
+
+Workflow `Deploy` (`.github/workflows/deploy.yml`) публикует образы в GHCR и разворачивает стенд
+по SSH скриптом `deploy/deploy.sh`. Из PR он не запускается и ничего не публикует.
+
+| Событие | Образы | Стенд |
+| --- | --- | --- |
+| push в `main` | `ghcr.io/<owner>/mktba-api:sha-<коммит>` | `staging` получает `sha-<коммит>` |
+| релиз (release-please, `release.yml` вызывает `Deploy`) | `mktba-api:<версия>` и `:sha-<коммит>` | `production` получает `<версия>` (например `1.4.0`) |
+| ручной запуск (Actions → Deploy → Run workflow) | пустой `tag` — собрать выбранный коммит | выбранный стенд; `tag` — развернуть уже опубликованные образы (откат) |
+
+Образ `web` у каждого стенда свой (в него зашит `VITE_API_BASE_URL`), поэтому он собирается в джобе
+деплоя и называется `mktba-web:<тег>-<стенд>` (`MKTBA_WEB_TAG_SUFFIX` в `docker-compose.yml`).
+Образ API один на все стенды.
+
+Порядок одного деплоя (`deploy.sh deploy <префикс> <тег> -<стенд>`):
+
+1. на сервер копируются `docker-compose.yml`, `Caddyfile`, `deploy.sh` (`.env` лежит там и не трогается);
+2. `docker compose pull` образов `migrate`, `api`, `web`;
+3. **миграции отдельным шагом:** `docker compose run --rm migrate` (поднимает `postgres`, применяет
+   миграции и справочные данные новым образом и завершается);
+4. только если миграции прошли — `api` и `web` переключаются на новые образы (`up -d --no-deps --wait`),
+   `caddy` поднимается, если не запущен;
+5. запись `<префикс> <тег> <суффикс>` дописывается в `.deploy-history`; CI проверяет
+   `https://<API_HOST>/schools/system` и `https://<SITE_HOST>/`.
+
+Упавший pull или миграция оставляют работающие `api` и `web` как были.
+
+**Откат:** ручной запуск `Deploy` с нужным стендом и прошлым тегом (`1.3.0`, `sha-1a2b3c4`; для стенда
+годится тег, который на нём уже был: только для него есть образ `web`) или на сервере
+`bash <DEPLOY_PATH>/deploy.sh rollback` (предыдущая запись `.deploy-history`; `deploy.sh status` —
+текущая). Откат не отменяет миграции, поэтому каждая миграция должна оставлять рабочей предыдущую
+версию: сначала добавляем, удаляем — в следующем релизе.
+
+**Что нужно от владельца, чтобы деплой заработал** (до этого джоб `deploy` пропускается, а образ
+API всё равно публикуется на каждый push в `main`):
+
+1. Сервер: Linux с Docker Engine и плагином compose, пользователь для деплоя в группе `docker`,
+   каталог `DEPLOY_PATH` (по умолчанию `/opt/mktba`) с заполненным `.env` из `deploy/.env.example`
+   (переменные `MKTBA_*` в нём не задавать — их передаёт `deploy.sh`), DNS и порты — как выше.
+   Staging и production могут жить на одном сервере в разных каталогах (`COMPOSE_PROJECT_NAME` разный),
+   но порты 80/443 займёт только один Caddy — тогда нужны разные серверы или общий прокси.
+2. SSH-ключ только для деплоя: `ssh-keygen -t ed25519 -N '' -f mktba-deploy`, публичную часть — в
+   `~/.ssh/authorized_keys` пользователя деплоя.
+3. GitHub → Settings → Environments: `staging` и `production`. У `production` — Required reviewers
+   (владелец) и Deployment branches: только `main`. В каждом окружении:
+   - секрет `DEPLOY_SSH_KEY` — приватный ключ;
+   - переменные `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_KNOWN_HOSTS` (вывод `ssh-keyscan -t ed25519 <host>`,
+     проверенный по отпечатку), `SITE_HOST`, `API_HOST` (те же, что в `.env` сервера); по желанию
+     `DEPLOY_PORT` (22), `DEPLOY_PATH` (`/opt/mktba`), `METRIKA_ID`.
+4. GitHub → Settings → Secrets and variables → Actions → Variables (уровень репозитория):
+   `DEPLOY_STAGING_ENABLED=true` и/или `DEPLOY_PRODUCTION_ENABLED=true` — включают стенд.
+5. Видимость пакетов `mktba-api` и `mktba-web` в GHCR менять не обязательно: сервер тянет их,
+   войдя в реестр токеном джоба (он действует, пока идёт джоб, и после деплоя удаляется `docker logout`).
 
 ## Лицензия
 
