@@ -128,6 +128,8 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         ["GET /analytics/content"] = Policies.CanViewSiteAnalytics,
         // P-03 (#91): the author dashboard, the signed-in user's own articles only.
         ["GET /analytics/me"] = Policies.CanEditArticles,
+        // N-09 (#103): one article's statistics; the per-article check (admin, author, co-author) is RequireArticleAccess.
+        ["GET /analytics/articles/{id:int}"] = Policies.CanEditArticles,
     };
 
     private readonly MktbaApiFactory _factory;
