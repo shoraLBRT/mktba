@@ -29,13 +29,21 @@ public sealed class AnalyticsDayAccumulator
         public readonly HashSet<Guid> Readers = [];
     }
 
+    private sealed class SearchCounts
+    {
+        public int Searches;
+        public int WithoutResults;
+        public readonly HashSet<Guid> Searchers = [];
+    }
+
     private readonly DateOnly _day;
     private readonly Dictionary<int, ArticleCounts> _articles = [];
     private readonly Dictionary<(int ArticleId, int SchoolId), ViewCounts> _articleSchools = [];
-    private readonly Dictionary<string, ViewCounts> _searches = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, SearchCounts> _searches = new(StringComparer.Ordinal);
     private readonly HashSet<Guid> _visitors = [];
     private int _articleViews;
     private int _searchCount;
+    private int _searchesWithoutResults;
 
     public AnalyticsDayAccumulator(DateOnly day)
     {
@@ -104,9 +112,11 @@ public sealed class AnalyticsDayAccumulator
 
     /// <summary>
     /// The day's summaries. Authors and tags come from <paramref name="attributions"/> — the articles
-    /// as they are now; an article missing from it (deleted since) is counted for itself only.
+    /// as they are now; an article missing from it (deleted since) is counted for itself only. A
+    /// final day keeps only the queries at least <paramref name="minSearchers"/> distinct visitors
+    /// made (N-06, #100); the site's search counts still include the others.
     /// </summary>
-    public AnalyticsDaySummaries Build(IEnumerable<ArticleAttribution> attributions, bool isFinal, DateTime aggregatedAtUtc)
+    public AnalyticsDaySummaries Build(IEnumerable<ArticleAttribution> attributions, bool isFinal, DateTime aggregatedAtUtc, int minSearchers)
     {
         var authors = new Dictionary<int, (ViewCounts Counts, int Articles)>();
         var tags = new Dictionary<int, (ViewCounts Counts, int Articles)>();
@@ -135,6 +145,7 @@ public sealed class AnalyticsDayAccumulator
                 ArticleViews = _articleViews,
                 Visitors = _visitors.Count,
                 Searches = _searchCount,
+                SearchesWithoutResults = _searchesWithoutResults,
                 IsFinal = isFinal,
                 AggregatedAtUtc = aggregatedAtUtc,
             },
@@ -176,13 +187,16 @@ public sealed class AnalyticsDayAccumulator
                 Readers = pair.Value.Counts.Readers.Count,
                 Articles = pair.Value.Articles,
             }).ToList(),
-            _searches.Select(pair => new AnalyticsSearchDay
-            {
-                Day = _day,
-                Query = pair.Key,
-                Searches = pair.Value.Views,
-                Searchers = pair.Value.Readers.Count,
-            }).ToList());
+            _searches
+                .Where(pair => !isFinal || pair.Value.Searchers.Count >= minSearchers)
+                .Select(pair => new AnalyticsSearchDay
+                {
+                    Day = _day,
+                    Query = pair.Key,
+                    Searches = pair.Value.Searches,
+                    Searchers = pair.Value.Searchers.Count,
+                    SearchesWithoutResults = pair.Value.WithoutResults,
+                }).ToList());
     }
 
     private void AddSearch(AnalyticsEventFacts e)
@@ -194,9 +208,14 @@ public sealed class AnalyticsDayAccumulator
 
         _searchCount++;
         var query = e.Query.ToLowerInvariant();
-        var counts = _searches.TryGetValue(query, out var found) ? found : _searches[query] = new ViewCounts();
-        counts.Views++;
-        AddReader(counts.Readers, e.VisitorId);
+        var counts = _searches.TryGetValue(query, out var found) ? found : _searches[query] = new SearchCounts();
+        counts.Searches++;
+        AddReader(counts.Searchers, e.VisitorId);
+        if (e.ResultCount == 0)
+        {
+            _searchesWithoutResults++;
+            counts.WithoutResults++;
+        }
     }
 
     private ArticleCounts Article(int articleId)

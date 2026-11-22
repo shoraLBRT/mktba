@@ -11,7 +11,8 @@ public sealed record AnalyticsEventFacts(
     int? SchoolId,
     short? ScrollDepth,
     Guid? VisitorId,
-    string? Query);
+    string? Query,
+    int? ResultCount);
 
 /// <summary>Who an article is by and what it is tagged with, as it is now.</summary>
 public sealed record ArticleAttribution(int ArticleId, IReadOnlyList<int> AuthorIds, IReadOnlyList<int> TagIds);
@@ -36,6 +37,10 @@ public sealed record AnalyticsViewsTotal(int Id, int Views, int Readers);
 /// <param name="Readers">Reader-days, as <see cref="AnalyticsViewsTotal.Readers"/>.</param>
 public sealed record AnalyticsArticleReading(
     int Id, int Views, int Readers, int ReachedDepth25, int ReachedDepth50, int ReachedDepth75, int ReachedDepth100);
+
+/// <summary>One search query added up over a period of days (N-06, #100).</summary>
+/// <param name="Searchers">Searcher-days, as <see cref="AnalyticsViewsTotal.Readers"/>.</param>
+public sealed record AnalyticsSearchTotal(string Query, int Searches, int Searchers, int SearchesWithoutResults);
 
 /// <summary>Reads raw analytics events by day, stores their daily summaries (N-04, #98) and reads them back for the dashboards.</summary>
 public class AnalyticsSummaryRepository
@@ -62,7 +67,7 @@ public class AnalyticsSummaryRepository
     public IAsyncEnumerable<AnalyticsEventFacts> StreamEventsAsync(DateTime fromUtc, DateTime toUtc)
         => _context.AnalyticsEvents.AsNoTracking()
             .Where(e => e.OccurredAtUtc >= fromUtc && e.OccurredAtUtc < toUtc)
-            .Select(e => new AnalyticsEventFacts(e.Type, e.ArticleId, e.SchoolId, e.ScrollDepth, e.VisitorId, e.Query))
+            .Select(e => new AnalyticsEventFacts(e.Type, e.ArticleId, e.SchoolId, e.ScrollDepth, e.VisitorId, e.Query, e.ResultCount))
             .AsAsyncEnumerable();
 
     /// <summary>The authors (the author and the co-authors) and the tags of each of <paramref name="articleIds"/> that still exists.</summary>
@@ -229,6 +234,32 @@ public class AnalyticsSummaryRepository
             .OrderByDescending(t => t.Views).ThenBy(t => t.Id)
             .Select(t => new AnalyticsArticleReading(t.Id, t.Views, t.Readers, t.Depth25, t.Depth50, t.Depth75, t.Depth100))
             .ToList();
+    }
+
+    /// <summary>
+    /// The queries searched in [<paramref name="from"/>, <paramref name="to"/>], each counted only on
+    /// the days at least <paramref name="minSearchers"/> distinct visitors made it (N-06, #100): most
+    /// searches first, or with <paramref name="withoutResultsOnly"/> only the queries that found
+    /// nothing at least once, most such searches first; then by the query.
+    /// </summary>
+    public async Task<List<AnalyticsSearchTotal>> GetSearchQueriesAsync(
+        DateOnly from, DateOnly to, int minSearchers, bool withoutResultsOnly, int limit, CancellationToken cancellationToken = default)
+    {
+        var grouped = _context.AnalyticsSearchDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to && d.Searchers >= minSearchers)
+            .GroupBy(d => d.Query)
+            .Select(g => new
+            {
+                Query = g.Key,
+                Searches = g.Sum(d => d.Searches),
+                Searchers = g.Sum(d => d.Searchers),
+                WithoutResults = g.Sum(d => d.SearchesWithoutResults),
+            });
+        var ordered = withoutResultsOnly
+            ? grouped.Where(t => t.WithoutResults > 0).OrderByDescending(t => t.WithoutResults).ThenByDescending(t => t.Searches)
+            : grouped.OrderByDescending(t => t.Searches).ThenByDescending(t => t.Searchers);
+        var totals = await ordered.ThenBy(t => t.Query).Take(limit).ToListAsync(cancellationToken);
+        return totals.Select(t => new AnalyticsSearchTotal(t.Query, t.Searches, t.Searchers, t.WithoutResults)).ToList();
     }
 
     /// <summary>The title and slug of each of <paramref name="articleIds"/> that still exists.</summary>

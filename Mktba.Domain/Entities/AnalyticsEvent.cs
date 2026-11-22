@@ -54,6 +54,13 @@ public class AnalyticsEvent
     /// <summary>The submitted search query, trimmed, white space collapsed (<see cref="AnalyticsEventType.Search"/>).</summary>
     public string? Query { get; set; }
 
+    /// <summary>
+    /// How many articles the search found when the event arrived, counted by the server with the
+    /// site's own search (N-06, #100; <see cref="AnalyticsEventType.Search"/>); null for searches
+    /// stored before it was counted.
+    /// </summary>
+    public int? ResultCount { get; set; }
+
     /// <summary>The site-relative path a link in the article led to, without query and fragment (<see cref="AnalyticsEventType.InternalLinkClick"/>).</summary>
     public string? TargetPath { get; set; }
 }

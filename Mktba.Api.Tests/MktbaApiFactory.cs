@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Collections.Concurrent;
+using System.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Mktba.Application.Services.Analytics;
 using Mktba.Application.Services.Feedback;
 using Mktba.Application.Services.IndexNow;
 using Mktba.Infrastructure.Data;
@@ -99,6 +101,10 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IIndexNowClient>();
             services.AddSingleton(IndexNowClient ?? new NoIndexNowClient());
 
+            // The search needs PostgreSQL: a search event's result count comes from SearchResults.
+            services.RemoveAll<ISearchResultCounter>();
+            services.AddSingleton<ISearchResultCounter>(new StubSearchResultCounter(this));
+
             // Uploaded files go to a directory of this factory only, removed with it.
             services.RemoveAll<IFileStorage>();
             services.AddSingleton<IFileStorage>(new LocalFileStorage(StorageRoot));
@@ -110,6 +116,17 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
 
     /// <summary>A stand-in IndexNow endpoint; null (the default) refuses every send.</summary>
     internal IIndexNowClient? IndexNowClient { get; init; }
+
+    /// <summary>
+    /// What the site's search finds for a query when a search event arrives (N-06, #100): the count
+    /// set here, 1 for a query not set.
+    /// </summary>
+    internal ConcurrentDictionary<string, int> SearchResults { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>How many times the stand-in search has been run.</summary>
+    internal int SearchCounts => _searchCounts;
+
+    private int _searchCounts;
 
     /// <summary>Where this factory's API stores uploaded files.</summary>
     internal string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), $"mktba-api-tests-files-{Guid.NewGuid():N}");
@@ -140,6 +157,15 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
     {
         public Task<bool> SubmitAsync(IReadOnlyCollection<string> paths, CancellationToken cancellationToken)
             => Task.FromResult(false);
+    }
+
+    private sealed class StubSearchResultCounter(MktbaApiFactory factory) : ISearchResultCounter
+    {
+        public Task<int> CountAsync(string query, CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref factory._searchCounts);
+            return Task.FromResult(factory.SearchResults.GetValueOrDefault(query, 1));
+        }
     }
 
     private sealed class RemoteIpFromHeaderStartupFilter : IStartupFilter

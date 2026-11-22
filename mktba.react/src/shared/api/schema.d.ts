@@ -337,6 +337,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/analytics/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What readers searched for with the site's search over the last days, and what found nothing.
+         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). Queries are in lower case and counted for a day only when at least minSearchers distinct visitors made them that day (a phrase one person typed is never shown, nor kept once the day is final); totals count every search. topQueries: the twenty most searched; queriesWithoutResults: the twenty that most often found no article. searchers summed over several days are searcher-days. Search phrases from external search engines are in Yandex Metrika, not here.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SearchAnalyticsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/analytics/me": {
         parameters: {
             query?: never;
@@ -4785,6 +4826,36 @@ export interface components {
             isSystem: boolean;
             /** Format: int32 */
             articleScopeId?: number | null;
+        };
+        SearchAnalyticsDto: {
+            /** Format: int32 */
+            days: number;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["SearchAnalyticsTotalsDto"];
+            topQueries: components["schemas"]["SearchQueryTotalDto"][];
+            queriesWithoutResults: components["schemas"]["SearchQueryTotalDto"][];
+            /** Format: int32 */
+            minSearchers: number;
+            /** Format: date-time */
+            aggregatedAtUtc?: string | null;
+        };
+        SearchAnalyticsTotalsDto: {
+            /** Format: int32 */
+            searches: number;
+            /** Format: int32 */
+            searchesWithoutResults: number;
+        };
+        SearchQueryTotalDto: {
+            query: string;
+            /** Format: int32 */
+            searches: number;
+            /** Format: int32 */
+            searchers: number;
+            /** Format: int32 */
+            searchesWithoutResults: number;
         };
         SearchResultDto: {
             /** Format: int32 */

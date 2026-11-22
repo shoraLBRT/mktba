@@ -57,9 +57,69 @@ public sealed class AnalyticsEndpointTests : IClassFixture<MktbaApiFactory>
         var search = stored.Single(e => e.Type == AnalyticsEventType.Search);
         search.Query.Should().Be("намаз в пути");
         search.ArticleId.Should().BeNull();
+        search.ResultCount.Should().Be(1, "the factory's search finds one article for a query it was not told about");
 
         stored.Single(e => e.Type == AnalyticsEventType.ScrollDepth).ScrollDepth.Should().Be(75);
         stored.Single(e => e.Type == AnalyticsEventType.InternalLinkClick).TargetPath.Should().Be("/zakyat");
+    }
+
+    [Fact]
+    public async Task GivenSearches_WhenPosting_ThenEachIsStoredWithWhatTheSiteSearchFindsForIt()
+    {
+        _factory.SearchResults["пятничная молитва"] = 7;
+        _factory.SearchResults["несуществующая тема"] = 0;
+        var viewId = Guid.NewGuid();
+
+        var response = await PostAsync(
+            new { type = "Search", viewId, query = "пятничная   молитва" },
+            new { type = "Search", viewId, query = "несуществующая тема" },
+            new { type = "Search", viewId, query = "несуществующая тема" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var stored = await LoadAsync(viewId);
+        stored.Should().HaveCount(3);
+        stored.Single(e => e.Query == "пятничная молитва").ResultCount.Should().Be(7);
+        stored.Where(e => e.Query == "несуществующая тема").Should().HaveCount(2).And.OnlyContain(e => e.ResultCount == 0);
+    }
+
+    [Fact]
+    public async Task GivenMoreDistinctSearchesThanTheCap_WhenPosting_ThenOnlyTheFirstQueriesAreCountedAndTheRestKeptWithoutACount()
+    {
+        var viewId = Guid.NewGuid();
+        var queries = Enumerable.Range(1, 5).Select(i => $"вопрос номер {i} {viewId:N}").ToArray();
+        foreach (var query in queries)
+        {
+            _factory.SearchResults[query] = 4;
+        }
+
+        var response = await PostAsync(
+            new { type = "Search", viewId, query = queries[0] },
+            new { type = "Search", viewId, query = queries[1] },
+            new { type = "Search", viewId, query = queries[0] },
+            new { type = "Search", viewId, query = queries[2] },
+            new { type = "Search", viewId, query = queries[3] },
+            new { type = "Search", viewId, query = queries[4] });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        (await response.Content.ReadFromJsonAsync<AnalyticsAcceptedDto>(ApiJson.Options))!.Accepted.Should().Be(6);
+        var stored = await LoadAsync(viewId);
+        stored.Where(e => e.Query == queries[0] || e.Query == queries[1] || e.Query == queries[2])
+            .Should().HaveCount(4).And.OnlyContain(e => e.ResultCount == 4);
+        stored.Where(e => e.Query == queries[3] || e.Query == queries[4])
+            .Should().HaveCount(2).And.OnlyContain(e => e.ResultCount == null);
+        _factory.SearchCounts.Should().Be(3, "the site's search runs once per counted query");
+    }
+
+    [Fact]
+    public async Task GivenABotsSearches_WhenPosting_ThenTheSearchIsNeverRun()
+    {
+        var viewId = Guid.NewGuid();
+        var before = _factory.SearchCounts;
+        var response = await PostAsAsync("curl/8.4.0", new { type = "Search", viewId, query = $"бот ищет {viewId:N}" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        (await LoadAsync(viewId)).Should().BeEmpty();
+        _factory.SearchCounts.Should().Be(before);
     }
 
     [Fact]

@@ -13,6 +13,7 @@ vi.mock('../../services/adminService', () => ({
 }));
 vi.mock('../../auth/useCurrentUser', () => ({ useCurrentUser: vi.fn() }));
 vi.mock('./SiteAnalyticsSection', () => ({ SiteAnalyticsSection: () => <div data-testid="site-analytics" /> }));
+vi.mock('./SearchAnalyticsSection', () => ({ SearchAnalyticsSection: () => <div data-testid="search-analytics" /> }));
 vi.mock('./AuthorAnalyticsSection', () => ({ AuthorAnalyticsSection: () => <div data-testid="author-analytics" /> }));
 
 const signInAs = (role: UserRole) =>
@@ -67,6 +68,7 @@ describe('AdminDashboardPage', () => {
     renderPage();
 
     expect(await screen.findByTestId('site-analytics')).toBeTruthy();
+    expect(screen.getByTestId('search-analytics')).toBeTruthy();
     expect(screen.getByTestId('author-analytics')).toBeTruthy();
   });
 
@@ -79,5 +81,6 @@ describe('AdminDashboardPage', () => {
     expect(await screen.findByText('Всего статей')).toBeTruthy();
     expect(screen.getByTestId('author-analytics')).toBeTruthy();
     expect(screen.queryByTestId('site-analytics')).toBeNull();
+    expect(screen.queryByTestId('search-analytics')).toBeNull();
   });
 });

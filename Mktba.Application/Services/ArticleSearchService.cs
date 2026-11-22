@@ -2,13 +2,14 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
+using Mktba.Application.Services.Analytics;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
 
 namespace Mktba.Application.Services
 {
     /// <summary>Full-text search over the articles a reader can open (R-10, #46).</summary>
-    public partial class ArticleSearchService
+    public partial class ArticleSearchService : ISearchResultCounter
     {
         public const int MinQueryLength = 2;
         public const int MaxQueryLength = 200;
@@ -69,6 +70,14 @@ namespace Mktba.Application.Services
 
             return new SearchResultsDto(text, rows.Count == 0 ? 0 : rows[0].Total, currentPage, take, items);
         }
+
+        /// <summary>
+        /// How many articles <see cref="SearchAsync"/> finds for <paramref name="query"/> in the default
+        /// language, as an anonymous reader of the results page sees it (N-06, #100).
+        /// </summary>
+        /// <exception cref="ValidationException">search_query_too_short, search_query_too_long.</exception>
+        public async Task<int> CountAsync(string query, CancellationToken cancellationToken = default)
+            => (await SearchAsync(query, null, 1, 1, cancellationToken)).Total;
 
         /// <summary>Trims the query, collapses whitespace and drops the characters that mark matches.</summary>
         public static string NormalizeQuery(string? query)

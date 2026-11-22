@@ -9,6 +9,7 @@ import type { ArticleStatus, ArticleSummaryDto } from '../../shared/types/ApiTyp
 import { Card } from '../../shared/ui/Card';
 import { useCurrentUser } from '../../auth/useCurrentUser';
 import { AuthorAnalyticsSection } from './AuthorAnalyticsSection';
+import { SearchAnalyticsSection } from './SearchAnalyticsSection';
 import { SiteAnalyticsSection } from './SiteAnalyticsSection';
 
 /** Each status, with its field in the summary's `byStatus`. */
@@ -99,6 +100,7 @@ const AdminDashboardPage: React.FC = () => {
       </Card>
 
       {can('canViewSiteAnalytics') ? <SiteAnalyticsSection /> : null}
+      {can('canViewSiteAnalytics') ? <SearchAnalyticsSection /> : null}
       {can('canEditArticles') ? <AuthorAnalyticsSection /> : null}
     </div>
   );

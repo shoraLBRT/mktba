@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+using Mktba.Application.Configuration;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
 using Mktba.Domain.Entities;
@@ -28,6 +30,15 @@ namespace Mktba.Application.Services.Analytics;
 /// Two requests of one page view racing each other can still both land; the client sends one
 /// request at a time, so this is left to the aggregates.
 /// </para>
+/// <para>
+/// A search is stored with the number of articles the site's search finds for it at that moment
+/// (<see cref="ISearchResultCounter"/>, N-06, #100), so the search analytics can list the queries
+/// that found nothing. The browser is not asked. The endpoint is public, so the count must not
+/// turn it into a cheaper way to run the search: only events that passed the bot filter and the
+/// repeat checks are counted, once per distinct query, and only the first
+/// <see cref="AnalyticsOptions.MaxSearchCountsPerRequest"/> distinct queries of a request (the site
+/// sends one search per batch); the others are stored with no count (unknown).
+/// </para>
 /// </summary>
 public class AnalyticsEventService
 {
@@ -45,12 +56,17 @@ public class AnalyticsEventService
     private readonly record struct OncePerViewKey(Guid ViewId, AnalyticsEventType Type, int? ArticleId, int? ParagraphId, short? ScrollDepth);
 
     private readonly AnalyticsEventRepository _events;
+    private readonly ISearchResultCounter _searchResults;
     private readonly TimeProvider _timeProvider;
+    private readonly int _maxSearchCounts;
 
-    public AnalyticsEventService(AnalyticsEventRepository events, TimeProvider timeProvider)
+    public AnalyticsEventService(
+        AnalyticsEventRepository events, ISearchResultCounter searchResults, TimeProvider timeProvider, IOptions<AnalyticsOptions> options)
     {
         _events = events;
+        _searchResults = searchResults;
         _timeProvider = timeProvider;
+        _maxSearchCounts = Math.Max(0, options.Value.MaxSearchCountsPerRequest);
     }
 
     /// <param name="batch">The events sent.</param>
@@ -103,10 +119,36 @@ public class AnalyticsEventService
         var accepted = await DropRepeatsAsync(valid, now, cancellationToken);
         if (accepted.Count > 0)
         {
+            await CountSearchResultsAsync(accepted, cancellationToken);
             await _events.AddRangeAsync(accepted, cancellationToken);
         }
 
         return new AnalyticsAcceptedDto(accepted.Count);
+    }
+
+    /// <summary>
+    /// Sets <see cref="AnalyticsEvent.ResultCount"/> of the searches of the first
+    /// <see cref="_maxSearchCounts"/> distinct queries, in the order sent, asking the search once per
+    /// query; later queries stay without a count.
+    /// </summary>
+    private async Task CountSearchResultsAsync(List<AnalyticsEvent> events, CancellationToken cancellationToken)
+    {
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var search in events.Where(e => e.Type == AnalyticsEventType.Search))
+        {
+            var query = search.Query!;
+            if (!counts.TryGetValue(query, out var count))
+            {
+                if (counts.Count >= _maxSearchCounts)
+                {
+                    continue;
+                }
+
+                count = counts[query] = await _searchResults.CountAsync(query, cancellationToken);
+            }
+
+            search.ResultCount = count;
+        }
     }
 
     /// <summary>

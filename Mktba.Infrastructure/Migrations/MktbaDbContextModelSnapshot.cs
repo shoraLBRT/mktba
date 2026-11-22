@@ -161,6 +161,9 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<int>("Searches")
                         .HasColumnType("integer");
 
+                    b.Property<int>("SearchesWithoutResults")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Visitors")
                         .HasColumnType("integer");
 
@@ -192,6 +195,9 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<string>("Query")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("ResultCount")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("SchoolId")
                         .HasColumnType("integer");
@@ -240,6 +246,9 @@ namespace Mktba.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("Searches")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SearchesWithoutResults")
                         .HasColumnType("integer");
 
                     b.HasKey("Day", "Query");

@@ -25,6 +25,7 @@ public abstract class AnalyticsAggregationScenarios : IAsyncLifetime
 
     private readonly FeedbackTests.FakeClock _clock = new(DayStart.AddDays(1).AddHours(12));
     private int _retentionDays = 180;
+    private int _minSearchers = 2;
 
     protected abstract MktbaDbContext CreateContext();
 
@@ -61,9 +62,9 @@ public abstract class AnalyticsAggregationScenarios : IAsyncLifetime
             Event(AnalyticsEventType.OpinionSwitched, at, content.Shared, VisitorOne),
             Event(AnalyticsEventType.OpinionSwitched, at, content.Shared, VisitorOne),
             Event(AnalyticsEventType.InternalLinkClick, at, content.Shared, VisitorTwo),
-            Search(at, "Намаз", VisitorOne),
-            Search(at, "намаз", VisitorTwo),
-            Search(at, "закят", VisitorTwo),
+            Search(at, "Намаз", VisitorOne, resultCount: 3),
+            Search(at, "намаз", VisitorTwo, resultCount: 0),
+            Search(at, "закят", VisitorTwo, resultCount: 0),
             View(DayStart.AddDays(1).AddHours(1), content.Solo, VisitorTwo));
 
         var run = await ServiceRunAsync();
@@ -71,7 +72,7 @@ public abstract class AnalyticsAggregationScenarios : IAsyncLifetime
         run.DaysAggregated.Should().Be(2);
         await using var context = CreateContext();
         var site = await context.AnalyticsDays.SingleAsync(d => d.Day == Day);
-        site.Should().BeEquivalentTo(new { ArticleViews = 4, Visitors = 2, Searches = 3, IsFinal = true });
+        site.Should().BeEquivalentTo(new { ArticleViews = 4, Visitors = 2, Searches = 3, SearchesWithoutResults = 2, IsFinal = true });
         (await context.AnalyticsDays.SingleAsync(d => d.Day == Day.AddDays(1))).IsFinal.Should().BeFalse();
 
         var articles = await context.AnalyticsArticleDays.Where(d => d.Day == Day).ToListAsync();
@@ -101,12 +102,53 @@ public abstract class AnalyticsAggregationScenarios : IAsyncLifetime
         (await context.AnalyticsTagDays.Where(d => d.Day == Day).ToListAsync())
             .Should().ContainSingle().Which.Should().BeEquivalentTo(new { TagId = content.Tag, Views = 3, Readers = 2, Articles = 2 });
 
+        // The day is final: "закят", searched by one visitor only, keeps no row (N-06, #100).
         var searches = await context.AnalyticsSearchDays.Where(d => d.Day == Day).ToListAsync();
         searches.Should().BeEquivalentTo(new[]
         {
-            new { Query = "намаз", Searches = 2, Searchers = 2 },
-            new { Query = "закят", Searches = 1, Searchers = 1 },
+            new { Query = "намаз", Searches = 2, Searchers = 2, SearchesWithoutResults = 1 },
         });
+    }
+
+    [Fact]
+    public async Task GivenAQueryOfOneVisitor_WhenItsDayIsNotFinal_ThenItIsKeptUntilTheDayBecomesFinal()
+    {
+        var today = DayStart.AddDays(1);
+        await AddEventsAsync(
+            Search(today.AddHours(1), "редкий вопрос", VisitorOne, resultCount: 0),
+            Search(today.AddHours(2), "редкий вопрос", VisitorOne, resultCount: 0),
+            Search(today.AddHours(3), "частый вопрос", VisitorOne, resultCount: 2),
+            Search(today.AddHours(4), "частый вопрос", VisitorTwo, resultCount: null));
+
+        await ServiceRunAsync();
+        await using (var before = CreateContext())
+        {
+            (await before.AnalyticsSearchDays.Select(d => d.Query).ToListAsync())
+                .Should().BeEquivalentTo("редкий вопрос", "частый вопрос");
+        }
+
+        _clock.Advance(TimeSpan.FromDays(1));
+        await ServiceRunAsync();
+
+        await using var after = CreateContext();
+        (await after.AnalyticsSearchDays.Where(d => d.Day == Day.AddDays(1)).ToListAsync())
+            .Should().ContainSingle().Which.Should().BeEquivalentTo(
+                new { Query = "частый вопрос", Searches = 2, Searchers = 2, SearchesWithoutResults = 0 });
+        (await after.AnalyticsDays.SingleAsync(d => d.Day == Day.AddDays(1)))
+            .Should().BeEquivalentTo(new { Searches = 4, SearchesWithoutResults = 2, IsFinal = true });
+    }
+
+    [Fact]
+    public async Task GivenTheThresholdSetToOne_WhenADayBecomesFinal_ThenAQueryOfOneVisitorIsKept()
+    {
+        _minSearchers = 1;
+        await AddEventsAsync(Search(DayStart.AddHours(5), "редкий вопрос", VisitorOne, resultCount: 0));
+
+        await ServiceRunAsync();
+
+        await using var context = CreateContext();
+        (await context.AnalyticsSearchDays.SingleAsync(d => d.Day == Day))
+            .Should().BeEquivalentTo(new { Query = "редкий вопрос", Searches = 1, Searchers = 1, SearchesWithoutResults = 1 });
     }
 
     [Fact]
@@ -213,7 +255,7 @@ public abstract class AnalyticsAggregationScenarios : IAsyncLifetime
         var service = new AnalyticsAggregationService(
             new AnalyticsSummaryRepository(context),
             _clock,
-            Options.Create(new AnalyticsOptions { RetentionDays = _retentionDays }));
+            Options.Create(new AnalyticsOptions { RetentionDays = _retentionDays, SearchQueryMinSearchers = _minSearchers }));
         return await service.RunAsync();
     }
 
@@ -254,8 +296,8 @@ public abstract class AnalyticsAggregationScenarios : IAsyncLifetime
     private static AnalyticsEvent Depth(DateTime at, int articleId, Guid visitor, short depth)
         => Event(AnalyticsEventType.ScrollDepth, at, articleId, visitor, e => e.ScrollDepth = depth);
 
-    private static AnalyticsEvent Search(DateTime at, string query, Guid visitor)
-        => new() { Type = AnalyticsEventType.Search, OccurredAtUtc = at, Query = query, VisitorId = visitor };
+    private static AnalyticsEvent Search(DateTime at, string query, Guid visitor, int? resultCount)
+        => new() { Type = AnalyticsEventType.Search, OccurredAtUtc = at, Query = query, VisitorId = visitor, ResultCount = resultCount };
 
     private static AnalyticsEvent Event(AnalyticsEventType type, DateTime at, int articleId, Guid visitor, Action<AnalyticsEvent>? fill = null)
     {

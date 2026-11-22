@@ -25,6 +25,10 @@ public sealed record AnalyticsAggregationRun(int DaysAggregated, int EventsRemov
 /// keeps the authorship of the time it closed.
 /// </para>
 /// <para>
+/// Search phrases (N-06, #100): a final day keeps a query only when at least
+/// <see cref="AnalyticsOptions.SearchQueryMinSearchers"/> distinct visitors made it that day.
+/// </para>
+/// <para>
 /// Retention: raw events older than <see cref="AnalyticsOptions.RetentionDays"/> days are removed,
 /// but never those of a day that is not final yet.
 /// </para>
@@ -81,7 +85,7 @@ public class AnalyticsAggregationService
 
         var attributions = await _summaries.GetAttributionsAsync(accumulator.ArticleIds.ToList(), cancellationToken);
         var isFinal = now >= end + SettleTime;
-        await _summaries.ReplaceDayAsync(accumulator.Build(attributions, isFinal, now), cancellationToken);
+        await _summaries.ReplaceDayAsync(accumulator.Build(attributions, isFinal, now, _options.MinSearchers), cancellationToken);
     }
 
     private async Task<int> ApplyRetentionAsync(DateOnly today, CancellationToken cancellationToken)

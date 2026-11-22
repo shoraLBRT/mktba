@@ -267,6 +267,37 @@
         }
       }
     },
+    "/analytics/search": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "What readers searched for with the site's search over the last days, and what found nothing.",
+        "description": "Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). Queries are in lower case and counted for a day only when at least minSearchers distinct visitors made them that day (a phrase one person typed is never shown, nor kept once the day is final); totals count every search. topQueries: the twenty most searched; queriesWithoutResults: the twenty that most often found no article. searchers summed over several days are searcher-days. Search phrases from external search engines are in Yandex Metrika, not here.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchAnalyticsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/analytics/me": {
       "get": {
         "tags": [
@@ -6192,6 +6223,102 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchAnalyticsDto": {
+        "required": [
+          "days",
+          "from",
+          "minSearchers",
+          "queriesWithoutResults",
+          "to",
+          "topQueries",
+          "totals"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/SearchAnalyticsTotalsDto"
+          },
+          "topQueries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchQueryTotalDto"
+            }
+          },
+          "queriesWithoutResults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchQueryTotalDto"
+            }
+          },
+          "minSearchers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aggregatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchAnalyticsTotalsDto": {
+        "required": [
+          "searches",
+          "searchesWithoutResults"
+        ],
+        "type": "object",
+        "properties": {
+          "searches": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "searchesWithoutResults": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchQueryTotalDto": {
+        "required": [
+          "query",
+          "searchers",
+          "searches",
+          "searchesWithoutResults"
+        ],
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "searches": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "searchers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "searchesWithoutResults": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

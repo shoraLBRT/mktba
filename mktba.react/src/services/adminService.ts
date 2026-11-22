@@ -16,6 +16,7 @@ import type {
   ArticleStatus,
   ArticleSummaryDto,
   AuthorAnalyticsDto,
+  SearchAnalyticsDto,
   SiteAnalyticsDto,
   ReviewQueueItemDto,
   UpdateAiProviderSettingsDto,
@@ -166,6 +167,12 @@ export const checkAiConnection = async (): Promise<AiConnectionCheckResultDto> =
 /** The admin dashboard's site-wide statistics (N-05): the last `days` UTC days, today included. */
 export const getSiteAnalytics = async (days: number): Promise<SiteAnalyticsDto> => {
   const response = await apiClient.get<SiteAnalyticsDto>('/analytics/site', { params: { days } });
+  return response.data;
+};
+
+/** The search analytics of the admin dashboard (N-06): popular queries and those that found nothing, over the last `days` UTC days. */
+export const getSearchAnalytics = async (days: number): Promise<SearchAnalyticsDto> => {
+  const response = await apiClient.get<SearchAnalyticsDto>('/analytics/search', { params: { days } });
   return response.data;
 };
 
