@@ -278,6 +278,18 @@ describe('ArticleEditorPage', () => {
     expect(baseUpdatedAt).toBe('2026-11-20T09:00:00Z');
   });
 
+  it('given the server draft could not be read, when typing pauses, then nothing is written there and the edits are kept in this browser only', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleDraft).mockRejectedValue(new Error('offline'));
+    renderAt('/admin/articles/7/edit');
+
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+    expect(await screen.findByText(/Сервер не ответил: копия правок сохранена в этом браузере/, undefined, { timeout: 5000 })).toBeTruthy();
+    expect(readLocalDraftCopy(localDraftCopyKey(1, 7))?.draft.title).toBe('Намаз путника');
+    expect(saveArticleDraft).not.toHaveBeenCalled();
+  });
+
   it('given a server that refuses the draft, when typing pauses, then the indicator says the edits are kept in this browser only', async () => {
     vi.mocked(getArticleContentById).mockResolvedValue(article);
     vi.mocked(saveArticleDraft).mockRejectedValue(new Error('offline'));

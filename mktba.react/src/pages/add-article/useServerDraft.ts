@@ -6,6 +6,10 @@ import { isDraftShaped, type LocalDraftCopy } from './localDraftCopy';
 /** How long typing has to pause before the draft goes to the server. */
 export const SERVER_DRAFT_DELAY_MS = 3000;
 
+/** The first pause before a failed read of the server draft is tried again; it doubles up to `SERVER_DRAFT_RETRY_MAX_MS`. */
+export const SERVER_DRAFT_RETRY_MS = 5000;
+export const SERVER_DRAFT_RETRY_MAX_MS = 60000;
+
 /** Raised when the stored shape changes, so an older draft is dropped instead of misread. */
 const SNAPSHOT_VERSION = 1;
 
@@ -50,7 +54,8 @@ type Options = {
   baseUpdatedAt: string | null;
 };
 
-type LoadState = { ready: boolean; offer: LocalDraftCopy | null };
+/** `failed`: the last read of the server draft failed and is being retried. */
+type LoadState = { ready: boolean; failed: boolean; offer: LocalDraftCopy | null };
 
 type LastWrite = { draft: ArticleDraft; ok: boolean };
 
@@ -58,11 +63,13 @@ type LastWrite = { draft: ArticleDraft; ok: boolean };
  * Autosaves the editor's unsaved edits as the user's own server draft (E-02, #75, decision B): a
  * moment after the edits stop and when the editor closes; it is deleted as soon as the draft equals
  * the baseline again. The draft found on open is offered and not overwritten until the user
- * decides. Requests go out one at a time, in order, so a delete after a save always lands last.
+ * decides. Nothing is written before the server has answered that first read: a failed read is
+ * retried (growing pauses, and at once on the next edit) while the indicator says the edits are
+ * not on the server. Requests go out one at a time, in order, so a delete after a save always lands last.
  * The browser's local copy (`useLocalDraftCopy`) stays the fallback for a lost connection.
  */
 export const useServerDraft = ({ enabled, articleId, draft, baseline, baseUpdatedAt }: Options): ServerDraftState => {
-  const [load, setLoad] = useState<LoadState>({ ready: false, offer: null });
+  const [load, setLoad] = useState<LoadState>({ ready: false, failed: false, offer: null });
   const [lastWrite, setLastWrite] = useState<LastWrite | null>(null);
   const [inFlight, setInFlight] = useState<ArticleDraft | null>(null);
   const isDirty = hasArticleDraftChanged(draft, baseline);
@@ -75,7 +82,11 @@ export const useServerDraft = ({ enabled, articleId, draft, baseline, baseUpdate
   const queue = useRef<Promise<void>>(Promise.resolve());
   /** Whether a draft may be on the server, so a clean editor knows to delete it. */
   const onServer = useRef(false);
-  const requested = useRef(false);
+  /** Whether the server has answered the read (or the draft was cleared), so writing may start. */
+  const ready = useRef(false);
+  const fetching = useRef(false);
+  const failedReads = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const enqueue = useCallback((task: () => Promise<void>) => {
@@ -113,13 +124,31 @@ export const useServerDraft = ({ enabled, articleId, draft, baseline, baseUpdate
     }
   };
 
-  useEffect(() => {
-    if (!enabled || requested.current) {
+  const clearRetry = () => {
+    if (retryTimer.current !== null) {
+      clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
+  };
+
+  /**
+   * Asks the server for the draft. Until it has answered (200 or 204) nothing is written there, so
+   * a draft that could not be read is never overwritten unseen: a failed read is retried with a
+   * growing pause, and at once on the next edit, while the browser copy keeps the edits.
+   */
+  const fetchDraft = useCallback(() => {
+    if (fetching.current || ready.current) {
       return;
     }
-    requested.current = true;
+    fetching.current = true;
+    retryTimer.current = null;
     getArticleDraft(articleId).then(
       (found) => {
+        fetching.current = false;
+        if (ready.current) {
+          return;
+        }
+        ready.current = true;
         if (found) {
           onServer.current = true;
         }
@@ -127,12 +156,40 @@ export const useServerDraft = ({ enabled, articleId, draft, baseline, baseUpdate
         const offer = found && restored && hasArticleDraftChanged(restored, latest.current.baseline)
           ? { savedAt: found.updatedAt, baseUpdatedAt: found.baseUpdatedAt ?? null, draft: restored }
           : null;
-        setLoad((current) => (current.ready ? current : { ready: true, offer }));
+        setLoad({ ready: true, failed: false, offer });
       },
-      // Unreachable server: autosave goes on, the local copy keeps the edits meanwhile.
-      () => setLoad((current) => (current.ready ? current : { ready: true, offer: null })),
+      () => {
+        fetching.current = false;
+        if (ready.current) {
+          return;
+        }
+        const pause = Math.min(SERVER_DRAFT_RETRY_MS * 2 ** failedReads.current, SERVER_DRAFT_RETRY_MAX_MS);
+        failedReads.current += 1;
+        setLoad((current) => (current.ready ? current : { ...current, failed: true }));
+        retryTimer.current = setTimeout(() => fetchDraftRef.current(), pause);
+      },
     );
-  }, [enabled, articleId]);
+  }, [articleId]);
+  const fetchDraftRef = useRef(fetchDraft);
+  useEffect(() => {
+    fetchDraftRef.current = fetchDraft;
+  });
+
+  useEffect(() => {
+    if (enabled) {
+      fetchDraft();
+    }
+  }, [enabled, fetchDraft]);
+
+  // After a failed read, the next edit asks again without waiting for the pause.
+  useEffect(() => {
+    if (failedReads.current > 0 && !ready.current && !fetching.current) {
+      clearRetry();
+      fetchDraft();
+    }
+  }, [draft, fetchDraft]);
+
+  useEffect(() => () => clearRetry(), []);
 
   const isWriting = load.ready && load.offer === null;
 
@@ -160,11 +217,16 @@ export const useServerDraft = ({ enabled, articleId, draft, baseline, baseUpdate
 
   const status: ServerDraftStatus = !isDirty
     ? 'clean'
-    : lastWrite?.draft === draft
+    : !load.ready
+      ? load.failed ? 'failed' : 'pending'
+      : lastWrite?.draft === draft
       ? lastWrite.ok ? 'saved' : 'failed'
       : inFlight === draft ? 'saving' : 'pending';
 
-  const endOffer = () => setLoad({ ready: true, offer: null });
+  const endOffer = () => {
+    ready.current = true;
+    setLoad({ ready: true, failed: false, offer: null });
+  };
 
   const acceptOffer = () => {
     const accepted = load.offer?.draft ?? null;
@@ -179,8 +241,8 @@ export const useServerDraft = ({ enabled, articleId, draft, baseline, baseUpdate
 
   const clear = () => {
     cancelWrite();
-    // A draft still loading is not offered any more.
-    requested.current = true;
+    // A draft still loading is not offered any more: the edits it held are saved or given up.
+    clearRetry();
     remove();
     endOffer();
     setLastWrite(null);
