@@ -4,7 +4,8 @@ import { index, layout, route, type RouteConfig } from '@react-router/dev/routes
  * Every page of the app. The public site (`MainLayout`) is rendered on the server: its route
  * modules have a server `loader` that fetches the API and hands the data to React Query. `/admin/*`
  * is client-only (`clientLoader` + `HydrateFallback`), so auth never runs on the server.
- * `robots.txt` and the sitemap files are resource routes: a loader returning the file, no page.
+ * `robots.txt`, the sitemap files and the IndexNow key file are resource routes: a loader returning
+ * the file, no page.
  * Articles live directly at `/{slug}` (O-02, #53): a static segment outranks the `:slug` param, and
  * every first segment a page uses is a reserved slug (`RESERVED_ARTICLE_SLUGS`). The old
  * `/article/{slug-or-id}` URLs are the same route module, whose loader answers 301 to `/{slug}`.
@@ -24,6 +25,7 @@ export default [
   ]),
   route('admin/*', 'routes/admin.tsx'),
   route('robots.txt', 'routes/robots.ts'),
+  route('indexnow-key.txt', 'routes/indexnow-key.ts'),
   route('sitemap.xml', 'routes/sitemap.ts'),
   route('sitemaps/:file', 'routes/sitemap-chunk.ts'),
 ] satisfies RouteConfig;

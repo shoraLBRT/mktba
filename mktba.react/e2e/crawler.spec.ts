@@ -39,3 +39,16 @@ test('sitemap.xml lists a published article and leaves a draft out', async ({ re
   expect(xml).toMatch(/<loc>https?:\/\/[^/]+\/salat<\/loc><lastmod>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z<\/lastmod>/);
   expect(xml).not.toContain(`/${draftSlug}<`);
 });
+
+test('the home page carries the Yandex and Google verification tags from the server settings (O-12, #61)', async ({ request }) => {
+  const html = await (await request.get('/')).text();
+
+  expect(html).toContain('<meta name="yandex-verification" content="e2e-yandex-token"');
+  expect(html).toContain('<meta name="google-site-verification" content="e2e-google-token"');
+});
+
+test('the IndexNow key file is a 404 while IndexNow is off in the API (O-12, #61)', async ({ request }) => {
+  const response = await request.get('/indexnow-key.txt');
+
+  expect(response.status()).toBe(404);
+});

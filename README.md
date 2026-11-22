@@ -283,6 +283,36 @@ User-Agent не сохраняются.
 открытым issue, а контакт — нет. Для отправки нужен JavaScript. Списка обращений в админке пока
 нет (F-04, #163).
 
+#### Яндекс Вебмастер, Google Search Console и IndexNow (O-12, #61)
+
+Подтверждение прав на сайт — мета-тегами в `<head>` каждой страницы. Токены задаются фронтенд-серверу
+при запуске (`YANDEX_VERIFICATION`, `GOOGLE_SITE_VERIFICATION`, см. таблицу в разделе Frontend); не
+заданы — тегов нет. Токен — только буквы, цифры, `-` и `_`, иначе он игнорируется.
+
+IndexNow: когда статья публикуется или снимается с публикации (Published → Archived), API в фоне
+сообщает её адрес `{SiteUrl}/{slug}` IndexNow-эндпоинту (по умолчанию Яндекс; участники IndexNow —
+Яндекс, Bing и другие — делятся адресами между собой; Google IndexNow не поддерживает и узнаёт о
+страницах из `sitemap.xml`). Изменения за `BatchDelaySeconds` уходят одним запросом. Очередь — в
+памяти: при перезапуске или ошибке уведомление теряется, страница всё равно есть в карте сайта.
+Ключ поисковики читают по адресу `/indexnow-key.txt` (его отдаёт фронтенд, беря ключ у API:
+`GET /seo/indexnow-key`; пока IndexNow выключен — `404`).
+
+| Параметр | Назначение |
+| --- | --- |
+| `IndexNow:Key` | ключ: 8–128 символов `a-z`, `A-Z`, `0-9`, `-` (например, `New-Guid` без фигурных скобок). Ключ публичный по смыслу протокола |
+| `IndexNow:SiteUrl` | публичный адрес сайта без пути (`https://mktba.ru`) — на нём строятся адреса |
+| `IndexNow:Endpoint` | куда отправлять (по умолчанию `https://yandex.com/indexnow`) |
+| `IndexNow:BatchDelaySeconds` | пауза перед отправкой, чтобы массовое действие ушло одним запросом (5) |
+| `IndexNow:Enabled` | `false` выключает отправку, даже если ключ задан (так запускается API в e2e) |
+
+Без `Key` и `SiteUrl` IndexNow выключен. В тестах наружу ничего не уходит: `MktbaApiFactory` заменяет
+клиент IndexNow, e2e-API запускается с `IndexNow__Enabled=false`.
+
+Что сделать владельцу: подтвердить сайт в Яндекс Вебмастере и Google Search Console способом
+«мета-тег» (токен — в переменные фронтенда), задать `IndexNow__Key` и `IndexNow__SiteUrl` API, после
+выкладки проверить, что `https://mktba.ru/indexnow-key.txt` отдаёт ключ, и добавить
+`https://mktba.ru/sitemap.xml` в обоих сервисах.
+
 #### Загрузка файлов (U-08, #73)
 
 `POST /uploads/avatar` (любой вошедший пользователь) и `POST /uploads/images` (авторы и админы)
@@ -351,6 +381,8 @@ npm start          # react-router-serve, порт из PORT (по умолчан
 | `VITE_API_BASE_URL` | при сборке | адрес API для браузера (по умолчанию `http://localhost:5172`) |
 | `API_INTERNAL_URL` | при запуске сервера | адрес API для серверного рендера (например, внутри сети деплоя); по умолчанию — `VITE_API_BASE_URL` |
 | `PUBLIC_SITE_URL` | при запуске сервера | публичный адрес сайта (например, `https://mktba.ru`, без пути) для canonical, `og:url` и `og:image`; задавайте за прокси. По умолчанию — origin входящего запроса (подходит для локальной разработки) |
+| `YANDEX_VERIFICATION` | при запуске сервера | токен мета-тега `yandex-verification` (Яндекс Вебмастер); не задан — тега нет |
+| `GOOGLE_SITE_VERIFICATION` | при запуске сервера | токен мета-тега `google-site-verification` (Google Search Console); не задан — тега нет |
 | `PORT` | при запуске сервера | порт `react-router-serve` |
 | `VITE_METRIKA_ID` | при сборке | номер счётчика Яндекс Метрики; не задан — Метрика не загружается. Счётчик стартует только после согласия посетителя, считает переходы внутри SPA и цели `article_view`, `article_time_5min`, `article_read_end`, `opinion_switch`, `mazhab_change`, `search`, `toc_click` (их нужно завести в счётчике как JavaScript-события с этими идентификаторами; список — `METRIKA_GOALS` в `src/analytics/metrika.ts`) |
 
