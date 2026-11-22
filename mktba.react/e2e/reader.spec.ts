@@ -605,3 +605,51 @@ test('the print version keeps the article, the active opinion and the facts and 
     expect(after, where).toContain('https://example.org/pechat');
   }
 });
+
+test('Arabic in an article is marked right-to-left, set in Amiri and keeps the punctuation around it in place (R-15)', async ({ page, request }) => {
+  const article = await publishArticle(request, `Арабский ${Date.now()}`, [
+    {
+      order: 1,
+      opinions: [
+        {
+          content: 'Он сказал: «السلام عليكم», и ушёл.\n\n> بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\n>\n> Во имя Аллаха.',
+          isDefault: true,
+          schoolIds: [],
+        },
+      ],
+    },
+  ]);
+
+  // The server render already carries the marks: no script is needed for them.
+  const html = await (await request.get(`/${article.slug}`)).text();
+  expect(html).toMatch(/<span(?=[^>]*lang="ar")(?=[^>]*dir="rtl")[^>]*>السلام عليكم<\/span>/);
+
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/${article.slug}`);
+    const where = `at ${width}`;
+    const inline = page.locator('.article-markdown span.arabic', { hasText: 'السلام عليكم' }).first();
+    const ayah = page.locator('.article-markdown blockquote p.arabic-block').first();
+    await expect(inline, where).toBeVisible();
+    await expect(ayah, where).toHaveAttribute('dir', 'rtl');
+
+    await expect(inline, where).toHaveCSS('font-family', /^"?Amiri/);
+    await expect(inline, where).toHaveCSS('letter-spacing', 'normal');
+    await expect(inline, where).toHaveCSS('unicode-bidi', 'isolate');
+    await expect(ayah, where).toHaveCSS('text-align', /^(start|right)$/);
+
+    // The Russian sentence stays left-to-right: the closing quote and comma follow the Arabic run on the right.
+    const order = (await page.evaluate(`(() => {
+      const span = [...document.querySelectorAll('.article-markdown span.arabic')].find((element) => element.textContent === 'السلام عليكم');
+      const range = document.createRange();
+      range.setStart(span.nextSibling, 0);
+      range.setEnd(span.nextSibling, 1);
+      return { span: span.getBoundingClientRect().right, quote: range.getBoundingClientRect().left };
+    })()`)) as { span: number; quote: number };
+    expect(order.quote, where).toBeGreaterThanOrEqual(order.span - 1);
+    // Amiri's Arabic subset is what the page downloads for it (unicode-range).
+    await expect
+      .poll(() => page.evaluate(`[...document.fonts].some((face) => face.family.includes('Amiri') && face.status === 'loaded')`), { message: where })
+      .toBe(true);
+  }
+});

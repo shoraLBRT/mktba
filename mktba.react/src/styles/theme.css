@@ -2,6 +2,8 @@
   --font-size: 16px;
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Amiri', serif;
+  /* Arabic in articles (R-15): self-hosted Amiri first, then the naskh faces the systems ship. */
+  --font-arabic: 'Amiri', 'Noto Naskh Arabic', 'Geeza Pro', 'Traditional Arabic', serif;
   --color-page-bg: #fafaf8;
   --color-page-panel: #f4f3ee;
   --color-surface: #ffffff;

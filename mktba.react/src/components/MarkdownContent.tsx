@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
 import { gfm } from 'micromark-extension-gfm';
 import { collectHeadings, nestHeadings, type MarkdownNode } from '../shared/markdownHeadings';
+import { rehypeArabic } from '../shared/rehypeArabic';
 
 /** The anchor of one heading. */
 export type HeadingAnchor = {
@@ -56,6 +57,9 @@ const remarkHeadingIds = (anchors: HeadingAnchor[]) => () => (tree: MarkdownNode
 
 const basePlugins = [remarkGfmSyntax, remarkNestHeadings];
 
+/** Arabic runs and blocks get `lang` and `dir` (R-15). */
+const rehypePlugins = [rehypeArabic];
+
 const HEADING_TAGS = ['h2', 'h3', 'h4', 'h5', 'h6'] as const;
 
 /**
@@ -98,6 +102,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, headingAncho
   return (
     <ReactMarkdown
       remarkPlugins={remarkPlugins}
+      rehypePlugins={rehypePlugins}
       components={{
         ...headingComponents,
         a: (props) => {
