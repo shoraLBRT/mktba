@@ -30,4 +30,8 @@ RUN dotnet publish "./Mktba.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+# Uploads (Storage:Provider=Local) live here; a volume mounted on it keeps this owner, so the API can write.
+USER root
+RUN mkdir -p /app/App_Data/uploads && chown -R $APP_UID /app/App_Data
+USER $APP_UID
 ENTRYPOINT ["dotnet", "Mktba.Api.dll"]

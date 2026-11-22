@@ -45,6 +45,28 @@ public sealed class UploadEndpointTests : IClassFixture<MktbaApiFactory>
     }
 
     [Fact]
+    public async Task GivenTlsTerminatingProxy_WhenUploading_ThenTheUrlKeepsTheVisitorsHttpsScheme()
+    {
+        // X-01 (#63): Caddy terminates TLS and talks to the API over http, passing X-Forwarded-Proto.
+        const string proxy = "10.0.0.2";
+        await using var factory = new MktbaApiFactory("Testing", MktbaApiFactory.TestSigningKey, new Dictionary<string, string>
+        {
+            ["ForwardedHeaders:KnownProxies:0"] = proxy,
+            ["RateLimiting:Auth:PermitLimit"] = "10000",
+            ["RateLimiting:Uploads:PermitLimit"] = "10000",
+        });
+        var (reader, _) = await RoleClients.CreateAsync(factory, UserRole.Reader);
+        reader.DefaultRequestHeaders.Add(MktbaApiFactory.RemoteIpHeader, proxy);
+        reader.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+
+        var response = await reader.PostAsync("/uploads/avatar", Form(Png(64, 64), "photo.png", "image/png"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var uploaded = await response.Content.ReadFromJsonAsync<UploadedImageDto>(ApiJson.Options);
+        uploaded!.Url.Should().MatchRegex("^https://localhost/files/[0-9a-f]{32}\\.webp$");
+    }
+
+    [Fact]
     public async Task GivenSvgSentAsPng_WhenUploading_ThenItIsRefusedByItsContentNotItsDeclaredType()
     {
         var (reader, _) = await RoleClients.CreateAsync(_factory, UserRole.Reader);

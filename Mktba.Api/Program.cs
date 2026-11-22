@@ -56,18 +56,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowMktbaReact", policy =>
-    {
-        policy.SetIsOriginAllowed(origin =>
-            Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-            && (uri.IsLoopback || string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase)))
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials();
-    });
-});
+// Loopback for local development plus the site origins in Cors:AllowedOrigins (X-01, #63).
+builder.Services.AddMktbaCors(builder.Configuration);
 
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient(IndexNowClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
@@ -150,7 +140,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-app.UseCors("AllowMktbaReact");
+app.UseCors(CorsSetup.PolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 // After authentication: the AI policy partitions by user id.

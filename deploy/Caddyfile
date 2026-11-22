@@ -1,0 +1,28 @@
+# Reverse proxy and TLS (X-01, #63). Caddy obtains and renews Let's Encrypt certificates itself;
+# ports 80 and 443 must be open and SITE_HOST / API_HOST must resolve to this server.
+{
+	email {$ACME_EMAIL}
+}
+
+# The site: server-rendered pages and static assets, robots.txt, the sitemaps and
+# /indexnow-key.txt (all of them routes of the web server).
+{$SITE_HOST} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+# The API, same-site with the site: the refresh cookie (SameSite=Strict, Path=/auth) works as is.
+{$API_HOST} {
+	encode zstd gzip
+	# Uploads are capped at 10 MB by the API (Uploads:MaxBytes); refuse anything larger here.
+	request_body {
+		max_size 12MB
+	}
+	reverse_proxy api:8080
+}
+
+# Optional: www.mktba.ru -> mktba.ru. Uncomment once DNS has the www record, otherwise Caddy keeps
+# failing to get its certificate.
+# www.{$SITE_HOST} {
+# 	redir https://{$SITE_HOST}{uri} permanent
+# }

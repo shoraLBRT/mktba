@@ -377,3 +377,6 @@ FodyWeavers.xsd
 
 # Uploaded files of the Local storage (U-08)
 Mktba.Api/App_Data/
+
+# Deployment stand settings (X-01, #63): secrets, never committed.
+deploy/.env

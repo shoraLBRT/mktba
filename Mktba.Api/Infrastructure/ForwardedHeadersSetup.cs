@@ -6,7 +6,7 @@ namespace Mktba.Api.Infrastructure;
 
 /// <summary>
 /// The <c>ForwardedHeaders</c> configuration section (F-03, #68): the reverse proxies whose
-/// <c>X-Forwarded-For</c> is trusted. Empty (the default) trusts nobody: the client IP is the
+/// <c>X-Forwarded-For</c> and <c>X-Forwarded-Proto</c> are trusted. Empty (the default) trusts nobody: the client IP is the
 /// socket address, and behind a proxy every visitor shares the per-IP rate limits.
 /// </summary>
 public sealed class ForwardedHeadersSettings
@@ -27,7 +27,8 @@ internal static class ForwardedHeadersSetup
 {
     /// <summary>
     /// Makes <c>Connection.RemoteIpAddress</c> the visitor's address when the request came through a
-    /// configured proxy. Only <c>X-Forwarded-For</c> is read; the scheme and host are left alone.
+    /// configured proxy, and the scheme the one the visitor used (<c>X-Forwarded-Proto</c>: the proxy
+    /// terminates TLS, X-01 #63). The host is left alone: the proxy passes the original one.
     /// </summary>
     /// <exception cref="InvalidOperationException">An address or network in the configuration cannot be parsed.</exception>
     public static IApplicationBuilder UseMktbaForwardedHeaders(this IApplicationBuilder app, IConfiguration configuration)
@@ -40,7 +41,7 @@ internal static class ForwardedHeadersSetup
 
         var options = new ForwardedHeadersOptions
         {
-            ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
             ForwardLimit = Math.Max(1, settings.ForwardLimit),
         };
         options.KnownProxies.Clear();
