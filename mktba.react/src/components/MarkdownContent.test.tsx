@@ -115,3 +115,37 @@ describe('MarkdownContent', () => {
     expect(container.textContent).toBe('');
   });
 });
+
+describe('MarkdownContent: Arabic (R-15)', () => {
+  it('given an Arabic phrase inside a Russian sentence, when rendered, then the phrase is an isolated Arabic span', () => {
+    const { container } = render(<MarkdownContent content={'Он сказал: «السلام عليكم», и ушёл.'} />);
+    const paragraph = container.querySelector('p');
+    const span = paragraph?.querySelector('span.arabic');
+
+    expect(paragraph?.hasAttribute('dir')).toBe(false);
+    expect(span?.textContent).toBe('السلام عليكم');
+    expect(span?.getAttribute('lang')).toBe('ar');
+    expect(span?.getAttribute('dir')).toBe('rtl');
+    expect(paragraph?.textContent).toBe('Он сказал: «السلام عليكم», и ушёл.');
+  });
+
+  it('given a paragraph of Arabic only in a quote, when rendered, then the paragraph itself is right-to-left and the translation is not', () => {
+    const { container } = render(
+      <MarkdownContent content={'> بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\n>\n> Во имя Аллаха, Милостивого, Милосердного.'} />,
+    );
+    const [ayah, translation] = container.querySelectorAll('blockquote p');
+
+    expect(ayah.className).toBe('arabic-block');
+    expect(ayah.getAttribute('lang')).toBe('ar');
+    expect(ayah.getAttribute('dir')).toBe('rtl');
+    expect(ayah.querySelector('span')).toBeNull();
+    expect(translation.hasAttribute('dir')).toBe(false);
+  });
+
+  it('given Arabic in bold and in code, when rendered, then the bold run is marked and the code is left as written', () => {
+    const { container } = render(<MarkdownContent content={'Слово **صلاة** и код `صلاة`.'} />);
+
+    expect(container.querySelector('strong span.arabic')?.textContent).toBe('صلاة');
+    expect(container.querySelector('code')?.querySelector('span')).toBeNull();
+  });
+});

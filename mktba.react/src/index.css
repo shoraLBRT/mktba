@@ -128,6 +128,36 @@
     color: var(--color-ink-muted);
   }
 
+  /*
+   * Arabic in the text (R-15), marked by `rehypeArabic`: a naskh face, larger than the Cyrillic
+   * around it, never letter-spaced (that breaks the joins). `dir` already isolates the run; it is
+   * stated here too so the punctuation next to it never moves.
+   */
+  .article-markdown :is(.arabic, .arabic-block) {
+    font-family: var(--font-arabic);
+    letter-spacing: 0;
+    word-spacing: normal;
+    unicode-bidi: isolate;
+  }
+
+  .article-markdown .arabic {
+    font-size: 1.25em;
+    line-height: 1;
+  }
+
+  /* A paragraph of Arabic only — an ayah, a hadith, a du'a: its own line, right-aligned, airy. */
+  .article-markdown :is(p, li, td, th).arabic-block {
+    font-size: 1.35em;
+    line-height: 2;
+    text-align: start;
+  }
+
+  /* An ayah or hadith quoted as a blockquote: the Arabic stays in the text colour, the translation muted. */
+  .article-markdown blockquote p.arabic-block {
+    font-size: 1.5em;
+    color: var(--color-ink-default);
+  }
+
   /* An image in the text (U-08): never wider than the column, its own line, height from its proportions. */
   .article-markdown img {
     display: block;
