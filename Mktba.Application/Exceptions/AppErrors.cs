@@ -159,6 +159,12 @@ public static class AppErrors
         $"Edit comment must be at most {Infrastructure.Data.MktbaDbContext.RevisionCommentMaxLength} characters.",
         With(("maxLength", Infrastructure.Data.MktbaDbContext.RevisionCommentMaxLength)));
 
+    public static AppError ArticleDraftSnapshotInvalid =>
+        new("article_draft_snapshot_invalid", "A draft snapshot must be a JSON object.");
+
+    public static AppError ArticleDraftTooLarge(int maxLength) =>
+        new("article_draft_too_large", $"A draft snapshot cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
+
     public static AppError ArticleMoveCycle =>
         new("article_move_cycle", "An article cannot be moved under itself or one of its descendants.");
 

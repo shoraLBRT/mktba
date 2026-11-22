@@ -18,6 +18,7 @@ namespace Mktba.Infrastructure
             services.AddScoped<UserRepository>();
             services.AddScoped<InviteRepository>();
             services.AddScoped<RefreshSessionRepository>();
+            services.AddScoped<ArticleDraftRepository>();
             return services;
         }
     }

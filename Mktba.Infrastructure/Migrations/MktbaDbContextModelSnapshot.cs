@@ -171,6 +171,44 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("ArticleCoAuthors");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleDraft", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("BaseUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Snapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
+
+                    b.HasIndex("UpdatedAt");
+
+                    b.HasIndex("UserId", "ArticleId")
+                        .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("UserId", "ArticleId"), false);
+
+                    b.ToTable("ArticleDrafts");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleInfoboxField", b =>
                 {
                     b.Property<int>("Id")
@@ -937,6 +975,24 @@ namespace Mktba.Infrastructure.Migrations
                         .HasForeignKey("ArticleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleDraft", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Mktba.Domain.Entities.User", "User")
                         .WithMany()

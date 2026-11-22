@@ -13,6 +13,7 @@ namespace Mktba.Application.Services
         private readonly IUnitOfWork _uow;
         private readonly ArticleSlugAssigner _slugs;
         private readonly ArticleTagAssigner _tags;
+        private readonly ArticleDraftRepository _drafts;
         private readonly TimeProvider _clock;
 
         public ArticleContentService(
@@ -20,8 +21,10 @@ namespace Mktba.Application.Services
             ParagraphRepository paragraphRepo,
             IUnitOfWork uow,
             TagRepository tagRepo,
+            ArticleDraftRepository drafts,
             TimeProvider clock)
         {
+            _drafts = drafts;
             _clock = clock;
             _articleRepo = articleRepo;
             _paragraphRepo = paragraphRepo;
@@ -221,6 +224,7 @@ namespace Mktba.Application.Services
 
                 await _uow.SaveChangesAsync();
                 await WriteRevisionAsync(article.Id, authorId, dto.EditComment);
+                await DropSavedDraftAsync(authorId, articleId: null);
                 await _uow.CommitAsync();
 
                 var createdArticle = await _articleRepo.GetByIdWithContentAsync(article.Id)
@@ -330,6 +334,7 @@ namespace Mktba.Application.Services
 
                 await _uow.SaveChangesAsync();
                 await WriteRevisionAsync(articleId, authorId, dto.EditComment);
+                await DropSavedDraftAsync(authorId, articleId);
                 await _uow.CommitAsync();
                 return (true, null);
             }
@@ -376,6 +381,18 @@ namespace Mktba.Application.Services
                 Comment = NormalizeOptionalText(comment),
                 Snapshot = ArticleSnapshots.Serialize(ArticleSnapshots.From(saved)),
             });
+            await _uow.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Deletes the saving user's autosaved draft (E-02, #75) — of this article, or of a new article
+        /// when <paramref name="articleId"/> is null —, which the revision just written replaces. Call
+        /// inside the save's transaction.
+        /// </summary>
+        private async Task DropSavedDraftAsync(int? userId, int? articleId)
+        {
+            if (userId is not int id) return;
+            await _drafts.RemoveAsync(id, articleId);
             await _uow.SaveChangesAsync();
         }
 

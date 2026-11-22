@@ -23,6 +23,7 @@ namespace Mktba.Application
             services.AddScoped<ArticleSearchService>();
             services.AddScoped<ArticleContentService>();
             services.AddScoped<ArticleRevisionService>();
+            services.AddScoped<ArticleDraftService>();
             services.AddScoped<ArticleAuthorshipService>();
             services.TryAddSingleton(TimeProvider.System);
             services.AddScoped<AdminService>();

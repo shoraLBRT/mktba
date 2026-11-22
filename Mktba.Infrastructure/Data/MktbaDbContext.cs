@@ -17,6 +17,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleCoAuthor> ArticleCoAuthors { get; set; } = null!;
         public DbSet<ArticleRevision> ArticleRevisions { get; set; } = null!;
         public DbSet<ArticleStatusChange> ArticleStatusChanges { get; set; } = null!;
+        public DbSet<ArticleDraft> ArticleDrafts { get; set; } = null!;
         public DbSet<Paragraph> Paragraphs { get; set; } = null!;
         public DbSet<Opinion> Opinions { get; set; } = null!;
         public DbSet<School> Schools { get; set; } = null!;
@@ -212,6 +213,33 @@ namespace Mktba.Infrastructure.Data
                 .Property(r => r.Snapshot)
                 .HasColumnType("jsonb")
                 .IsRequired();
+
+            // Autosaved drafts (E-02, #75): one per user and article, one per user without an article;
+            // they go with their article and with their user.
+            modelBuilder.Entity<ArticleDraft>(draft =>
+            {
+                draft.HasOne(d => d.User)
+                    .WithMany()
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                draft.HasOne(d => d.Article)
+                    .WithMany()
+                    .HasForeignKey(d => d.ArticleId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired(false);
+
+                // NULLS NOT DISTINCT: the new-article draft (no article) is unique per user too.
+                draft.HasIndex(d => new { d.UserId, d.ArticleId })
+                    .IsUnique()
+                    .AreNullsDistinct(false);
+
+                draft.HasIndex(d => d.UpdatedAt);
+
+                draft.Property(d => d.Snapshot)
+                    .HasColumnType("jsonb")
+                    .IsRequired();
+            });
 
             // Status moves (A-04, #87): append-only log; deleting the article drops it, deleting a user keeps it.
             modelBuilder.Entity<ArticleStatusChange>(change =>
