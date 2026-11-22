@@ -2472,6 +2472,37 @@
         }
       }
     },
+    "/seo/indexnow-key": {
+      "get": {
+        "tags": [
+          "Seo"
+        ],
+        "summary": "The site's IndexNow key, for the key file search engines check (/indexnow-key.txt).",
+        "description": "The key is public by design: search engines read it from the site to trust the URLs it sends them when an article is published or unpublished. 404 indexnow_not_configured while IndexNow is off (IndexNow:Key and IndexNow:SiteUrl not both set, or IndexNow:Enabled false).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexNowKeyDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sources": {
       "get": {
         "tags": [
@@ -4667,6 +4698,18 @@
           "Idea"
         ],
         "type": "string"
+      },
+      "IndexNowKeyDto": {
+        "required": [
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "InviteCreateRequestDto": {
         "required": [
