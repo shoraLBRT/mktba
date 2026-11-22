@@ -36,7 +36,7 @@ export const ArticleMobileOverview = ({ tocItems, summary, tags }: ArticleMobile
   return (
     <details
       data-testid="article-mobile-overview"
-      className="group mb-5 rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] xl:hidden"
+      className="print:hidden group mb-5 rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] xl:hidden"
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2.5 text-[13px] font-semibold text-[var(--color-ink-strong)] [&::-webkit-details-marker]:hidden">
         {title}

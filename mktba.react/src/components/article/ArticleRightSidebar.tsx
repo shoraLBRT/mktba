@@ -52,7 +52,7 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
   }
 
   return (
-    <aside className="hidden xl:sticky xl:top-[var(--layout-header-height)] xl:block xl:h-[calc(100vh-var(--layout-header-height))] xl:w-[220px] xl:shrink-0 xl:overflow-hidden">
+    <aside className="print:hidden! hidden xl:sticky xl:top-[var(--layout-header-height)] xl:block xl:h-[calc(100vh-var(--layout-header-height))] xl:w-[220px] xl:shrink-0 xl:overflow-hidden">
       <div className="h-full overflow-y-auto px-4 py-4">
         {hasToc && (
           <div className={blockClass}>

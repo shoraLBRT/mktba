@@ -540,3 +540,68 @@ test('on a phone the header keeps the brand and the search, the contents open fr
   const wideBox = (await page.getByTestId('mazhab-bar').getByRole('button', { name: /Шафиитский мазхаб/ }).boundingBox())!;
   expect(wideBox.y).toBeLessThan(48);
 });
+
+test('the print version keeps the article, the active opinion and the facts and drops the site around them (R-19)', async ({ page, request }) => {
+  const schools = await (await request.get(`${API_URL}/schools/system`)).json() as { id: number; slug: string }[];
+  const schoolId = (slug: string) => schools.find((school) => school.slug === slug)!.id;
+  const article = await publishArticle(
+    request,
+    `Печать ${Date.now()}`,
+    [
+      { order: 1, opinions: [{ content: 'Вступление со [ссылкой наружу](https://example.org/pechat).', isDefault: true, schoolIds: [] }] },
+      {
+        order: 2,
+        opinions: [
+          { content: 'Мнение ханафитов для печати', isDefault: true, schoolIds: [schoolId('hanafi')] },
+          { content: 'Мнение шафиитов для печати', isDefault: false, schoolIds: [schoolId('shafii')] },
+        ],
+      },
+    ],
+    {
+      infobox: {
+        title: 'Карточка для печати',
+        fields: [1, 2, 3, 4, 5, 6, 7].map((order) => ({ order, key: `f${order}`, label: `Поле ${order}`, value: `Значение ${order}` })),
+      },
+    },
+  );
+  await page.addInitScript((id) => localStorage.setItem('mktba.mazhab', String(id)), schoolId('shafii'));
+
+  for (const width of [1440, 390]) {
+    await page.emulateMedia({ media: 'screen' });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/${article.slug}`);
+    await expect(page.getByRole('tab', { name: /^Шафииты.*ваш мазхаб$/ })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('button', { name: 'Распечатать' })).toBeVisible();
+
+    await page.emulateMedia({ media: 'print' });
+    const where = `at ${width}`;
+    await expect(page.getByRole('heading', { name: /^Печать \d+$/, level: 1 }), where).toBeVisible();
+    // The chrome is gone: header with the mazhab picker, the tree, the site footer, the article's buttons.
+    for (const chrome of [
+      page.locator('header'),
+      page.getByTestId('mazhab-bar'),
+      page.getByTestId('site-footer'),
+      page.getByTestId('article-report-error'),
+      page.getByRole('button', { name: 'Распечатать' }),
+      page.getByRole('tablist', { name: 'Мазхабы:' }),
+    ]) {
+      await expect(chrome, where).toBeHidden();
+    }
+    expect(await page.evaluate<number>(`[...document.querySelectorAll('aside')]
+      .filter((aside) => !aside.closest('article') && aside.getBoundingClientRect().height > 0).length`), where).toBe(0);
+
+    // The reader's mazhab is printed, named in the block's caption; the other opinion is not.
+    await expect(page.getByText('Мнение шафиитов для печати'), where).toBeVisible();
+    await expect(page.getByText('Мнение ханафитов для печати'), where).toBeHidden();
+    await expect(page.getByText(/^Мнение мазхаба: Шафи/), where).toBeVisible();
+
+    // The fact card is open with every field, also those behind «Подробнее» and on a phone.
+    const infobox = page.getByRole('complementary', { name: 'Карточка для печати' });
+    await expect(infobox.getByText('Значение 7'), where).toBeVisible();
+    await expect(infobox.getByRole('button'), where).toHaveCount(0);
+
+    // An external link prints its address.
+    const after = await page.evaluate<string>(`getComputedStyle(document.querySelector('article a[href="https://example.org/pechat"]'), '::after').content`);
+    expect(after, where).toContain('https://example.org/pechat');
+  }
+});

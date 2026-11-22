@@ -1,6 +1,6 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
 import { ArticleFooter } from './ArticleFooter';
 
@@ -107,5 +107,15 @@ describe('ArticleFooter', () => {
     expect(screen.getAllByRole('navigation')).toHaveLength(1);
     expect(screen.getAllByRole('link').map((link) => link.getAttribute('rel'))).toEqual(['next', null]);
     expect(screen.queryByRole('heading')).toBeNull();
+  });
+
+  it('given the print button, when it is pressed, then the browser print dialog opens', () => {
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+    renderFooter({});
+
+    fireEvent.click(screen.getByRole('button', { name: 'Распечатать' }));
+
+    expect(print).toHaveBeenCalledOnce();
+    print.mockRestore();
   });
 });

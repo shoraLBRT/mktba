@@ -221,3 +221,53 @@
     border: 0;
   }
 }
+
+/*
+ * The print version of an article (R-19, #142): pure CSS, no script. The site's chrome (header with
+ * the mazhab picker, navigation tree, right sidebar, site footer, buttons) carries `print:hidden!` where
+ * it is rendered; this block sets the page itself. Each opinion block prints only its active opinion
+ * (the reader's mazhab, or the tab they opened) under its caption naming the school; the other opinions
+ * stay `hidden`, as on screen. External links print their address after the text.
+ */
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+
+  body {
+    min-height: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  .article-markdown,
+  .article-markdown h1,
+  .article-markdown h2,
+  .article-markdown h3,
+  .article-markdown h4,
+  .article-markdown h5,
+  .article-markdown h6 {
+    color: #000;
+  }
+
+  .article-markdown :is(h1, h2, h3, h4, h5, h6) {
+    break-after: avoid;
+  }
+
+  .article-markdown :is(p, li, blockquote, pre, img),
+  [data-print-block] {
+    break-inside: avoid;
+  }
+
+  .article-markdown .heading-anchor {
+    display: none;
+  }
+
+  .article-markdown a[href^='http']::after,
+  [data-testid='article-sources'] a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    color: #444;
+    font-size: 0.85em;
+    overflow-wrap: anywhere;
+  }
+}

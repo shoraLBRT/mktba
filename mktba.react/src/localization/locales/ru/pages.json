@@ -106,7 +106,8 @@
     "sourceCitedInText": "в тексте",
     "backToTop": "Наверх",
     "reportError": "Сообщить об ошибке",
-    "reportErrorPrompt": "Нашли ошибку или неточность в статье?"
+    "reportErrorPrompt": "Нашли ошибку или неточность в статье?",
+    "print": "Распечатать"
   },
   "articleRightSidebar": {
     "onThisPage": "На этой странице",

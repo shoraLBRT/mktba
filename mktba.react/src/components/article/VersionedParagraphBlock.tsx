@@ -56,6 +56,7 @@ export const VersionedParagraphBlock = ({
 
   return (
     <section
+      data-print-block=""
       className="my-4 flow-root min-w-0 rounded-2xl border transition-colors duration-200"
       style={{ backgroundColor: palette.bg, borderColor: palette.border }}
     >
@@ -92,7 +93,7 @@ export const VersionedParagraphBlock = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-1.5 px-3 pb-3 pt-1">
+      <div className="flex items-center justify-end gap-1.5 px-3 pb-3 pt-1 print:hidden">
         <span className="shrink-0 text-[10px] text-[var(--color-ink-subtle)]">{t.versions}</span>
         <div role="tablist" aria-label={t.versions} className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [contain:inline-size] [scrollbar-width:none]">
           {tabs.map((tab, index) => {
