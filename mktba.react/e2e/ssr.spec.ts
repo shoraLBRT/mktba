@@ -394,3 +394,23 @@ test('the server says so when nothing is found and asks for a query when there i
   expect(noQuery).toContain('Введите запрос');
   expect(noQuery).toContain('<title>Поиск — mktba</title>');
 });
+
+test('pages and client navigation data carry the security headers, and the page still hydrates (X-06)', async ({ page, request }) => {
+  for (const path of ['/salat', '/salat.data']) {
+    const response = await request.get(path);
+    expect(response.status()).toBe(200);
+    const headers = response.headers();
+    expect(headers['x-content-type-options']).toBe('nosniff');
+    expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+    expect(headers['content-security-policy']).toContain("object-src 'none'");
+    expect(headers['content-security-policy']).toMatch(/frame-ancestors 'self' https:\/\/metrika\.yandex\.ru/);
+  }
+
+  const violations: string[] = [];
+  page.on('console', (message) => {
+    if (/Content Security Policy/i.test(message.text())) violations.push(message.text());
+  });
+  await page.goto('/salat');
+  await page.waitForLoadState('networkidle');
+  expect(violations).toEqual([]);
+});

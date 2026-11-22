@@ -4,15 +4,31 @@
 	email {$ACME_EMAIL}
 }
 
+# Security headers of every response on both hosts (X-06, #160): HSTS here, where TLS ends, and
+# nosniff also for what the applications do not answer themselves (static assets, resource routes).
+# HSTS lasts a year, without includeSubDomains and preload: other subdomains of the zone may have no
+# HTTPS, and the preload list is hard to leave, so both are the owner's call. The CSP and the other
+# headers come from the web server (src/server/securityHeaders.server.ts) and the API
+# (Infrastructure/SecurityHeadersSetup.cs).
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}
+
 # The site: server-rendered pages and static assets, robots.txt, the sitemaps and
 # /indexnow-key.txt (all of them routes of the web server).
 {$SITE_HOST} {
+	import security_headers
 	encode zstd gzip
 	reverse_proxy web:3000
 }
 
 # The API, same-site with the site: the refresh cookie (SameSite=Strict, Path=/auth) works as is.
 {$API_HOST} {
+	import security_headers
 	encode zstd gzip
 	# Uploads are capped at 10 MB by the API (Uploads:MaxBytes); refuse anything larger here.
 	request_body {
