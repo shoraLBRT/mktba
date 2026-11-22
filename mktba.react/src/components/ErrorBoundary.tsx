@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { reportClientError } from '../services/clientErrors';
 import { ErrorFallback } from './ErrorFallback';
 
 type ErrorBoundaryProps = {
@@ -30,6 +31,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Unhandled render error', error, info.componentStack);
+    reportClientError('render', error);
   }
 
   render() {

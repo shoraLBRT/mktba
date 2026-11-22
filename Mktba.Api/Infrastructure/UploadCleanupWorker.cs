@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Mktba.Api.Observability;
 using Mktba.Application.Configuration;
 using Mktba.Application.Services.Uploads;
 
@@ -11,17 +12,22 @@ namespace Mktba.Api.Infrastructure;
 /// </summary>
 public sealed class UploadCleanupWorker : BackgroundService
 {
+    public const string HeartbeatName = "upload-cleanup";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly TimeProvider _timeProvider;
     private readonly UploadCleanupOptions _options;
+    private readonly WorkerHeartbeats _heartbeats;
     private readonly ILogger<UploadCleanupWorker> _logger;
 
     public UploadCleanupWorker(
         IServiceScopeFactory scopeFactory,
         TimeProvider timeProvider,
         IOptions<UploadOptions> options,
+        WorkerHeartbeats heartbeats,
         ILogger<UploadCleanupWorker> logger)
     {
+        _heartbeats = heartbeats;
         _scopeFactory = scopeFactory;
         _timeProvider = timeProvider;
         _options = options.Value.Cleanup;
@@ -30,12 +36,14 @@ public sealed class UploadCleanupWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _heartbeats.Started(HeartbeatName, _options.Interval);
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 using var scope = _scopeFactory.CreateScope();
                 await scope.ServiceProvider.GetRequiredService<UploadCleanupService>().RunAsync(stoppingToken);
+                _heartbeats.Succeeded(HeartbeatName);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -44,6 +52,7 @@ public sealed class UploadCleanupWorker : BackgroundService
             catch (Exception exception)
             {
                 // The database or the storage being away must not end the worker for the life of the process.
+                _heartbeats.Failed(HeartbeatName);
                 _logger.LogError(exception, "Upload cleanup failed.");
             }
 

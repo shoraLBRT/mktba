@@ -1,3 +1,4 @@
+using Mktba.Api.Observability;
 using Mktba.Application.Services;
 
 namespace Mktba.Api.Infrastructure;
@@ -9,14 +10,21 @@ namespace Mktba.Api.Infrastructure;
 /// </summary>
 public sealed class ArticleDraftCleanupWorker : BackgroundService
 {
+    public const string HeartbeatName = "article-draft-cleanup";
     public static readonly TimeSpan Interval = TimeSpan.FromHours(6);
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly TimeProvider _timeProvider;
+    private readonly WorkerHeartbeats _heartbeats;
     private readonly ILogger<ArticleDraftCleanupWorker> _logger;
 
-    public ArticleDraftCleanupWorker(IServiceScopeFactory scopeFactory, TimeProvider timeProvider, ILogger<ArticleDraftCleanupWorker> logger)
+    public ArticleDraftCleanupWorker(
+        IServiceScopeFactory scopeFactory,
+        TimeProvider timeProvider,
+        WorkerHeartbeats heartbeats,
+        ILogger<ArticleDraftCleanupWorker> logger)
     {
+        _heartbeats = heartbeats;
         _scopeFactory = scopeFactory;
         _timeProvider = timeProvider;
         _logger = logger;
@@ -24,6 +32,7 @@ public sealed class ArticleDraftCleanupWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _heartbeats.Started(HeartbeatName, Interval);
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -34,6 +43,8 @@ public sealed class ArticleDraftCleanupWorker : BackgroundService
                 {
                     _logger.LogInformation("Deleted {Count} abandoned article draft(s).", removed);
                 }
+
+                _heartbeats.Succeeded(HeartbeatName);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -42,6 +53,7 @@ public sealed class ArticleDraftCleanupWorker : BackgroundService
             catch (Exception exception)
             {
                 // The database being away must not end the worker for the life of the process.
+                _heartbeats.Failed(HeartbeatName);
                 _logger.LogError(exception, "Article draft cleanup failed.");
             }
 

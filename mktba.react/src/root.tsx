@@ -6,9 +6,11 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  isRouteErrorResponse,
   useLoaderData,
   useMatches,
   useNavigate,
+  useRouteError,
   useRouteLoaderData,
   type LinksFunction,
   type LoaderFunctionArgs,
@@ -22,6 +24,7 @@ import { ErrorFallback } from './components/ErrorFallback';
 import { MazhabProvider } from './context/MazhabProvider';
 import { useLocale } from './localization/hooks';
 import { LocalizationProvider } from './localization/provider';
+import { reportClientError } from './services/clientErrors';
 import { ADMIN_SESSION_EXPIRED_EVENT, useSession } from './services/session';
 import { createQueryClient, invalidateArticleQueries } from './app/queryClient';
 import type { RouteHandle } from './app/routeHandle';
@@ -162,6 +165,11 @@ export default function App() {
 /** A loader that failed or a page that threw while rendering. */
 export function ErrorBoundary() {
   const siteUrl = useRouteLoaderData<typeof loader>('root')?.siteUrl ?? null;
+  const error = useRouteError();
+  // A thrown response (404 and the like) is an answer, not a fault (X-05, #159).
+  useEffect(() => {
+    if (!isRouteErrorResponse(error)) reportClientError('render', error);
+  }, [error]);
 
   return (
     <SiteUrlContext.Provider value={siteUrl}>

@@ -2,7 +2,8 @@
 # CI test of deploy/deploy.sh (X-02, #64), run by the `docker` job after it has built mktba-api:ci
 # and mktba-web:ci. In a throwaway stand directory it deploys tag ci, then tag ci2, then rolls back,
 # and after each step checks the images of api and web, that the migrations and the reference data
-# are in the database (GET /schools/system returns the 4 system schools) and that web serves pages.
+# are in the database (GET /schools/system returns the 4 system schools), that web serves pages and
+# that both containers are healthy with readiness reporting the database (X-05, #159).
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -43,6 +44,11 @@ check() {
   [[ $(image_of api) == "mktba-api:$tag" ]] || { echo "api runs $(image_of api), expected mktba-api:$tag" >&2; return 1; }
   [[ $(image_of web) == "mktba-web:$tag-staging" ]] || { echo "web runs $(image_of web), expected mktba-web:$tag-staging" >&2; return 1; }
   [[ $(tail -n 1 "$stand/.deploy-history") == "mktba $tag -staging" ]] || { echo "history does not end with $tag" >&2; return 1; }
+  local service health
+  for service in api web; do
+    health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$(compose ps -q "$service")")
+    [[ $health == healthy ]] || { echo "$service healthcheck: $health" >&2; return 1; }
+  done
   # From inside the web container: the API answers with the seeded schools and the SSR server renders.
   compose exec -T web node -e '
     const until = Date.now() + 60000;
@@ -50,8 +56,13 @@ check() {
       try {
         const schools = await (await fetch("http://api:8080/schools/system")).json();
         const page = await fetch("http://localhost:3000/");
-        if (schools.length === 4 && page.status < 500) { console.log("api: 4 schools, web: " + page.status); return; }
-        throw new Error("schools " + schools.length + ", web " + page.status);
+        const ready = await (await fetch("http://api:8080/health/ready")).json();
+        const database = ready.checks?.database?.status;
+        if (schools.length === 4 && page.status < 500 && database === "Healthy") {
+          console.log("api: 4 schools, database " + database + ", web: " + page.status);
+          return;
+        }
+        throw new Error("schools " + schools.length + ", database " + database + ", web " + page.status);
       } catch (e) {
         if (Date.now() > until) { console.error(String(e)); process.exit(1); }
         setTimeout(probe, 2000);

@@ -2280,6 +2280,50 @@
         }
       }
     },
+    "/client-errors": {
+      "post": {
+        "tags": [
+          "Observability"
+        ],
+        "summary": "Takes a browser error report from the site's own script (X-05). No sign-in.",
+        "description": "The report is cleaned (no e-mail addresses, no query strings, no tokens) and written to the server log; nothing is stored and no address or User-Agent is kept. Always 202 for a readable body, also when the report is dropped by the overall cap. 429 with Retry-After: too_many_requests.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientErrorReportDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/paragraph": {
       "get": {
         "tags": [
@@ -5491,6 +5535,28 @@
             "items": {
               "$ref": "#/components/schemas/AuthorArticleDto"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClientErrorReportDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "stack": {
+            "type": "string",
+            "nullable": true
+          },
+          "page": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

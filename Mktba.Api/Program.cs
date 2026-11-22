@@ -15,6 +15,14 @@ using Mktba.Infrastructure.UnitOfWork;
 using Mktba.Api.Endpoints;
 using Mktba.Api.Infrastructure;
 using Mktba.Api.Middleware;
+using Mktba.Api.Observability;
+
+// `--health-probe` asks the running API for its readiness and exits: the container healthcheck (X-05, #159).
+if (HealthProbe.IsRequested(args))
+{
+    Environment.ExitCode = await HealthProbe.RunAsync(HealthProbe.Target(Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS")));
+    return;
+}
 
 // `--migrate` applies the migrations and exits instead of serving (X-03, #65; DatabaseStartup).
 var (migrateOnly, hostArgs) = DatabaseStartup.ParseArgs(args);
@@ -32,6 +40,7 @@ builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOpt
 builder.Services.Configure<FeedbackOptions>(builder.Configuration.GetSection(FeedbackOptions.SectionName));
 builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection(IndexNowOptions.SectionName));
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
+builder.Services.Configure<ClientErrorOptions>(builder.Configuration.GetSection(ClientErrorOptions.SectionName));
 builder.Services.AddFileStorage(
     builder.Configuration.GetSection(FileStorageOptions.SectionName).Get<FileStorageOptions>() ?? new FileStorageOptions(),
     builder.Environment.ContentRootPath);
@@ -106,6 +115,11 @@ builder.Services.AddArticleAccess();
 
 builder.Services.AddMktbaRateLimiting(builder.Configuration);
 
+// Observability (X-05, #159; README «Наблюдаемость»): /health/live and /health/ready, and alerts to the
+// owner's Telegram chat, off until Alerts:Telegram is configured.
+builder.Services.AddMktbaHealthChecks();
+builder.Services.AddMktbaAlerts(builder.Configuration);
+
 // The OpenApi environment has no database to deliver from.
 if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
 {
@@ -140,6 +154,8 @@ if (app.Environment.IsDevelopment())
 // First: everything after it, the rate limiter included, sees the visitor's address.
 app.UseMktbaForwardedHeaders(app.Configuration);
 app.UseMktbaSecurityHeaders();
+// Outside the exception handler: it logs the status the handler wrote.
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (!app.Environment.IsDevelopment())
 {
@@ -169,6 +185,8 @@ app.MapFeedbackEndpoints();
 app.MapAnalyticsEndpoints();
 app.MapSeoEndpoints();
 app.MapUploadEndpoints();
+app.MapClientErrorEndpoints();
+app.MapHealthEndpoints();
 
 app.Run();
 

@@ -1,12 +1,16 @@
 // The server entry (X-06, #160): React Router's default rendering, on web streams (no Node types in the
 // app's tsconfig), plus the site's security headers.
-import type { EntryContext } from 'react-router';
+import type { EntryContext, HandleErrorFunction } from 'react-router';
 import { ServerRouter } from 'react-router';
 import { isbot } from 'isbot';
 import { renderToReadableStream } from 'react-dom/server';
 import { applySecurityHeaders } from './server/securityHeaders.server';
+import { logServerError } from './server/serverErrors.server';
 
 export const streamTimeout = 5_000;
+
+/** Loader, action and render errors as JSON lines in the container's log (X-05, #159). */
+export const handleError: HandleErrorFunction = (error, { request }) => logServerError(error, request);
 
 /** `.data` requests (client-side navigations) get the same headers as pages. Resource routes do not pass here. */
 export function handleDataRequest(response: Response): Response {

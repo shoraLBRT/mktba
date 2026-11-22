@@ -2563,6 +2563,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/client-errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Takes a browser error report from the site's own script (X-05). No sign-in.
+         * @description The report is cleaned (no e-mail addresses, no query strings, no tokens) and written to the server log; nothing is stored and no address or User-Agent is kept. Always 202 for a readable body, also when the report is dropped by the overall cap. 429 with Retry-After: too_many_requests.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ClientErrorReportDto"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/paragraph": {
         parameters: {
             query?: never;
@@ -4623,6 +4682,12 @@ export interface components {
             /** Format: int32 */
             pageSize: number;
             items: components["schemas"]["AuthorArticleDto"][];
+        };
+        ClientErrorReportDto: {
+            kind?: string | null;
+            message?: string | null;
+            stack?: string | null;
+            page?: string | null;
         };
         CurrentUserDto: {
             /** Format: int32 */

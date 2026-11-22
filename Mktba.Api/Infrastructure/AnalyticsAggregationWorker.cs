@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Mktba.Api.Observability;
 using Mktba.Application.Configuration;
 using Mktba.Application.Services.Analytics;
 
@@ -12,17 +13,22 @@ namespace Mktba.Api.Infrastructure;
 /// </summary>
 public sealed class AnalyticsAggregationWorker : BackgroundService
 {
+    public const string HeartbeatName = "analytics-aggregation";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly TimeProvider _timeProvider;
     private readonly AnalyticsOptions _options;
+    private readonly WorkerHeartbeats _heartbeats;
     private readonly ILogger<AnalyticsAggregationWorker> _logger;
 
     public AnalyticsAggregationWorker(
         IServiceScopeFactory scopeFactory,
         TimeProvider timeProvider,
         IOptions<AnalyticsOptions> options,
+        WorkerHeartbeats heartbeats,
         ILogger<AnalyticsAggregationWorker> logger)
     {
+        _heartbeats = heartbeats;
         _scopeFactory = scopeFactory;
         _timeProvider = timeProvider;
         _options = options.Value;
@@ -31,6 +37,7 @@ public sealed class AnalyticsAggregationWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _heartbeats.Started(HeartbeatName, _options.AggregationInterval);
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -41,6 +48,8 @@ public sealed class AnalyticsAggregationWorker : BackgroundService
                 {
                     _logger.LogInformation("Removed {Count} raw analytics event(s) past the retention.", run.EventsRemoved);
                 }
+
+                _heartbeats.Succeeded(HeartbeatName);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -49,6 +58,7 @@ public sealed class AnalyticsAggregationWorker : BackgroundService
             catch (Exception exception)
             {
                 // The database being away must not end the worker for the life of the process.
+                _heartbeats.Failed(HeartbeatName);
                 _logger.LogError(exception, "Analytics aggregation failed.");
             }
 

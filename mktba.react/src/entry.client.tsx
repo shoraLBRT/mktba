@@ -2,9 +2,11 @@ import { startTransition, StrictMode } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { HydratedRouter } from 'react-router/dom';
 import { getConsent, initMetrika } from './analytics/metrika';
+import { installClientErrorReporting } from './services/clientErrors';
 import { startSession } from './services/session';
 
 // Browser-only startup, before the server's HTML is hydrated.
+installClientErrorReporting();
 if (getConsent() === true) {
   initMetrika();
 }

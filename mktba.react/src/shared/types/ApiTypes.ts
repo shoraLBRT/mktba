@@ -99,3 +99,4 @@ export type FeedbackAcceptedDto = Schemas['FeedbackAcceptedDto'];
 export type AnalyticsEventType = Schemas['AnalyticsEventType'];
 export type AnalyticsEventDto = Schemas['AnalyticsEventDto'];
 export type AnalyticsEventBatchDto = Schemas['AnalyticsEventBatchDto'];
+export type ClientErrorReportDto = Schemas['ClientErrorReportDto'];

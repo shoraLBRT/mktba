@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Mktba.Api.Observability;
 using Mktba.Application.Configuration;
 using Mktba.Application.Services.Feedback;
 
@@ -12,10 +13,13 @@ namespace Mktba.Api.Infrastructure;
 /// </summary>
 public sealed class FeedbackDeliveryWorker : BackgroundService
 {
+    public const string HeartbeatName = "feedback-delivery";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IFeedbackIssueTracker _tracker;
     private readonly FeedbackDeliveryOptions _options;
     private readonly TimeProvider _timeProvider;
+    private readonly WorkerHeartbeats _heartbeats;
     private readonly ILogger<FeedbackDeliveryWorker> _logger;
 
     public FeedbackDeliveryWorker(
@@ -23,8 +27,10 @@ public sealed class FeedbackDeliveryWorker : BackgroundService
         IFeedbackIssueTracker tracker,
         IOptions<FeedbackOptions> options,
         TimeProvider timeProvider,
+        WorkerHeartbeats heartbeats,
         ILogger<FeedbackDeliveryWorker> logger)
     {
+        _heartbeats = heartbeats;
         _scopeFactory = scopeFactory;
         _tracker = tracker;
         _options = options.Value.Delivery;
@@ -43,6 +49,7 @@ public sealed class FeedbackDeliveryWorker : BackgroundService
 
         var pollInterval = TimeSpan.FromSeconds(Math.Max(1, _options.PollIntervalSeconds));
         var failedRuns = 0;
+        _heartbeats.Started(HeartbeatName, pollInterval);
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -50,6 +57,14 @@ public sealed class FeedbackDeliveryWorker : BackgroundService
                 using var scope = _scopeFactory.CreateScope();
                 var run = await scope.ServiceProvider.GetRequiredService<FeedbackDeliveryService>().DeliverDueAsync(stoppingToken);
                 failedRuns = run.TrackerUnavailable ? failedRuns + 1 : 0;
+                if (run.TrackerUnavailable)
+                {
+                    _heartbeats.Failed(HeartbeatName);
+                }
+                else
+                {
+                    _heartbeats.Succeeded(HeartbeatName);
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -59,6 +74,7 @@ public sealed class FeedbackDeliveryWorker : BackgroundService
             {
                 // The database being away must not end the worker for the life of the process.
                 failedRuns++;
+                _heartbeats.Failed(HeartbeatName);
                 _logger.LogError(exception, "Feedback delivery run failed.");
             }
 
