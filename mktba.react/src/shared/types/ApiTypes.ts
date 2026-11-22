@@ -62,6 +62,7 @@ export type UncoveredOpinionBlockDto = Schemas['UncoveredOpinionBlockDto'];
 export type AnalyticsSchoolTotalDto = Schemas['AnalyticsSchoolTotalDto'];
 export type AuthorAnalyticsDto = Schemas['AuthorAnalyticsDto'];
 export type ReadDepthDto = Schemas['ReadDepthDto'];
+export type ArticleAnalyticsDto = Schemas['ArticleAnalyticsDto'];
 export type AuthorArticleDto = Schemas['AuthorArticleDto'];
 export type AuthorArticlesDto = Schemas['AuthorArticlesDto'];
 export type ArticleRevisionSummaryDto = Schemas['ArticleRevisionSummaryDto'];

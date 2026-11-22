@@ -4,6 +4,7 @@ import ArticleEditorPage from '../pages/ArticleEditorPage';
 import ArticleHistoryPage from '../pages/ArticleHistoryPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import AdminAiSettingsPage from '../pages/admin/AdminAiSettingsPage';
+import AdminArticleAnalyticsPage from '../pages/admin/AdminArticleAnalyticsPage';
 import AdminArticlesPage from '../pages/admin/AdminArticlesPage';
 import AdminArticleTreePage from '../pages/admin/AdminArticleTreePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
@@ -85,6 +86,10 @@ export const AdminRoutes = () => (
       <Route
         path="articles/:articleId/history"
         element={<AdminSectionRoute policy="canEditArticles" padded={false}><ArticleHistoryPage /></AdminSectionRoute>}
+      />
+      <Route
+        path="articles/:articleId/analytics"
+        element={<AdminSectionRoute policy="canEditArticles"><AdminArticleAnalyticsPage /></AdminSectionRoute>}
       />
       <Route path="*" element={<NotFoundPage />} />
     </Route>
