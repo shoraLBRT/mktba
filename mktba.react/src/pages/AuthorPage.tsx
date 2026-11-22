@@ -5,7 +5,7 @@ import { ArticleListEntry } from '../components/ArticleListEntry';
 import { PageLinks } from '../components/PageLinks';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { AuthorStructuredData } from '../components/StructuredData';
-import { useLocale } from '../localization/hooks';
+import { useLocale, useLocalizedPath } from '../localization/hooks';
 import { getAuthor, getAuthorArticles } from '../services/authorService';
 import { ApiError } from '../shared/api-client/apiError';
 import {
@@ -113,6 +113,7 @@ type ArticleListProps = {
 
 const ArticleList = ({ slug, articles, failed, onRetry }: ArticleListProps) => {
   const locale = useLocale();
+  const localize = useLocalizedPath();
   const t = locale.authorPage;
   const titleId = useId();
 
@@ -143,7 +144,7 @@ const ArticleList = ({ slug, articles, failed, onRetry }: ArticleListProps) => {
             label={t.pagesLabel}
             page={articles.page}
             pageCount={authorPageCount(articles.total, articles.pageSize)}
-            hrefFor={(page) => authorPageHref(slug, page)}
+            hrefFor={(page) => localize(authorPageHref(slug, page))}
           />
         </>
       )}

@@ -1,9 +1,10 @@
 import { useSiteUrl } from '../app/siteUrl';
-import { useLocale } from '../localization/hooks';
+import { useLanguage, useLocale } from '../localization/hooks';
+import { hasOwnDictionary } from '../localization/index';
+import { localizedPath, OG_LOCALES } from '../localization/language';
 import {
   DEFAULT_SOCIAL_IMAGE_PATH,
   documentTitle,
-  OG_LOCALE,
   ROBOTS_NOINDEX,
   ROBOTS_NOINDEX_NOFOLLOW,
   siteUrlFor,
@@ -46,13 +47,18 @@ export const PageMeta = ({
   modifiedTime,
 }: PageMetaProps) => {
   const { brand } = useLocale();
+  const language = useLanguage();
   const siteUrl = useSiteUrl();
   const shownTitle = title ?? brand.documentTitle;
   const shownDescription = description === undefined ? brand.description : description;
-  const canonical = path === undefined ? null : siteUrlFor(path, siteUrl);
+  // The canonical URL is the page's own, in the reader's language (I-01, #105).
+  const canonical = path === undefined ? null : siteUrlFor(localizedPath(language, path), siteUrl);
   const imagePath = image === undefined ? DEFAULT_SOCIAL_IMAGE_PATH : image;
   const imageUrl = imagePath ? siteUrlFor(imagePath, siteUrl) : null;
-  const robots = noIndex ? (noFollow ? ROBOTS_NOINDEX_NOFOLLOW : ROBOTS_NOINDEX) : null;
+  // A language without its own dictionary shows the Russian interface: kept out of search results
+  // until its dictionary exists (`en`, #109), so it never competes with the Russian page.
+  const hidden = noIndex || !hasOwnDictionary(language);
+  const robots = hidden ? (noFollow ? ROBOTS_NOINDEX_NOFOLLOW : ROBOTS_NOINDEX) : null;
 
   return (
     <>
@@ -61,7 +67,7 @@ export const PageMeta = ({
       {canonical ? <link rel="canonical" href={canonical} /> : null}
       {robots ? <meta name="robots" content={robots} /> : null}
       <meta property="og:site_name" content={brand.name} />
-      <meta property="og:locale" content={OG_LOCALE} />
+      <meta property="og:locale" content={OG_LOCALES[language]} />
       <meta property="og:type" content={type} />
       <meta property="og:title" content={shownTitle} />
       {shownDescription ? <meta property="og:description" content={shownDescription} /> : null}

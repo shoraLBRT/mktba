@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
 import { PageLinks } from '../components/PageLinks';
 import { SearchForm } from '../components/search/SearchForm';
-import { useLocale } from '../localization/hooks';
+import { useLocale, useLocalizedPath } from '../localization/hooks';
 import { searchArticles } from '../services/Article/articleService';
 import {
   isSearchableQuery,
@@ -60,6 +60,7 @@ const ResultItem = ({ result }: { result: SearchResultDto }) => (
 /** Nothing matched: say so plainly and suggest what to try. */
 const NothingFound = ({ query }: { query: string }) => {
   const t = useLocale().search.empty;
+  const localize = useLocalizedPath();
   const [beforeQuery, afterQuery = ''] = t.title.split('{query}');
 
   return (
@@ -76,7 +77,7 @@ const NothingFound = ({ query }: { query: string }) => {
         ))}
       </ul>
       <p className={`${noteClass} mt-4`}>
-        <Link to="/" className={linkClass}>
+        <Link to={localize('/')} className={linkClass}>
           {t.homeLink}
         </Link>
       </p>
@@ -91,6 +92,7 @@ const NothingFound = ({ query }: { query: string }) => {
  */
 const SearchPage = () => {
   const t = useLocale().search;
+  const localize = useLocalizedPath();
   const statusId = useId();
   const [searchParams] = useSearchParams();
   const request = readSearchRequest(searchParams);
@@ -138,7 +140,7 @@ const SearchPage = () => {
             label={t.pagination.label}
             page={results.page}
             pageCount={searchPageCount(results.total, results.pageSize)}
-            hrefFor={(page) => searchHref(results.query, page)}
+            hrefFor={(page) => localize(searchHref(results.query, page))}
           />
         </>
       )}

@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router';
 import { ArticleListEntry } from '../components/ArticleListEntry';
 import { PageLinks } from '../components/PageLinks';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
-import { useLocale } from '../localization/hooks';
+import { useLocale, useLocalizedPath } from '../localization/hooks';
 import { getTagPage } from '../services/tagService';
 import { ApiError } from '../shared/api-client/apiError';
 import { readTagPage, tagHref, tagPageCount, tagPageHref, tagPageQueryKey } from '../shared/tag';
@@ -19,6 +19,7 @@ const noteClass = 'm-0 text-base leading-7 text-[var(--color-ink-muted)]';
  */
 const TagPage = () => {
   const locale = useLocale();
+  const localize = useLocalizedPath();
   const t = locale.tagPage;
   const { slug = '' } = useParams();
   const [searchParams] = useSearchParams();
@@ -81,7 +82,7 @@ const TagPage = () => {
         label={t.pagesLabel}
         page={tag.page}
         pageCount={tagPageCount(tag.total, tag.pageSize)}
-        hrefFor={(target) => tagPageHref(tag.slug, target)}
+        hrefFor={(target) => localize(tagPageHref(tag.slug, target))}
       />
     </div>
   );

@@ -1,4 +1,23 @@
-import { index, layout, route, type RouteConfig } from '@react-router/dev/routes';
+import { index, layout, prefix, route, type RouteConfig, type RouteConfigEntry } from '@react-router/dev/routes';
+import { PREFIXED_LANGUAGES } from './localization/language';
+
+/**
+ * The reader's pages in one language. `idPrefix` keeps the route ids of a prefixed language apart
+ * from the Russian ones (the same module serves both); `russianOnly` are the static routes only
+ * Russian has. `:slug` stays after the static routes.
+ */
+const readerRoutes = (idPrefix = '', russianOnly: RouteConfigEntry[] = []): RouteConfigEntry[] => {
+  const id = (file: string) => (idPrefix ? { id: `${idPrefix}/${file}` } : {});
+  return [
+    index('routes/home.tsx', id('routes/home')),
+    route('search', 'routes/search.tsx', id('routes/search')),
+    route('feedback', 'routes/feedback.tsx', id('routes/feedback')),
+    ...russianOnly,
+    route(':slug', 'routes/article.tsx', id('routes/article')),
+    route('authors/:slug', 'routes/author.tsx', id('routes/author')),
+    route('tags/:slug', 'routes/tag.tsx', id('routes/tag')),
+  ];
+};
 
 /**
  * Every page of the app. The public site (`MainLayout`) is rendered on the server: its route
@@ -9,18 +28,18 @@ import { index, layout, route, type RouteConfig } from '@react-router/dev/routes
  * Articles live directly at `/{slug}` (O-02, #53): a static segment outranks the `:slug` param, and
  * every first segment a page uses is a reserved slug (`RESERVED_ARTICLE_SLUGS`). The old
  * `/article/{slug-or-id}` URLs are the same route module, whose loader answers 301 to `/{slug}`.
+ * The language is in the URL (I-01, #105): the reader's pages are at `/…` in Russian and again under
+ * `/en/…` in English (`localization/language.ts`); the old URLs, the sign-in and the admin are
+ * Russian only.
  */
 export default [
   layout('routes/public-layout.tsx', [
-    index('routes/home.tsx'),
-    route('search', 'routes/search.tsx'),
-    route('feedback', 'routes/feedback.tsx'),
-    route('article/new', 'routes/legacy-add-article.tsx'),
-    route('article/:slug', 'routes/article.tsx', { id: 'routes/legacy-article' }),
-    route(':slug', 'routes/article.tsx'),
-    route('authors/:slug', 'routes/author.tsx'),
-    route('tags/:slug', 'routes/tag.tsx'),
-    route('admin/login', 'routes/admin-login.tsx'),
+    ...readerRoutes('', [
+      route('article/new', 'routes/legacy-add-article.tsx'),
+      route('article/:slug', 'routes/article.tsx', { id: 'routes/legacy-article' }),
+      route('admin/login', 'routes/admin-login.tsx'),
+    ]),
+    ...PREFIXED_LANGUAGES.flatMap((language) => prefix(language, readerRoutes(language))),
     route('*', 'routes/not-found.tsx'),
   ]),
   route('admin/*', 'routes/admin.tsx'),

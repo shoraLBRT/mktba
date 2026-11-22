@@ -1,3 +1,4 @@
+import { DEFAULT_LANGUAGE, type Language } from './language';
 import { dictionaries as loadedDictionaries } from './loader';
 
 export { loadLocaleChunk } from './loader';
@@ -24,6 +25,16 @@ export type SupportedLocale = keyof typeof dictionaries;
 export type Locale = (typeof dictionaries)['ru'];
 
 export const locale: Locale = dictionaries.ru;
+
+/**
+ * The dictionary of a language. A language without its own files yet (`en` until #109) reads the
+ * default one; one with files falls back to it key by key (`loader.ts`).
+ */
+export const dictionaryFor = (language: Language): Locale =>
+  ((dictionaries as Record<string, unknown>)[language] ?? dictionaries[DEFAULT_LANGUAGE]) as Locale;
+
+/** Whether the language has a dictionary of its own, not only the default one's strings. */
+export const hasOwnDictionary = (language: Language): boolean => language in dictionaries;
 
 export const formatMessage = (template: string, params: Record<string, string | number>): string =>
   Object.entries(params).reduce(

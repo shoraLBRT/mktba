@@ -414,3 +414,35 @@ test('pages and client navigation data carry the security headers, and the page 
   await page.waitForLoadState('networkidle');
   expect(violations).toEqual([]);
 });
+
+test('the language is in the URL: / is Russian, /en/ is English and stays out of the index until its dictionary (I-01)', async ({ request }) => {
+  const russian = await (await request.get('/salat')).text();
+  expect(russian).toMatch(/<html lang="ru"/);
+
+  const home = await request.get('/en/');
+  expect(home.status()).toBe(200);
+  const html = await home.text();
+  expect(html).toMatch(/<html lang="en"/);
+  expect(metaContent(html, 'og:locale')).toBe('en_US');
+  expect(metaContent(html, 'robots')).toContain('noindex');
+  expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^/"]+\/en\/"/);
+
+  // A slug is unique within a language: the Russian article is not at /en/{its slug}.
+  expect((await request.get('/en/salat')).status()).toBe(404);
+});
+
+test('an English article lives under /en/ and its old id link leads there (I-01)', async ({ request }) => {
+  const article = await publishArticle(request, `Prayer ${Date.now()}`, [
+    { order: 1, opinions: [{ content: 'Text', isDefault: true, schoolIds: [] }] },
+  ], { locale: 'en' });
+
+  const page = await request.get(`/en/${article.slug}`, { maxRedirects: 0 });
+  expect(page.status()).toBe(200);
+  expect(await page.text()).toMatch(/<h1[^>]*>Prayer \d+<\/h1>/);
+
+  const byId = await request.get(`/article/${article.id}`, { maxRedirects: 0 });
+  expect(byId.status()).toBe(301);
+  expect(byId.headers()['location']).toBe(`/en/${article.slug}`);
+
+  expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).ok()).toBe(true);
+});

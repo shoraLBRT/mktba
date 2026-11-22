@@ -1,10 +1,11 @@
 import { Link } from 'react-router';
-import { useLocale } from '../localization/hooks';
+import { useLocale, useLocalizedPath } from '../localization/hooks';
 import { Button } from '../shared/ui/Button';
 
 /** What `ErrorBoundary` shows instead of a page that failed to render. */
 export const ErrorFallback = () => {
   const locale = useLocale();
+  const localize = useLocalizedPath();
 
   return (
     <div role="alert" className="flex min-h-[60vh] items-center justify-center px-6 py-12">
@@ -16,7 +17,7 @@ export const ErrorFallback = () => {
             {locale.errorPage.reload}
           </Button>
           <Link
-            to="/"
+            to={localize('/')}
             className="inline-flex items-center justify-center rounded-xl border border-[var(--color-border-soft)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-ink-default)] hover:bg-[var(--color-surface-muted)]"
           >
             {locale.errorPage.homeLink}

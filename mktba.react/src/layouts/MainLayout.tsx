@@ -13,7 +13,7 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import Sidebar from '../components/Sidebar';
 import { useSidebar } from '../hooks/useSidebar';
-import { useLocale } from '../localization/hooks';
+import { useLocale, useLocalizedPath } from '../localization/hooks';
 import { logOut, useSession } from '../services/session';
 import { FEEDBACK_PATH, feedbackHref } from '../shared/feedback';
 import { Button } from '../shared/ui/Button';
@@ -24,15 +24,17 @@ import { useSearchShortcut } from '../components/search/searchShortcut';
 /** The public site: header, the article tree with search, and the page. Admin pages use `AdminLayout`. */
 const MainLayout: React.FC = () => {
   const locale = useLocale();
+  // The site's own links stay in the reader's language (I-01, #105).
+  const localize = useLocalizedPath();
   const navigate = useNavigate();
   const location = useLocation();
   const { collapsed, toggleCollapsed } = useSidebar();
   const isAdmin = useSession().accessToken !== null;
   const currentPath = location.pathname;
   // On the form itself the link keeps what the form was opened with; elsewhere it carries this page.
-  const feedbackLink = currentPath === FEEDBACK_PATH
-    ? `${FEEDBACK_PATH}${location.search}`
-    : feedbackHref({ from: `${location.pathname}${location.search}` });
+  const feedbackLink = currentPath === localize(FEEDBACK_PATH)
+    ? `${currentPath}${location.search}`
+    : localize(feedbackHref({ from: `${location.pathname}${location.search}` }));
   const isCreateRoute = location.pathname === APP_CONSTANTS.ROUTES.ADD_ARTICLE;
   const [mobileSidebarState, setMobileSidebarState] = useState({ open: false, path: currentPath });
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
@@ -66,7 +68,7 @@ const MainLayout: React.FC = () => {
           className="hidden items-center border-r border-[var(--color-border-soft)] px-4 transition-[width] duration-200 lg:flex"
           style={{ width: logoWidth }}
         >
-          <Link to="/" className="flex min-w-0 flex-col leading-none">
+          <Link to={localize('/')} className="flex min-w-0 flex-col leading-none">
             <span className="truncate text-[15px] font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">
               {collapsed ? locale.brand.shortName : locale.brand.name}
             </span>
@@ -87,14 +89,14 @@ const MainLayout: React.FC = () => {
 
             {/* Below `lg` the brand column is hidden, so the brand itself leads home. */}
             <Link
-              to="/"
+              to={localize('/')}
               className="flex h-9 items-center rounded-lg px-2 text-[15px] font-bold tracking-[-0.03em] text-[var(--color-ink-strong)] lg:hidden"
             >
               {locale.brand.name}
             </Link>
 
             <Link
-              to="/"
+              to={localize('/')}
               className="ml-1 hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-brand-forest)] lg:flex"
               title={locale.layout.menu.home}
               aria-label={locale.layout.menu.home}

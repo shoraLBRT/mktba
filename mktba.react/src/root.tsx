@@ -8,6 +8,7 @@ import {
   ScrollRestoration,
   isRouteErrorResponse,
   useLoaderData,
+  useLocation,
   useMatches,
   useNavigate,
   useRouteError,
@@ -23,6 +24,7 @@ import { PageMeta } from './components/PageMeta';
 import { ErrorFallback } from './components/ErrorFallback';
 import { MazhabProvider } from './context/MazhabProvider';
 import { useLocale } from './localization/hooks';
+import { languageFromPath } from './localization/language';
 import { LocalizationProvider } from './localization/provider';
 import { reportClientError } from './services/clientErrors';
 import { ADMIN_SESSION_EXPIRED_EVENT, useSession } from './services/session';
@@ -66,8 +68,10 @@ export const shouldRevalidate = () => false;
 /** The HTML document around every page (error pages included), rendered on the server. */
 export function Layout({ children }: { children: ReactNode }) {
   const siteVerification = useRouteLoaderData<typeof loader>('root')?.siteVerification ?? [];
+  // The language of the URL (I-01, #105): in the server HTML and kept on client-side navigation.
+  const language = languageFromPath(useLocation().pathname);
   return (
-    <html lang="ru">
+    <html lang={language}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -143,10 +147,11 @@ export default function App() {
   // One client per server render and one for the browser's lifetime.
   const [queryClient] = useState(createQueryClient);
   const { siteUrl } = useLoaderData<typeof loader>();
+  const language = languageFromPath(useLocation().pathname);
 
   return (
     <SiteUrlContext.Provider value={siteUrl}>
-      <LocalizationProvider>
+      <LocalizationProvider language={language}>
         <QueryClientProvider client={queryClient}>
           <MazhabProvider>
             <FallbackPageMeta />
@@ -166,6 +171,7 @@ export default function App() {
 export function ErrorBoundary() {
   const siteUrl = useRouteLoaderData<typeof loader>('root')?.siteUrl ?? null;
   const error = useRouteError();
+  const language = languageFromPath(useLocation().pathname);
   // A thrown response (404 and the like) is an answer, not a fault (X-05, #159).
   useEffect(() => {
     if (!isRouteErrorResponse(error)) reportClientError('render', error);
@@ -173,7 +179,7 @@ export function ErrorBoundary() {
 
   return (
     <SiteUrlContext.Provider value={siteUrl}>
-      <LocalizationProvider>
+      <LocalizationProvider language={language}>
         <ErrorPageMeta />
         <ErrorFallback />
       </LocalizationProvider>

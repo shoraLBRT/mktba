@@ -1,13 +1,13 @@
 import { render, renderHook, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { LAZY_LOCALE_KEYS, pickLocaleChunk } from './chunks';
-import { dictionaries, formatMessage, loadLocaleChunk, locale } from './index';
+import { dictionaries, dictionaryFor, formatMessage, hasOwnDictionary, loadLocaleChunk, locale } from './index';
 import ruEditor from './locales/ru/editor.json';
 import ruPages from './locales/ru/pages.json';
 import ruSiteAnalytics from './locales/ru/admin/siteAnalytics.json';
 import coreEditor from './locales/ru/editor.json?locale-chunk=core';
 import corePages from './locales/ru/pages.json?locale-chunk=core';
-import { useLocale } from './hooks';
+import { useLanguage, useLocale, useLocalizedPath } from './hooks';
 import { LocalizationProvider } from './provider';
 import { getValidatedDefaultLocaleNamespaces, REQUIRED_NAMESPACES, validateNamespaceOwnership } from './validation';
 
@@ -125,6 +125,22 @@ describe('LocalizationProvider', () => {
 
     expect(screen.getByText('mktba')).toBeDefined();
     expect(document.documentElement.lang).toBe('ru');
+  });
+
+  it('given a language without its own dictionary, when rendered, then it reads the ru strings and sets its own page language', () => {
+    const Probe = () => <span>{`${useLanguage()}:${useLocale().brand.name}:${useLocalizedPath()('/search')}`}</span>;
+
+    render(
+      <LocalizationProvider language="en">
+        <Probe />
+      </LocalizationProvider>,
+    );
+
+    expect(screen.getByText('en:mktba:/en/search')).toBeDefined();
+    expect(document.documentElement.lang).toBe('en');
+    expect(dictionaryFor('en')).toBe(dictionaries.ru);
+    expect(hasOwnDictionary('ru')).toBe(true);
+    expect(hasOwnDictionary('en')).toBe(false);
   });
 
   it('given no provider, when the locale hook runs, then it throws', () => {

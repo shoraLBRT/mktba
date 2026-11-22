@@ -17,7 +17,8 @@ import { ArticleSkeleton } from '../components/article/ArticleSkeleton';
 import { ArticleParagraphList } from '../components/article/ArticleParagraphs';
 import { useArticleOutline, useRenderedParagraphs, useTocItems } from '../components/article/useArticleParagraphs';
 import { APP_CONSTANTS } from '../constants/AppConstants';
-import { useLocale } from '../localization/hooks';
+import { useLanguage, useLocale } from '../localization/hooks';
+import { localizedPath } from '../localization/language';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { useMazhab } from '../context/mazhabContext';
@@ -39,6 +40,7 @@ import { useHashAnchor } from '../components/article/useHashAnchor';
 
 const ArticlePage: React.FC = () => {
   const locale = useLocale();
+  const language = useLanguage();
   const navigate = useNavigate();
   const { pathname, search: locationSearch } = useLocation();
   const { slug: requestedSlug = '' } = useParams<{ slug: string }>();
@@ -46,22 +48,24 @@ const ArticlePage: React.FC = () => {
   const legacyArticleId = parseLegacyArticleId(requestedSlug);
   const { selectedSchoolId } = useMazhab();
   const { data: articleContent, isLoading, error } = useQuery({
-    queryKey: articleContentQueryKey(requestedSlug),
+    queryKey: articleContentQueryKey(requestedSlug, language),
     queryFn: () => (legacyArticleId !== null
       ? getArticleContentById(legacyArticleId)
-      : getArticleContentBySlug(requestedSlug)),
+      : getArticleContentBySlug(requestedSlug, language)),
     enabled: requestedSlug.length > 0,
   });
   const articleId = articleContent?.id ?? 0;
   const canonicalSlug = articleContent?.slug;
+  // The article's own URL: in its language, which a legacy id link does not say (I-01, #105).
+  const canonicalPath = canonicalSlug ? localizedPath(articleContent?.locale ?? language, articleHref(canonicalSlug)) : null;
 
   // An old `/article/…` URL, an id link or an old slug lands on the article's current `/{slug}`
   // without a history entry, keeping the query (`?mazhab=`) as the server's 301 does.
   useEffect(() => {
-    if (canonicalSlug && articleHref(canonicalSlug) !== pathname) {
-      navigate(`${articleHref(canonicalSlug)}${locationSearch}`, { replace: true });
+    if (canonicalPath && canonicalPath !== pathname) {
+      navigate(`${canonicalPath}${locationSearch}`, { replace: true });
     }
-  }, [canonicalSlug, pathname, locationSearch, navigate]);
+  }, [canonicalPath, pathname, locationSearch, navigate]);
 
   const { data: navigationTree } = useNavigationTree();
 
@@ -334,11 +338,11 @@ const ArticlePage: React.FC = () => {
             relatedArticles={relatedArticles}
             previous={adjacentArticles.previous}
             next={adjacentArticles.next}
-            errorReportHref={feedbackHref({
+            errorReportHref={localizedPath(language, feedbackHref({
               type: 'ArticleError',
               articleId: articleContent.id,
-              from: `${articleHref(articleContent.slug ?? requestedSlug)}${locationSearch}`,
-            })}
+              from: `${canonicalPath ?? pathname}${locationSearch}`,
+            }))}
           />
         </div>
       </article>

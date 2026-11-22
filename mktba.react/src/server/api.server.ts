@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../config';
+import { articleLocaleQuery, type Language } from '../localization/language';
 import { ApiError } from '../shared/api-client/apiError';
 import { AUTHOR_PAGE_PARAM } from '../shared/author';
 import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../shared/search';
@@ -67,8 +68,8 @@ const getJson = async <T>(path: string): Promise<T> => {
 export const serverApi = {
   getNavigationTree: () => getJson<NavigationArticleDto[]>('/navigationTree/tree'),
   getArticleContentById: (id: number) => getJson<ArticleContentDto>(`/articles/${id}/content`),
-  getArticleContentBySlug: (slug: string) =>
-    getJson<ArticleContentDto>(`/articles/by-slug/${encodeURIComponent(slug)}/content`),
+  getArticleContentBySlug: (slug: string, language: Language) =>
+    getJson<ArticleContentDto>(`/articles/by-slug/${encodeURIComponent(slug)}/content${articleLocaleQuery(language)}`),
   getSitemapArticles: () => getJson<SitemapArticleDto[]>('/articles/sitemap'),
   getIndexNowKey: () => getJson<IndexNowKeyDto>('/seo/indexnow-key'),
   getRecentArticles: () => getJson<RecentArticlesDto>('/articles/recent'),

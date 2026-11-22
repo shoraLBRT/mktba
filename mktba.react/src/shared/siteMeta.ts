@@ -6,8 +6,6 @@ import { toAbsoluteUrl } from './seo';
 
 /** The default social image (1200×630), served from `public/`. */
 export const DEFAULT_SOCIAL_IMAGE_PATH = '/og-default.png';
-/** `og:locale` of every page: the UI is Russian only. */
-export const OG_LOCALE = 'ru_RU';
 
 /** Robots directives: a page kept out of the index, and one whose links are not followed either. */
 export const ROBOTS_NOINDEX = 'noindex';
