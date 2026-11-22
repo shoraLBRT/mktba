@@ -8,6 +8,8 @@ import { Card } from '../../shared/ui/Card';
 import { BarChart } from './BarChart';
 import { EDITS_COLOR, PUBLICATIONS_COLOR, formatWeekStart } from './activityChart';
 
+const WEEK_TEST_ID = 'activity-week';
+
 /**
  * «Моя активность» on `/admin/profile` (P-04, #92): the signed-in user's own saved revisions and
  * first publications per week, as plain SVG bars with the numbers in a table for screen readers.
@@ -53,7 +55,7 @@ export const ActivityChartCard: React.FC = () => {
             values: [week.edits, week.publications],
           }))}
           maxWidth={672}
-          groupTestId="activity-week"
+          groupTestId={WEEK_TEST_ID}
         />
       </>
     );

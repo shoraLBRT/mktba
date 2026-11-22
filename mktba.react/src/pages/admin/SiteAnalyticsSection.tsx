@@ -11,7 +11,14 @@ import { Card } from '../../shared/ui/Card';
 import { BarChart } from './BarChart';
 
 /** The periods the dashboard offers, in days ending today (UTC). */
-export const SITE_ANALYTICS_PERIODS = [7, 30, 90] as const;
+const SITE_ANALYTICS_PERIODS = [7, 30, 90] as const;
+
+const TEST_IDS = {
+  views: 'site-analytics-views',
+  visitors: 'site-analytics-visitors',
+  searches: 'site-analytics-searches',
+  day: 'site-analytics-day',
+};
 
 const VIEWS_COLOR = 'var(--color-brand-forest)';
 const VISITORS_COLOR = 'var(--color-ink-subtle)';
@@ -70,9 +77,9 @@ const SchoolShares: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
 const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => (
   <div className="space-y-4">
     <div className="grid gap-4 sm:grid-cols-3">
-      <StatCard testId="site-analytics-views" label={t.articleViews} value={data.totals.articleViews} />
-      <StatCard testId="site-analytics-visitors" label={t.visitors} value={data.totals.visitors} hint={t.visitorsHint} />
-      <StatCard testId="site-analytics-searches" label={t.searches} value={data.totals.searches} />
+      <StatCard testId={TEST_IDS.views} label={t.articleViews} value={data.totals.articleViews} />
+      <StatCard testId={TEST_IDS.visitors} label={t.visitors} value={data.totals.visitors} hint={t.visitorsHint} />
+      <StatCard testId={TEST_IDS.searches} label={t.searches} value={data.totals.searches} />
     </div>
 
     <Card className="p-6">
@@ -100,7 +107,7 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => (
         }))}
         // About 640 px whatever the period: wide bars for a week, thin ones for a quarter.
         geometry={{ barWidth: Math.max(1, Math.min(24, Math.floor((640 / data.daily.length - 3) / 2))), barGap: 1, groupGap: 2 }}
-        groupTestId="site-analytics-day"
+        groupTestId={TEST_IDS.day}
       />
     </Card>
 
