@@ -38,6 +38,26 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
     public MktbaDbContext CreateContext()
         => new(new DbContextOptionsBuilder<MktbaDbContext>().UseNpgsql(ConnectionTo(_databaseName)).Options);
 
+    /// <summary>
+    /// A context whose model has no trash columns (M-11, #133), for tests that write articles into the
+    /// schema of an older migration before migrating it further.
+    /// </summary>
+    public MktbaDbContext CreatePreTrashContext()
+        => new PreTrashDbContext(new DbContextOptionsBuilder<MktbaDbContext>().UseNpgsql(ConnectionTo(_databaseName)).Options);
+
+    private sealed class PreTrashDbContext(DbContextOptions<MktbaDbContext> options) : MktbaDbContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            var article = modelBuilder.Entity<Domain.Entities.Article>();
+            article.HasQueryFilter(null);
+            article.Ignore(a => a.DeletedBy);
+            article.Ignore(a => a.DeletedById);
+            article.Ignore(a => a.DeletedAt);
+        }
+    }
+
     public async Task InitializeAsync()
     {
         if (!_migrate)

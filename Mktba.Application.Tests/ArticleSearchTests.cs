@@ -261,7 +261,7 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
         try
         {
             int articleId;
-            await using (var context = database.CreateContext())
+            await using (var context = database.CreatePreTrashContext())
             {
                 var migrations = context.Database.GetMigrations().ToList();
                 var before = migrations[migrations.FindIndex(id => id.EndsWith("_AddArticleSearch", StringComparison.Ordinal)) - 1];

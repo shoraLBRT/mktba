@@ -25,7 +25,7 @@ public class TagMigrationTests : IClassFixture<PostgresDatabaseFixture>
     public async Task GivenCommaSeparatedTags_WhenMigrationRuns_ThenEachLanguageGetsOneTagPerNameWithSlugsAndOrder()
     {
         Article first, second, english, untagged, onTagsSlug;
-        await using (var context = _database.CreateContext())
+        await using (var context = _database.CreatePreTrashContext())
         {
             var migrations = context.Database.GetMigrations().ToList();
             var before = migrations[migrations.FindIndex(id => id.EndsWith("_AddTags", StringComparison.Ordinal)) - 1];
