@@ -16,6 +16,7 @@ export const APP_CONSTANTS = {
     ARTICLE_SCHOOLS: 'articleSchools',
     ADMIN_USERS: 'adminUsers',
     MY_PROFILE: 'myProfile',
+    MY_ACTIVITY: 'myActivity',
     AUTHOR: 'author',
     AUTHOR_ARTICLES: 'authorArticles',
     TAG_PAGE: 'tagPage',

@@ -11,6 +11,7 @@ vi.mock('../../services/profileService', () => ({
   getMyProfile: vi.fn(),
   updateMyProfile: vi.fn(),
   uploadAvatar: vi.fn(),
+  getMyActivity: vi.fn().mockResolvedValue({ weeks: [] }),
 }));
 
 const fetchProfile = vi.mocked(getMyProfile);

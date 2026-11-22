@@ -2706,6 +2706,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/profile/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in user's activity by week: edits and publications.
+         * @description Weeks run Monday to Sunday in UTC, oldest first; the last is the current week so far, and every week is present even when empty. edits = revisions the user saved (restores included); publications = the user's articles, written or co-authored, first published that week. weeks is 12 by default, kept within 1 to 52. Only the user's own activity: it is not shown to readers.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    weeks?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserActivityDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/authors/{slug}": {
         parameters: {
             query?: never;
@@ -3957,6 +4007,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ActivityWeekDto: {
+            /** Format: date */
+            weekStart: string;
+            /** Format: int32 */
+            edits: number;
+            /** Format: int32 */
+            publications: number;
+        };
         AdminAuthResponseDto: {
             accessToken: string;
             /** Format: date-time */
@@ -4667,6 +4725,9 @@ export interface components {
             height: number;
             /** Format: int64 */
             sizeBytes: number;
+        };
+        UserActivityDto: {
+            weeks: components["schemas"]["ActivityWeekDto"][];
         };
         UserProfileDto: {
             /** Format: int32 */

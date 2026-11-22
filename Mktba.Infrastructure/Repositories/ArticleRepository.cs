@@ -450,6 +450,30 @@ namespace Mktba.Infrastructure.Repositories
         public Task AddRevisionAsync(ArticleRevision revision, CancellationToken cancellationToken = default)
             => _context.ArticleRevisions.AddAsync(revision, cancellationToken).AsTask();
 
+        /// <summary>
+        /// When <paramref name="userId"/> saved a revision (of any article, restores included) at or
+        /// after <paramref name="fromUtc"/>: one time per revision, unordered.
+        /// </summary>
+        public Task<List<DateTime>> GetRevisionTimesByAuthorAsync(int userId, DateTime fromUtc, CancellationToken cancellationToken = default)
+            => _context.ArticleRevisions
+                .AsNoTracking()
+                .Where(revision => revision.AuthorId == userId && revision.CreatedAt >= fromUtc)
+                .Select(revision => revision.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+        /// <summary>
+        /// When the articles written or co-authored by <paramref name="userId"/> were first published,
+        /// for those first published at or after <paramref name="fromUtc"/> (whatever their status now).
+        /// </summary>
+        public Task<List<DateTime>> GetFirstPublicationTimesCreditedToAsync(
+            int userId, DateTime fromUtc, CancellationToken cancellationToken = default)
+            => _dbSet
+                .AsNoTracking()
+                .Where(article => article.PublishedAt != null && article.PublishedAt >= fromUtc
+                    && (article.AuthorId == userId || article.CoAuthors.Any(coAuthor => coAuthor.UserId == userId)))
+                .Select(article => article.PublishedAt!.Value)
+                .ToListAsync(cancellationToken);
+
         /// <summary>The highest revision number of the article, 0 if it has none yet.</summary>
         public async Task<int> GetLatestRevisionNumberAsync(int articleId, CancellationToken cancellationToken = default)
             => await _context.ArticleRevisions
