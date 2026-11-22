@@ -22,8 +22,9 @@ namespace Mktba.Api.Tests;
 /// <summary>
 /// Hosts the real API pipeline (routing, authentication, authorization) on an isolated
 /// InMemory database, so endpoint access rules are tested without PostgreSQL.
+/// <see cref="PostgresApiFactory"/> runs the same pipeline on a throwaway PostgreSQL database (X-07, #161).
 /// </summary>
-public sealed class MktbaApiFactory : WebApplicationFactory<Program>
+public class MktbaApiFactory : WebApplicationFactory<Program>
 {
     /// <summary>A throwaway 48-byte key: long enough for HS256 and not a committed placeholder.</summary>
     public static readonly string TestSigningKey = Convert.ToBase64String(Guid.NewGuid().ToByteArray().Concat(Guid.NewGuid().ToByteArray()).ToArray())
@@ -33,6 +34,7 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
     private readonly string _environment;
     private readonly string? _signingKey;
     private readonly IReadOnlyDictionary<string, string> _settings;
+    private readonly string? _postgresConnection;
 
     /// <summary>
     /// Test-only request header that sets the connection's remote IP, so tests can act as
@@ -67,6 +69,13 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
         _settings = settings ?? GenerousRateLimits;
     }
 
+    /// <param name="postgresConnection">The PostgreSQL database the API uses instead of InMemory; it must already be migrated.</param>
+    protected MktbaApiFactory(string postgresConnection)
+        : this("Testing", TestSigningKey)
+    {
+        _postgresConnection = postgresConnection;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(_environment);
@@ -94,10 +103,18 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
                 services.Remove(descriptor);
             }
 
-            // InMemory has no transactions; services that open one (article create/update) still run.
-            services.AddDbContext<MktbaDbContext>(options => options
-                .UseInMemoryDatabase(_databaseName)
-                .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+            if (_postgresConnection is not null)
+            {
+                // Whatever appsettings.local.json says, the API uses the test's own database.
+                services.AddDbContext<MktbaDbContext>(options => options.UseNpgsql(_postgresConnection));
+            }
+            else
+            {
+                // InMemory has no transactions; services that open one (article create/update) still run.
+                services.AddDbContext<MktbaDbContext>(options => options
+                    .UseInMemoryDatabase(_databaseName)
+                    .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+            }
             services.AddSingleton<IStartupFilter, RemoteIpFromHeaderStartupFilter>();
 
             // The developer's appsettings.local.json may hold a real GitHub App key: tests never reach GitHub.

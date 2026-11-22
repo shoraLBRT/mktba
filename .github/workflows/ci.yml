@@ -17,7 +17,8 @@ jobs:
   backend:
     name: backend
     runs-on: ubuntu-latest
-    # The full-text search tests (ArticleSearchTests) run against a real PostgreSQL: each test class
+    # The PostgreSQL tests (PostgresDatabaseFixture, and the API tests on PostgresApiFactory, X-07) run
+    # against this real PostgreSQL: each test class
     # creates and drops its own database on this server.
     services:
       postgres:
