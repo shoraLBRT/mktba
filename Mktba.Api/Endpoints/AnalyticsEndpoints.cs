@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mktba.Api.Infrastructure;
 using Mktba.Application.DTOs;
+using Mktba.Application.Exceptions;
 using Mktba.Application.Services.Analytics;
 
 namespace Mktba.Api.Endpoints;
@@ -45,6 +47,25 @@ public static class AnalyticsEndpoints
                 + "Yandex Metrika, not here.")
             .Produces<SiteAnalyticsDto>()
             .RequireAuthorization(Policies.CanViewSiteAnalytics);
+
+        builder.MapGet("/analytics/me", async (int? days, ClaimsPrincipal principal, AuthorAnalyticsService service, CancellationToken ct) =>
+                principal.GetUserId() is int userId
+                    ? Results.Ok(await service.GetAsync(userId, days ?? AuthorAnalyticsService.DefaultDays, ct))
+                    : ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized))
+            .WithTags("Analytics")
+            .WithSummary("The signed-in author's statistics over the last days: only the articles they write or co-write.")
+            .WithDescription(
+                "Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by "
+                + "default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest "
+                + "first: views of the user's articles and the readers who viewed any of them, as counted on "
+                + "that day's authorship. readers summed over several days are reader-days (the anonymous "
+                + "visitor id changes every UTC day). topArticles (at most ten), depth, schools and "
+                + "viewsWithoutSchool cover only the articles the user writes or co-writes now; depth counts "
+                + "the views that reached 25, 50, 75 and 100 % of the text. An admin gets their own articles "
+                + "here too; the whole site is /analytics/site.")
+            .Produces<AuthorAnalyticsDto>()
+            .ProducesApiProblem(StatusCodes.Status401Unauthorized)
+            .RequireAuthorization(Policies.CanEditArticles);
 
         return builder;
     }

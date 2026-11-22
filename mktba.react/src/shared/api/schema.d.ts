@@ -337,6 +337,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/analytics/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in author's statistics over the last days: only the articles they write or co-write.
+         * @description Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest first: views of the user's articles and the readers who viewed any of them, as counted on that day's authorship. readers summed over several days are reader-days (the anonymous visitor id changes every UTC day). topArticles (at most ten), depth, schools and viewsWithoutSchool cover only the articles the user writes or co-writes now; depth counts the views that reached 25, 50, 75 and 100 % of the text. An admin gets their own articles here too; the whole site is /analytics/site.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthorAnalyticsDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}/content": {
         parameters: {
             query?: never;
@@ -4469,6 +4519,39 @@ export interface components {
             /** Format: int32 */
             parentArticleId?: number | null;
         };
+        AuthorAnalyticsDayDto: {
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            readers: number;
+        };
+        AuthorAnalyticsDto: {
+            /** Format: int32 */
+            days: number;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["AuthorAnalyticsTotalsDto"];
+            daily: components["schemas"]["AuthorAnalyticsDayDto"][];
+            topArticles: components["schemas"]["AuthorArticleTotalDto"][];
+            depth: components["schemas"]["ReadDepthDto"];
+            schools: components["schemas"]["AnalyticsSchoolTotalDto"][];
+            /** Format: int32 */
+            viewsWithoutSchool: number;
+            /** Format: date-time */
+            aggregatedAtUtc?: string | null;
+        };
+        AuthorAnalyticsTotalsDto: {
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            readers: number;
+            /** Format: int32 */
+            articlesViewed: number;
+        };
         AuthorArticleDto: {
             /** Format: int32 */
             id: number;
@@ -4479,6 +4562,17 @@ export interface components {
             publishedAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        AuthorArticleTotalDto: {
+            /** Format: int32 */
+            articleId: number;
+            title: string;
+            slug: string;
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            readers: number;
+            depth: components["schemas"]["ReadDepthDto"];
         };
         AuthorArticlesDto: {
             /** Format: int32 */
@@ -4627,6 +4721,18 @@ export interface components {
             degree?: string | null;
             institution?: string | null;
             links: components["schemas"]["ProfileLinkDto"][];
+        };
+        ReadDepthDto: {
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            reachedDepth25: number;
+            /** Format: int32 */
+            reachedDepth50: number;
+            /** Format: int32 */
+            reachedDepth75: number;
+            /** Format: int32 */
+            reachedDepth100: number;
         };
         RecentArticleDto: {
             /** Format: int32 */

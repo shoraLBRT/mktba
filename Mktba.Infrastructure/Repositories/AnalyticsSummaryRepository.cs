@@ -29,6 +29,14 @@ public sealed record AnalyticsDaySummaries(
 /// <param name="Readers">Reader-days: visitor ids change every UTC day, so the days' readers are added up.</param>
 public sealed record AnalyticsViewsTotal(int Id, int Views, int Readers);
 
+/// <summary>
+/// One article's views, readers and read depth added up over a period of days (P-03, #91): how many
+/// of the views got to a quarter, half, three quarters and the end of the text.
+/// </summary>
+/// <param name="Readers">Reader-days, as <see cref="AnalyticsViewsTotal.Readers"/>.</param>
+public sealed record AnalyticsArticleReading(
+    int Id, int Views, int Readers, int ReachedDepth25, int ReachedDepth50, int ReachedDepth75, int ReachedDepth100);
+
 /// <summary>Reads raw analytics events by day, stores their daily summaries (N-04, #98) and reads them back for the dashboards.</summary>
 public class AnalyticsSummaryRepository
 {
@@ -147,6 +155,80 @@ public class AnalyticsSummaryRepository
             .OrderByDescending(t => t.Views).ThenBy(t => t.Id)
             .ToListAsync(cancellationToken);
         return totals.Select(t => new AnalyticsViewsTotal(t.Id, t.Views, t.Readers)).ToList();
+    }
+
+    /// <summary>
+    /// The views of <paramref name="articleIds"/> over [<paramref name="from"/>, <paramref name="to"/>] by the mazhab the reader had
+    /// chosen, most views first (P-03, #91).
+    /// </summary>
+    public async Task<List<AnalyticsViewsTotal>> GetSchoolViewsOfArticlesAsync(
+        DateOnly from, DateOnly to, IReadOnlyCollection<int> articleIds, CancellationToken cancellationToken = default)
+    {
+        if (articleIds.Count == 0)
+        {
+            return [];
+        }
+
+        var totals = await _context.AnalyticsArticleSchoolDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to && articleIds.Contains(d.ArticleId))
+            .GroupBy(d => d.SchoolId)
+            .Select(g => new { Id = g.Key, Views = g.Sum(d => d.Views), Readers = g.Sum(d => d.Readers) })
+            .OrderByDescending(t => t.Views).ThenBy(t => t.Id)
+            .ToListAsync(cancellationToken);
+        return totals.Select(t => new AnalyticsViewsTotal(t.Id, t.Views, t.Readers)).ToList();
+    }
+
+    /// <summary>The ids of the articles <paramref name="userId"/> writes or co-writes now (P-03, #91).</summary>
+    public async Task<List<int>> GetAuthoredArticleIdsAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var written = await _context.Articles.AsNoTracking()
+            .Where(a => a.AuthorId == userId)
+            .Select(a => a.Id)
+            .ToListAsync(cancellationToken);
+        var coWritten = await _context.ArticleCoAuthors.AsNoTracking()
+            .Where(c => c.UserId == userId)
+            .Select(c => c.ArticleId)
+            .ToListAsync(cancellationToken);
+        return written.Concat(coWritten).Distinct().Order().ToList();
+    }
+
+    /// <summary>The summary of <paramref name="userId"/> as an author for each built day in [<paramref name="from"/>, <paramref name="to"/>], oldest first.</summary>
+    public Task<List<AnalyticsAuthorDay>> GetAuthorDaysAsync(int userId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+        => _context.AnalyticsAuthorDays.AsNoTracking()
+            .Where(d => d.UserId == userId && d.Day >= from && d.Day <= to)
+            .OrderBy(d => d.Day)
+            .ToListAsync(cancellationToken);
+
+    /// <summary>
+    /// The views, readers and read depth of each of <paramref name="articleIds"/> viewed in [<paramref name="from"/>, <paramref name="to"/>],
+    /// most views first (then the lower id) (P-03, #91).
+    /// </summary>
+    public async Task<List<AnalyticsArticleReading>> GetArticleReadingAsync(
+        DateOnly from, DateOnly to, IReadOnlyCollection<int> articleIds, CancellationToken cancellationToken = default)
+    {
+        if (articleIds.Count == 0)
+        {
+            return [];
+        }
+
+        var totals = await _context.AnalyticsArticleDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to && articleIds.Contains(d.ArticleId))
+            .GroupBy(d => d.ArticleId)
+            .Select(g => new
+            {
+                Id = g.Key,
+                Views = g.Sum(d => d.Views),
+                Readers = g.Sum(d => d.Readers),
+                Depth25 = g.Sum(d => d.ReachedDepth25),
+                Depth50 = g.Sum(d => d.ReachedDepth50),
+                Depth75 = g.Sum(d => d.ReachedDepth75),
+                Depth100 = g.Sum(d => d.ReachedDepth100),
+            })
+            .ToListAsync(cancellationToken);
+        return totals
+            .OrderByDescending(t => t.Views).ThenBy(t => t.Id)
+            .Select(t => new AnalyticsArticleReading(t.Id, t.Views, t.Readers, t.Depth25, t.Depth50, t.Depth75, t.Depth100))
+            .ToList();
     }
 
     /// <summary>The title and slug of each of <paramref name="articleIds"/> that still exists.</summary>

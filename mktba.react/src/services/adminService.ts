@@ -15,6 +15,7 @@ import type {
   ArticleReadDto,
   ArticleStatus,
   ArticleSummaryDto,
+  AuthorAnalyticsDto,
   SiteAnalyticsDto,
   ReviewQueueItemDto,
   UpdateAiProviderSettingsDto,
@@ -165,5 +166,11 @@ export const checkAiConnection = async (): Promise<AiConnectionCheckResultDto> =
 /** The admin dashboard's site-wide statistics (N-05): the last `days` UTC days, today included. */
 export const getSiteAnalytics = async (days: number): Promise<SiteAnalyticsDto> => {
   const response = await apiClient.get<SiteAnalyticsDto>('/analytics/site', { params: { days } });
+  return response.data;
+};
+
+/** The author dashboard (P-03): the signed-in user's own articles over the last `days` UTC days, today included. */
+export const getAuthorAnalytics = async (days: number): Promise<AuthorAnalyticsDto> => {
+  const response = await apiClient.get<AuthorAnalyticsDto>('/analytics/me', { params: { days } });
   return response.data;
 };
