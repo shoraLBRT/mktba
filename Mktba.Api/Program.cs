@@ -27,6 +27,7 @@ builder.Services.AddDbContext<MktbaDbContext>(options =>
 builder.Services.AddInfrastructure();
 builder.Services.AddApplication();
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
+builder.Services.Configure<AnalyticsOptions>(builder.Configuration.GetSection(AnalyticsOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<FeedbackOptions>(builder.Configuration.GetSection(FeedbackOptions.SectionName));
 builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection(IndexNowOptions.SectionName));
@@ -112,6 +113,7 @@ if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
     builder.Services.AddHostedService<IndexNowWorker>();
     builder.Services.AddHostedService<ArticleDraftCleanupWorker>();
     builder.Services.AddHostedService<UploadCleanupWorker>();
+    builder.Services.AddHostedService<AnalyticsAggregationWorker>();
 }
 
 var app = builder.Build();

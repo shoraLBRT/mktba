@@ -54,6 +54,121 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("AiProviderSettings");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsArticleDay", b =>
+                {
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<int>("InternalLinkClicks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OpinionSwitches")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OpinionsShown")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReachedDepth100")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReachedDepth25")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReachedDepth50")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReachedDepth75")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Readers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Views")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ArticleId", "Day");
+
+                    b.HasIndex("Day");
+
+                    b.ToTable("AnalyticsArticleDays");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsArticleSchoolDay", b =>
+                {
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SchoolId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Readers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Views")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ArticleId", "SchoolId", "Day");
+
+                    b.HasIndex("Day");
+
+                    b.ToTable("AnalyticsArticleSchoolDays");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsAuthorDay", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Articles")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Readers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Views")
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserId", "Day");
+
+                    b.HasIndex("Day");
+
+                    b.ToTable("AnalyticsAuthorDays");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsDay", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("AggregatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ArticleViews")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsFinal")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Searches")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Visitors")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Day");
+
+                    b.ToTable("AnalyticsDays");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsEvent", b =>
                 {
                     b.Property<long>("Id")
@@ -110,6 +225,50 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasIndex("VisitorId", "OccurredAtUtc");
 
                     b.ToTable("AnalyticsEvents");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsSearchDay", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Query")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Searchers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Searches")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Day", "Query");
+
+                    b.ToTable("AnalyticsSearchDays");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsTagDay", b =>
+                {
+                    b.Property<int>("TagId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Articles")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Readers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Views")
+                        .HasColumnType("integer");
+
+                    b.HasKey("TagId", "Day");
+
+                    b.HasIndex("Day");
+
+                    b.ToTable("AnalyticsTagDays");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.Article", b =>
