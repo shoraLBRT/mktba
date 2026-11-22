@@ -22,6 +22,7 @@ export const APP_CONSTANTS = {
     AUTHOR_ARTICLES: 'authorArticles',
     TAG_PAGE: 'tagPage',
     ADMIN_TAGS: 'adminTags',
+    ADMIN_TRASH: 'adminTrash',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
   },
