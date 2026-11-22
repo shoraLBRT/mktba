@@ -25,7 +25,11 @@ public sealed record AnalyticsDaySummaries(
     IReadOnlyList<AnalyticsTagDay> Tags,
     IReadOnlyList<AnalyticsSearchDay> Searches);
 
-/// <summary>Reads raw analytics events by day and stores their daily summaries (N-04, #98).</summary>
+/// <summary>The views and readers of one article (or one mazhab) added up over a period of days.</summary>
+/// <param name="Readers">Reader-days: visitor ids change every UTC day, so the days' readers are added up.</param>
+public sealed record AnalyticsViewsTotal(int Id, int Views, int Readers);
+
+/// <summary>Reads raw analytics events by day, stores their daily summaries (N-04, #98) and reads them back for the dashboards.</summary>
 public class AnalyticsSummaryRepository
 {
     private readonly MktbaDbContext _context;
@@ -109,6 +113,57 @@ public class AnalyticsSummaryRepository
             await transaction.CommitAsync(cancellationToken);
         }
     }
+
+    /// <summary>The site's summary of each built day in [<paramref name="from"/>, <paramref name="to"/>], oldest first.</summary>
+    public Task<List<AnalyticsDay>> GetSiteDaysAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+        => _context.AnalyticsDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to)
+            .OrderBy(d => d.Day)
+            .ToListAsync(cancellationToken);
+
+    /// <summary>
+    /// The <paramref name="limit"/> most viewed articles over [<paramref name="from"/>, <paramref name="to"/>],
+    /// most views first (then the lower id), whether or not the article still exists.
+    /// </summary>
+    public async Task<List<AnalyticsViewsTotal>> GetTopArticlesAsync(DateOnly from, DateOnly to, int limit, CancellationToken cancellationToken = default)
+    {
+        var totals = await _context.AnalyticsArticleDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to)
+            .GroupBy(d => d.ArticleId)
+            .Select(g => new { Id = g.Key, Views = g.Sum(d => d.Views), Readers = g.Sum(d => d.Readers) })
+            .OrderByDescending(t => t.Views).ThenBy(t => t.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+        return totals.Select(t => new AnalyticsViewsTotal(t.Id, t.Views, t.Readers)).ToList();
+    }
+
+    /// <summary>The article views over [<paramref name="from"/>, <paramref name="to"/>] by the mazhab the reader had chosen, most views first.</summary>
+    public async Task<List<AnalyticsViewsTotal>> GetSchoolViewsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+    {
+        var totals = await _context.AnalyticsArticleSchoolDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to)
+            .GroupBy(d => d.SchoolId)
+            .Select(g => new { Id = g.Key, Views = g.Sum(d => d.Views), Readers = g.Sum(d => d.Readers) })
+            .OrderByDescending(t => t.Views).ThenBy(t => t.Id)
+            .ToListAsync(cancellationToken);
+        return totals.Select(t => new AnalyticsViewsTotal(t.Id, t.Views, t.Readers)).ToList();
+    }
+
+    /// <summary>The title and slug of each of <paramref name="articleIds"/> that still exists.</summary>
+    public async Task<Dictionary<int, (string Title, string Slug)>> GetArticleNamesAsync(IReadOnlyCollection<int> articleIds, CancellationToken cancellationToken = default)
+    {
+        var names = await _context.Articles.AsNoTracking()
+            .Where(a => articleIds.Contains(a.Id))
+            .Select(a => new { a.Id, a.Title, a.Slug })
+            .ToListAsync(cancellationToken);
+        return names.ToDictionary(a => a.Id, a => (a.Title, a.Slug));
+    }
+
+    /// <summary>The name of each of <paramref name="schoolIds"/> that still exists.</summary>
+    public Task<Dictionary<int, string>> GetSchoolNamesAsync(IReadOnlyCollection<int> schoolIds, CancellationToken cancellationToken = default)
+        => _context.Schools.AsNoTracking()
+            .Where(s => schoolIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
 
     /// <summary>Removes the raw events that happened before <paramref name="beforeUtc"/>; returns how many.</summary>
     public Task<int> DeleteEventsBeforeAsync(DateTime beforeUtc, CancellationToken cancellationToken = default)

@@ -43,6 +43,9 @@ public static class Policies
     /// <summary>Site settings, AI provider and maintenance (<c>/admin/*</c>): Admin.</summary>
     public const string CanConfigure = nameof(CanConfigure);
 
+    /// <summary>The whole site's own statistics (N-05, #99, <c>/analytics/site</c>): Admin.</summary>
+    public const string CanViewSiteAnalytics = nameof(CanViewSiteAnalytics);
+
     /// <summary>The roles each policy lets through.</summary>
     public static readonly IReadOnlyDictionary<string, IReadOnlyList<UserRole>> Roles =
         new Dictionary<string, IReadOnlyList<UserRole>>
@@ -54,6 +57,7 @@ public static class Policies
             [CanVerify] = [UserRole.Scholar, UserRole.Admin],
             [CanManageUsers] = [UserRole.Admin],
             [CanConfigure] = [UserRole.Admin],
+            [CanViewSiteAnalytics] = [UserRole.Admin],
         };
 
     /// <summary>Whether <paramref name="role"/> passes <paramref name="policy"/>.</summary>

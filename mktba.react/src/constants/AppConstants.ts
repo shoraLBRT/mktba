@@ -17,6 +17,7 @@ export const APP_CONSTANTS = {
     ADMIN_USERS: 'adminUsers',
     MY_PROFILE: 'myProfile',
     MY_ACTIVITY: 'myActivity',
+    SITE_ANALYTICS: 'siteAnalytics',
     AUTHOR: 'author',
     AUTHOR_ARTICLES: 'authorArticles',
     TAG_PAGE: 'tagPage',

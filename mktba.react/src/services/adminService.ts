@@ -15,6 +15,7 @@ import type {
   ArticleReadDto,
   ArticleStatus,
   ArticleSummaryDto,
+  SiteAnalyticsDto,
   ReviewQueueItemDto,
   UpdateAiProviderSettingsDto,
   UserSummaryDto,
@@ -158,5 +159,11 @@ export const resetAiSettings = async (): Promise<AiProviderSettingsDto> => {
 
 export const checkAiConnection = async (): Promise<AiConnectionCheckResultDto> => {
   const response = await apiClient.post<AiConnectionCheckResultDto>('/admin/ai-check');
+  return response.data;
+};
+
+/** The admin dashboard's site-wide statistics (N-05): the last `days` UTC days, today included. */
+export const getSiteAnalytics = async (days: number): Promise<SiteAnalyticsDto> => {
+  const response = await apiClient.get<SiteAnalyticsDto>('/analytics/site', { params: { days } });
   return response.data;
 };

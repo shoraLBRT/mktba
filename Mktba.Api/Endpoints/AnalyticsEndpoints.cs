@@ -31,6 +31,21 @@ public static class AnalyticsEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(MaxRequestBytes))
             .RequireRateLimiting(RateLimitingSetup.AnalyticsPolicy);
 
+        builder.MapGet("/analytics/site", async (int? days, SiteAnalyticsService service, CancellationToken ct) =>
+            Results.Ok(await service.GetAsync(days ?? SiteAnalyticsService.DefaultDays, ct)))
+            .WithTags("Analytics")
+            .WithSummary("The whole site's own statistics over the last days, for the admin dashboard.")
+            .WithDescription(
+                "Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by "
+                + "default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest "
+                + "first, zeros when nothing happened. visitors and readers summed over several days are "
+                + "visitor-days (the anonymous visitor id changes every UTC day). topArticles: the ten most "
+                + "viewed articles (title and slug null when deleted); schools: article views by the mazhab "
+                + "the reader had chosen, viewsWithoutSchool the rest. Traffic sources and devices are in "
+                + "Yandex Metrika, not here.")
+            .Produces<SiteAnalyticsDto>()
+            .RequireAuthorization(Policies.CanViewSiteAnalytics);
+
         return builder;
     }
 }

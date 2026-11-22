@@ -116,6 +116,9 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         ["DELETE /admin/ai-settings"] = Policies.CanConfigure,
         ["POST /admin/ai-style"] = Policies.CanConfigure,
         ["POST /admin/ai-check"] = Policies.CanConfigure,
+
+        // N-05 (#99): the admin dashboard's site-wide statistics.
+        ["GET /analytics/site"] = Policies.CanViewSiteAnalytics,
     };
 
     private readonly MktbaApiFactory _factory;
