@@ -4,6 +4,9 @@ using Microsoft.Extensions.Options;
 using Mktba.Application.Configuration;
 using Mktba.Application.Exceptions;
 using Mktba.Application.Services.Uploads;
+using Microsoft.EntityFrameworkCore;
+using Mktba.Domain.Entities;
+using Mktba.Infrastructure.Data;
 using Mktba.Infrastructure.Storage;
 using SkiaSharp;
 
@@ -12,10 +15,17 @@ namespace Mktba.Application.Tests;
 /// <summary>U-08 (#73): what an uploaded image becomes, what is refused, and where it is stored.</summary>
 public sealed class ImageUploadTests : IDisposable
 {
+    private const int UploaderId = 7;
+
+    private static readonly DateTime Now = new(2026, 11, 22, 10, 0, 0, DateTimeKind.Utc);
+
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"mktba-upload-tests-{Guid.NewGuid():N}");
+
+    private readonly MktbaDbContext _db = TestDbHelper.CreateInMemoryContext();
 
     public void Dispose()
     {
+        _db.Dispose();
         if (Directory.Exists(_root))
         {
             Directory.Delete(_root, recursive: true);
@@ -94,8 +104,8 @@ public sealed class ImageUploadTests : IDisposable
     {
         var service = Service(maxBytes: 10 * 1024 * 1024);
 
-        var first = await service.UploadAsync(new MemoryStream(Encode(64, 64, SKEncodedImageFormat.Png)), ImageUploadPurpose.Avatar, default);
-        var second = await service.UploadAsync(new MemoryStream(Encode(64, 64, SKEncodedImageFormat.Png)), ImageUploadPurpose.Avatar, default);
+        var first = await service.UploadAsync(new MemoryStream(Encode(64, 64, SKEncodedImageFormat.Png)), ImageUploadPurpose.Avatar, UploaderId, default);
+        var second = await service.UploadAsync(new MemoryStream(Encode(64, 64, SKEncodedImageFormat.Png)), ImageUploadPurpose.Avatar, UploaderId, default);
 
         first.Name.Should().MatchRegex("^[0-9a-f]{32}\\.webp$");
         second.Name.Should().NotBe(first.Name);
@@ -106,11 +116,62 @@ public sealed class ImageUploadTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenImage_WhenUploaded_ThenItIsRecordedWithItsUploaderTimeSizeAndType()
+    {
+        var stored = await Service(maxBytes: 10 * 1024 * 1024)
+            .UploadAsync(new MemoryStream(Encode(800, 400, SKEncodedImageFormat.Png)), ImageUploadPurpose.ArticleImage, UploaderId, default);
+
+        var record = await _db.StoredFiles.AsNoTracking().SingleAsync();
+        record.Name.Should().Be(stored.Name);
+        record.Purpose.Should().Be(StoredFilePurpose.ArticleImage);
+        (record.ContentType, record.SizeBytes, record.Width, record.Height).Should().Be(("image/webp", stored.SizeBytes, 800, 400));
+        record.UploadedById.Should().Be(UploaderId);
+        record.UploadedAt.Should().Be(Now);
+        (record.Usage, record.LastCheckedAt, record.UnusedSince, record.DeletedAt).Should().Be((StoredFileUsage.None, null, null, null));
+    }
+
+    [Fact]
+    public async Task GivenRefusedFile_WhenUploaded_ThenNothingIsRecorded()
+    {
+        var act = () => Service(maxBytes: 1024).UploadAsync(new MemoryStream(new byte[2048]), ImageUploadPurpose.Avatar, UploaderId, default);
+
+        await act.Should().ThrowAsync<ValidationException>();
+        (await _db.StoredFiles.CountAsync()).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("![chart](https://api.mktba.ru/files/0123456789abcdef0123456789abcdef.webp)", "0123456789abcdef0123456789abcdef.webp")]
+    [InlineData("{\"text\":\"/files/0123456789abcdef0123456789abcdef.webp?x=1\"}", "0123456789abcdef0123456789abcdef.webp")]
+    [InlineData("https://cdn.example/uploads/0123456789abcdef0123456789abcdef.webp", "0123456789abcdef0123456789abcdef.webp")]
+    [InlineData("ff0123456789abcdef0123456789abcdef.webp", null)]
+    [InlineData("0123456789abcdef0123456789abcdef.svg", null)]
+    [InlineData("0123456789abcdef0123456789abcdef.webpx", null)]
+    public void GivenText_WhenSearchedForStoredFileNames_ThenOnlyWholeNamesAreFound(string text, string? expected)
+    {
+        var found = StoredFileNames.FindIn(text).ToList();
+
+        found.Should().Equal(expected is null ? [] : [expected]);
+    }
+
+    [Fact]
+    public async Task GivenStoredFile_WhenDeleted_ThenItIsGoneAndDeletingAgainIsHarmless()
+    {
+        var storage = new LocalFileStorage(_root);
+        var name = StoredFileNames.Create(".webp");
+        await storage.SaveAsync(name, new byte[] { 1, 2, 3 }, "image/webp", default);
+
+        await storage.DeleteAsync(name, default);
+        await storage.DeleteAsync(name, default);
+
+        (await storage.OpenReadAsync(name, default)).Should().BeNull();
+    }
+
+    [Fact]
     public async Task GivenFileOverTheLimit_WhenUploaded_ThenItIsRefusedAndNothingIsStored()
     {
         var service = Service(maxBytes: 1024);
 
-        var act = () => service.UploadAsync(new MemoryStream(new byte[2048]), ImageUploadPurpose.Avatar, default);
+        var act = () => service.UploadAsync(new MemoryStream(new byte[2048]), ImageUploadPurpose.Avatar, UploaderId, default);
 
         (await act.Should().ThrowAsync<ValidationException>()).Which.Error.Code.Should().Be("upload_too_large");
         Directory.Exists(_root).Should().BeFalse();
@@ -119,7 +180,7 @@ public sealed class ImageUploadTests : IDisposable
     [Fact]
     public async Task GivenEmptyFile_WhenUploaded_ThenItIsRefusedAsMissing()
     {
-        var act = () => Service(maxBytes: 1024).UploadAsync(new MemoryStream(), ImageUploadPurpose.Avatar, default);
+        var act = () => Service(maxBytes: 1024).UploadAsync(new MemoryStream(), ImageUploadPurpose.Avatar, UploaderId, default);
 
         (await act.Should().ThrowAsync<ValidationException>()).Which.Error.Code.Should().Be("upload_file_required");
     }
@@ -148,7 +209,7 @@ public sealed class ImageUploadTests : IDisposable
     }
 
     private ImageUploadService Service(long maxBytes) =>
-        new(new LocalFileStorage(_root), Options.Create(new UploadOptions { MaxBytes = maxBytes, MaxPixels = 40_000_000 }));
+        new(new LocalFileStorage(_root), _db, new FeedbackTests.FakeClock(Now), Options.Create(new UploadOptions { MaxBytes = maxBytes, MaxPixels = 40_000_000 }));
 
     internal static byte[] Encode(int width, int height, SKEncodedImageFormat format)
     {

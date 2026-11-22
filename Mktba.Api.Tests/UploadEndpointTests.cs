@@ -3,8 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Mktba.Application.DTOs;
 using Mktba.Domain.Entities;
+using Mktba.Infrastructure.Data;
 using SkiaSharp;
 
 namespace Mktba.Api.Tests;
@@ -42,6 +45,23 @@ public sealed class UploadEndpointTests : IClassFixture<MktbaApiFactory>
         file.Headers.GetValues("X-Content-Type-Options").Should().Equal("nosniff");
         file.Headers.CacheControl!.ToString().Should().Contain("immutable");
         (await file.Content.ReadAsByteArrayAsync()).LongLength.Should().Be(uploaded.SizeBytes);
+    }
+
+    [Fact]
+    public async Task GivenAuthor_WhenUploadingImage_ThenTheUploadIsRecordedUnderTheAuthor()
+    {
+        var (author, authorId) = await RoleClients.CreateAsync(_factory, UserRole.Author);
+
+        var response = await author.PostAsync("/uploads/images", Form(Png(64, 32), "chart.png", "image/png"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var uploaded = await response.Content.ReadFromJsonAsync<UploadedImageDto>(ApiJson.Options);
+        var name = new Uri(uploaded!.Url).Segments[^1];
+        using var scope = _factory.Services.CreateScope();
+        var record = await scope.ServiceProvider.GetRequiredService<MktbaDbContext>()
+            .StoredFiles.AsNoTracking().SingleAsync(stored => stored.Name == name);
+        record.UploadedById.Should().Be(authorId);
+        (record.Purpose, record.SizeBytes, record.Width, record.Height).Should().Be((StoredFilePurpose.ArticleImage, uploaded.SizeBytes, 64, 32));
     }
 
     [Fact]

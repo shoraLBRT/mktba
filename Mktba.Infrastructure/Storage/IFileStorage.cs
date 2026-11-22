@@ -13,6 +13,9 @@ public interface IFileStorage
 
     /// <summary>Opens a stored file for reading, or null when there is none by that name.</summary>
     Task<Stream?> OpenReadAsync(string name, CancellationToken cancellationToken);
+
+    /// <summary>Removes a stored file; nothing happens when there is none by that name.</summary>
+    Task DeleteAsync(string name, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -46,6 +49,26 @@ public static partial class StoredFileNames
     /// <summary>The content type a stored file is served with, from its name; null for a name that is not valid.</summary>
     public static string? ContentTypeOf(string name) =>
         IsValid(name) ? ContentTypes[Path.GetExtension(name)] : null;
+
+    /// <summary>
+    /// Every stored file name found inside <paramref name="text"/> (a URL, Markdown, JSON), each once.
+    /// A name is random, so finding it is finding a reference to that file, whatever address is in front.
+    /// </summary>
+    public static IEnumerable<string> FindIn(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return [];
+        }
+
+        return EmbeddedNamePattern().Matches(text)
+            .Select(match => match.Value)
+            .Where(IsValid)
+            .Distinct(StringComparer.Ordinal);
+    }
+
+    [GeneratedRegex("(?<![0-9A-Za-z])[0-9a-f]{32}\\.[a-z0-9]{3,4}(?![0-9A-Za-z])", RegexOptions.CultureInvariant)]
+    private static partial Regex EmbeddedNamePattern();
 
     [GeneratedRegex("^[0-9a-f]{32}\\.[a-z0-9]{3,4}$", RegexOptions.CultureInvariant)]
     private static partial Regex NamePattern();
