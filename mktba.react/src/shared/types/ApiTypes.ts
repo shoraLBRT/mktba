@@ -87,3 +87,6 @@ export type NavigationTreeDto = NavigationArticleDto[];
 export type FeedbackType = Schemas['FeedbackType'];
 export type FeedbackCreateDto = Schemas['FeedbackCreateDto'];
 export type FeedbackAcceptedDto = Schemas['FeedbackAcceptedDto'];
+export type AnalyticsEventType = Schemas['AnalyticsEventType'];
+export type AnalyticsEventDto = Schemas['AnalyticsEventDto'];
+export type AnalyticsEventBatchDto = Schemas['AnalyticsEventBatchDto'];

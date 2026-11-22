@@ -16,6 +16,7 @@ public sealed class RateLimitingTests
     private const int AuthLimit = 3;
     private const int AiLimit = 2;
     private const int UploadLimit = 2;
+    private const int AnalyticsLimit = 2;
 
     private static readonly object WrongCredentials = new { Email = "nobody@mktba.test", Password = "Wrong-password-1" };
 
@@ -137,8 +138,31 @@ public sealed class RateLimitingTests
         otherUser.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task GivenAnalyticsLimitReachedFromOneIp_WhenSendingEventsAgain_ThenOnlyThatIpGets429()
+    {
+        await using var factory = CreateFactory();
+        var limitedIp = CreateClientFromIp(factory, "10.0.0.5");
+        var otherIp = CreateClientFromIp(factory, "10.0.0.6");
+        var emptyBatch = new { events = Array.Empty<object>() };
+        for (var i = 0; i < AnalyticsLimit; i++)
+        {
+            var allowed = await limitedIp.PostAsJsonAsync("/analytics/events", emptyBatch);
+            allowed.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        }
+
+        var limited = await limitedIp.PostAsJsonAsync("/analytics/events", emptyBatch);
+        var other = await otherIp.PostAsJsonAsync("/analytics/events", emptyBatch);
+
+        limited.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        limited.Headers.RetryAfter.Should().NotBeNull();
+        other.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     private static MktbaApiFactory CreateFactory() => new("Testing", MktbaApiFactory.TestSigningKey, new Dictionary<string, string>
     {
+        ["RateLimiting:Analytics:PermitLimit"] = AnalyticsLimit.ToString(),
+        ["RateLimiting:Analytics:WindowSeconds"] = "3600",
         ["RateLimiting:Auth:PermitLimit"] = AuthLimit.ToString(),
         ["RateLimiting:Auth:WindowSeconds"] = "3600",
         ["RateLimiting:Ai:PermitLimit"] = AiLimit.ToString(),

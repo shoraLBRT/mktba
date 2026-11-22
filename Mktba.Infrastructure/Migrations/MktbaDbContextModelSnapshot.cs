@@ -54,6 +54,57 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("AiProviderSettings");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int?>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("OpinionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ParagraphId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Query")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("SchoolId")
+                        .HasColumnType("integer");
+
+                    b.Property<short?>("ScrollDepth")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("TargetPath")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("ViewId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("ArticleId", "OccurredAtUtc");
+
+                    b.ToTable("AnalyticsEvents");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Article", b =>
                 {
                     b.Property<int>("Id")

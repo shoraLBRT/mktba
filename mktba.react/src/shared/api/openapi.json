@@ -185,6 +185,57 @@
         }
       }
     },
+    "/analytics/events": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Stores reader events of the site's own statistics. No sign-in; sent only with the visitor's consent.",
+        "description": "Events: ArticleView, OpinionShown, OpinionSwitched, Search, ScrollDepth, InternalLinkClick, 1 to 50 per request (analytics_events_required, analytics_too_many_events). Nothing about the sender is stored: no account, address or browser; the time is the server's. An event without a field its type needs, about an article that is not Published or about an opinion of another paragraph is dropped, and the answer says how many were kept. 429 with Retry-After: too_many_requests (this client sent too many requests).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsEventBatchDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsAcceptedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/{id}/content": {
       "get": {
         "tags": [
@@ -3749,6 +3800,93 @@
           }
         },
         "additionalProperties": false
+      },
+      "AnalyticsAcceptedDto": {
+        "required": [
+          "accepted"
+        ],
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AnalyticsEventBatchDto": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsEventDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AnalyticsEventDto": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/AnalyticsEventType"
+          },
+          "viewId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "articleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "paragraphId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "opinionId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "schoolId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "scrollDepth": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "query": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetPath": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AnalyticsEventType": {
+        "enum": [
+          "ArticleView",
+          "OpinionShown",
+          "OpinionSwitched",
+          "Search",
+          "ScrollDepth",
+          "InternalLinkClick"
+        ],
+        "type": "string"
       },
       "ApiProblemDetails": {
         "required": [

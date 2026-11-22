@@ -47,7 +47,7 @@ export const ArticleParagraphList = ({ paragraphs, outline, onSelect }: ArticleP
     }
 
     return (
-      <div key={paragraph.paragraphId} id={anchorId} className="group/paragraph relative scroll-mt-24">
+      <div key={paragraph.paragraphId} id={anchorId} data-paragraph-id={paragraph.paragraphId} className="group/paragraph relative scroll-mt-24">
         {paragraphLink}
         <VersionedParagraphBlock
           activeIndex={paragraph.activeIndex}
