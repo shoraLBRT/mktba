@@ -31,6 +31,8 @@ export const LAZY_LOCALE_KEYS: Record<LazyLocaleChunk, Partial<Record<string, re
       'profilePage',
       'activityChart',
     ],
+    // The tree modals (admin article tree) and invite statuses (admin users); the rest of `shared` is public.
+    shared: ['moveNode', 'createNode', 'renameNode', 'inviteStatus'],
     // `versionedParagraph` stays in `core`: the public article reads it.
     editor: ['addArticlePage', 'addArticleEditor', 'editArticlePage', 'articleDraftCopy', 'articleHistoryPage'],
   },

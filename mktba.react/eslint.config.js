@@ -52,4 +52,22 @@ export default defineConfig([
       }],
     },
   },
+  {
+    // Outside JSX (constants, object properties, call arguments, .ts modules) the rule above does not
+    // look; there, any string with Cyrillic letters is UI text in Russian and belongs in a dictionary.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}', 'src/**/*.d.ts', 'src/test/**'],
+    rules: {
+      'no-restricted-syntax': ['error',
+        {
+          selector: 'Literal[value=/[А-Яа-яЁё]/]',
+          message: 'Russian text belongs in src/localization/locales/ru/*.json (admin-only text in the admin chunk), not in code.',
+        },
+        {
+          selector: 'TemplateElement[value.raw=/[А-Яа-яЁё]/]',
+          message: 'Russian text belongs in src/localization/locales/ru/*.json (admin-only text in the admin chunk), not in code.',
+        },
+      ],
+    },
+  },
 ])
