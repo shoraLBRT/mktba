@@ -8,18 +8,41 @@ namespace Mktba.Application.Services.Analytics;
 /// <summary>
 /// Intake of the site's own reader events (N-02, #96; decision D7, #88). Checks each event against
 /// the content and stores those that hold up, stamped with the server's clock. Nothing about the
-/// sender — account, address, browser — is read or stored; the limit per client is the API's rate
-/// limiter (<c>RateLimiting:Analytics</c>), whose address key lives only in memory.
+/// sender — account, address, browser — is stored (the User-Agent is only read, to tell bots); the
+/// limit per client is the API's rate limiter (<c>RateLimiting:Analytics</c>), whose address key
+/// lives only in memory.
 /// <para>
-/// Telling bots apart and collapsing duplicates (N-03, #97) and the aggregates (N-04, #98) work
-/// on the stored rows later; this service only refuses what cannot be true.
+/// Bots and repeats (N-03, #97) are dropped here, before anything is stored, so the aggregates
+/// (N-04, #98) count the rows as they are:
+/// <list type="bullet">
+/// <item>a request whose User-Agent is a bot's (<see cref="BotUserAgent"/>) keeps none of its
+/// events; the header is read, never stored;</item>
+/// <item>within one page view (<see cref="AnalyticsEvent.ViewId"/>) an article view, a paragraph's
+/// first opinion shown and each scroll depth count once — the same event sent again, in this batch
+/// or an earlier one, is dropped; a switch, a search or a link click is an action and counts every
+/// time;</item>
+/// <item>an article view by a visitor (<see cref="AnalyticsEvent.VisitorId"/>) who viewed that article
+/// less than <see cref="RepeatViewWindow"/> ago — a reload, a way back — is dropped; the other events
+/// of that page view are kept.</item>
+/// </list>
+/// Two requests of one page view racing each other can still both land; the client sends one
+/// request at a time, so this is left to the aggregates.
 /// </para>
 /// </summary>
 public class AnalyticsEventService
 {
     public const int MaxEventsPerRequest = 50;
 
+    /// <summary>A visitor's views of one article this close together count as one.</summary>
+    public static readonly TimeSpan RepeatViewWindow = TimeSpan.FromMinutes(30);
+
     private static readonly HashSet<int> ScrollDepths = [25, 50, 75, 100];
+
+    private static readonly AnalyticsEventType[] OncePerViewTypes =
+        [AnalyticsEventType.ArticleView, AnalyticsEventType.OpinionShown, AnalyticsEventType.ScrollDepth];
+
+    /// <summary>What makes an event of <see cref="OncePerViewTypes"/> the same as another in its page view.</summary>
+    private readonly record struct OncePerViewKey(Guid ViewId, AnalyticsEventType Type, int? ArticleId, int? ParagraphId, short? ScrollDepth);
 
     private readonly AnalyticsEventRepository _events;
     private readonly TimeProvider _timeProvider;
@@ -30,8 +53,11 @@ public class AnalyticsEventService
         _timeProvider = timeProvider;
     }
 
+    /// <param name="batch">The events sent.</param>
+    /// <param name="userAgent">The request's User-Agent: read to tell bots, never stored.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
     /// <exception cref="ValidationException">analytics_events_required, analytics_too_many_events.</exception>
-    public async Task<AnalyticsAcceptedDto> RecordAsync(AnalyticsEventBatchDto batch, CancellationToken cancellationToken = default)
+    public async Task<AnalyticsAcceptedDto> RecordAsync(AnalyticsEventBatchDto batch, string? userAgent, CancellationToken cancellationToken = default)
     {
         var events = batch.Events?.Where(e => e is not null).ToList() ?? [];
         if (events.Count == 0)
@@ -42,6 +68,11 @@ public class AnalyticsEventService
         if (events.Count > MaxEventsPerRequest)
         {
             throw new ValidationException(AppErrors.AnalyticsTooManyEvents(MaxEventsPerRequest));
+        }
+
+        if (BotUserAgent.IsBot(userAgent))
+        {
+            return new AnalyticsAcceptedDto(0);
         }
 
         var articleIds = events.Select(e => e.ArticleId).OfType<int>().Distinct().ToList();
@@ -60,15 +91,16 @@ public class AnalyticsEventService
             : (await _events.GetExistingSchoolIdsAsync(schoolIds, cancellationToken)).ToHashSet();
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
-        var accepted = new List<AnalyticsEvent>(events.Count);
+        var valid = new List<AnalyticsEvent>(events.Count);
         foreach (var dto in events)
         {
             if (ToEntity(dto, now, published, placements, schools) is { } entity)
             {
-                accepted.Add(entity);
+                valid.Add(entity);
             }
         }
 
+        var accepted = await DropRepeatsAsync(valid, now, cancellationToken);
         if (accepted.Count > 0)
         {
             await _events.AddRangeAsync(accepted, cancellationToken);
@@ -76,6 +108,58 @@ public class AnalyticsEventService
 
         return new AnalyticsAcceptedDto(accepted.Count);
     }
+
+    /// <summary>
+    /// <paramref name="events"/> without the ones already counted: a once-per-view event its page
+    /// view already has, an article view its visitor made within <see cref="RepeatViewWindow"/>.
+    /// Reads the stored events of the batch's page views and visitors once.
+    /// </summary>
+    private async Task<List<AnalyticsEvent>> DropRepeatsAsync(List<AnalyticsEvent> events, DateTime now, CancellationToken cancellationToken)
+    {
+        var viewIds = events.Where(e => OncePerViewKeyOf(e) is not null).Select(e => e.ViewId!.Value).Distinct().ToList();
+        var seenInView = viewIds.Count == 0
+            ? []
+            : (await _events.GetViewEventsAsync(viewIds, OncePerViewTypes, cancellationToken))
+                .Select(OncePerViewKeyOf).OfType<OncePerViewKey>().ToHashSet();
+
+        var visitorIds = events
+            .Where(e => e.Type == AnalyticsEventType.ArticleView && e.VisitorId is not null)
+            .Select(e => e.VisitorId!.Value).Distinct().ToList();
+        var recentlyViewed = visitorIds.Count == 0
+            ? []
+            : (await _events.GetArticleViewsSinceAsync(visitorIds, now - RepeatViewWindow, cancellationToken))
+                .Select(e => (e.VisitorId!.Value, e.ArticleId)).ToHashSet();
+
+        var kept = new List<AnalyticsEvent>(events.Count);
+        foreach (var entity in events)
+        {
+            if (OncePerViewKeyOf(entity) is { } key && !seenInView.Add(key))
+            {
+                continue;
+            }
+
+            if (entity.Type == AnalyticsEventType.ArticleView
+                && entity.VisitorId is Guid visitorId
+                && !recentlyViewed.Add((visitorId, entity.ArticleId)))
+            {
+                continue;
+            }
+
+            kept.Add(entity);
+        }
+
+        return kept;
+    }
+
+    private static OncePerViewKey? OncePerViewKeyOf(AnalyticsEvent entity)
+        => entity.ViewId is Guid viewId && OncePerViewTypes.Contains(entity.Type)
+            ? new OncePerViewKey(
+                viewId,
+                entity.Type,
+                entity.ArticleId,
+                entity.Type == AnalyticsEventType.OpinionShown ? entity.ParagraphId : null,
+                entity.ScrollDepth)
+            : null;
 
     private static bool IsOpinionEvent(AnalyticsEventType type)
         => type is AnalyticsEventType.OpinionShown or AnalyticsEventType.OpinionSwitched;
@@ -88,7 +172,7 @@ public class AnalyticsEventService
         Dictionary<int, OpinionPlacementRow> placements,
         HashSet<int> schools)
     {
-        var entity = new AnalyticsEvent { Type = dto.Type, OccurredAtUtc = now, ViewId = dto.ViewId };
+        var entity = new AnalyticsEvent { Type = dto.Type, OccurredAtUtc = now, ViewId = dto.ViewId, VisitorId = dto.VisitorId };
 
         if (dto.Type == AnalyticsEventType.Search)
         {

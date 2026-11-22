@@ -22,6 +22,7 @@ namespace Mktba.Application.DTOs
     /// <paramref name="TargetPath"/>).
     /// </param>
     /// <param name="ViewId">A random id the page makes anew for every page view; optional.</param>
+    /// <param name="VisitorId">A random id the browser keeps for one UTC day at most, then replaces; optional. A repeated view of an article by it within 30 minutes is dropped.</param>
     /// <param name="ArticleId">The article read: a Published one.</param>
     /// <param name="ParagraphId">The paragraph of the opinion.</param>
     /// <param name="OpinionId">The opinion on screen or picked.</param>
@@ -38,10 +39,11 @@ namespace Mktba.Application.DTOs
         int? SchoolId = null,
         int? ScrollDepth = null,
         string? Query = null,
-        string? TargetPath = null
+        string? TargetPath = null,
+        Guid? VisitorId = null
     );
 
     /// <summary>The events are stored.</summary>
-    /// <param name="Accepted">How many of the events sent were kept; the others were dropped as stale or incomplete.</param>
+    /// <param name="Accepted">How many of the events sent were kept; the others were dropped as stale, incomplete, repeated or sent by a bot.</param>
     public record AnalyticsAcceptedDto(int Accepted);
 }

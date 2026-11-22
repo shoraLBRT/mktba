@@ -96,11 +96,18 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<Guid?>("ViewId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("VisitorId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OccurredAtUtc");
 
+                    b.HasIndex("ViewId");
+
                     b.HasIndex("ArticleId", "OccurredAtUtc");
+
+                    b.HasIndex("VisitorId", "OccurredAtUtc");
 
                     b.ToTable("AnalyticsEvents");
                 });

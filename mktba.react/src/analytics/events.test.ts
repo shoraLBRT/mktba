@@ -72,6 +72,45 @@ describe('own analytics events', () => {
     expect(batch[1].viewId).not.toBe(batch[0].viewId);
   });
 
+  it('given consent, when events are tracked, then a visitor id is kept for the UTC day and replaced the next day', async () => {
+    localStorage.setItem('mktba.consent', 'true');
+    vi.setSystemTime(new Date('2026-11-22T23:59:00Z'));
+    const events = await loadEvents();
+
+    events.trackEvent({ type: 'ArticleView', articleId: 1 });
+    window.history.replaceState(null, '', '/salat');
+    events.trackEvent({ type: 'ArticleView', articleId: 2 });
+    vi.setSystemTime(new Date('2026-11-23T00:01:00Z'));
+    events.trackEvent({ type: 'ArticleView', articleId: 2 });
+    events.flushEvents();
+
+    const [batch] = sentBatches();
+    expect(batch[0].visitorId).toEqual(expect.any(String));
+    expect(batch[1].visitorId).toBe(batch[0].visitorId);
+    expect(batch[2].visitorId).toEqual(expect.any(String));
+    expect(batch[2].visitorId).not.toBe(batch[0].visitorId);
+    expect(localStorage.getItem(events.VISITOR_KEY)).toBe(`2026-11-23 ${batch[2].visitorId}`);
+  });
+
+  it('given no consent, when events are tracked, then no visitor id is stored', async () => {
+    const events = await loadEvents();
+    events.trackEvent({ type: 'ArticleView', articleId: 1 });
+
+    expect(localStorage.getItem(events.VISITOR_KEY)).toBeNull();
+  });
+
+  it('given a browser driven by automation, when events are tracked with consent, then nothing is sent', async () => {
+    localStorage.setItem('mktba.consent', 'true');
+    Object.defineProperty(navigator, 'webdriver', { configurable: true, value: true });
+    const events = await loadEvents();
+
+    events.trackEvent({ type: 'ArticleView', articleId: 1 });
+    events.flushEvents();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    Reflect.deleteProperty(navigator, 'webdriver');
+  });
+
   it('given a full batch, when one more event is tracked, then the full batch goes at once and the rest waits', async () => {
     localStorage.setItem('mktba.consent', 'true');
     const events = await loadEvents();
