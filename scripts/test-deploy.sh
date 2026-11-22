@@ -7,7 +7,7 @@ set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 stand=$(mktemp -d)
-cp "$root/deploy/docker-compose.yml" "$root/deploy/Caddyfile" "$root/deploy/deploy.sh" "$stand/"
+cp "$root/deploy/docker-compose.yml" "$root/deploy/Caddyfile" "$root/deploy/deploy.sh" "$root/deploy/backup.sh" "$stand/"
 # The test hosts cannot get Let's Encrypt certificates: Caddy issues its own (X-06 header check).
 # shellcheck disable=SC2016 # matches the Caddyfile's literal {$ACME_EMAIL} placeholder
 sed -i 's/^\temail {\$ACME_EMAIL}$/&\n\tlocal_certs/' "$stand/Caddyfile"
@@ -25,7 +25,8 @@ cleanup() {
   status=$?
   if [[ $status -ne 0 ]]; then compose logs --no-color --tail 80 || true; fi
   compose down -v --remove-orphans >/dev/null 2>&1 || true
-  rm -rf "$stand"
+  # The backup container writes backups/ as root.
+  rm -rf "$stand" 2>/dev/null || sudo rm -rf "$stand" || true
   exit "$status"
 }
 trap cleanup EXIT
@@ -99,6 +100,10 @@ check ci
 check_headers
 "$stand/deploy.sh" deploy mktba ci2 -staging
 check ci2
+# X-04 (#158): the first deployment had no schema to save; the second one saved it before migrating.
+pre_deploy=$("$stand/deploy.sh" backups | grep -c -- '-pre-deploy$' || true)
+[[ $pre_deploy -eq 1 ]] || { echo "expected 1 pre-deploy backup, found $pre_deploy" >&2; exit 1; }
+[[ $(compose ps --status running -q backup) ]] || { echo "the backup service is not running" >&2; exit 1; }
 "$stand/deploy.sh" rollback
 check ci
 "$stand/deploy.sh" status >/dev/null

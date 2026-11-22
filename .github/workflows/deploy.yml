@@ -213,7 +213,7 @@ jobs:
           # shellcheck disable=SC2029 # expanded here on purpose; every value is checked above
           ssh "${ssh_opts[@]}" "$target" "mkdir -p '$DEPLOY_PATH'"
           scp -P "$DEPLOY_PORT" -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh "$target:$DEPLOY_PATH/"
+            deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh deploy/backup.sh "$target:$DEPLOY_PATH/"
           # The job's token (valid only while the job runs) lets the server pull; logged out afterwards.
           # shellcheck disable=SC2029 # expanded here on purpose; every value is checked above
           printf '%s' "$REGISTRY_TOKEN" | ssh "${ssh_opts[@]}" "$target" \

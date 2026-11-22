@@ -29,6 +29,38 @@ services:
       retries: 10
     networks: [backend]
 
+  # Backups of the database and the uploads (X-04, #158; deploy/backup.sh, README «Резервные копии»):
+  # crond runs one on BACKUP_SCHEDULE (UTC) into BACKUP_HOST_DIR on the host, deploy.sh makes one
+  # before every migration and has `backup`, `verify` (restore check) and `restore`. Same image as
+  # the database, so pg_dump matches the server.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    entrypoint: ["sh", "/usr/local/bin/mktba-backup"]
+    command: ["schedule"]
+    environment:
+      PGHOST: postgres
+      PGUSER: mktba
+      PGDATABASE: mktba
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+      BACKUP_SCHEDULE: "${BACKUP_SCHEDULE:-0 3 * * *}"
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_KEEP_PRE_DEPLOY: ${BACKUP_KEEP_PRE_DEPLOY:-5}
+      # Off-site copy, off while empty (see deploy/.env.example).
+      BACKUP_OFFSITE_COMMAND: ${BACKUP_OFFSITE_COMMAND:-}
+      BACKUP_PACKAGES: ${BACKUP_PACKAGES:-}
+    volumes:
+      - ./backup.sh:/usr/local/bin/mktba-backup:ro
+      - ${BACKUP_HOST_DIR:-./backups}:/backups
+      # Config and keys of the off-site copy (rclone.conf, an SSH key); created empty if missing.
+      - ./backup-offsite:/offsite:ro
+      # Read-write: `restore` puts the uploads back.
+      - uploads:/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
   # Applies the migrations and the reference data, then exits (X-03): the API itself never migrates
   # outside Development.
   migrate:
@@ -121,7 +153,8 @@ networks:
 
 volumes:
   pgdata:
-  # Uploaded images (Storage:Provider=Local until the beta); back it up together with the database.
+  # Uploaded images (Storage:Provider=Local until the beta); the backup service saves it together
+  # with the database.
   uploads:
   # Caddy's certificates and ACME account: losing it means re-issuing every certificate.
   caddy_data:
