@@ -244,6 +244,11 @@ namespace Mktba.Application.Services
         {
             var article = _mapper.Map<Article>(createDto);
             article.Title = RequiredTitle(createDto.Title);
+            if (article.ParentArticleId is int parentId && !await _articleRepository.ExistsAsync(parentId))
+            {
+                throw new ValidationException(AppErrors.ArticleParentNotFound(parentId));
+            }
+
             ArticleTimestamps.StampCreated(article, authorId, _clock);
             article.Order = await _articleRepository.GetNextSiblingOrderAsync(article.ParentArticleId);
             article.Slug = await new ArticleSlugAssigner(_articleRepository).GenerateUniqueAsync(article.Title, article.Locale, articleId: null);
@@ -344,16 +349,96 @@ namespace Mktba.Application.Services
         }
 
         /// <summary>
-        /// Deletes the article. If it was ever published, its current and old slugs are kept as
-        /// tombstones, so their URLs answer 410 Gone rather than 404 (O-07, #58).
+        /// Moves the article to the trash (M-11, #133): it disappears from the site, the tree, search and
+        /// every list, its siblings close the gap, and everything else — slug, content, revisions, drafts,
+        /// files — is kept until it is restored or purged. A trashed article that had been published
+        /// answers 410 Gone by slug.
         /// </summary>
-        /// <exception cref="NotFoundException">No such article.</exception>
-        public async Task DeleteAsync(int id)
+        /// <exception cref="NotFoundException">No such article, or it is already in the trash.</exception>
+        /// <exception cref="ValidationException"><c>article_has_children</c>: it has children outside the trash.</exception>
+        public async Task MoveToTrashAsync(int id, int? deletedById)
         {
             var article = await _articleRepository.GetByIdAsync(id);
-            if (article is null)
+            if (article is null || article.DeletedAt is not null)
             {
+                // Find returns an already tracked article without applying the trash filter.
                 throw new NotFoundException(AppErrors.ArticleNotFound);
+            }
+
+            if (await _articleRepository.HasChildrenAsync(id))
+            {
+                throw new ValidationException(AppErrors.ArticleHasChildren);
+            }
+
+            article.DeletedAt = _clock.GetUtcNow().UtcDateTime;
+            article.DeletedById = deletedById;
+            Renumber((await _articleRepository.GetSiblingsAsync(article.ParentArticleId))
+                .Where(sibling => sibling.Id != article.Id));
+            await _articleRepository.SaveChangesAsync();
+            if (article.Status == ArticleStatus.Published)
+            {
+                _searchEngines.ArticleChanged(article.Slug);
+            }
+        }
+
+        /// <summary>The trash, most recently trashed first.</summary>
+        public async Task<List<ArticleTrashItemDto>> GetTrashAsync(CancellationToken cancellationToken = default)
+            => (await _articleRepository.GetTrashRowsAsync(cancellationToken))
+                .Select(row => new ArticleTrashItemDto
+                {
+                    Id = row.Id,
+                    Title = row.Title,
+                    Slug = row.Slug,
+                    Locale = row.Locale,
+                    Status = row.Status,
+                    DeletedAt = row.DeletedAt,
+                    DeletedByDisplayName = row.DeletedByDisplayName,
+                    ParentArticleId = row.ParentArticleId,
+                    ParentTitle = row.ParentTitle,
+                    ParentInTrash = row.ParentInTrash,
+                })
+                .ToList();
+
+        /// <summary>
+        /// Takes the article out of the trash with the status, slug and content it had, last among the
+        /// children of its parent (or of the root, when the parent was purged meanwhile).
+        /// </summary>
+        /// <exception cref="NotFoundException"><c>article_not_in_trash</c>: no such article in the trash.</exception>
+        /// <exception cref="ValidationException"><c>article_parent_in_trash</c>: its parent is in the trash; restore that first.</exception>
+        public async Task RestoreAsync(int id)
+        {
+            var article = await _articleRepository.GetTrashedAsync(id)
+                ?? throw new NotFoundException(AppErrors.ArticleNotInTrash);
+            if (article.ParentArticleId is int parentId && await _articleRepository.IsTrashedAsync(parentId))
+            {
+                throw new ValidationException(AppErrors.ArticleParentInTrash);
+            }
+
+            article.Order = await _articleRepository.GetNextSiblingOrderAsync(article.ParentArticleId);
+            article.DeletedAt = null;
+            article.DeletedById = null;
+            await _articleRepository.SaveChangesAsync();
+            if (article.Status == ArticleStatus.Published)
+            {
+                _searchEngines.ArticleChanged(article.Slug);
+            }
+        }
+
+        /// <summary>
+        /// Deletes a trashed article for good, with its content, revisions and drafts. If it was ever
+        /// published, its current and old slugs are kept as tombstones, so their URLs answer 410 Gone
+        /// rather than 404 (O-07, #58). Its children still in the trash move to the root, so they can
+        /// be restored on their own. Files it used are left to the upload cleanup.
+        /// </summary>
+        /// <exception cref="NotFoundException"><c>article_not_in_trash</c>: no such article in the trash.</exception>
+        public async Task PurgeAsync(int id)
+        {
+            var article = await _articleRepository.GetTrashedAsync(id)
+                ?? throw new NotFoundException(AppErrors.ArticleNotInTrash);
+
+            foreach (var child in await _articleRepository.GetTrashedChildrenAsync(id))
+            {
+                child.ParentArticleId = null;
             }
 
             if (article.PublishedAt is not null)

@@ -346,10 +346,11 @@ namespace Mktba.Infrastructure.Repositories
         /// <summary>
         /// Whether <paramref name="slug"/> belongs to another article in <paramref name="locale"/>, as its
         /// current slug or as one of its redirects. Articles in other locales may use the same slug.
-        /// The article <paramref name="exceptArticleId"/> may reuse its own old slugs.
+        /// The article <paramref name="exceptArticleId"/> may reuse its own old slugs. A trashed article
+        /// keeps its slugs reserved, so it can be restored at the same address.
         /// </summary>
         public async Task<bool> IsSlugTakenAsync(string locale, string slug, int? exceptArticleId, CancellationToken cancellationToken = default)
-            => await _dbSet.AnyAsync(
+            => await _dbSet.IgnoreQueryFilters().AnyAsync(
                    article => article.Locale == locale && article.Slug == slug && article.Id != exceptArticleId, cancellationToken)
                || await _context.ArticleSlugRedirects.AnyAsync(
                    redirect => redirect.Locale == locale && redirect.Slug == slug && redirect.ArticleId != exceptArticleId, cancellationToken);
@@ -366,14 +367,14 @@ namespace Mktba.Infrastructure.Repositories
 
         /// <summary>
         /// Whether <paramref name="slug"/> in <paramref name="locale"/> names a page that was removed on
-        /// purpose (O-07): a slug, current or old, of an Archived article that had been published, or a
-        /// tombstone of a deleted article — unless an article has taken the slug since.
+        /// purpose (O-07): a slug, current or old, of an Archived or trashed article that had been
+        /// published, or a tombstone of a purged article — unless an article has taken the slug since.
         /// </summary>
         public async Task<bool> IsSlugGoneAsync(string locale, string slug, CancellationToken cancellationToken = default)
         {
-            var archived = await _dbSet.AnyAsync(
+            var archived = await _dbSet.IgnoreQueryFilters().AnyAsync(
                 article => article.Locale == locale
-                    && article.Status == ArticleStatus.Archived
+                    && (article.Status == ArticleStatus.Archived || article.DeletedAt != null)
                     && article.PublishedAt != null
                     && (article.Slug == slug || article.SlugRedirects.Any(redirect => redirect.Locale == locale && redirect.Slug == slug)),
                 cancellationToken);
@@ -435,16 +436,66 @@ namespace Mktba.Infrastructure.Repositories
                 .Where(article => article.ParentArticleId == parentId)
                 .MaxAsync(article => (int?)article.Order, cancellationToken) ?? -1) + 1;
 
+        /// <summary>Every article, trashed ones included.</summary>
         public Task<int> CountAsync(CancellationToken cancellationToken = default)
-            => _dbSet.CountAsync(cancellationToken);
+            => _dbSet.IgnoreQueryFilters().CountAsync(cancellationToken);
 
         public Task NullifyAllParentIdsAsync(CancellationToken cancellationToken = default)
-            => _dbSet.ExecuteUpdateAsync(
+            => _dbSet.IgnoreQueryFilters().ExecuteUpdateAsync(
                 s => s.SetProperty(a => a.ParentArticleId, (int?)null),
                 cancellationToken);
 
+        /// <summary>Deletes every article, trashed ones included.</summary>
         public Task DeleteAllAsync(CancellationToken cancellationToken = default)
-            => _dbSet.ExecuteDeleteAsync(cancellationToken);
+            => _dbSet.IgnoreQueryFilters().ExecuteDeleteAsync(cancellationToken);
+
+        /// <summary>Whether an article with this id exists outside the trash.</summary>
+        public Task<bool> ExistsAsync(int articleId, CancellationToken cancellationToken = default)
+            => _dbSet.AnyAsync(article => article.Id == articleId, cancellationToken);
+
+        /// <summary>Whether the article has children that are not in the trash.</summary>
+        public Task<bool> HasChildrenAsync(int articleId, CancellationToken cancellationToken = default)
+            => _dbSet.AnyAsync(article => article.ParentArticleId == articleId, cancellationToken);
+
+        /// <summary>A trashed article, tracked; null when there is none with this id or it is not in the trash.</summary>
+        public Task<Article?> GetTrashedAsync(int articleId, CancellationToken cancellationToken = default)
+            => _dbSet
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(article => article.Id == articleId && article.DeletedAt != null, cancellationToken);
+
+        /// <summary>Whether <paramref name="articleId"/> names an article in the trash.</summary>
+        public Task<bool> IsTrashedAsync(int articleId, CancellationToken cancellationToken = default)
+            => _dbSet
+                .IgnoreQueryFilters()
+                .AnyAsync(article => article.Id == articleId && article.DeletedAt != null, cancellationToken);
+
+        /// <summary>The trashed children of an article, tracked.</summary>
+        public Task<List<Article>> GetTrashedChildrenAsync(int articleId, CancellationToken cancellationToken = default)
+            => _dbSet
+                .IgnoreQueryFilters()
+                .Where(article => article.ParentArticleId == articleId && article.DeletedAt != null)
+                .ToListAsync(cancellationToken);
+
+        /// <summary>The trash, most recently trashed first.</summary>
+        public Task<List<ArticleTrashRow>> GetTrashRowsAsync(CancellationToken cancellationToken = default)
+            => _dbSet
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(article => article.DeletedAt != null)
+                .OrderByDescending(article => article.DeletedAt)
+                .ThenByDescending(article => article.Id)
+                .Select(article => new ArticleTrashRow(
+                    article.Id,
+                    article.Title,
+                    article.Slug,
+                    article.Locale,
+                    article.Status,
+                    article.DeletedAt!.Value,
+                    article.DeletedBy == null ? null : article.DeletedBy.DisplayName,
+                    article.ParentArticleId,
+                    article.ParentArticle == null ? null : article.ParentArticle.Title,
+                    article.ParentArticle != null && article.ParentArticle.DeletedAt != null))
+                .ToListAsync(cancellationToken);
 
         /// <summary>Stages a new revision; revisions are never updated or removed through this repository.</summary>
         public Task AddRevisionAsync(ArticleRevision revision, CancellationToken cancellationToken = default)

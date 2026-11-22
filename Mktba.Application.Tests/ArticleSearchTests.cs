@@ -71,7 +71,7 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
     }
 
     [Fact]
-    public async Task GivenDraftArchivedAndHiddenUnderDraftParent_WhenSearched_ThenOnlyTheReachablePublishedArticleIsFound()
+    public async Task GivenDraftArchivedTrashedAndHiddenUnderDraftParent_WhenSearched_ThenOnlyTheReachablePublishedArticleIsFound()
     {
         var visibleParent = Published("Раздел видимый", "visible-parent");
         var visible = await SaveAsync(Published("Истинджа открытая", "visible-child", parent: visibleParent));
@@ -80,6 +80,9 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
         await SaveAsync(Published("Истинджа на проверке", "in-review", opinions: "Истинджа", status: ArticleStatus.InReview));
         var draftParent = Published("Раздел скрытый", "hidden-parent", status: ArticleStatus.Draft);
         await SaveAsync(Published("Истинджа под черновиком", "hidden-child", opinions: "Истинджа", parent: draftParent));
+        var trashed = Published("Истинджа в корзине", "trashed");
+        trashed.DeletedAt = new DateTime(2026, 11, 22, 0, 0, 0, DateTimeKind.Utc);
+        await SaveAsync(trashed);
 
         var results = await SearchAsync("истинджа");
 

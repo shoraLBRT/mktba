@@ -199,14 +199,52 @@ namespace Mktba.Api.Endpoints
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
             .RequireAuthorization(Policies.CanEditAnyArticle);
 
-            group.MapDelete("/{id:int}", async (int id, ArticleService service) =>
+            group.MapDelete("/{id:int}", async (int id, ClaimsPrincipal user, ArticleService service) =>
             {
-                await service.DeleteAsync(id);
+                await service.MoveToTrashAsync(id, user.GetUserId());
                 return Results.NoContent();
             })
+            .WithSummary("Moves the article to the trash.")
             .WithDescription(
-                "Deletes the article. If it was ever published, its current and old slugs are recorded, so "
-                + "reading them by slug answers 410 article_gone until another article takes the slug.")
+                "The article disappears from the site, the tree, search and every list; its slug stays reserved "
+                + "and its content, revisions, drafts and files are kept. If it had been published, reading it by "
+                + "slug answers 410 article_gone. Answers 400 article_has_children while it has children outside "
+                + "the trash, 404 article_not_found when there is no such article outside the trash.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
+            .RequireAuthorization(Policies.CanEditAnyArticle);
+
+            group.MapGet("/trash", async (ArticleService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.GetTrashAsync(cancellationToken)))
+            .WithSummary("The trashed articles, most recently trashed first.")
+            .Produces<List<ArticleTrashItemDto>>()
+            .RequireAuthorization(Policies.CanEditAnyArticle);
+
+            group.MapPost("/trash/{id:int}/restore", async (int id, ArticleService service) =>
+            {
+                await service.RestoreAsync(id);
+                return Results.NoContent();
+            })
+            .WithSummary("Takes the article out of the trash.")
+            .WithDescription(
+                "It comes back with the status, slug and content it had, last among its parent's children (the "
+                + "root's, when the parent was purged). Answers 400 article_parent_in_trash while the parent is "
+                + "in the trash, 404 article_not_in_trash when the article is not there.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
+            .RequireAuthorization(Policies.CanEditAnyArticle);
+
+            group.MapDelete("/trash/{id:int}", async (int id, ArticleService service) =>
+            {
+                await service.PurgeAsync(id);
+                return Results.NoContent();
+            })
+            .WithSummary("Deletes a trashed article for good.")
+            .WithDescription(
+                "Removes it with its content, revisions and drafts; this cannot be undone. If it was ever "
+                + "published, its current and old slugs are recorded, so reading them by slug answers 410 "
+                + "article_gone until another article takes the slug. Its children still in the trash move to "
+                + "the root. Answers 404 article_not_in_trash when the article is not in the trash.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesApiProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(Policies.CanEditAnyArticle);

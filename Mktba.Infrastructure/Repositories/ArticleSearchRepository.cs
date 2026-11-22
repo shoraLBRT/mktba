@@ -76,11 +76,11 @@ namespace Mktba.Infrastructure.Repositories
                 .SqlQuery<ArticleSearchRow>($"""
                     WITH RECURSIVE reachable AS (
                         SELECT a."Id" FROM "Articles" a
-                        WHERE a."ParentArticleId" IS NULL AND a."Status" = {published}
+                        WHERE a."ParentArticleId" IS NULL AND a."Status" = {published} AND a."DeletedAt" IS NULL
                         UNION
                         SELECT a."Id" FROM "Articles" a
                         JOIN reachable r ON a."ParentArticleId" = r."Id"
-                        WHERE a."Status" = {published}
+                        WHERE a."Status" = {published} AND a."DeletedAt" IS NULL
                     ),
                     q AS (
                         SELECT plainto_tsquery({TextSearchConfiguration}::regconfig, {foldedQuery}) AS all_terms,

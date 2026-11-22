@@ -179,6 +179,14 @@ public static class AppErrors
     public static AppError ArticleParentNotFound(int parentId) =>
         new("article_parent_not_found", $"Parent article with id {parentId} does not exist.", With(("parentId", parentId)));
 
+    public static AppError ArticleHasChildren =>
+        new("article_has_children", "An article with child articles cannot be moved to the trash; move or trash the children first.");
+
+    public static AppError ArticleNotInTrash => new("article_not_in_trash", "No such article in the trash.");
+
+    public static AppError ArticleParentInTrash =>
+        new("article_parent_in_trash", "The article's parent is in the trash; restore the parent first.");
+
     public static AppError ArticleCoAuthorIsAuthor =>
         new("article_coauthor_is_author", "The article's author cannot also be its co-author.");
 

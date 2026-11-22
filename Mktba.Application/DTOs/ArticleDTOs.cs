@@ -185,4 +185,24 @@ namespace Mktba.Application.DTOs
     {
         public List<ArticleBulkItemResultDto> Results { get; set; } = new();
     }
+
+    /// <summary>One article in the admin trash (M-11, #133).</summary>
+    public class ArticleTrashItemDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        /// <summary>Kept reserved while the article is in the trash.</summary>
+        public string Slug { get; set; } = string.Empty;
+        public string Locale { get; set; } = string.Empty;
+        /// <summary>The status it had when trashed; restoring keeps it.</summary>
+        public ArticleStatus Status { get; set; }
+        /// <summary>When it was moved to the trash (UTC).</summary>
+        public DateTime DeletedAt { get; set; }
+        public string? DeletedByDisplayName { get; set; }
+        /// <summary>The parent it is restored under; null for a root article.</summary>
+        public int? ParentArticleId { get; set; }
+        public string? ParentTitle { get; set; }
+        /// <summary>True when the parent is in the trash too, so this article cannot be restored before it.</summary>
+        public bool ParentInTrash { get; set; }
+    }
 }

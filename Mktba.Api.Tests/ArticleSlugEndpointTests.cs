@@ -119,6 +119,7 @@ public sealed class ArticleSlugEndpointTests : IClassFixture<MktbaApiFactory>
         var admin = await CreateAdminClientAsync();
         var deleted = await CreateArticleAsync(admin, "Повторный адрес");
         (await admin.DeleteAsync($"/articles/{deleted.Id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await admin.DeleteAsync($"/articles/trash/{deleted.Id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         var reused = await CreateArticleAsync(admin, "Повторный адрес");
         reused.Slug.Should().Be(deleted.Slug);
 

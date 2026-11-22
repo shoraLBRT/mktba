@@ -79,5 +79,14 @@
         /// </summary>
         public int? PublishedRevisionId { get; set; }
         public ArticleRevision? PublishedRevision { get; set; }
+        /// <summary>
+        /// When the article was moved to the trash (UTC); null while it is in use (M-11, #133). A trashed
+        /// article is hidden from every query by a global filter, keeps its slug, content, revisions and
+        /// files, and can be restored or purged by an admin.
+        /// </summary>
+        public DateTime? DeletedAt { get; set; }
+        /// <summary>The user who moved the article to the trash; null when not trashed or that user was deleted.</summary>
+        public int? DeletedById { get; set; }
+        public User? DeletedBy { get; set; }
     }
 }

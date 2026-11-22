@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Mktba.Domain.Entities;
 
 namespace Mktba.Infrastructure.Data
@@ -8,6 +9,14 @@ namespace Mktba.Infrastructure.Data
         public MktbaDbContext(DbContextOptions<MktbaDbContext> options)
             : base(options)
         { }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            // The trash filter on Article (M-11, #133) is meant to hide the article's paragraphs, tags and
+            // other required dependents along with it, which is what this warning is about.
+            optionsBuilder.ConfigureWarnings(warnings =>
+                warnings.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
+        }
 
         public DbSet<Article> Articles { get; set; } = null!;
         public DbSet<ArticleInfoboxField> ArticleInfoboxFields { get; set; } = null!;
@@ -180,6 +189,21 @@ namespace Mktba.Infrastructure.Data
                 .HasForeignKey(a => a.AuthorId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .IsRequired(false);
+
+            // Trash (M-11, #133): a trashed article is invisible to every query unless it asks with
+            // IgnoreQueryFilters (the trash itself, slug and file checks, restore and purge).
+            modelBuilder.Entity<Article>()
+                .HasQueryFilter(a => a.DeletedAt == null);
+
+            modelBuilder.Entity<Article>()
+                .HasOne(a => a.DeletedBy)
+                .WithMany()
+                .HasForeignKey(a => a.DeletedById)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            modelBuilder.Entity<Article>()
+                .HasIndex(a => a.DeletedAt);
 
             modelBuilder.Entity<ArticleCoAuthor>()
                 .HasKey(c => new { c.ArticleId, c.UserId });

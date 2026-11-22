@@ -1709,7 +1709,10 @@ export interface paths {
             };
         };
         post?: never;
-        /** @description Deletes the article. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug. */
+        /**
+         * Moves the article to the trash.
+         * @description The article disappears from the site, the tree, search and every list; its slug stays reserved and its content, revisions, drafts and files are kept. If it had been published, reading it by slug answers 410 article_gone. Answers 400 article_has_children while it has children outside the trash, 404 article_not_found when there is no such article outside the trash.
+         */
         delete: {
             parameters: {
                 query?: never;
@@ -1727,6 +1730,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -2018,6 +2030,147 @@ export interface paths {
         };
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The trashed articles, most recently trashed first. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleTrashItemDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/trash/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Takes the article out of the trash.
+         * @description It comes back with the status, slug and content it had, last among its parent's children (the root's, when the parent was purged). Answers 400 article_parent_in_trash while the parent is in the trash, 404 article_not_in_trash when the article is not there.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/trash/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Deletes a trashed article for good.
+         * @description Removes it with its content, revisions and drafts; this cannot be undone. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug. Its children still in the trash move to the root. Answers 404 article_not_in_trash when the article is not in the trash.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -4824,6 +4977,21 @@ export interface components {
         ArticleTagDto: {
             name: string;
             slug: string;
+        };
+        ArticleTrashItemDto: {
+            /** Format: int32 */
+            id: number;
+            title: string;
+            slug: string;
+            locale: string;
+            status: components["schemas"]["ArticleStatus"];
+            /** Format: date-time */
+            deletedAt: string;
+            deletedByDisplayName?: string | null;
+            /** Format: int32 */
+            parentArticleId?: number | null;
+            parentTitle?: string | null;
+            parentInTrash: boolean;
         };
         ArticleUpdateDto: {
             title: string;
