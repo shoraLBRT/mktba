@@ -9,6 +9,7 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 stand=$(mktemp -d)
 cp "$root/deploy/docker-compose.yml" "$root/deploy/Caddyfile" "$root/deploy/deploy.sh" "$stand/"
 # The test hosts cannot get Let's Encrypt certificates: Caddy issues its own (X-06 header check).
+# shellcheck disable=SC2016 # matches the Caddyfile's literal {$ACME_EMAIL} placeholder
 sed -i 's/^\temail {\$ACME_EMAIL}$/&\n\tlocal_certs/' "$stand/Caddyfile"
 grep -q '^	local_certs$' "$stand/Caddyfile" || { echo "could not add local_certs to the Caddyfile" >&2; exit 1; }
 sed -e 's/^COMPOSE_PROJECT_NAME=.*/COMPOSE_PROJECT_NAME=mktba-deploy-test/' \
