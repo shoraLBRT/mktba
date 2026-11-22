@@ -2096,6 +2096,76 @@
         }
       }
     },
+    "/audit-log": {
+      "get": {
+        "tags": [
+          "AuditLog"
+        ],
+        "summary": "The audit log (U-09, #135): who changed what and when, newest first. Admin only.",
+        "description": "Logged actions: ArticleStatusChanged (publication included; fromValue/toValue are statuses), ArticleTrashed, ArticleRestored, ArticlePurged, UserRoleChanged (fromValue/toValue are roles). Filters: action, actorId, articleId, targetUserId. page from 1, pageSize 1 to 100 (50 by default). Each entry is written in the same save as its action and is never changed or removed. Only the acting user's id and the ids of the article or user acted on are kept, with the article's title at the time; no IP address, no User-Agent.",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "articleId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "targetUserId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogPageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/status": {
       "get": {
         "tags": [
@@ -2840,6 +2910,121 @@
         }
       }
     },
+    "/authors/{slug}": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "The public profile of an author, by slug.",
+        "description": "Only what readers may see: no email, no user id. Answers 404 author_not_found unless the user has a display name and is the author or a co-author of at least one Published article, so accounts cannot be listed through it. degree and institution are self-declared and given only for a user whose role is Scholar.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authors/{slug}/articles": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "The articles an author wrote or co-authored, for the author's public page.",
+        "description": "Only articles a reader can open: Published, not under a non-Published parent, and not empty stubs; ordered by publishedAt, latest first. The same list for every caller; no content. The list may be empty for a public author. locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1; pageSize is 20 by default, kept within 1 to 50. Answers 404 author_not_found exactly when GET /authors/{slug} does.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorArticlesDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/profile": {
       "get": {
         "tags": [
@@ -2950,121 +3135,6 @@
           },
           "401": {
             "description": "Unauthorized",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/authors/{slug}": {
-      "get": {
-        "tags": [
-          "Profile"
-        ],
-        "summary": "The public profile of an author, by slug.",
-        "description": "Only what readers may see: no email, no user id. Answers 404 author_not_found unless the user has a display name and is the author or a co-author of at least one Published article, so accounts cannot be listed through it. degree and institution are self-declared and given only for a user whose role is Scholar.",
-        "parameters": [
-          {
-            "name": "slug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicProfileDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/authors/{slug}/articles": {
-      "get": {
-        "tags": [
-          "Profile"
-        ],
-        "summary": "The articles an author wrote or co-authored, for the author's public page.",
-        "description": "Only articles a reader can open: Published, not under a non-Published parent, and not empty stubs; ordered by publishedAt, latest first. The same list for every caller; no content. The list may be empty for a public author. locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1; pageSize is 20 by default, kept within 1 to 50. Answers 404 author_not_found exactly when GET /authors/{slug} does.",
-        "parameters": [
-          {
-            "name": "slug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "locale",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthorArticlesDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5880,6 +5950,126 @@
           "parentArticleId": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditAction": {
+        "enum": [
+          "ArticleStatusChanged",
+          "ArticleTrashed",
+          "ArticleRestored",
+          "ArticlePurged",
+          "UserRoleChanged"
+        ],
+        "type": "string"
+      },
+      "AuditLogEntryDto": {
+        "required": [
+          "action",
+          "articleAvailable",
+          "id",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "$ref": "#/components/schemas/AuditAction"
+          },
+          "actorId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "actor": {
+            "$ref": "#/components/schemas/AuditLogUserDto"
+          },
+          "articleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "articleTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "articleAvailable": {
+            "type": "boolean"
+          },
+          "targetUserId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "targetUser": {
+            "$ref": "#/components/schemas/AuditLogUserDto"
+          },
+          "fromValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "toValue": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditLogPageDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLogEntryDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditLogUserDto": {
+        "required": [
+          "email",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
             "nullable": true
           }
         },

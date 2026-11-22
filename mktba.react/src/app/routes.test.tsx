@@ -373,6 +373,7 @@ describe('AdminLayout', () => {
       'Мой профиль',
       'ИИ-провайдер',
       'Корзина',
+      'Журнал действий',
       'Обслуживание базы',
     ]);
     expect(screen.queryByPlaceholderText('Поиск')).toBeNull();
