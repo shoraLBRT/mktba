@@ -382,3 +382,6 @@ Mktba.Api/App_Data/
 deploy/.env
 # What deploy/deploy.sh deployed on this machine (X-02, #64).
 deploy/.deploy-history
+# Backups and the off-site copy config of deploy/backup.sh (X-04, #158).
+deploy/backups/
+deploy/backup-offsite/
