@@ -8,6 +8,9 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 stand=$(mktemp -d)
 cp "$root/deploy/docker-compose.yml" "$root/deploy/Caddyfile" "$root/deploy/deploy.sh" "$stand/"
+# The test hosts cannot get Let's Encrypt certificates: Caddy issues its own (X-06 header check).
+sed -i 's/^\temail {\$ACME_EMAIL}$/&\n\tlocal_certs/' "$stand/Caddyfile"
+grep -q '^	local_certs$' "$stand/Caddyfile" || { echo "could not add local_certs to the Caddyfile" >&2; exit 1; }
 sed -e 's/^COMPOSE_PROJECT_NAME=.*/COMPOSE_PROJECT_NAME=mktba-deploy-test/' \
     -e 's/^SITE_HOST=.*/SITE_HOST=mktba.example/' \
     -e 's/^API_HOST=.*/API_HOST=api.mktba.example/' \
@@ -55,9 +58,44 @@ check() {
   echo "ok: $tag"
 }
 
+# X-06 (#160): through Caddy over HTTPS, both hosts send HSTS and nosniff, the page its CSP from the
+# web server and the API its own CSP. Run from the web container, which shares Caddy's network.
+check_headers() {
+  compose exec -T web node -e '
+    const https = require("node:https");
+    const get = (host, path) => new Promise((resolve, reject) => {
+      https.get({ host: "caddy", port: 443, path, servername: host, headers: { host }, rejectUnauthorized: false },
+        (res) => { res.resume(); resolve(res.headers); }).on("error", reject);
+    });
+    const expect = (what, actual, pattern) => {
+      if (!pattern.test(actual ?? "")) throw new Error(what + ": " + actual);
+    };
+    const until = Date.now() + 60000;
+    (async function probe() {
+      try {
+        for (const [host, path, csp] of [
+          ["mktba.example", "/", /frame-ancestors .self. https:\/\/metrika\.yandex\.ru/],
+          ["mktba.example", "/robots.txt", /^/],
+          ["api.mktba.example", "/schools/system", /^default-src .none.; frame-ancestors .none./],
+        ]) {
+          const h = await get(host, path);
+          expect(host + path + " HSTS", h["strict-transport-security"], /^max-age=31536000$/);
+          expect(host + path + " nosniff", h["x-content-type-options"], /^nosniff$/);
+          expect(host + path + " CSP", h["content-security-policy"], csp);
+          if (h["server"]) throw new Error(host + path + " sends Server: " + h["server"]);
+        }
+        console.log("security headers: ok");
+      } catch (e) {
+        if (Date.now() > until) { console.error(String(e)); process.exit(1); }
+        setTimeout(probe, 2000);
+      }
+    })();'
+}
+
 export MKTBA_SKIP_PULL=1
 "$stand/deploy.sh" deploy mktba ci -staging
 check ci
+check_headers
 "$stand/deploy.sh" deploy mktba ci2 -staging
 check ci2
 "$stand/deploy.sh" rollback
