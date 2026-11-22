@@ -19,11 +19,11 @@ public static class AnalyticsEndpoints
             .WithTags("Analytics")
             .WithSummary("Stores reader events of the site's own statistics. No sign-in; sent only with the visitor's consent.")
             .WithDescription(
-                "Events: ArticleView, OpinionShown, OpinionSwitched, Search, ScrollDepth, InternalLinkClick, "
+                "Events: ArticleView, OpinionShown, OpinionSwitched, Search, ScrollDepth, InternalLinkClick, WebVitalLcp, WebVitalInp, WebVitalCls, "
                 + "1 to 50 per request (analytics_events_required, analytics_too_many_events). Nothing about "
                 + "the sender is stored: no account, address or browser; the time is the server's. A request "
                 + "from a bot (by its User-Agent, read but not stored) keeps none of its events; an article "
-                + "view, a paragraph's opinion shown or a scroll depth sent again in the same page view, and "
+                + "view, a paragraph's opinion shown, a scroll depth or a Web Vital sent again in the same page view, and "
                 + "a visitor's view of an article viewed less than 30 minutes ago, are dropped. An event "
                 + "without a field its type needs, about an article that is not Published or about an opinion "
                 + "of another paragraph is dropped, and the answer says how many were kept. "
