@@ -11,11 +11,11 @@ namespace Mktba.Api.Tests;
 /// co-author; an admin does all of it for any article. Someone else's draft answers 404, someone
 /// else's Published article 403.
 /// </summary>
-public sealed class ArticleOwnershipEndpointTests : IClassFixture<MktbaApiFactory>
+public abstract class ArticleOwnershipEndpointTests
 {
     private readonly MktbaApiFactory _factory;
 
-    public ArticleOwnershipEndpointTests(MktbaApiFactory factory)
+    protected ArticleOwnershipEndpointTests(MktbaApiFactory factory)
     {
         _factory = factory;
     }
@@ -187,4 +187,10 @@ public sealed class ArticleOwnershipEndpointTests : IClassFixture<MktbaApiFactor
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<ArticleContentDto>(ApiJson.Options))!;
     }
+
+    /// <summary>On the InMemory provider.</summary>
+    public sealed class InMemory(MktbaApiFactory factory) : ArticleOwnershipEndpointTests(factory), IClassFixture<MktbaApiFactory>;
+
+    /// <summary>On a real PostgreSQL database (X-07, #161).</summary>
+    public sealed class OnPostgres(PostgresApiFactory factory) : ArticleOwnershipEndpointTests(factory), IClassFixture<PostgresApiFactory>;
 }

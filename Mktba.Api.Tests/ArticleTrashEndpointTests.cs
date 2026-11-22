@@ -7,11 +7,11 @@ using Mktba.Domain.Entities;
 namespace Mktba.Api.Tests;
 
 /// <summary>M-11 (#133): deleting an article moves it to the trash; only an admin lists, restores and purges it.</summary>
-public sealed class ArticleTrashEndpointTests : IClassFixture<MktbaApiFactory>
+public abstract class ArticleTrashEndpointTests
 {
     private readonly MktbaApiFactory _factory;
 
-    public ArticleTrashEndpointTests(MktbaApiFactory factory)
+    protected ArticleTrashEndpointTests(MktbaApiFactory factory)
     {
         _factory = factory;
     }
@@ -76,4 +76,10 @@ public sealed class ArticleTrashEndpointTests : IClassFixture<MktbaApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<ArticleContentDto>(ApiJson.Options))!;
     }
+
+    /// <summary>On the InMemory provider.</summary>
+    public sealed class InMemory(MktbaApiFactory factory) : ArticleTrashEndpointTests(factory), IClassFixture<MktbaApiFactory>;
+
+    /// <summary>On a real PostgreSQL database (X-07, #161).</summary>
+    public sealed class OnPostgres(PostgresApiFactory factory) : ArticleTrashEndpointTests(factory), IClassFixture<PostgresApiFactory>;
 }

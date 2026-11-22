@@ -18,7 +18,7 @@ namespace Mktba.Api.Tests;
 /// every protected endpoint is called as anonymous and as each role. A new endpoint fails these
 /// tests until it is added to <see cref="ExpectedPolicies"/>.
 /// </summary>
-public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFactory>
+public abstract class EndpointAuthorizationMatrixTests
 {
     private const string Public = "(public)";
 
@@ -137,7 +137,7 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
 
     private readonly MktbaApiFactory _factory;
 
-    public EndpointAuthorizationMatrixTests(MktbaApiFactory factory)
+    protected EndpointAuthorizationMatrixTests(MktbaApiFactory factory)
     {
         _factory = factory;
     }
@@ -277,4 +277,10 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
 
         return path.ToString();
     }
+
+    /// <summary>On the InMemory provider.</summary>
+    public sealed class InMemory(MktbaApiFactory factory) : EndpointAuthorizationMatrixTests(factory), IClassFixture<MktbaApiFactory>;
+
+    /// <summary>On a real PostgreSQL database (X-07, #161).</summary>
+    public sealed class OnPostgres(PostgresApiFactory factory) : EndpointAuthorizationMatrixTests(factory), IClassFixture<PostgresApiFactory>;
 }

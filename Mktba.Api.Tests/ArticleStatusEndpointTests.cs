@@ -9,11 +9,11 @@ using Mktba.Domain.Entities;
 namespace Mktba.Api.Tests;
 
 /// <summary>M-02 (#23): only Published articles reach anonymous readers; admins move articles between statuses.</summary>
-public sealed class ArticleStatusEndpointTests : IClassFixture<MktbaApiFactory>
+public abstract class ArticleStatusEndpointTests
 {
     private readonly MktbaApiFactory _factory;
 
-    public ArticleStatusEndpointTests(MktbaApiFactory factory)
+    protected ArticleStatusEndpointTests(MktbaApiFactory factory)
     {
         _factory = factory;
     }
@@ -122,4 +122,10 @@ public sealed class ArticleStatusEndpointTests : IClassFixture<MktbaApiFactory>
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
         return client;
     }
+
+    /// <summary>On the InMemory provider.</summary>
+    public sealed class InMemory(MktbaApiFactory factory) : ArticleStatusEndpointTests(factory), IClassFixture<MktbaApiFactory>;
+
+    /// <summary>On a real PostgreSQL database (X-07, #161).</summary>
+    public sealed class OnPostgres(PostgresApiFactory factory) : ArticleStatusEndpointTests(factory), IClassFixture<PostgresApiFactory>;
 }
