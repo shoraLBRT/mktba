@@ -141,7 +141,6 @@ jobs:
           SSH_KEY_SET: ${{ secrets.DEPLOY_SSH_KEY != '' }}
           KNOWN_HOSTS_SET: ${{ vars.DEPLOY_KNOWN_HOSTS != '' }}
         run: |
-          # shellcheck disable=SC2153 # DEPLOY_PORT and the others come from the job env
           missing=()
           [[ -n $SITE_HOST ]] || missing+=("variable SITE_HOST")
           [[ -n $API_HOST ]] || missing+=("variable API_HOST")
@@ -157,6 +156,7 @@ jobs:
             [[ $value =~ ^[A-Za-z0-9.-]+$ ]] || { echo "::error::Bad host name: $value"; exit 1; }
           done
           [[ $DEPLOY_USER =~ ^[a-z_][a-z0-9_-]*$ ]] || { echo "::error::Bad DEPLOY_USER"; exit 1; }
+          # shellcheck disable=SC2153 # set in the job env
           [[ $DEPLOY_PORT =~ ^[0-9]+$ ]] || { echo "::error::Bad DEPLOY_PORT"; exit 1; }
           [[ $DEPLOY_PATH =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "::error::Bad DEPLOY_PATH"; exit 1; }
 
@@ -207,14 +207,15 @@ jobs:
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # shellcheck disable=SC2029 # the remote command is built here on purpose; every value is checked above
           set -euo pipefail
           ssh_opts=(-i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes)
           target="$DEPLOY_USER@$DEPLOY_HOST"
+          # shellcheck disable=SC2029 # expanded here on purpose; every value is checked above
           ssh "${ssh_opts[@]}" "$target" "mkdir -p '$DEPLOY_PATH'"
           scp -P "$DEPLOY_PORT" -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
             deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh "$target:$DEPLOY_PATH/"
           # The job's token (valid only while the job runs) lets the server pull; logged out afterwards.
+          # shellcheck disable=SC2029 # expanded here on purpose; every value is checked above
           printf '%s' "$REGISTRY_TOKEN" | ssh "${ssh_opts[@]}" "$target" \
             "set -e; cd '$DEPLOY_PATH'; trap 'docker logout ghcr.io >/dev/null' EXIT; docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin >/dev/null; bash ./deploy.sh deploy '$PREFIX' '$TAG' '-$STAND'"
 
