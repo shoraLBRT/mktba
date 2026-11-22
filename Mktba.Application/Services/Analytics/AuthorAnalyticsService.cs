@@ -25,17 +25,18 @@ public class AuthorAnalyticsService
     }
 
     /// <summary>The last <paramref name="days"/> UTC days (kept within 1 to <see cref="MaxDays"/>) of <paramref name="userId"/>'s articles, today included.</summary>
-    public async Task<AuthorAnalyticsDto> GetAsync(int userId, int days, CancellationToken cancellationToken = default)
+    public Task<AuthorAnalyticsDto> GetAsync(int userId, int days, CancellationToken cancellationToken = default)
+        => GetAsync(userId, AnalyticsPeriod.Last(days, DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime)), cancellationToken);
+
+    /// <summary>The days of <paramref name="period"/> of the user's articles, its totals compared with the period of the same length just before it (N-08, #102).</summary>
+    public async Task<AuthorAnalyticsDto> GetAsync(int userId, AnalyticsPeriod period, CancellationToken cancellationToken = default)
     {
-        var count = Math.Clamp(days, 1, MaxDays);
-        var to = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
-        var from = to.AddDays(-(count - 1));
+        var (from, to) = period;
 
         // Readers of several articles on one day are counted once, so the days come from the
         // author's own summary rather than from adding up the articles.
         var authorDays = (await _summaries.GetAuthorDaysAsync(userId, from, to, cancellationToken)).ToDictionary(d => d.Day);
-        var daily = Enumerable.Range(0, count)
-            .Select(index => from.AddDays(index))
+        var daily = period.EachDay()
             .Select(day => authorDays.TryGetValue(day, out var row)
                 ? new AuthorAnalyticsDayDto(day, row.Views, row.Readers)
                 : new AuthorAnalyticsDayDto(day, 0, 0))
@@ -66,8 +67,15 @@ public class AuthorAnalyticsService
 
         var siteDays = await _summaries.GetSiteDaysAsync(from, to, cancellationToken);
 
+        // The previous period, counted the same two ways as this one.
+        var previous = period.Previous;
+        var previousAuthorDays = await _summaries.GetAuthorDaysAsync(userId, previous.From, previous.To, cancellationToken);
+        var previousReading = await _summaries.GetArticleReadingAsync(previous.From, previous.To, articleIds, cancellationToken);
+        var previousTotals = new AuthorAnalyticsTotalsDto(
+            previousAuthorDays.Sum(d => d.Views), previousAuthorDays.Sum(d => d.Readers), previousReading.Count);
+
         return new AuthorAnalyticsDto(
-            count,
+            period.Days,
             from,
             to,
             new AuthorAnalyticsTotalsDto(daily.Sum(d => d.Views), daily.Sum(d => d.Readers), reading.Count),
@@ -76,7 +84,8 @@ public class AuthorAnalyticsService
             depth,
             schools,
             Math.Max(0, depth.Views - schools.Sum(s => s.Views)),
-            siteDays.Count == 0 ? null : siteDays.Max(d => d.AggregatedAtUtc));
+            siteDays.Count == 0 ? null : siteDays.Max(d => d.AggregatedAtUtc),
+            new AnalyticsPreviousPeriodDto<AuthorAnalyticsTotalsDto>(previous.From, previous.To, previousTotals));
     }
 
     private static ReadDepthDto DepthOf(AnalyticsArticleReading reading)

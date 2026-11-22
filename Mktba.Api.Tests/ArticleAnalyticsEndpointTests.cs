@@ -63,6 +63,21 @@ public sealed class ArticleAnalyticsEndpointTests : IClassFixture<MktbaApiFactor
     }
 
     [Fact]
+    public async Task GivenAnAdmin_WhenAskingForARange_ThenGetsThoseDays()
+    {
+        var (admin, _) = await RoleClients.CreateAsync(_factory, UserRole.Admin);
+        var (_, authorId) = await RoleClients.CreateAsync(_factory, UserRole.Author);
+        var articleId = await SeedArticleAsync(authorId, ArticleStatus.Draft, views: 7, schoolViews: 0);
+
+        var result = await admin.GetFromJsonAsync<ArticleAnalyticsDto>(
+            $"/analytics/articles/{articleId}?from=2026-03-01&to=2026-03-10", ApiJson.Options);
+
+        result!.Days.Should().Be(10);
+        result.Daily.Should().HaveCount(10);
+        result.Previous.To.Should().Be(new DateOnly(2026, 2, 28));
+    }
+
+    [Fact]
     public async Task GivenAnotherAuthor_WhenAskingAboutAPublishedArticle_ThenIsForbidden()
     {
         var (_, authorId) = await RoleClients.CreateAsync(_factory, UserRole.Author);

@@ -12,7 +12,7 @@ namespace Mktba.Application.Services.Analytics;
 public class SiteAnalyticsService
 {
     public const int DefaultDays = 30;
-    public const int MaxDays = 365;
+    public const int MaxDays = AnalyticsPeriod.MaxDays;
     public const int TopArticleCount = 10;
 
     private readonly AnalyticsSummaryRepository _summaries;
@@ -25,15 +25,16 @@ public class SiteAnalyticsService
     }
 
     /// <summary>The last <paramref name="days"/> UTC days (kept within 1 to <see cref="MaxDays"/>), today included.</summary>
-    public async Task<SiteAnalyticsDto> GetAsync(int days, CancellationToken cancellationToken = default)
+    public Task<SiteAnalyticsDto> GetAsync(int days, CancellationToken cancellationToken = default)
+        => GetAsync(AnalyticsPeriod.Last(days, DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime)), cancellationToken);
+
+    /// <summary>The days of <paramref name="period"/>, its totals compared with the period of the same length just before it (N-08, #102).</summary>
+    public async Task<SiteAnalyticsDto> GetAsync(AnalyticsPeriod period, CancellationToken cancellationToken = default)
     {
-        var count = Math.Clamp(days, 1, MaxDays);
-        var to = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
-        var from = to.AddDays(-(count - 1));
+        var (from, to) = period;
 
         var built = (await _summaries.GetSiteDaysAsync(from, to, cancellationToken)).ToDictionary(d => d.Day);
-        var daily = Enumerable.Range(0, count)
-            .Select(index => from.AddDays(index))
+        var daily = period.EachDay()
             .Select(day => built.TryGetValue(day, out var row)
                 ? new SiteAnalyticsDayDto(day, row.ArticleViews, row.Visitors, row.Searches)
                 : new SiteAnalyticsDayDto(day, 0, 0, 0))
@@ -73,8 +74,13 @@ public class SiteAnalyticsService
             .Select(s => new AnalyticsSchoolTotalDto(s.Id, schoolNames.GetValueOrDefault(s.Id), s.Views, s.Readers))
             .ToList();
 
+        var previous = period.Previous;
+        var previousDays = await _summaries.GetSiteDaysAsync(previous.From, previous.To, cancellationToken);
+        var previousTotals = new SiteAnalyticsTotalsDto(
+            previousDays.Sum(d => d.ArticleViews), previousDays.Sum(d => d.Visitors), previousDays.Sum(d => d.Searches));
+
         return new SiteAnalyticsDto(
-            count,
+            period.Days,
             from,
             to,
             totals,
@@ -83,6 +89,7 @@ public class SiteAnalyticsService
             schools,
             Math.Max(0, totals.ArticleViews - schools.Sum(s => s.Views)),
             built.Count == 0 ? null : built.Values.Max(d => d.AggregatedAtUtc),
-            webVitals);
+            webVitals,
+            new AnalyticsPreviousPeriodDto<SiteAnalyticsTotalsDto>(previous.From, previous.To, previousTotals));
     }
 }

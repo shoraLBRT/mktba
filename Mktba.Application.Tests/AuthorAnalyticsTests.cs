@@ -147,6 +147,36 @@ public abstract class AuthorAnalyticsScenarios : IAsyncLifetime
         result.Depth.Views.Should().Be(many.Count * (many.Count + 1) / 2);
     }
 
+    [Fact]
+    public async Task GetAsync_GivenAPickedRange_ComparesItsTotalsWithAsManyDaysBefore()
+    {
+        var (author, other, written, coWritten, othersArticle) = await SeedAsync();
+        await using (var context = CreateContext())
+        {
+            context.AnalyticsAuthorDays.AddRange(
+                new AnalyticsAuthorDay { Day = Today.AddDays(-4), UserId = author, Views = 5, Readers = 3, Articles = 2 },
+                new AnalyticsAuthorDay { Day = Today.AddDays(-4), UserId = other, Views = 90, Readers = 90, Articles = 1 },
+                new AnalyticsAuthorDay { Day = Today.AddDays(-1), UserId = author, Views = 2, Readers = 2, Articles = 1 },
+                new AnalyticsAuthorDay { Day = Today, UserId = author, Views = 70, Readers = 70, Articles = 1 });
+            context.AnalyticsArticleDays.AddRange(
+                ArticleDay(Today.AddDays(-4), written, 3, [0, 0, 0, 0]),
+                ArticleDay(Today.AddDays(-4), coWritten, 2, [0, 0, 0, 0]),
+                ArticleDay(Today.AddDays(-4), othersArticle, 90, [0, 0, 0, 0]),
+                ArticleDay(Today.AddDays(-1), written, 2, [1, 0, 0, 0]),
+                ArticleDay(Today, written, 70, [0, 0, 0, 0]));
+            await context.SaveChangesAsync();
+        }
+
+        await using var read = CreateContext();
+        var result = await new AuthorAnalyticsService(new AnalyticsSummaryRepository(read), new FeedbackTests.FakeClock(Now))
+            .GetAsync(author, new AnalyticsPeriod(Today.AddDays(-2), Today.AddDays(-1)));
+
+        result.Days.Should().Be(2);
+        result.Totals.Should().Be(new AuthorAnalyticsTotalsDto(2, 2, 1));
+        result.Previous.Should().Be(new AnalyticsPreviousPeriodDto<AuthorAnalyticsTotalsDto>(
+            Today.AddDays(-4), Today.AddDays(-3), new AuthorAnalyticsTotalsDto(5, 3, 2)));
+    }
+
     private async Task<AuthorAnalyticsDto> GetAsync(int userId, int days)
     {
         await using var context = CreateContext();

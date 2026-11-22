@@ -38,12 +38,17 @@ public class ContentAnalyticsService
     }
 
     /// <summary>The last <paramref name="days"/> UTC days (kept within 1 to <see cref="MaxDays"/>), today included.</summary>
-    public async Task<ContentAnalyticsDto> GetAsync(int days, CancellationToken cancellationToken = default)
+    public Task<ContentAnalyticsDto> GetAsync(int days, CancellationToken cancellationToken = default)
+        => GetAsync(AnalyticsPeriod.Last(days, DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime)), cancellationToken);
+
+    /// <summary>
+    /// The views of <paramref name="period"/> (N-08, #102); the articles, their blocks and the stale
+    /// threshold are still taken as they are now.
+    /// </summary>
+    public async Task<ContentAnalyticsDto> GetAsync(AnalyticsPeriod period, CancellationToken cancellationToken = default)
     {
-        var count = Math.Clamp(days, 1, MaxDays);
         var now = _clock.GetUtcNow().UtcDateTime;
-        var to = DateOnly.FromDateTime(now);
-        var from = to.AddDays(-(count - 1));
+        var (from, to) = period;
         var periodStart = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var staleAfterDays = _options.StaleAfterDays;
         var staleBefore = now.AddDays(-staleAfterDays);
@@ -75,7 +80,7 @@ public class ContentAnalyticsService
         var blocks = await GetUncoveredBlocksAsync(from, to, articles.ToDictionary(a => a.Row.Id, a => a.Dto), cancellationToken);
 
         return new ContentAnalyticsDto(
-            count,
+            period.Days,
             from,
             to,
             ToList(withoutViews.ToList()),

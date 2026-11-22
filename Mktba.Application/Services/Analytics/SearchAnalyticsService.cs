@@ -31,11 +31,13 @@ public class SearchAnalyticsService
     }
 
     /// <summary>The last <paramref name="days"/> UTC days (kept within 1 to <see cref="MaxDays"/>), today included.</summary>
-    public async Task<SearchAnalyticsDto> GetAsync(int days, CancellationToken cancellationToken = default)
+    public Task<SearchAnalyticsDto> GetAsync(int days, CancellationToken cancellationToken = default)
+        => GetAsync(AnalyticsPeriod.Last(days, DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime)), cancellationToken);
+
+    /// <summary>The days of <paramref name="period"/>, its totals compared with the period of the same length just before it (N-08, #102).</summary>
+    public async Task<SearchAnalyticsDto> GetAsync(AnalyticsPeriod period, CancellationToken cancellationToken = default)
     {
-        var count = Math.Clamp(days, 1, MaxDays);
-        var to = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
-        var from = to.AddDays(-(count - 1));
+        var (from, to) = period;
         var minSearchers = _options.MinSearchers;
 
         var built = await _summaries.GetSiteDaysAsync(from, to, cancellationToken);
@@ -44,15 +46,21 @@ public class SearchAnalyticsService
         var top = await _summaries.GetSearchQueriesAsync(from, to, minSearchers, withoutResultsOnly: false, QueryCount, cancellationToken);
         var withoutResults = await _summaries.GetSearchQueriesAsync(from, to, minSearchers, withoutResultsOnly: true, QueryCount, cancellationToken);
 
+        var previous = period.Previous;
+        var previousDays = await _summaries.GetSiteDaysAsync(previous.From, previous.To, cancellationToken);
+        var previousTotals = new SearchAnalyticsTotalsDto(
+            previousDays.Sum(d => d.Searches), previousDays.Sum(d => d.SearchesWithoutResults));
+
         return new SearchAnalyticsDto(
-            count,
+            period.Days,
             from,
             to,
             totals,
             top.Select(ToDto).ToList(),
             withoutResults.Select(ToDto).ToList(),
             minSearchers,
-            built.Count == 0 ? null : built.Max(d => d.AggregatedAtUtc));
+            built.Count == 0 ? null : built.Max(d => d.AggregatedAtUtc),
+            new AnalyticsPreviousPeriodDto<SearchAnalyticsTotalsDto>(previous.From, previous.To, previousTotals));
     }
 
     private static SearchQueryTotalDto ToDto(AnalyticsSearchTotal total)

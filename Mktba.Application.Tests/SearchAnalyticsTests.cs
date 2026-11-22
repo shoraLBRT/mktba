@@ -110,6 +110,32 @@ public abstract class SearchAnalyticsScenarios : IAsyncLifetime
         result.QueriesWithoutResults.Should().HaveCount(SearchAnalyticsService.QueryCount);
     }
 
+    [Fact]
+    public async Task GetAsync_GivenAPickedRange_ComparesItsTotalsWithAsManyDaysBefore()
+    {
+        await using (var context = CreateContext())
+        {
+            context.AnalyticsDays.AddRange(
+                SiteDay(Today.AddDays(-6), searches: 8, withoutResults: 3),
+                SiteDay(Today.AddDays(-3), searches: 4, withoutResults: 1),
+                SiteDay(Today, searches: 60, withoutResults: 60));
+            context.AnalyticsSearchDays.Add(SearchDay(Today.AddDays(-3), "закят", searches: 4, searchers: 2, withoutResults: 1));
+            await context.SaveChangesAsync();
+        }
+
+        await using var read = CreateContext();
+        var result = await new SearchAnalyticsService(
+                new AnalyticsSummaryRepository(read),
+                new FeedbackTests.FakeClock(Now),
+                Options.Create(new AnalyticsOptions()))
+            .GetAsync(new AnalyticsPeriod(Today.AddDays(-3), Today.AddDays(-1)));
+
+        result.Totals.Should().Be(new SearchAnalyticsTotalsDto(4, 1));
+        result.TopQueries.Select(q => q.Query).Should().Equal("закят");
+        result.Previous.Should().Be(new AnalyticsPreviousPeriodDto<SearchAnalyticsTotalsDto>(
+            Today.AddDays(-6), Today.AddDays(-4), new SearchAnalyticsTotalsDto(8, 3)));
+    }
+
     private async Task<SearchAnalyticsDto> GetAsync(int days)
     {
         await using var context = CreateContext();

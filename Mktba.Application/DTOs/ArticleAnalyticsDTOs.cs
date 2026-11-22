@@ -21,12 +21,13 @@ namespace Mktba.Application.DTOs
     /// <param name="Title">The article's title now.</param>
     /// <param name="Slug">The article's address now.</param>
     /// <param name="From">The first day of the period.</param>
-    /// <param name="To">The last day: today (UTC), so far.</param>
+    /// <param name="To">The last day: today (UTC) unless a range was asked for.</param>
     /// <param name="Daily">Every day of the period, oldest first, zeros for a day without views.</param>
     /// <param name="Depth">How far the views got.</param>
     /// <param name="Schools">The views by the mazhab the reader had chosen, most views first.</param>
     /// <param name="ViewsWithoutSchool">Views by readers who had not chosen a mazhab.</param>
     /// <param name="AggregatedAtUtc">When the latest of these days was last built; null when none was.</param>
+    /// <param name="Previous">The totals of the period of the same length just before (N-08, #102).</param>
     public record ArticleAnalyticsDto(
         int ArticleId,
         string Title,
@@ -39,5 +40,6 @@ namespace Mktba.Application.DTOs
         ReadDepthDto Depth,
         IReadOnlyList<AnalyticsSchoolTotalDto> Schools,
         int ViewsWithoutSchool,
-        DateTime? AggregatedAtUtc);
+        DateTime? AggregatedAtUtc,
+        AnalyticsPreviousPeriodDto<ArticleAnalyticsTotalsDto> Previous);
 }

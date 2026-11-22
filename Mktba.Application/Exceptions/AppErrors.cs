@@ -286,6 +286,13 @@ public static class AppErrors
     public static AppError AnalyticsTooManyEvents(int maxCount) =>
         new("analytics_too_many_events", $"At most {maxCount} events can be sent at once.", With(("maxCount", maxCount)));
 
+    // Analytics periods (N-08)
+    public static AppError AnalyticsPeriodInvalid =>
+        new("analytics_period_invalid", "The period's first day (from) cannot be after its last day (to).");
+
+    public static AppError AnalyticsPeriodTooLong(int maxDays) =>
+        new("analytics_period_too_long", $"A period can be at most {maxDays} days long.", With(("maxDays", maxDays)));
+
     // Uploads (U-08)
     public static AppError UploadFileRequired => new("upload_file_required", "Attach the file as the form field 'file'.");
 
