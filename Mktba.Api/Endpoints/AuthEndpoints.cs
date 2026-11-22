@@ -30,7 +30,9 @@ public static class AuthEndpoints
         .WithSummary("Registers the first user as admin, then anyone with an invite, who gets the invite's role.")
         .WithDescription(
             "Sets the refresh-token cookie as well. Once a user exists an invite token is required; it is single-use. "
-            + "Answers 400 invite_not_found, invite_expired, invite_used or invite_revoked when it cannot be used.")
+            + "Answers 400 invite_not_found, invite_expired, invite_used or invite_revoked when it cannot be used. "
+            + $"The password must be {PasswordRules.MinLength} to {PasswordRules.MaxLength} characters (Unicode code points), not the email and not one character repeated: "
+            + "400 password_too_short, password_too_long or password_too_simple otherwise. Login does not apply these rules.")
         .Produces<AdminAuthResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
         .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
 

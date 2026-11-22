@@ -51,6 +51,11 @@ public class AdminAuthService
             return AdminService.ServiceResult<IssuedSession>.Failure(AppErrors.EmailAndPasswordRequired);
         }
 
+        if (PasswordRules.Check(request.Password, normalizedEmail) is { } passwordError)
+        {
+            return AdminService.ServiceResult<IssuedSession>.Failure(passwordError);
+        }
+
         var alreadyExists = await _userRepository.ExistsByEmailAsync(normalizedEmail, cancellationToken);
         if (alreadyExists)
         {

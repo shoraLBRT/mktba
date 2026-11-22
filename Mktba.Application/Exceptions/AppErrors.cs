@@ -17,6 +17,14 @@ public static class AppErrors
     public static AppError EmailAndPasswordRequired => new("email_and_password_required", "Email and password are required.");
     public static AppError InvalidCredentials => new("invalid_credentials", "Invalid credentials.");
     public static AppError AdminAlreadyExists => new("admin_already_exists", "Admin with this email already exists.");
+    public static AppError PasswordTooShort(int minLength) =>
+        new("password_too_short", $"The password must be at least {minLength} characters long.", With(("minLength", minLength)));
+
+    public static AppError PasswordTooLong(int maxLength) =>
+        new("password_too_long", $"The password cannot be longer than {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError PasswordTooSimple => new("password_too_simple", "The password is too simple: it repeats the email or one character.");
+
     public static AppError InviteNotFound => new("invite_not_found", "Invite not found. Check the code you were given.");
     public static AppError InviteExpired => new("invite_expired", "The invite has expired.");
     public static AppError InviteUsed => new("invite_used", "The invite has already been used.");

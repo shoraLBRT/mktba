@@ -18,7 +18,8 @@ const register = async (page: Page, email: string, token: string) => {
   await page.goto('/admin/login');
   await page.getByRole('button', { name: 'Зарегистрироваться по приглашению' }).click();
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Пароль').fill('E2e-author-password-1');
+  await page.getByLabel('Пароль', { exact: true }).fill('E2e-author-password-1');
+  await page.getByLabel('Повторите пароль').fill('E2e-author-password-1');
   await page.getByLabel('Код приглашения').fill(token);
   await page.getByRole('button', { name: 'Зарегистрироваться', exact: true }).click();
 };
