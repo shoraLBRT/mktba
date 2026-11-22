@@ -42,7 +42,9 @@ public sealed class PublicationSearchEndpointTests : IClassFixture<PostgresApiFa
 
         (await ChangeStatusAsync(admin, article.Id, "Archived")).Should().Be(HttpStatusCode.OK);
         (await SearchAsync(anonymous, word)).Should().NotContain(article.Id, "an archived article is not public");
-        (await anonymous.GetAsync($"/articles/by-slug/{article.Slug}/content")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var gone = await anonymous.GetAsync($"/articles/by-slug/{article.Slug}/content");
+        gone.StatusCode.Should().Be(HttpStatusCode.Gone, "an article archived after publication is gone, not missing");
+        (await ApiJson.ReadCodeAsync(gone)).Should().Be("article_gone");
     }
 
     [Fact]
