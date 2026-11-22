@@ -4,10 +4,9 @@ import { ArticleStatusBadge } from '../../components/article/ArticleStatusBadge'
 import { NoticeBanner } from '../../components/admin/NoticeBanner';
 import { useNotice } from '../../components/admin/useNotice';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useFormat, useLocale } from '../../localization/hooks';
 import { getArticleTrash, purgeArticle, restoreArticleFromTrash, TRASH_QUERY_KEY } from '../../services/Article/trashService';
 import { extractApiErrorMessage } from '../../shared/api-client/apiError';
-import { formatShortRussianDate } from '../../shared/lib/formatDate';
 import type { ArticleTrashItemDto } from '../../shared/types/ApiTypes';
 import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
@@ -20,6 +19,7 @@ import { Card } from '../../shared/ui/Card';
 const AdminTrashPage = () => {
   const locale = useLocale();
   const t = locale.articleTrash;
+  const format = useFormat();
   const queryClient = useQueryClient();
   const { notice, showNotice, clearNotice } = useNotice();
   const trashQuery = useQuery({ queryKey: TRASH_QUERY_KEY, queryFn: getArticleTrash });
@@ -87,8 +87,8 @@ const AdminTrashPage = () => {
                     <td className="px-3 py-2 text-[var(--color-ink-muted)]">{parentLabel(item)}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-[var(--color-ink-muted)]">
                       {item.deletedByDisplayName
-                        ? formatMessage(t.deletedBy, { date: formatShortRussianDate(item.deletedAt), name: item.deletedByDisplayName })
-                        : formatShortRussianDate(item.deletedAt)}
+                        ? formatMessage(t.deletedBy, { date: format.date(item.deletedAt, 'dateTime'), name: item.deletedByDisplayName })
+                        : format.date(item.deletedAt, 'dateTime')}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap justify-end gap-2">
