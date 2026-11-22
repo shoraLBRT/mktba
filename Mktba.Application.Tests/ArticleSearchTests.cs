@@ -263,9 +263,11 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
             int articleId;
             await using (var context = database.CreatePreTrashContext())
             {
-                var migrations = context.Database.GetMigrations().ToList();
+                // Migrations are found by the real context type; the row is written without the trash columns.
+                await using var migrating = database.CreateContext();
+                var migrations = migrating.Database.GetMigrations().ToList();
                 var before = migrations[migrations.FindIndex(id => id.EndsWith("_AddArticleSearch", StringComparison.Ordinal)) - 1];
-                var migrator = context.GetService<IMigrator>();
+                var migrator = migrating.GetService<IMigrator>();
 
                 await migrator.MigrateAsync(before);
                 var article = Published("Существующая", "existing", opinions: "Текст про итикаф.");
