@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../root';
@@ -344,6 +344,31 @@ describe('AdminLayout', () => {
       '/admin/sessions',
       '/admin/profile',
     ]);
+  });
+
+  // A-10 (#151): the old single-page admin highlighted the tab one click late. The menu now takes
+  // its highlight from the URL, so the section clicked is the one marked, on the same click.
+  it('given an admin, when a section is clicked, then that section is highlighted at once and the previous one is not', async () => {
+    signInAs('Admin');
+    renderAt('/admin');
+    expect(await screen.findByText('admin-dashboard-page')).toBeTruthy();
+    const current = () =>
+      [...sectionLinks()].filter((link) => link.getAttribute('aria-current') === 'page').map((link) => link.textContent);
+    const section = (name: string) => [...sectionLinks()].find((link) => link.textContent === name)!;
+
+    expect(current()).toEqual(['Обзор']);
+
+    fireEvent.click(section('Статьи'));
+    expect(await screen.findByText('admin-articles-page')).toBeTruthy();
+    expect(current()).toEqual(['Статьи']);
+
+    fireEvent.click(section('Сессии'));
+    expect(await screen.findByText('admin-sessions-page')).toBeTruthy();
+    expect(current()).toEqual(['Сессии']);
+
+    fireEvent.click(section('Обзор'));
+    expect(await screen.findByText('admin-dashboard-page')).toBeTruthy();
+    expect(current()).toEqual(['Обзор']);
   });
 
   it('given an author on an admin-only URL, when it opens, then shows the 403 view instead of the page', async () => {
