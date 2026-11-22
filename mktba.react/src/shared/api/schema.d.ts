@@ -2761,6 +2761,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Custom schools of one article.
+         * @description An article that is not Published answers 404 article_not_found except to an admin or its own author or co-author, as the other article reads do; so does an article that does not exist.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -2779,6 +2783,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["SchoolDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
             };

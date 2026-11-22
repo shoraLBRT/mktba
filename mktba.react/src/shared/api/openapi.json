@@ -2508,6 +2508,8 @@
         "tags": [
           "Schools"
         ],
+        "summary": "Custom schools of one article.",
+        "description": "An article that is not Published answers 404 article_not_found except to an admin or its own author or co-author, as the other article reads do; so does an article that does not exist.",
         "parameters": [
           {
             "name": "articleId",
@@ -2529,6 +2531,16 @@
                   "items": {
                     "$ref": "#/components/schemas/SchoolDto"
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
                 }
               }
             }
