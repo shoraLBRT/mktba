@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { ArrowLeft, ArrowRight, Flag } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Flag, Printer } from 'lucide-react';
 import { Link } from 'react-router';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
@@ -47,7 +47,9 @@ const adjacentTitleClass = 'text-[14px] font-medium text-[var(--color-brand-fore
  * The bottom of the article: the sources it cites, its child articles, the related articles and the
  * previous / next article by the tree, then the link to report an error in the article. A block
  * with nothing to show is left out; the error report is always there. Each source lists the places
- * it is cited from as links back to those paragraphs.
+ * it is cited from as links back to those paragraphs. Beside the error report, a button opens the
+ * browser's print dialog (R-19); the print version itself is CSS (`index.css`), and on paper only the
+ * sources remain of this block.
  * The related block repeats the right sidebar's one, which only wide screens have, so it is
  * hidden from `xl` up.
  */
@@ -94,7 +96,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
       )}
 
       {hasChildren && (
-        <nav aria-labelledby="article-children-title" data-testid="article-children">
+        <nav aria-labelledby="article-children-title" className="print:hidden" data-testid="article-children">
           <h2 id="article-children-title" className={headingClass}>{t.childArticles}</h2>
           <ul className={listClass}>
             {childArticles.map((child) => (
@@ -109,7 +111,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
       )}
 
       {hasRelated && (
-        <nav aria-labelledby="article-related-title" className="xl:hidden" data-testid="article-related">
+        <nav aria-labelledby="article-related-title" className="xl:hidden print:hidden" data-testid="article-related">
           <h2 id="article-related-title" className={headingClass}>{t.relatedArticles}</h2>
           <ul className={listClass}>
             {relatedArticles.map((related) => (
@@ -122,7 +124,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
       )}
 
       {hasAdjacent && (
-        <nav aria-label={t.adjacentArticles} className="grid gap-3 sm:grid-cols-2" data-testid="article-adjacent">
+        <nav aria-label={t.adjacentArticles} className="grid gap-3 sm:grid-cols-2 print:hidden" data-testid="article-adjacent">
           {previous && (
             <Link to={articleHref(previous.slug)} rel="prev" className={adjacentClass}>
               <span className={adjacentCaptionClass}>
@@ -150,14 +152,24 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
         </nav>
       )}
 
-      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-[var(--color-ink-muted)]" data-testid="article-report-error">
-        {t.reportErrorPrompt}
-        {' '}
-        <Link to={errorReportHref} className={`inline-flex items-center gap-1.5 ${linkClass}`}>
-          <Flag size={13} aria-hidden="true" />
-          {t.reportError}
-        </Link>
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 print:hidden">
+        <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-[var(--color-ink-muted)]" data-testid="article-report-error">
+          {t.reportErrorPrompt}
+          {' '}
+          <Link to={errorReportHref} className={`inline-flex items-center gap-1.5 ${linkClass}`}>
+            <Flag size={13} aria-hidden="true" />
+            {t.reportError}
+          </Link>
+        </p>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border-soft)] px-3 py-1.5 text-[13px] text-[var(--color-ink-default)] transition-colors hover:border-[var(--color-brand-forest)] hover:text-[var(--color-brand-forest)]"
+        >
+          <Printer size={13} aria-hidden="true" />
+          {t.print}
+        </button>
+      </div>
     </footer>
   );
 };

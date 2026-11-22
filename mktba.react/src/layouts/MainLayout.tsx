@@ -61,7 +61,7 @@ const MainLayout: React.FC = () => {
     <div className="min-h-screen bg-page-bg text-ink-default">
       {/* Below `md` the header has no backdrop filter: a filter would make the header the containing block
           of the fixed mazhab bar inside it, and the bar must sit at the bottom of the viewport. */}
-      <header className="sticky top-0 z-40 flex h-[var(--layout-header-height)] items-stretch border-b border-[var(--color-border-soft)] bg-white md:bg-[rgba(255,255,255,0.94)] md:backdrop-blur-md">
+      <header className="print:hidden! sticky top-0 z-40 flex h-[var(--layout-header-height)] items-stretch border-b border-[var(--color-border-soft)] bg-white md:bg-[rgba(255,255,255,0.94)] md:backdrop-blur-md">
         <div
           className="hidden items-center border-r border-[var(--color-border-soft)] px-4 transition-[width] duration-200 lg:flex"
           style={{ width: logoWidth }}
@@ -172,7 +172,7 @@ const MainLayout: React.FC = () => {
 
       {isSearchDialogOpen && <SearchDialog onClose={() => setSearchDialogKey(null)} />}
 
-      <div className="flex min-h-[calc(100vh-var(--layout-header-height))] pb-[calc(var(--layout-bottom-bar-height)+env(safe-area-inset-bottom))] md:pb-0">
+      <div className="flex min-h-[calc(100vh-var(--layout-header-height))] pb-[calc(var(--layout-bottom-bar-height)+env(safe-area-inset-bottom))] md:pb-0 print:block print:min-h-0 print:pb-0">
         <Sidebar
           collapsed={collapsed}
           mobileOpen={isMobileSidebarOpen}
@@ -188,7 +188,7 @@ const MainLayout: React.FC = () => {
           </main>
           <footer
             aria-label={locale.layout.footer.label}
-            className="flex flex-col items-start gap-x-6 gap-y-2 border-t border-[var(--color-border-soft)] px-4 py-5 text-[13px] text-[var(--color-ink-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6"
+            className="print:hidden! flex flex-col items-start gap-x-6 gap-y-2 border-t border-[var(--color-border-soft)] px-4 py-5 text-[13px] text-[var(--color-ink-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6"
             data-testid="site-footer"
           >
             <span>{locale.brand.sidebarCaption}</span>

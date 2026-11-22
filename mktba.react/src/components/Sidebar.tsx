@@ -138,7 +138,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
         <aside
-          className="sticky top-[var(--layout-header-height)] hidden h-[calc(100vh-var(--layout-header-height))] shrink-0 border-r border-[var(--color-border-soft)] bg-[var(--color-page-panel)] transition-[width] duration-200 lg:flex lg:flex-col"
+          className="print:hidden! sticky top-[var(--layout-header-height)] hidden h-[calc(100vh-var(--layout-header-height))] shrink-0 border-r border-[var(--color-border-soft)] bg-[var(--color-page-panel)] transition-[width] duration-200 lg:flex lg:flex-col"
           style={{
             width: collapsed
               ? APP_CONSTANTS.DIMENSIONS.SIDEBAR_COLLAPSED_WIDTH
@@ -168,7 +168,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         ) : expandedContent}
       </aside>
 
-      <div inert={!mobileOpen} className={`fixed inset-0 z-50 lg:hidden ${mobileOpen ? '' : 'pointer-events-none'}`}>
+      <div inert={!mobileOpen} className={`fixed inset-0 z-50 lg:hidden print:hidden ${mobileOpen ? '' : 'pointer-events-none'}`}>
         <button
           type="button"
           aria-label={locale.layout.navigation.mobileClose}

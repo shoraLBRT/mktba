@@ -40,9 +40,14 @@ describe('ArticleInfoboxPanel', () => {
   it('given more than five fields, when "Подробнее" is pressed, then the remaining fields appear', () => {
     renderPanel({ fields: [1, 2, 3, 4, 5, 6].map((order) => field(order, `Поле ${order}`, `Значение ${order}`)) });
 
-    expect(screen.queryByText('Значение 6')).toBeNull();
+    // Collapsed, the sixth field is only in the block hidden on screen and shown on paper (R-19).
+    const printOnly = screen.getByTestId('infobox-print-only');
+    expect(printOnly.className).toContain('hidden');
+    expect(printOnly.className).toContain('print:block');
+    expect(printOnly.textContent).toBe('Поле 6Значение 6');
     fireEvent.click(screen.getByRole('button', { name: 'Подробнее' }));
     expect(screen.getByText('Значение 6')).toBeTruthy();
+    expect(screen.queryByTestId('infobox-print-only')).toBeNull();
   });
 
   it('given fields out of order with a blank one, when rendered, then they are sorted and the blank one is dropped', () => {
