@@ -29,7 +29,7 @@ export const ArticleParagraphList = ({ paragraphs, outline, onSelect }: ArticleP
       <a
         href={`#${anchorId}`}
         aria-label={locale.articlePage.paragraphLink.replace('{number}', String(index + 1))}
-        className={`absolute -left-6 ${paragraph.hasAlternatives ? 'top-4' : 'top-1'} hidden h-6 w-6 items-center justify-center rounded text-[13px] text-[var(--color-ink-muted)] no-underline opacity-0 transition-opacity hover:text-[var(--color-brand-forest)] focus-visible:opacity-100 group-hover/paragraph:opacity-100 sm:flex print:hidden!`}
+        className={`absolute -inset-s-6 ${paragraph.hasAlternatives ? 'top-4' : 'top-1'} hidden h-6 w-6 items-center justify-center rounded text-[13px] text-[var(--color-ink-muted)] no-underline opacity-0 transition-opacity hover:text-[var(--color-brand-forest)] focus-visible:opacity-100 group-hover/paragraph:opacity-100 sm:flex print:hidden!`}
       >
         <span aria-hidden="true">¶</span>
       </a>

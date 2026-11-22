@@ -37,7 +37,7 @@ const UPDATED: DateColumn = 'updatedAt';
 
 const formatOptionalDate = (language: Language, value?: string | null) => (value ? formatDate(language, value, 'mediumDate') : '—');
 
-const headClass = 'text-left text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]';
+const headClass = 'text-start text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]';
 const linkClass = 'text-[var(--color-brand-forest)] hover:underline';
 
 /** The article's title linking to it as readers see it, and a link to its editor. */
@@ -51,7 +51,7 @@ const ArticleCell: React.FC<{ articleId: number; title: string; slug: string; pe
   const t = locale.contentAnalytics;
   const smallLink = 'text-xs text-[var(--color-ink-muted)] hover:underline';
   return (
-    <td className="py-2 pr-3 [overflow-wrap:anywhere]">
+    <td className="py-2 pe-3 [overflow-wrap:anywhere]">
       <Link to={`/${slug}`} className={linkClass}>{title}</Link>
       {' · '}
       <Link to={articleStatsHref(articleId, period)} className={smallLink}>{locale.analyticsTools.statsLink}</Link>
@@ -95,21 +95,21 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ list, period, filtered, dat
           <tr className={headClass}>
             <th scope="col" className="pb-2 font-semibold">{t.articleColumn}</th>
             {date ? (
-              <th scope="col" className="pb-2 text-right font-semibold">
+              <th scope="col" className="pb-2 text-end font-semibold">
                 {date === 'publishedAt' ? t.publishedColumn : t.updatedColumn}
               </th>
             ) : null}
-            <th scope="col" className="pb-2 text-right font-semibold">{t.viewsColumn}</th>
-            {showReaders ? <th scope="col" className="pb-2 text-right font-semibold">{t.readersColumn}</th> : null}
+            <th scope="col" className="pb-2 text-end font-semibold">{t.viewsColumn}</th>
+            {showReaders ? <th scope="col" className="pb-2 text-end font-semibold">{t.readersColumn}</th> : null}
           </tr>
         </thead>
         <tbody>
           {list.items.map((article) => (
             <tr key={article.articleId} className="border-t border-[var(--color-border-soft)]">
               <ArticleCell articleId={article.articleId} title={article.title} slug={article.slug} period={period} />
-              {date ? <td className="whitespace-nowrap py-2 pl-2 text-right tabular-nums">{formatOptionalDate(language, article[date])}</td> : null}
-              <td className="py-2 pl-2 text-right tabular-nums">{article.views}</td>
-              {showReaders ? <td className="py-2 pl-2 text-right tabular-nums">{article.readers}</td> : null}
+              {date ? <td className="whitespace-nowrap py-2 ps-2 text-end tabular-nums">{formatOptionalDate(language, article[date])}</td> : null}
+              <td className="py-2 ps-2 text-end tabular-nums">{article.views}</td>
+              {showReaders ? <td className="py-2 ps-2 text-end tabular-nums">{article.readers}</td> : null}
             </tr>
           ))}
         </tbody>
@@ -140,18 +140,18 @@ const BlockTable: React.FC<BlockTableProps> = ({ list, period, filtered }) => {
             <th scope="col" className="pb-2 font-semibold">{t.articleColumn}</th>
             <th scope="col" className="pb-2 font-semibold">{t.blockColumn}</th>
             <th scope="col" className="pb-2 font-semibold">{t.missingColumn}</th>
-            <th scope="col" className="pb-2 text-right font-semibold">{t.missingViewsColumn}</th>
-            <th scope="col" className="pb-2 text-right font-semibold">{t.viewsColumn}</th>
+            <th scope="col" className="pb-2 text-end font-semibold">{t.missingViewsColumn}</th>
+            <th scope="col" className="pb-2 text-end font-semibold">{t.viewsColumn}</th>
           </tr>
         </thead>
         <tbody>
           {list.items.map((block) => (
             <tr key={block.paragraphId} className="border-t border-[var(--color-border-soft)]">
               <ArticleCell articleId={block.articleId} title={block.title} slug={block.slug} period={period} />
-              <td className="py-2 pr-3">{formatMessage(t.blockLabel, { position: block.position, opinions: block.opinions })}</td>
-              <td className="py-2 pr-3">{block.missingSchools.join(', ')}</td>
-              <td className="py-2 pl-2 text-right tabular-nums">{block.missingSchoolViews}</td>
-              <td className="py-2 pl-2 text-right tabular-nums">{block.articleViews}</td>
+              <td className="py-2 pe-3">{formatMessage(t.blockLabel, { position: block.position, opinions: block.opinions })}</td>
+              <td className="py-2 pe-3">{block.missingSchools.join(', ')}</td>
+              <td className="py-2 ps-2 text-end tabular-nums">{block.missingSchoolViews}</td>
+              <td className="py-2 ps-2 text-end tabular-nums">{block.articleViews}</td>
             </tr>
           ))}
         </tbody>

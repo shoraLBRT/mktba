@@ -67,8 +67,8 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
                   ref={activeId === item.id ? activeLinkRef : undefined}
                   aria-current={activeId === item.id ? 'location' : undefined}
                   className={[
-                    'block rounded py-1 pr-2 text-[12.5px] transition-colors',
-                    item.depth === 3 ? 'pl-5' : 'pl-2',
+                    'block rounded py-1 pe-2 text-[12.5px] transition-colors',
+                    item.depth === 3 ? 'ps-5' : 'ps-2',
                     activeId === item.id
                       ? 'bg-[var(--color-brand-forest-soft)] text-[var(--color-brand-forest)]'
                       : 'text-[var(--color-ink-muted)] hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)]',

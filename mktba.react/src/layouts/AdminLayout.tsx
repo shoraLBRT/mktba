@@ -86,7 +86,7 @@ const AdminLayout: React.FC<{ withSections?: boolean }> = ({ withSections = true
             aria-label={t.backToArticles}
             title={t.backToArticles}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} className="rtl:-scale-x-100" />
           </Link>
         )}
 
@@ -99,7 +99,7 @@ const AdminLayout: React.FC<{ withSections?: boolean }> = ({ withSections = true
           </span>
         </Link>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+        <div className="ms-auto flex shrink-0 items-center gap-1.5">
           {can('canEditArticles') ? (
             <Button
               variant={currentPath === APP_CONSTANTS.ROUTES.ADD_ARTICLE ? 'primary' : 'secondary'}
@@ -137,14 +137,14 @@ const AdminLayout: React.FC<{ withSections?: boolean }> = ({ withSections = true
             aria-label={locale.layout.actions.logout}
             title={locale.layout.actions.logout}
           >
-            <LogOut size={14} />
+            <LogOut size={14} className="rtl:-scale-x-100" />
           </Button>
         </div>
       </header>
 
       <div className="flex min-h-[calc(100vh-var(--layout-header-height))]">
         {withSections ? (
-          <div className="sticky top-[var(--layout-header-height)] hidden h-[calc(100vh-var(--layout-header-height))] w-[var(--layout-sidebar-width)] shrink-0 overflow-y-auto border-r border-[var(--color-border-soft)] bg-[var(--color-surface)] lg:block">
+          <div className="sticky top-[var(--layout-header-height)] hidden h-[calc(100vh-var(--layout-header-height))] w-[var(--layout-sidebar-width)] shrink-0 overflow-y-auto border-e border-[var(--color-border-soft)] bg-[var(--color-surface)] lg:block">
             <AdminNav />
           </div>
         ) : null}
@@ -157,7 +157,7 @@ const AdminLayout: React.FC<{ withSections?: boolean }> = ({ withSections = true
               onClick={closeMenu}
               className="absolute inset-0 bg-[rgba(20,20,18,0.35)] backdrop-blur-sm"
             />
-            <div className="absolute left-0 top-0 h-full w-[min(82vw,280px)] overflow-y-auto border-r border-[var(--color-border-soft)] bg-[var(--color-surface)] shadow-[0_24px_80px_rgba(28,27,24,0.16)]">
+            <div className="absolute inset-s-0 top-0 h-full w-[min(82vw,280px)] overflow-y-auto border-e border-[var(--color-border-soft)] bg-[var(--color-surface)] shadow-[0_24px_80px_rgba(28,27,24,0.16)]">
               <AdminNav onNavigate={closeMenu} />
             </div>
           </div>

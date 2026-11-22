@@ -21,7 +21,7 @@ export const EditorOutlineRail = ({ blocks, onJumpToBlock }: EditorOutlineRailPr
 
   return (
     <nav aria-label={t.outlineLabel} className="hidden min-w-0 lg:block" data-testid="editor-outline">
-      <div className="sticky top-[calc(var(--layout-header-height)+24px)] max-h-[calc(100vh-var(--layout-header-height)-48px)] overflow-y-auto pb-6 pr-4">
+      <div className="sticky top-[calc(var(--layout-header-height)+24px)] max-h-[calc(100vh-var(--layout-header-height)-48px)] overflow-y-auto pb-6 pe-4">
         <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-subtle)]">{t.outlineTitle}</p>
         <div className="rounded-2xl border border-[var(--color-border-soft)] bg-white p-2 shadow-sm">
           {outlineItems.length > 0 ? (
@@ -35,7 +35,7 @@ export const EditorOutlineRail = ({ blocks, onJumpToBlock }: EditorOutlineRailPr
                       onClick={() => onJumpToBlock(item.id)}
                       aria-label={t.outlineJump.replace('{title}', title)}
                       title={title}
-                      className={`flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--color-page-panel)] ${item.kind === 'heading3' ? 'pl-6 text-[var(--color-ink-muted)]' : 'text-[var(--color-ink-strong)]'}`}
+                      className={`flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-start text-[12px] transition-colors hover:bg-[var(--color-page-panel)] ${item.kind === 'heading3' ? 'ps-6 text-[var(--color-ink-muted)]' : 'text-[var(--color-ink-strong)]'}`}
                     >
                       <Hash size={12} className="shrink-0 text-[var(--color-ink-subtle)]" />
                       <span className="truncate">{title}</span>

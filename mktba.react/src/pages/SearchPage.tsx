@@ -71,7 +71,7 @@ const NothingFound = ({ query }: { query: string }) => {
         {afterQuery}
       </p>
       <p className={`${noteClass} mt-3`}>{t.hintsTitle}</p>
-      <ul className="mb-0 mt-2 list-disc space-y-1 pl-5 text-base leading-7 text-[var(--color-ink-muted)]">
+      <ul className="mb-0 mt-2 list-disc space-y-1 ps-5 text-base leading-7 text-[var(--color-ink-muted)]">
         {t.hints.map((hint) => (
           <li key={hint}>{hint}</li>
         ))}

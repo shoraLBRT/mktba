@@ -40,6 +40,13 @@ export const localizedPath = (language: string, path: string): string => {
   return `/${language}${path.startsWith('/') ? path : `/${path}`}`;
 };
 
+/**
+ * The writing direction of a language, set as `<html dir>` (I-09, #113). The layout uses logical
+ * CSS (`ms-*`, `inset-s-*`, `text-start`) and mirrors direction-bearing icons under `rtl:`, so a
+ * right-to-left language (Arabic) only needs its entry here: `ar: 'rtl'`.
+ */
+export const DIRECTIONS: Record<Language, 'ltr' | 'rtl'> = { ru: 'ltr', en: 'ltr' };
+
 /** The `og:locale` of a language. */
 export const OG_LOCALES: Record<Language, string> = { ru: 'ru_RU', en: 'en_US' };
 

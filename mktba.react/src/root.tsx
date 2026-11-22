@@ -24,7 +24,7 @@ import { PageMeta } from './components/PageMeta';
 import { ErrorFallback } from './components/ErrorFallback';
 import { MazhabProvider } from './context/MazhabProvider';
 import { useLocale } from './localization/hooks';
-import { languageFromPath } from './localization/language';
+import { DIRECTIONS, languageFromPath } from './localization/language';
 import { LocalizationProvider } from './localization/provider';
 import { reportClientError } from './services/clientErrors';
 import { ADMIN_SESSION_EXPIRED_EVENT, useSession } from './services/session';
@@ -71,7 +71,7 @@ export function Layout({ children }: { children: ReactNode }) {
   // The language of the URL (I-01, #105): in the server HTML and kept on client-side navigation.
   const language = languageFromPath(useLocation().pathname);
   return (
-    <html lang={language}>
+    <html lang={language} dir={DIRECTIONS[language]}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -83,14 +83,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       <div className="border-b border-[var(--color-border-soft)] p-2.5">
         <div className="relative">
-          <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
+          <Search size={13} className="pointer-events-none absolute inset-s-2.5 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
           <Input
             ref={searchInputRef}
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
             placeholder={locale.layout.navigation.searchPlaceholder}
             autoComplete="off"
-            className="bg-white py-1.5 pl-8 text-[13px]"
+            className="bg-white py-1.5 ps-8 text-[13px]"
           />
         </div>
       </div>
@@ -139,7 +139,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
         <aside
-          className="print:hidden! sticky top-[var(--layout-header-height)] hidden h-[calc(100vh-var(--layout-header-height))] shrink-0 border-r border-[var(--color-border-soft)] bg-[var(--color-page-panel)] transition-[width] duration-200 lg:flex lg:flex-col"
+          className="print:hidden! sticky top-[var(--layout-header-height)] hidden h-[calc(100vh-var(--layout-header-height))] shrink-0 border-e border-[var(--color-border-soft)] bg-[var(--color-page-panel)] transition-[width] duration-200 lg:flex lg:flex-col"
           style={{
             width: collapsed
               ? APP_CONSTANTS.DIMENSIONS.SIDEBAR_COLLAPSED_WIDTH
@@ -177,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`absolute inset-0 bg-[rgba(20,20,18,0.35)] backdrop-blur-sm transition-opacity duration-200 ${mobileOpen ? 'opacity-100' : 'opacity-0'}`}
         />
         <aside
-          className={`absolute left-0 top-0 h-full w-[min(82vw,300px)] border-r border-[var(--color-border-soft)] bg-[var(--color-page-panel)] shadow-[0_24px_80px_rgba(28,27,24,0.16)] transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`absolute inset-s-0 top-0 h-full w-[min(82vw,300px)] border-e border-[var(--color-border-soft)] bg-[var(--color-page-panel)] shadow-[0_24px_80px_rgba(28,27,24,0.16)] transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'}`}
         >
           <div className="flex h-[var(--layout-header-height)] items-center border-b border-[var(--color-border-soft)] px-4">
             <div>

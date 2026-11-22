@@ -38,7 +38,7 @@ const TREE_ROWS: ReadonlyArray<{ width: string; nested: boolean }> = [
 export const NavigationTreeSkeleton = () => (
   <LoadingPlaceholder className="space-y-2.5 px-2 py-1">
     {TREE_ROWS.map((row, index) => (
-      <SkeletonBar key={index} className={`h-4 ${row.width} ${row.nested ? 'ml-5' : ''}`} />
+      <SkeletonBar key={index} className={`h-4 ${row.width} ${row.nested ? 'ms-5' : ''}`} />
     ))}
   </LoadingPlaceholder>
 );

@@ -69,11 +69,11 @@ const AdminTrashPage = () => {
             <table aria-label={t.tableLabel} className="w-full border-collapse text-sm">
               <thead className="bg-[var(--color-page-panel)] text-[12px] text-[var(--color-ink-muted)]">
                 <tr>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.title}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.status}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.parent}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.deletedAt}</th>
-                  <th scope="col" className="px-3 py-2 text-right font-medium">{t.columns.actions}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.title}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.status}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.parent}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.deletedAt}</th>
+                  <th scope="col" className="px-3 py-2 text-end font-medium">{t.columns.actions}</th>
                 </tr>
               </thead>
               <tbody>

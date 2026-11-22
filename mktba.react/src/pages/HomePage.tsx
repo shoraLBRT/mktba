@@ -136,7 +136,7 @@ const HomePage = () => {
       <header className="text-center">
         <h1 className="m-0 text-3xl font-bold tracking-[-0.03em] text-[var(--color-ink-strong)] sm:text-4xl">{t.title}</h1>
         <p className="mb-0 mt-3 text-base text-[var(--color-ink-muted)] sm:text-lg">{t.lead}</p>
-        <SearchForm className="mx-auto mt-8 w-full max-w-xl text-left" />
+        <SearchForm className="mx-auto mt-8 w-full max-w-xl text-start" />
       </header>
 
       <Sections tree={tree} />

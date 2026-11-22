@@ -24,7 +24,7 @@ export const Switch = ({ checked, onChange, disabled, className, ...props }: Swi
     <span
       className={cn(
         'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200',
-        checked ? 'translate-x-4' : 'translate-x-0',
+        checked ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-0',
       )}
     />
   </button>

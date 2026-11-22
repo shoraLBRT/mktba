@@ -167,10 +167,10 @@ export const InvitesPanel = ({ onNotice }: InvitesPanelProps) => {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-[var(--color-ink-strong)]">
                   {locale.userRole[invite.role]}
-                  <span className={cn('ml-2 rounded px-1.5 py-0.5 text-[11px] font-semibold', STATUS_CLASS[invite.status])}>
+                  <span className={cn('ms-2 rounded px-1.5 py-0.5 text-[11px] font-semibold', STATUS_CLASS[invite.status])}>
                     {locale.inviteStatus[invite.status]}
                   </span>
-                  {invite.note ? <span className="ml-2 font-normal text-[var(--color-ink-muted)]">{invite.note}</span> : null}
+                  {invite.note ? <span className="ms-2 font-normal text-[var(--color-ink-muted)]">{invite.note}</span> : null}
                 </p>
                 <p className="text-xs text-[var(--color-ink-muted)]">
                   {t.inviteCreatedBy}: {invite.createdByEmail} · {t.inviteExpires}: {format.date(invite.expiresAtUtc, 'dateTime')}

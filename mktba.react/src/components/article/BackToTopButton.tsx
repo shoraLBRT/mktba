@@ -33,7 +33,7 @@ export const BackToTopButton = () => {
       onClick={scrollToTop}
       aria-label={label}
       title={label}
-      className="print:hidden fixed bottom-[calc(var(--layout-bottom-bar-height)+env(safe-area-inset-bottom)+1.25rem)] right-5 md:bottom-5 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border-soft)] bg-white text-[var(--color-ink-default)] shadow-lg transition-colors hover:bg-[var(--color-brand-forest-soft)] hover:text-[var(--color-brand-forest)] xl:right-[240px]"
+      className="print:hidden fixed bottom-[calc(var(--layout-bottom-bar-height)+env(safe-area-inset-bottom)+1.25rem)] inset-e-5 md:bottom-5 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border-soft)] bg-white text-[var(--color-ink-default)] shadow-lg transition-colors hover:bg-[var(--color-brand-forest-soft)] hover:text-[var(--color-brand-forest)] xl:inset-e-[240px]"
     >
       <ArrowUp size={18} aria-hidden="true" />
     </button>

@@ -68,7 +68,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
       {hasSources && (
         <section aria-labelledby="article-sources-title" data-testid="article-sources">
           <h2 id="article-sources-title" className={headingClass}>{t.sources}</h2>
-          <ol className="m-0 list-decimal space-y-1.5 pl-5 text-[14px] leading-6 text-[var(--color-ink-default)]">
+          <ol className="m-0 list-decimal space-y-1.5 ps-5 text-[14px] leading-6 text-[var(--color-ink-default)]">
             {sources.map(({ source, citations }) => (
               <li key={source.id} className="[overflow-wrap:anywhere]">
                 {source.author ? formatMessage(t.sourceAuthor, { author: source.author }) : null}
@@ -128,7 +128,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
           {previous && (
             <Link to={articleHref(previous.slug)} rel="prev" className={adjacentClass}>
               <span className={adjacentCaptionClass}>
-                <ArrowLeft size={12} aria-hidden="true" />
+                <ArrowLeft size={12} aria-hidden="true" className="rtl:-scale-x-100" />
                 {t.previousArticle}
               </span>
               {' '}
@@ -139,11 +139,11 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
             <Link
               to={articleHref(next.slug)}
               rel="next"
-              className={`${adjacentClass} sm:col-start-2 sm:items-end sm:text-right`}
+              className={`${adjacentClass} sm:col-start-2 sm:items-end sm:text-end`}
             >
               <span className={adjacentCaptionClass}>
                 {t.nextArticle}
-                <ArrowRight size={12} aria-hidden="true" />
+                <ArrowRight size={12} aria-hidden="true" className="rtl:-scale-x-100" />
               </span>
               {' '}
               <span className={adjacentTitleClass}>{next.title}</span>

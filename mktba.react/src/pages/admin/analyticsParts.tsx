@@ -145,7 +145,7 @@ export const PeriodPicker: React.FC<{ value: AnalyticsPeriodQuery; onChange: (pe
             {t.applyPeriod}
           </button>
           {error ? (
-            <p className="w-full text-right text-xs text-red-700" role="alert">
+            <p className="w-full text-end text-xs text-red-700" role="alert">
               {error === 'tooLong' ? formatMessage(t.periodTooLong, { maxDays: MAX_PERIOD_DAYS }) : t.periodInvalid}
             </p>
           ) : null}

@@ -160,7 +160,7 @@ const RevisionRow = ({ revision, isFrom, isTo, isLatest, restoring, onPickFrom, 
             <p className="m-0 text-sm font-semibold text-[var(--color-ink-strong)]">
               {title}
               {revision.isPublished ? (
-                <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">{t.publishedBadge}</span>
+                <span className="ms-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">{t.publishedBadge}</span>
               ) : null}
             </p>
             <p className="m-0 text-xs text-[var(--color-ink-subtle)]">

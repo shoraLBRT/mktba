@@ -110,11 +110,11 @@ const AddOpinionMenu = ({
           id={menuId}
           role="menu"
           aria-label={t.addOpinionMenu.button}
-          className="absolute right-0 top-full z-20 m-0 mt-1 min-w-[220px] list-none rounded-xl border border-[var(--color-border-soft)] bg-white p-1 shadow-lg"
+          className="absolute inset-e-0 top-full z-20 m-0 mt-1 min-w-[220px] list-none rounded-xl border border-[var(--color-border-soft)] bg-white p-1 shadow-lg"
         >
           {schools.length === 0 ? (
             <li role="none">
-              <button type="button" role="menuitem" disabled aria-disabled="true" className="w-full px-3 py-1.5 text-left text-[11px] text-[var(--color-ink-subtle)]">
+              <button type="button" role="menuitem" disabled aria-disabled="true" className="w-full px-3 py-1.5 text-start text-[11px] text-[var(--color-ink-subtle)]">
                 {t.addOpinionMenu.allCovered}
               </button>
             </li>
@@ -134,7 +134,7 @@ const AddOpinionMenu = ({
                   onAdd(item.schoolId);
                 }}
                 className={cn(
-                  'w-full rounded-lg px-3 py-1.5 text-left text-[12px] text-[var(--color-ink-strong)] hover:bg-[var(--color-brand-forest-soft)] focus:bg-[var(--color-brand-forest-soft)] focus:outline-none',
+                  'w-full rounded-lg px-3 py-1.5 text-start text-[12px] text-[var(--color-ink-strong)] hover:bg-[var(--color-brand-forest-soft)] focus:bg-[var(--color-brand-forest-soft)] focus:outline-none',
                   item.schoolId === null && 'text-[var(--color-ink-muted)]',
                 )}
               >
@@ -275,7 +275,7 @@ export const OpinionBlockEditor = ({
   return (
     <div className="rounded-xl border border-[#d9ecdf] bg-[#f7fcf9] px-4 py-3 transition-colors">
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        <span id={labelId} className="mr-1 text-[10px] text-[var(--color-ink-subtle)]">{t.versions}</span>
+        <span id={labelId} className="me-1 text-[10px] text-[var(--color-ink-subtle)]">{t.versions}</span>
         <div role="tablist" aria-labelledby={labelId} className="flex flex-wrap items-center gap-1.5">
           {block.variants.map((variant, index) => {
             const isActive = index === selectedIndex;

@@ -166,7 +166,7 @@ const AdminArticlesPage = () => {
         key={sort}
         scope="col"
         aria-sort={active ? (params.dir === 'Asc' ? 'ascending' : 'descending') : undefined}
-        className="px-3 py-2 text-left font-medium"
+        className="px-3 py-2 text-start font-medium"
       >
         <button
           type="button"
@@ -334,7 +334,7 @@ const AdminArticlesPage = () => {
               {locale.editArticlePage.statusActions[status]}
             </Button>
           ))}
-          <Button variant="ghost" className="ml-auto px-3 py-1.5" onClick={() => setSelectedIds([])}>
+          <Button variant="ghost" className="ms-auto px-3 py-1.5" onClick={() => setSelectedIds([])}>
             {t.clearSelection}
           </Button>
         </Card>
@@ -346,7 +346,7 @@ const AdminArticlesPage = () => {
           {outcome.failures.length > 0 ? (
             <>
               <p className="mb-0 mt-2 font-medium">{t.bulkSkipped}</p>
-              <ul className="mb-0 mt-1 list-disc pl-5 text-[var(--color-ink-muted)]">
+              <ul className="mb-0 mt-1 list-disc ps-5 text-[var(--color-ink-muted)]">
                 {outcome.failures.map((failure) => <li key={failure}>{failure}</li>)}
               </ul>
             </>
@@ -382,10 +382,10 @@ const AdminArticlesPage = () => {
                   </th>
                   {sortHeader('Title', t.columns.title)}
                   {sortHeader('Status', t.columns.status)}
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.author}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.locale}</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">{t.columns.tags}</th>
-                  <th scope="col" className="px-3 py-2 text-right font-medium">{t.columns.paragraphs}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.author}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.locale}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-medium">{t.columns.tags}</th>
+                  <th scope="col" className="px-3 py-2 text-end font-medium">{t.columns.paragraphs}</th>
                   {sortHeader('UpdatedAt', t.columns.updatedAt)}
                   {sortHeader('PublishedAt', t.columns.publishedAt)}
                 </tr>
@@ -426,7 +426,7 @@ const AdminArticlesPage = () => {
                         ))}
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{item.paragraphCount}</td>
+                    <td className="px-3 py-2 text-end tabular-nums">{item.paragraphCount}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-[var(--color-ink-muted)]">{format.date(item.updatedAt, 'short')}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-[var(--color-ink-muted)]">
                       {item.publishedAt ? format.date(item.publishedAt, 'short') : t.noValue}

@@ -137,7 +137,7 @@ export const OpinionSourcesEditor = ({ citations, disabled, onChange }: OpinionS
                   <button
                     type="button"
                     disabled={disabled}
-                    className="flex w-full items-baseline justify-between gap-2 rounded-lg px-2 py-1 text-left text-[12px] hover:bg-[var(--color-brand-forest-soft)] disabled:opacity-40"
+                    className="flex w-full items-baseline justify-between gap-2 rounded-lg px-2 py-1 text-start text-[12px] hover:bg-[var(--color-brand-forest-soft)] disabled:opacity-40"
                     onClick={() => attach(source)}
                   >
                     <span className="min-w-0 [overflow-wrap:anywhere]">{sourceLabel(source)}</span>

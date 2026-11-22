@@ -25,7 +25,7 @@ export const InternalLinkWarnings = ({ links, articles, onJumpToBlock }: Interna
         <AlertTriangle size={14} aria-hidden="true" />
         {t.warningsTitle}
       </h2>
-      <ul className="mb-2 mt-2 space-y-1.5 pl-0">
+      <ul className="mb-2 mt-2 space-y-1.5 ps-0">
         {links.map((link) => (
           <li key={`${link.blockId}:${link.slug}`} className="flex list-none items-start justify-between gap-3">
             <span className="min-w-0 break-words">

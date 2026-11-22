@@ -229,7 +229,7 @@
   }
 
   .article-markdown .footnotes a[data-footnote-backref] {
-    margin-left: 3px;
+    margin-inline-start: 3px;
     text-decoration: none;
     color: var(--color-ink-subtle);
     font-size: 0.9em;

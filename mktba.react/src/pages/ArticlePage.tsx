@@ -302,7 +302,7 @@ const ArticlePage: React.FC = () => {
   return (
     <div className="xl:flex xl:gap-0">
       {documentHead}
-      <article ref={articleRef} className="min-w-0 flex-1 overflow-hidden print:overflow-visible print:border-0 print:shadow-none border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-r-none xl:border-r xl:border-[var(--color-border-soft)]">
+      <article ref={articleRef} className="min-w-0 flex-1 overflow-hidden print:overflow-visible print:border-0 print:shadow-none border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-e-none xl:border-e xl:border-[var(--color-border-soft)]">
         <div className="mx-auto max-w-[760px] px-4 py-6 pb-24 sm:px-6 lg:px-8 xl:px-10 print:max-w-none print:p-0!">
           <ArticleBreadcrumbs ancestors={breadcrumbItems.slice(0, -1)} currentTitle={articleContent.title} />
 
