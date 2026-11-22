@@ -41,6 +41,7 @@ namespace Mktba.Application
             services.AddScoped<SiteAnalyticsService>();
             services.AddScoped<AuthorAnalyticsService>();
             services.AddScoped<SearchAnalyticsService>();
+            services.AddScoped<ContentAnalyticsService>();
             services.AddScoped<ImageUploadService>();
             services.AddScoped<UploadCleanupService>();
             services.AddScoped<FeedbackDeliveryService>();

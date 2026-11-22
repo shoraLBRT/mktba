@@ -33,5 +33,13 @@ public sealed class AnalyticsOptions
     /// </summary>
     public int MaxSearchCountsPerRequest { get; set; } = 3;
 
+    /// <summary>
+    /// Content analytics (N-07, #101): a Published article not saved for this many days is listed as
+    /// out of date. Values below 1 count as 1.
+    /// </summary>
+    public int StaleArticleDays { get; set; } = 365;
+
+    public int StaleAfterDays => Math.Max(1, StaleArticleDays);
+
     public TimeSpan AggregationInterval => TimeSpan.FromMinutes(Math.Max(1, AggregationIntervalMinutes));
 }

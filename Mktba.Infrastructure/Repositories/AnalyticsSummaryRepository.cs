@@ -42,6 +42,17 @@ public sealed record AnalyticsArticleReading(
 /// <param name="Searchers">Searcher-days, as <see cref="AnalyticsViewsTotal.Readers"/>.</param>
 public sealed record AnalyticsSearchTotal(string Query, int Searches, int Searchers, int SearchesWithoutResults);
 
+/// <summary>The views of one article by readers who had chosen one mazhab, added up over a period of days (N-07, #101).</summary>
+public sealed record AnalyticsArticleSchoolViews(int ArticleId, int SchoolId, int Views);
+
+/// <summary>
+/// One block of opinions (a paragraph with two or more) of a Published article, as it is now (N-07, #101).
+/// </summary>
+/// <param name="Position">The block's place among all the article's paragraphs, from 1.</param>
+/// <param name="Opinions">How many opinions the block holds.</param>
+/// <param name="SchoolIds">Every mazhab some opinion of the block is linked to.</param>
+public sealed record OpinionBlockRow(int ArticleId, int ParagraphId, int Position, int Opinions, IReadOnlyList<int> SchoolIds);
+
 /// <summary>Reads raw analytics events by day, stores their daily summaries (N-04, #98) and reads them back for the dashboards.</summary>
 public class AnalyticsSummaryRepository
 {
@@ -149,6 +160,73 @@ public class AnalyticsSummaryRepository
             .ToListAsync(cancellationToken);
         return totals.Select(t => new AnalyticsViewsTotal(t.Id, t.Views, t.Readers)).ToList();
     }
+
+    /// <summary>
+    /// The views and readers of every article viewed over [<paramref name="from"/>, <paramref name="to"/>]
+    /// (N-07, #101), by article id; an article missing from it had no views.
+    /// </summary>
+    public async Task<Dictionary<int, AnalyticsViewsTotal>> GetArticleViewsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+    {
+        var totals = await _context.AnalyticsArticleDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to)
+            .GroupBy(d => d.ArticleId)
+            .Select(g => new { Id = g.Key, Views = g.Sum(d => d.Views), Readers = g.Sum(d => d.Readers) })
+            .ToListAsync(cancellationToken);
+        return totals.ToDictionary(t => t.Id, t => new AnalyticsViewsTotal(t.Id, t.Views, t.Readers));
+    }
+
+    /// <summary>
+    /// The views over [<paramref name="from"/>, <paramref name="to"/>] of each article by each mazhab its readers
+    /// had chosen (N-07, #101); views with no mazhab chosen are not in it.
+    /// </summary>
+    public async Task<List<AnalyticsArticleSchoolViews>> GetArticleSchoolViewsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+    {
+        var totals = await _context.AnalyticsArticleSchoolDays.AsNoTracking()
+            .Where(d => d.Day >= from && d.Day <= to)
+            .GroupBy(d => new { d.ArticleId, d.SchoolId })
+            .Select(g => new { g.Key.ArticleId, g.Key.SchoolId, Views = g.Sum(d => d.Views) })
+            .ToListAsync(cancellationToken);
+        return totals.Select(t => new AnalyticsArticleSchoolViews(t.ArticleId, t.SchoolId, t.Views)).ToList();
+    }
+
+    /// <summary>
+    /// Every block of opinions — a paragraph with two or more — of the Published articles, with the
+    /// mazhabs its opinions are linked to (N-07, #101). Two flat queries; no text is read.
+    /// </summary>
+    public async Task<List<OpinionBlockRow>> GetPublishedOpinionBlocksAsync(CancellationToken cancellationToken = default)
+    {
+        var paragraphs = await _context.Paragraphs.AsNoTracking()
+            .Where(p => p.Article.Status == ArticleStatus.Published)
+            .Select(p => new { p.Id, p.ArticleId, p.Order, Opinions = p.Opinions.Count() })
+            .ToListAsync(cancellationToken);
+        var links = await _context.OpinionSchools.AsNoTracking()
+            .Where(os => os.Opinion.Paragraph.Article.Status == ArticleStatus.Published)
+            .Select(os => new { os.Opinion.ParagraphId, os.SchoolId })
+            .ToListAsync(cancellationToken);
+        var schoolsByParagraph = links
+            .GroupBy(l => l.ParagraphId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<int>)g.Select(l => l.SchoolId).Distinct().Order().ToList());
+
+        return paragraphs
+            .GroupBy(p => p.ArticleId)
+            .SelectMany(article => article
+                .OrderBy(p => p.Order).ThenBy(p => p.Id)
+                .Select((p, index) => (Paragraph: p, Position: index + 1)))
+            .Where(x => x.Paragraph.Opinions >= 2)
+            .Select(x => new OpinionBlockRow(
+                x.Paragraph.ArticleId,
+                x.Paragraph.Id,
+                x.Position,
+                x.Paragraph.Opinions,
+                schoolsByParagraph.TryGetValue(x.Paragraph.Id, out var schoolIds) ? schoolIds : []))
+            .ToList();
+    }
+
+    /// <summary>The canonical mazhabs (<see cref="School.IsSystem"/>) by id, with their names.</summary>
+    public Task<Dictionary<int, string>> GetSystemSchoolNamesAsync(CancellationToken cancellationToken = default)
+        => _context.Schools.AsNoTracking()
+            .Where(s => s.IsSystem)
+            .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
 
     /// <summary>The article views over [<paramref name="from"/>, <paramref name="to"/>] by the mazhab the reader had chosen, most views first.</summary>
     public async Task<List<AnalyticsViewsTotal>> GetSchoolViewsAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)

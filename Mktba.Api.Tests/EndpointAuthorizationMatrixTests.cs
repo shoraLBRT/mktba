@@ -124,6 +124,8 @@ public sealed class EndpointAuthorizationMatrixTests : IClassFixture<MktbaApiFac
         ["GET /analytics/site"] = Policies.CanViewSiteAnalytics,
         // N-06 (#100): the search analytics of the admin dashboard.
         ["GET /analytics/search"] = Policies.CanViewSiteAnalytics,
+        // N-07 (#101): the content analytics of the admin dashboard.
+        ["GET /analytics/content"] = Policies.CanViewSiteAnalytics,
         // P-03 (#91): the author dashboard, the signed-in user's own articles only.
         ["GET /analytics/me"] = Policies.CanEditArticles,
     };
