@@ -3,8 +3,9 @@ import type { ArticleDraft } from './articleDraft';
 /**
  * The editor's copy of unsaved edits in this browser (E-02, #75): if the connection drops, the tab
  * closes or a save fails, the edits are offered back the next time the same user opens the same
- * article (or the new-article page). It never reaches the server; the article is saved only by
- * «Сохранить».
+ * article (or the new-article page). The server draft (`useServerDraft`) holds the same edits
+ * for any browser; this copy is the fallback when the server cannot be reached. The article itself
+ * is saved only by «Сохранить».
  */
 export type LocalDraftCopy = {
   /** When the copy was written, ISO 8601. */
@@ -25,7 +26,7 @@ const KEY_PREFIX = 'mktba.editorDraft';
 export const localDraftCopyKey = (userId: number, articleId: number | null): string =>
   `${KEY_PREFIX}.${userId}.${articleId ?? 'new'}`;
 
-const isDraftShaped = (value: unknown): value is ArticleDraft => {
+export const isDraftShaped = (value: unknown): value is ArticleDraft => {
   if (typeof value !== 'object' || value === null) {
     return false;
   }

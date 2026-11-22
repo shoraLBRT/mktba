@@ -10,8 +10,10 @@ import { changeArticleStatus, getArticleById } from '../services/adminService';
 import type { ArticleContentDto, ArticleReadDto, ArticleRevisionSummaryDto, ArticleSnapshotDto, ArticleStatus, NavigationArticleDto } from '../shared/types/ApiTypes';
 import { getSystemSchools } from '../services/schoolService';
 import { getArticleRevision, getArticleRevisions, restoreArticleRevision } from '../services/Article/revisionService';
+import { deleteArticleDraft, getArticleDraft, saveArticleDraft } from '../services/Article/draftService';
 import { localDraftCopyKey, readLocalDraftCopy, writeLocalDraftCopy } from './add-article/localDraftCopy';
 import { articleDraftFromDto } from './add-article/articleDraft';
+import { fromServerSnapshot, toServerSnapshot } from './add-article/useServerDraft';
 import ArticleEditorPage from './ArticleEditorPage';
 
 vi.mock('../services/Article/articleService', () => ({
@@ -30,6 +32,11 @@ vi.mock('../services/Article/revisionService', () => ({
   getArticleRevision: vi.fn(),
   getArticleRevisions: vi.fn(async () => []),
   restoreArticleRevision: vi.fn(),
+}));
+vi.mock('../services/Article/draftService', () => ({
+  deleteArticleDraft: vi.fn(),
+  getArticleDraft: vi.fn(),
+  saveArticleDraft: vi.fn(),
 }));
 vi.mock('../auth/useCurrentUser', () => ({
   useCurrentUser: () => ({ user: { id: 1, email: 'author@example.com', role: 'Author' }, role: undefined, can: () => false }),
@@ -112,6 +119,13 @@ describe('ArticleEditorPage', () => {
     vi.mocked(getSystemSchools).mockResolvedValue([]);
     vi.mocked(changeArticleStatus).mockReset();
     vi.mocked(getArticleById).mockResolvedValue(draftArticle([]));
+    vi.mocked(getArticleDraft).mockReset().mockResolvedValue(null);
+    vi.mocked(saveArticleDraft).mockReset().mockImplementation(async (_id, _snapshot, baseUpdatedAt) => ({
+      snapshot: {},
+      baseUpdatedAt,
+      updatedAt: '2026-11-22T10:00:00Z',
+    }));
+    vi.mocked(deleteArticleDraft).mockReset().mockResolvedValue();
     window.localStorage.clear();
   });
 
@@ -249,18 +263,71 @@ describe('ArticleEditorPage', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 
-  it('given an edit, when typing pauses, then a copy is kept in the browser and the indicator says so', async () => {
-    vi.mocked(getArticleContentById).mockResolvedValue(article);
+  it('given an edit, when typing pauses, then it goes to the server draft and to the browser copy, and the indicator says so', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({ ...article, updatedAt: '2026-11-20T09:00:00Z' });
     renderAt('/admin/articles/7/edit');
     expect(await screen.findByText('Все изменения сохранены')).toBeTruthy();
 
     fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
 
-    expect(await screen.findByText(/Копия правок сохранена в этом браузере/, undefined, { timeout: 3000 })).toBeTruthy();
+    expect(await screen.findByText(/Черновик сохранён на сервере/, undefined, { timeout: 5000 })).toBeTruthy();
     expect(readLocalDraftCopy(localDraftCopyKey(1, 7))?.draft.title).toBe('Намаз путника');
+    const [articleId, snapshot, baseUpdatedAt] = vi.mocked(saveArticleDraft).mock.lastCall!;
+    expect(articleId).toBe(7);
+    expect(fromServerSnapshot(snapshot)?.title).toBe('Намаз путника');
+    expect(baseUpdatedAt).toBe('2026-11-20T09:00:00Z');
   });
 
-  it('given an edit, when the article is saved, then no copy is left behind', async () => {
+  it('given a server that refuses the draft, when typing pauses, then the indicator says the edits are kept in this browser only', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(saveArticleDraft).mockRejectedValue(new Error('offline'));
+    renderAt('/admin/articles/7/edit');
+
+    fireEvent.change(await screen.findByDisplayValue('Намаз'), { target: { value: 'Намаз путника' } });
+
+    expect(await screen.findByText(/Сервер не ответил: копия правок сохранена в этом браузере/, undefined, { timeout: 5000 })).toBeTruthy();
+  });
+
+  it('given a server draft newer than the browser copy, when the editor opens, then the server draft is offered and restored on request', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    writeLocalDraftCopy(localDraftCopyKey(1, 7), {
+      savedAt: '2026-11-21T10:00:00Z',
+      baseUpdatedAt: article.updatedAt ?? null,
+      draft: { ...articleDraftFromDto(article), title: 'Намаз из копии' },
+    });
+    vi.mocked(getArticleDraft).mockResolvedValue({
+      snapshot: toServerSnapshot({ ...articleDraftFromDto(article), title: 'Намаз с другого компьютера' }),
+      baseUpdatedAt: article.updatedAt,
+      updatedAt: '2026-11-21T11:00:00Z',
+    });
+    renderAt('/admin/articles/7/edit');
+
+    const offer = await screen.findByRole('region', { name: 'Найдены несохранённые правки' });
+    await within(offer).findByText(/На сервере сохранён черновик правок/);
+    expect(within(offer).queryByText(/Статья с тех пор была сохранена ещё раз/)).toBeNull();
+    fireEvent.click(within(offer).getByRole('button', { name: 'Восстановить' }));
+
+    expect(screen.getByDisplayValue('Намаз с другого компьютера')).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Найдены несохранённые правки' })).toBeNull();
+  });
+
+  it('given an offered server draft, when it is discarded, then it is deleted on the server', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleDraft).mockResolvedValue({
+      snapshot: toServerSnapshot({ ...articleDraftFromDto(article), title: 'Намаз с сервера' }),
+      baseUpdatedAt: article.updatedAt,
+      updatedAt: '2026-11-21T11:00:00Z',
+    });
+    renderAt('/admin/articles/7/edit');
+
+    const offer = await screen.findByRole('region', { name: 'Найдены несохранённые правки' });
+    fireEvent.click(within(offer).getByRole('button', { name: 'Отбросить' }));
+
+    expect(screen.getByDisplayValue('Намаз')).toBeTruthy();
+    await waitFor(() => expect(deleteArticleDraft).toHaveBeenCalledWith(7));
+  });
+
+  it('given an edit, when the article is saved, then no copy and no server draft is left behind', async () => {
     vi.mocked(getArticleContentById).mockResolvedValue(article);
     vi.mocked(updateArticleContent).mockResolvedValue();
     renderAt('/admin/articles/7/edit');
@@ -270,6 +337,7 @@ describe('ArticleEditorPage', () => {
 
     expect(await screen.findByText('article-page')).toBeTruthy();
     expect(readLocalDraftCopy(localDraftCopyKey(1, 7))).toBeNull();
+    await waitFor(() => expect(deleteArticleDraft).toHaveBeenCalledWith(7));
   });
 
   it('given a copy left by an earlier visit to an article saved since, when the editor opens, then it is offered with a warning and restored on request', async () => {
