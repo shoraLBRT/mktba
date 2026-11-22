@@ -37,6 +37,27 @@ public class AnalyticsEventRepository
             .Select(s => s.Id)
             .ToListAsync(cancellationToken);
 
+    /// <summary>The stored events of <paramref name="types"/> in the page views <paramref name="viewIds"/> (N-03, #97).</summary>
+    public Task<List<AnalyticsEvent>> GetViewEventsAsync(
+        IReadOnlyCollection<Guid> viewIds,
+        IReadOnlyCollection<AnalyticsEventType> types,
+        CancellationToken cancellationToken = default)
+        => _context.AnalyticsEvents.AsNoTracking()
+            .Where(e => e.ViewId != null && viewIds.Contains(e.ViewId.Value) && types.Contains(e.Type))
+            .ToListAsync(cancellationToken);
+
+    /// <summary>The article views of <paramref name="visitorIds"/> stored since <paramref name="sinceUtc"/> (N-03, #97).</summary>
+    public Task<List<AnalyticsEvent>> GetArticleViewsSinceAsync(
+        IReadOnlyCollection<Guid> visitorIds,
+        DateTime sinceUtc,
+        CancellationToken cancellationToken = default)
+        => _context.AnalyticsEvents.AsNoTracking()
+            .Where(e => e.VisitorId != null
+                && visitorIds.Contains(e.VisitorId.Value)
+                && e.OccurredAtUtc >= sinceUtc
+                && e.Type == AnalyticsEventType.ArticleView)
+            .ToListAsync(cancellationToken);
+
     public async Task AddRangeAsync(IEnumerable<AnalyticsEvent> events, CancellationToken cancellationToken = default)
     {
         await _context.AnalyticsEvents.AddRangeAsync(events, cancellationToken);

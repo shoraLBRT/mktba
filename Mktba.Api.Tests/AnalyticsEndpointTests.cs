@@ -117,8 +117,113 @@ public sealed class AnalyticsEndpointTests : IClassFixture<MktbaApiFactory>
         (await LoadAsync(viewId)).Should().BeEmpty();
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("curl/8.4.0")]
+    [InlineData("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")]
+    [InlineData("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/120.0.0.0 Safari/537.36")]
+    public async Task GivenABotUserAgent_WhenPosting_ThenNothingIsStored(string? userAgent)
+    {
+        var article = await SeedArticleAsync(ArticleStatus.Published);
+        var viewId = Guid.NewGuid();
+
+        var response = await PostAsAsync(
+            userAgent,
+            new { type = "ArticleView", viewId, articleId = article.ArticleId },
+            new { type = "Search", viewId, query = "намаз" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        (await response.Content.ReadFromJsonAsync<AnalyticsAcceptedDto>(ApiJson.Options))!.Accepted.Should().Be(0);
+        (await LoadAsync(viewId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GivenRepeatsWithinOnePageView_WhenPosting_ThenOncePerViewEventsCountOnceAndActionsEveryTime()
+    {
+        var article = await SeedArticleAsync(ArticleStatus.Published);
+        var viewId = Guid.NewGuid();
+        var view = new { type = "ArticleView", viewId, articleId = article.ArticleId };
+        var shown = new { type = "OpinionShown", viewId, articleId = article.ArticleId, paragraphId = article.ParagraphId, opinionId = article.FirstOpinionId };
+        var shownOther = new { type = "OpinionShown", viewId, articleId = article.ArticleId, paragraphId = article.ParagraphId, opinionId = article.SecondOpinionId };
+        var switched = new { type = "OpinionSwitched", viewId, articleId = article.ArticleId, paragraphId = article.ParagraphId, opinionId = article.SecondOpinionId };
+        var half = new { type = "ScrollDepth", viewId, articleId = article.ArticleId, scrollDepth = 50 };
+        var end = new { type = "ScrollDepth", viewId, articleId = article.ArticleId, scrollDepth = 100 };
+
+        var first = await PostAsync(view, view, shown, shownOther, switched, switched, half, half, end);
+        var second = await PostAsync(view, shown, half, switched);
+
+        (await first.Content.ReadFromJsonAsync<AnalyticsAcceptedDto>(ApiJson.Options))!.Accepted.Should().Be(6);
+        (await second.Content.ReadFromJsonAsync<AnalyticsAcceptedDto>(ApiJson.Options))!.Accepted.Should().Be(1, "only the switch is new");
+
+        var stored = await LoadAsync(viewId);
+        stored.Count(e => e.Type == AnalyticsEventType.ArticleView).Should().Be(1);
+        stored.Should().ContainSingle(e => e.Type == AnalyticsEventType.OpinionShown).Which.OpinionId.Should().Be(article.FirstOpinionId);
+        stored.Count(e => e.Type == AnalyticsEventType.OpinionSwitched).Should().Be(3);
+        stored.Where(e => e.Type == AnalyticsEventType.ScrollDepth).Select(e => e.ScrollDepth).Should().BeEquivalentTo(new short?[] { 50, 100 });
+    }
+
+    [Fact]
+    public async Task GivenAVisitorViewedTheArticleLessThan30MinutesAgo_WhenViewingAgain_ThenTheViewIsDroppedAndTheRestKept()
+    {
+        var article = await SeedArticleAsync(ArticleStatus.Published);
+        var other = await SeedArticleAsync(ArticleStatus.Published);
+        var visitorId = Guid.NewGuid();
+        var longAgo = Guid.NewGuid();
+        await StoreViewAsync(longAgo, article.ArticleId, DateTime.UtcNow.AddMinutes(-31));
+
+        var firstView = Guid.NewGuid();
+        var reload = Guid.NewGuid();
+        var otherVisitorView = Guid.NewGuid();
+        var longAgoView = Guid.NewGuid();
+        await PostAsync(new { type = "ArticleView", viewId = firstView, visitorId, articleId = article.ArticleId });
+        var response = await PostAsync(
+            new { type = "ArticleView", viewId = reload, visitorId, articleId = article.ArticleId },
+            new { type = "ScrollDepth", viewId = reload, visitorId, articleId = article.ArticleId, scrollDepth = 25 },
+            new { type = "ArticleView", viewId = reload, visitorId, articleId = other.ArticleId },
+            new { type = "ArticleView", viewId = otherVisitorView, visitorId = Guid.NewGuid(), articleId = article.ArticleId },
+            new { type = "ArticleView", viewId = longAgoView, visitorId = longAgo, articleId = article.ArticleId });
+
+        (await response.Content.ReadFromJsonAsync<AnalyticsAcceptedDto>(ApiJson.Options))!.Accepted.Should().Be(4);
+        var stored = await LoadAsync(reload);
+        stored.Should().NotContain(e => e.Type == AnalyticsEventType.ArticleView && e.VisitorId == visitorId && e.ArticleId == article.ArticleId);
+        stored.Should().Contain(e => e.Type == AnalyticsEventType.ScrollDepth && e.VisitorId == visitorId);
+        stored.Should().Contain(e => e.Type == AnalyticsEventType.ArticleView && e.ArticleId == other.ArticleId);
+        (await LoadAsync(otherVisitorView)).Should().ContainSingle();
+        (await LoadAsync(longAgoView)).Should().ContainSingle("the earlier view is older than the window");
+        (await LoadAsync(firstView)).Should().ContainSingle().Which.VisitorId.Should().Be(visitorId);
+    }
+
+    /// <summary>What a reader's browser sends; a request without a User-Agent is a bot's.</summary>
+    private const string BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
     private Task<HttpResponseMessage> PostAsync(params object[] events)
-        => _factory.CreateClient().PostAsJsonAsync("/analytics/events", new { events });
+        => PostAsAsync(BrowserUserAgent, events);
+
+    private Task<HttpResponseMessage> PostAsAsync(string? userAgent, params object[] events)
+    {
+        var client = _factory.CreateClient();
+        if (userAgent is not null)
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgent);
+        }
+
+        return client.PostAsJsonAsync("/analytics/events", new { events });
+    }
+
+    private async Task StoreViewAsync(Guid visitorId, int articleId, DateTime occurredAtUtc)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MktbaDbContext>();
+        dbContext.AnalyticsEvents.Add(new AnalyticsEvent
+        {
+            Type = AnalyticsEventType.ArticleView,
+            OccurredAtUtc = occurredAtUtc,
+            ViewId = Guid.NewGuid(),
+            VisitorId = visitorId,
+            ArticleId = articleId,
+        });
+        await dbContext.SaveChangesAsync();
+    }
 
     private async Task<List<AnalyticsEvent>> LoadAsync(Guid viewId)
     {

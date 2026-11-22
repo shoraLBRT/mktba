@@ -5,7 +5,9 @@ namespace Mktba.Domain.Entities;
 /// counts traffic and search phrases, this table feeds the author's and the admin's dashboards).
 /// An append-only log: nothing about the reader is stored — no account, address, browser or
 /// cookie. <see cref="ViewId"/> is a random id of one page view, made anew on every page, so it
-/// ties together the events of that view and nothing else.
+/// ties together the events of that view and nothing else; <see cref="VisitorId"/> is a random id
+/// the browser keeps for one UTC day at most (N-03, #97), so a repeated view can be told from a new
+/// reader without anything that outlives the day.
 /// <para>
 /// The ids it carries (<see cref="ArticleId"/>, <see cref="ParagraphId"/>, <see cref="OpinionId"/>,
 /// <see cref="SchoolId"/>) are plain columns, not foreign keys: the log outlives the content it
@@ -26,6 +28,13 @@ public class AnalyticsEvent
 
     /// <summary>The page view the event belongs to; null when the browser sent none.</summary>
     public Guid? ViewId { get; set; }
+
+    /// <summary>
+    /// The anonymous visitor (N-03, #97): a random id the browser makes with the visitor's consent
+    /// and replaces every UTC day, so it links the page views of one day and nothing longer;
+    /// null when the browser sent none.
+    /// </summary>
+    public Guid? VisitorId { get; set; }
 
     /// <summary>The Published article read (every type but <see cref="AnalyticsEventType.Search"/>).</summary>
     public int? ArticleId { get; set; }

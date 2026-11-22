@@ -592,6 +592,9 @@ namespace Mktba.Infrastructure.Data
             {
                 analyticsEvent.HasIndex(e => e.OccurredAtUtc);
                 analyticsEvent.HasIndex(e => new { e.ArticleId, e.OccurredAtUtc });
+                // N-03 (#97): repeats within one page view and one visitor's recent views are looked up on intake.
+                analyticsEvent.HasIndex(e => e.ViewId);
+                analyticsEvent.HasIndex(e => new { e.VisitorId, e.OccurredAtUtc });
                 analyticsEvent.Property(e => e.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
                 analyticsEvent.Property(e => e.Query).HasMaxLength(AnalyticsEvent.QueryMaxLength);
                 analyticsEvent.Property(e => e.TargetPath).HasMaxLength(AnalyticsEvent.TargetPathMaxLength);
