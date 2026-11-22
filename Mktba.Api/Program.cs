@@ -110,6 +110,7 @@ if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
 {
     builder.Services.AddHostedService<FeedbackDeliveryWorker>();
     builder.Services.AddHostedService<IndexNowWorker>();
+    builder.Services.AddHostedService<ArticleDraftCleanupWorker>();
 }
 
 var app = builder.Build();
@@ -147,6 +148,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapArticleContentEndpoints();
+app.MapArticleDraftEndpoints();
 app.MapNavigationEndpoints();
 app.MapArticleEndpoints();
 app.MapParagraphEndpoints();

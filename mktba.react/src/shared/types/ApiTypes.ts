@@ -52,6 +52,7 @@ export type PublicProfileDto = Schemas['PublicProfileDto'];
 export type AuthorArticleDto = Schemas['AuthorArticleDto'];
 export type AuthorArticlesDto = Schemas['AuthorArticlesDto'];
 export type ArticleRevisionSummaryDto = Schemas['ArticleRevisionSummaryDto'];
+export type ArticleDraftDto = Schemas['ArticleDraftDto'];
 export type ArticleRevisionDto = Schemas['ArticleRevisionDto'];
 export type ArticleRevisionComparisonDto = Schemas['ArticleRevisionComparisonDto'];
 export type ArticleSnapshotDto = Schemas['ArticleSnapshotDto'];

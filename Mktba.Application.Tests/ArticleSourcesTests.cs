@@ -250,7 +250,7 @@ public class ArticleSourcesTests : IClassFixture<PostgresDatabaseFixture>
     }
 
     private static ArticleContentService Content(MktbaDbContext context)
-        => new(new ArticleRepository(context), new ParagraphRepository(context), new Infrastructure.UnitOfWork.UnitOfWork(context), new TagRepository(context), TimeProvider.System);
+        => new(new ArticleRepository(context), new ParagraphRepository(context), new Infrastructure.UnitOfWork.UnitOfWork(context), new TagRepository(context), new ArticleDraftRepository(context), TimeProvider.System);
 
     private async Task<ArticleContentDto> CreateArticleAsync(string title, params ParagraphCreateDto[] paragraphs)
     {

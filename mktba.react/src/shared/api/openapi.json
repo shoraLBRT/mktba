@@ -673,6 +673,247 @@
         }
       }
     },
+    "/articles/{id}/draft": {
+      "get": {
+        "tags": [
+          "ArticleDraft"
+        ],
+        "summary": "The caller's autosaved draft of the article; 204 when there is none.",
+        "description": "Each user has their own draft per article and one for a new article; it is not a revision and readers never see it. A content save (POST /articles/content, PUT /articles/{id}/content, a rollback) deletes the saving user's draft. A draft not written for 30 days is deleted.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleDraftDto"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ArticleDraft"
+        ],
+        "summary": "Writes the caller's autosaved draft of the article.",
+        "description": "Each user has their own draft per article and one for a new article; it is not a revision and readers never see it. A content save (POST /articles/content, PUT /articles/{id}/content, a rollback) deletes the saving user's draft. A draft not written for 30 days is deleted. Errors: article_draft_snapshot_invalid, article_draft_too_large.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleDraftSaveDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleDraftDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ArticleDraft"
+        ],
+        "summary": "Deletes the caller's autosaved draft of the article; 204 also when there was none.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/draft": {
+      "get": {
+        "tags": [
+          "ArticleDraft"
+        ],
+        "summary": "The caller's autosaved draft of a new article; 204 when there is none.",
+        "description": "Each user has their own draft per article and one for a new article; it is not a revision and readers never see it. A content save (POST /articles/content, PUT /articles/{id}/content, a rollback) deletes the saving user's draft. A draft not written for 30 days is deleted.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleDraftDto"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ArticleDraft"
+        ],
+        "summary": "Writes the caller's autosaved draft of a new article; baseUpdatedAt is ignored.",
+        "description": "Each user has their own draft per article and one for a new article; it is not a revision and readers never see it. A content save (POST /articles/content, PUT /articles/{id}/content, a rollback) deletes the saving user's draft. A draft not written for 30 days is deleted. Errors: article_draft_snapshot_invalid, article_draft_too_large.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleDraftSaveDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleDraftDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ArticleDraft"
+        ],
+        "summary": "Deletes the caller's autosaved draft of a new article; 204 also when there was none.",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/articles": {
       "get": {
         "tags": [
@@ -3770,6 +4011,41 @@
           "parentArticleId": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleDraftDto": {
+        "required": [
+          "snapshot",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshot": { },
+          "baseUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleDraftSaveDto": {
+        "required": [
+          "snapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshot": { },
+          "baseUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },

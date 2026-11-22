@@ -31,7 +31,7 @@ public class ArticleDatesAndAuthorshipTests : IDisposable
         var uow = Substitute.For<IUnitOfWork>();
         uow.SaveChangesAsync().Returns(_ => _context.SaveChangesAsync());
         _articles = new ArticleService(articleRepo, mapper, _clock, new RecordingSearchEngineNotifier());
-        _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, new TagRepository(_context), _clock);
+        _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, new TagRepository(_context), new ArticleDraftRepository(_context), _clock);
         _authorship = new ArticleAuthorshipService(articleRepo, new UserRepository(_context), _clock);
     }
 

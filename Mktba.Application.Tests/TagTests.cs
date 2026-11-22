@@ -27,7 +27,7 @@ public class TagTests : IDisposable
         var tagRepo = new TagRepository(_context);
         var uow = Substitute.For<IUnitOfWork>();
         uow.SaveChangesAsync().Returns(_ => _context.SaveChangesAsync());
-        _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, tagRepo, TimeProvider.System);
+        _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, tagRepo, new ArticleDraftRepository(_context), TimeProvider.System);
         _revisions = new ArticleRevisionService(articleRepo, _content);
         _tags = new TagService(tagRepo, articleRepo, uow);
     }

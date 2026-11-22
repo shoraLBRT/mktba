@@ -36,6 +36,8 @@ import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 import { localDraftCopyKey } from './add-article/localDraftCopy';
 import { DraftSaveIndicator, LocalDraftOffer } from './add-article/LocalDraftCopyNotices';
 import { useLocalDraftCopy } from './add-article/useLocalDraftCopy';
+import { useServerDraft } from './add-article/useServerDraft';
+import { chooseDraftOffer, draftSaveStatus } from './add-article/draftAutosave';
 import { getAiAvailability } from './add-article/aiAvailability';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import {
@@ -214,6 +216,13 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     baseline,
     baseUpdatedAt,
   });
+  const serverDraft = useServerDraft({ enabled: Boolean(user), articleId, draft, baseline, baseUpdatedAt });
+  const draftOffer = chooseDraftOffer(localCopy.offer, serverDraft.offer);
+  // Both keep the edits until a save, a delete or leaving on purpose: the server draft and, as the fallback, this browser's copy.
+  const clearDraftCopies = () => {
+    localCopy.clear();
+    serverDraft.clear();
+  };
   const setField = <K extends keyof ArticleDraft>(key: K, value: SetStateAction<ArticleDraft[K]>) =>
     setDraft((current) => ({
       ...current,
@@ -312,7 +321,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       return payload.slug ?? String(articleId);
     },
     onSuccess: async (slug, { saved, stay }) => {
-      localCopy.clear();
+      clearDraftCopies();
       if (stay) {
         // The comment described the revision just written; the next save starts without one.
         const next = { ...saved, editComment: '' };
@@ -338,7 +347,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const deleteMutation = useMutation({
     mutationFn: () => deleteArticle(articleId!),
     onSuccess: () => {
-      localCopy.clear();
+      clearDraftCopies();
       void invalidateArticleQueries(queryClient);
       leaveGuard.allowLeaving();
       navigate('/');
@@ -546,7 +555,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     const fresh = await getArticleContentById(articleId!);
     queryClient.setQueryData([APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, articleId], fresh);
     const restored = articleDraftFromDto(fresh);
-    localCopy.clear();
+    clearDraftCopies();
     setBaseline(restored);
     setDraft(restored);
     setIsHistoryOpen(false);
@@ -554,16 +563,28 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     void invalidateArticleQueries(queryClient);
   };
 
-  const restoreLocalCopy = () => {
-    const restored = localCopy.acceptOffer();
+  // The offer chosen of the two is restored; the other one ends with it (its edits are overwritten by the next autosave).
+  const restoreDraftOffer = () => {
+    const fromLocal = localCopy.acceptOffer();
+    const fromServer = serverDraft.acceptOffer();
+    const restored = draftOffer?.source === 'server' ? fromServer : fromLocal;
     if (restored) {
       setDraft(restored);
     }
   };
 
-  // Leaving on purpose drops the edits, and with them their copy in this browser.
+  const discardDraftOffer = () => {
+    if (localCopy.offer) {
+      localCopy.discardOffer();
+    }
+    if (serverDraft.offer) {
+      serverDraft.discardOffer();
+    }
+  };
+
+  // Leaving on purpose drops the edits, and with them their server draft and their copy in this browser.
   const leaveAndDiscard = () => {
-    localCopy.clear();
+    clearDraftCopies();
     leaveGuard.blocker.proceed?.();
   };
 
@@ -726,15 +747,16 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
         <div className="min-w-0 lg:col-start-2 xl:px-6">
           <div className="mx-auto max-w-[840px]">
             {notice ? <EditorNotice notice={notice} onDismiss={() => setNotice(null)} /> : null}
-            {localCopy.offer ? (
+            {draftOffer ? (
               <LocalDraftOffer
-                copy={localCopy.offer}
+                copy={draftOffer.copy}
+                source={draftOffer.source}
                 baseUpdatedAt={baseUpdatedAt}
-                onRestore={restoreLocalCopy}
-                onDiscard={localCopy.discardOffer}
+                onRestore={restoreDraftOffer}
+                onDiscard={discardDraftOffer}
               />
             ) : (
-              <DraftSaveIndicator status={localCopy.status} isSaving={saveMutation.isPending} />
+              <DraftSaveIndicator status={draftSaveStatus(localCopy.status, serverDraft.status)} isSaving={saveMutation.isPending} />
             )}
 
             <div className="overflow-hidden rounded-[30px] border border-[var(--color-border-soft)] bg-white shadow-[0_28px_90px_rgba(28,27,24,0.07)]">
