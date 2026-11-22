@@ -141,6 +141,7 @@ jobs:
           SSH_KEY_SET: ${{ secrets.DEPLOY_SSH_KEY != '' }}
           KNOWN_HOSTS_SET: ${{ vars.DEPLOY_KNOWN_HOSTS != '' }}
         run: |
+          # shellcheck disable=SC2153 # DEPLOY_PORT and the others come from the job env
           missing=()
           [[ -n $SITE_HOST ]] || missing+=("variable SITE_HOST")
           [[ -n $API_HOST ]] || missing+=("variable API_HOST")
@@ -206,6 +207,7 @@ jobs:
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # shellcheck disable=SC2029 # the remote command is built here on purpose; every value is checked above
           set -euo pipefail
           ssh_opts=(-i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes)
           target="$DEPLOY_USER@$DEPLOY_HOST"
