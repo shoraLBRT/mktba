@@ -120,7 +120,7 @@ public static class UploadEndpoints
         }
 
         await using var content = file.OpenReadStream();
-        var stored = await service.UploadAsync(content, purpose, cancellationToken);
+        var stored = await service.UploadAsync(content, purpose, request.HttpContext.User.GetUserId(), cancellationToken);
         var url = PublicUrl(stored.Name, options, request);
         return Results.Created(url, new UploadedImageDto(url, stored.ContentType, stored.Width, stored.Height, stored.SizeBytes));
     }

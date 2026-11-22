@@ -34,6 +34,7 @@ namespace Mktba.Application
             services.AddScoped<UserProfileService>();
             services.AddScoped<FeedbackService>();
             services.AddScoped<ImageUploadService>();
+            services.AddScoped<UploadCleanupService>();
             services.AddScoped<FeedbackDeliveryService>();
             services.AddSingleton<IFeedbackIssueTracker, GitHubIssueClient>();
             services.AddSingleton<IndexNowQueue>();

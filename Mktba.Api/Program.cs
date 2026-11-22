@@ -111,6 +111,7 @@ if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
     builder.Services.AddHostedService<FeedbackDeliveryWorker>();
     builder.Services.AddHostedService<IndexNowWorker>();
     builder.Services.AddHostedService<ArticleDraftCleanupWorker>();
+    builder.Services.AddHostedService<UploadCleanupWorker>();
 }
 
 var app = builder.Build();

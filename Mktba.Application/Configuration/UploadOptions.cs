@@ -17,4 +17,31 @@ public sealed class UploadOptions
     /// Empty: the API's own <c>GET /files/{name}</c> on the address the upload request came to.
     /// </summary>
     public string? PublicBaseUrl { get; set; }
+
+    /// <summary>Removing files nothing uses any more (<c>Uploads:Cleanup</c>).</summary>
+    public UploadCleanupOptions Cleanup { get; set; } = new();
+}
+
+/// <summary>
+/// The <c>Uploads:Cleanup</c> section (U-08, #73). A file is removed only after it is older than
+/// <see cref="UnusedDays"/> and every run for <see cref="UnusedDays"/> more found no reference to it.
+/// </summary>
+public sealed class UploadCleanupOptions
+{
+    /// <summary>False: runs still record where files are used, but never remove one.</summary>
+    public bool DeleteUnused { get; set; } = true;
+
+    /// <summary>
+    /// The grace period, in days: how old a file must be before it is looked at, and how long it then
+    /// has to stay unreferenced. Not below the 30 days an abandoned draft is kept, so an image only a
+    /// draft uses outlives the draft's own grace.
+    /// </summary>
+    public int UnusedDays { get; set; } = 30;
+
+    /// <summary>How often the cleanup runs, in hours.</summary>
+    public int IntervalHours { get; set; } = 6;
+
+    public TimeSpan GracePeriod => TimeSpan.FromDays(Math.Max(1, UnusedDays));
+
+    public TimeSpan Interval => TimeSpan.FromHours(Math.Max(1, IntervalHours));
 }

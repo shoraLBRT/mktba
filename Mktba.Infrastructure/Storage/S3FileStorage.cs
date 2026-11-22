@@ -72,6 +72,10 @@ public sealed class S3FileStorage : IFileStorage, IDisposable
         }
     }
 
+    /// <summary>S3 answers a delete of a missing key with success too.</summary>
+    public async Task DeleteAsync(string name, CancellationToken cancellationToken) =>
+        await _client.DeleteObjectAsync(_options.Bucket, KeyOf(name), cancellationToken);
+
     public void Dispose() => _client.Dispose();
 
     private string KeyOf(string name)

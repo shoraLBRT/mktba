@@ -43,6 +43,12 @@ public sealed class LocalFileStorage : IFileStorage
         return Task.FromResult(stream);
     }
 
+    public Task DeleteAsync(string name, CancellationToken cancellationToken)
+    {
+        File.Delete(PathOf(name));
+        return Task.CompletedTask;
+    }
+
     private string PathOf(string name)
     {
         if (!StoredFileNames.IsValid(name))

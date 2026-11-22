@@ -33,6 +33,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<Invite> Invites { get; set; } = null!;
         public DbSet<RefreshSession> RefreshSessions { get; set; } = null!;
         public DbSet<FeedbackMessage> FeedbackMessages { get; set; } = null!;
+        public DbSet<StoredFile> StoredFiles { get; set; } = null!;
 
         /// <summary>Longest stored User-Agent of a refresh session; longer values are cut.</summary>
         public const int SessionUserAgentMaxLength = 256;
@@ -582,6 +583,20 @@ namespace Mktba.Infrastructure.Data
                 feedback.HasOne(f => f.Article)
                     .WithMany()
                     .HasForeignKey(f => f.ArticleId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Uploaded files (U-08, #73): the record outlives the file and its uploader.
+            modelBuilder.Entity<StoredFile>(file =>
+            {
+                file.HasIndex(f => f.Name).IsUnique();
+                file.HasIndex(f => new { f.DeletedAt, f.UploadedAt });
+                file.Property(f => f.Name).HasMaxLength(StoredFile.NameMaxLength).IsRequired();
+                file.Property(f => f.ContentType).HasMaxLength(StoredFile.ContentTypeMaxLength).IsRequired();
+                file.Property(f => f.Purpose).HasConversion<string>().HasMaxLength(16).IsRequired();
+                file.HasOne(f => f.UploadedBy)
+                    .WithMany()
+                    .HasForeignKey(f => f.UploadedById)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
