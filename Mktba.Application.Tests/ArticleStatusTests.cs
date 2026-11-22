@@ -17,13 +17,14 @@ public class ArticleStatusTests : IDisposable
     private readonly ArticleService _articles;
     private readonly ArticleContentService _content;
     private readonly NavigationTreeService _tree;
+    private readonly RecordingSearchEngineNotifier _searchEngines = new();
 
     public ArticleStatusTests()
     {
         _context = TestDbHelper.CreateInMemoryContext();
         var articleRepo = new ArticleRepository(_context);
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System);
+        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, _searchEngines);
         _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), Substitute.For<IUnitOfWork>(), new TagRepository(_context), TimeProvider.System);
         _tree = new NavigationTreeService(articleRepo);
     }
@@ -95,6 +96,42 @@ public class ArticleStatusTests : IDisposable
         var act = () => _articles.ChangeStatusAsync(999, ArticleStatus.InReview, TestViewers.Admin);
 
         await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Theory]
+    [InlineData(ArticleStatus.InReview, ArticleStatus.Published)]
+    [InlineData(ArticleStatus.Published, ArticleStatus.Archived)]
+    public async Task ChangeStatusAsync_GivenMoveIntoOrOutOfPublished_TellsSearchEnginesOnce(ArticleStatus from, ArticleStatus to)
+    {
+        var article = await AddAsync("Закят", "zakyat", from);
+
+        await _articles.ChangeStatusAsync(article.Id, to, TestViewers.Admin);
+
+        _searchEngines.Slugs.Should().Equal("zakyat");
+    }
+
+    [Theory]
+    [InlineData(ArticleStatus.Draft, ArticleStatus.InReview)]
+    [InlineData(ArticleStatus.InReview, ArticleStatus.Draft)]
+    [InlineData(ArticleStatus.Archived, ArticleStatus.Draft)]
+    public async Task ChangeStatusAsync_GivenMoveOutsidePublished_DoesNotTellSearchEngines(ArticleStatus from, ArticleStatus to)
+    {
+        var article = await AddAsync("Хадж", "hadzh", from);
+
+        await _articles.ChangeStatusAsync(article.Id, to, TestViewers.Admin);
+
+        _searchEngines.Slugs.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ChangeStatusAsync_GivenRefusedTransition_DoesNotTellSearchEngines()
+    {
+        var article = await AddAsync("Ихрам", "ihram", ArticleStatus.Draft);
+
+        var act = () => _articles.ChangeStatusAsync(article.Id, ArticleStatus.Published, TestViewers.Admin);
+
+        await act.Should().ThrowAsync<ValidationException>();
+        _searchEngines.Slugs.Should().BeEmpty();
     }
 
     [Fact]

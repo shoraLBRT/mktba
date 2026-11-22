@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mktba.Application.Services;
 using Mktba.Application.Services.Feedback;
+using Mktba.Application.Services.IndexNow;
 using Mktba.Application.Services.Uploads;
 
 namespace Mktba.Application
@@ -34,6 +35,9 @@ namespace Mktba.Application
             services.AddScoped<ImageUploadService>();
             services.AddScoped<FeedbackDeliveryService>();
             services.AddSingleton<IFeedbackIssueTracker, GitHubIssueClient>();
+            services.AddSingleton<IndexNowQueue>();
+            services.AddSingleton<ISearchEngineNotifier>(provider => provider.GetRequiredService<IndexNowQueue>());
+            services.AddSingleton<IIndexNowClient, IndexNowClient>();
             return services;
         }
     }

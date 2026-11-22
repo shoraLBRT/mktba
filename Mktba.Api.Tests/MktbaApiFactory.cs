@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mktba.Application.Services.Feedback;
+using Mktba.Application.Services.IndexNow;
 using Mktba.Infrastructure.Data;
 using Mktba.Infrastructure.Storage;
 
@@ -93,6 +94,10 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IFeedbackIssueTracker>();
             services.AddSingleton(IssueTracker ?? new NoIssueTracker());
 
+            // Nor IndexNow, whatever the settings say.
+            services.RemoveAll<IIndexNowClient>();
+            services.AddSingleton(IndexNowClient ?? new NoIndexNowClient());
+
             // Uploaded files go to a directory of this factory only, removed with it.
             services.RemoveAll<IFileStorage>();
             services.AddSingleton<IFileStorage>(new LocalFileStorage(StorageRoot));
@@ -101,6 +106,9 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
 
     /// <summary>A stand-in issue tracker for the feedback worker; null (the default) means none is configured.</summary>
     internal IFeedbackIssueTracker? IssueTracker { get; init; }
+
+    /// <summary>A stand-in IndexNow endpoint; null (the default) refuses every send.</summary>
+    internal IIndexNowClient? IndexNowClient { get; init; }
 
     /// <summary>Where this factory's API stores uploaded files.</summary>
     internal string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), $"mktba-api-tests-files-{Guid.NewGuid():N}");
@@ -124,6 +132,13 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
 
         public Task<FeedbackIssueRef> CreateAsync(string title, string body, IReadOnlyList<string> labels, CancellationToken cancellationToken)
             => throw new InvalidOperationException("Tests do not deliver feedback.");
+    }
+
+    /// <summary>An endpoint that takes nothing: no test sends URLs anywhere.</summary>
+    private sealed class NoIndexNowClient : IIndexNowClient
+    {
+        public Task<bool> SubmitAsync(IReadOnlyCollection<string> paths, CancellationToken cancellationToken)
+            => Task.FromResult(false);
     }
 
     private sealed class RemoteIpFromHeaderStartupFilter : IStartupFilter

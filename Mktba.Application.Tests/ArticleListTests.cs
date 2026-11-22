@@ -20,7 +20,7 @@ public class ArticleListTests : IDisposable
     {
         _context = TestDbHelper.CreateInMemoryContext();
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        _articles = new ArticleService(new ArticleRepository(_context), mapper, TimeProvider.System);
+        _articles = new ArticleService(new ArticleRepository(_context), mapper, TimeProvider.System, new RecordingSearchEngineNotifier());
     }
 
     public void Dispose() => _context.Dispose();
