@@ -7,6 +7,9 @@
  *   render, so the SSR'd public pages never wait for text.
  * - `admin` — the keys only the client-only admin (`/admin/*`, the editor included) reads. The admin
  *   route's `clientLoader` loads them (`loadLocaleChunk('admin')`) before the admin renders.
+ *   Besides the keys listed below, every file under `locales/<lang>/admin/` is in it whole, under
+ *   its file name as the key (`admin/siteAnalytics.json` -> `siteAnalytics`); that is the easy place
+ *   for a new admin feature's strings (no list to edit, no shared file to conflict on).
  *
  * A new key is `core` unless it is listed here: listing it moves it out of the public first load.
  * Only list a key that nothing outside the admin reads.

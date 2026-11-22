@@ -1,7 +1,6 @@
 import React from 'react';
 import { formatMessage } from '../../localization';
-// Admin-only strings stay out of the eagerly loaded dictionaries, so out of the article page's first load.
-import t from '../../localization/locales/ru/admin/siteAnalytics.json';
+import { useLocale } from '../../localization/hooks';
 import type { AnalyticsSchoolTotalDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
 import { ANALYTICS_PERIODS, SECONDARY_COLOR, VIEWS_COLOR, share, timeFormat } from './analyticsFormat';
@@ -19,25 +18,28 @@ export const StatCard: React.FC<{ label: string; value: number | string; hint?: 
 );
 
 /** The 7 / 30 / 90 days switch. */
-export const PeriodSwitch: React.FC<{ days: number; onChange: (days: number) => void }> = ({ days, onChange }) => (
-  <div role="group" aria-label={t.periodLabel} className="inline-flex rounded-lg border border-[var(--color-border-soft)] p-0.5">
-    {ANALYTICS_PERIODS.map((period) => (
-      <button
-        key={period}
-        type="button"
-        aria-pressed={days === period}
-        onClick={() => onChange(period)}
-        className={`rounded-md px-3 py-1 text-sm ${
-          days === period
-            ? 'bg-[var(--color-brand-forest)] text-white'
-            : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink-strong)]'
-        }`}
-      >
-        {formatMessage(t.periodDays, { days: period })}
-      </button>
-    ))}
-  </div>
-);
+export const PeriodSwitch: React.FC<{ days: number; onChange: (days: number) => void }> = ({ days, onChange }) => {
+  const t = useLocale().siteAnalytics;
+  return (
+    <div role="group" aria-label={t.periodLabel} className="inline-flex rounded-lg border border-[var(--color-border-soft)] p-0.5">
+      {ANALYTICS_PERIODS.map((period) => (
+        <button
+          key={period}
+          type="button"
+          aria-pressed={days === period}
+          onClick={() => onChange(period)}
+          className={`rounded-md px-3 py-1 text-sm ${
+            days === period
+              ? 'bg-[var(--color-brand-forest)] text-white'
+              : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink-strong)]'
+          }`}
+        >
+          {formatMessage(t.periodDays, { days: period })}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 type SchoolSharesProps = {
   schools: AnalyticsSchoolTotalDto[];
@@ -50,6 +52,7 @@ type SchoolSharesProps = {
 
 /** Article views by the mazhab the reader had chosen, with a bar per mazhab and one for «not chosen». */
 export const SchoolShares: React.FC<SchoolSharesProps> = ({ schools, viewsWithoutSchool, totalViews, emptyText, testId }) => {
+  const t = useLocale().siteAnalytics;
   const rows = [
     ...schools.map((school) => ({
       key: `school-${school.schoolId}`,
@@ -82,8 +85,11 @@ export const SchoolShares: React.FC<SchoolSharesProps> = ({ schools, viewsWithou
 };
 
 /** When the summaries were last rebuilt. */
-export const Freshness: React.FC<{ aggregatedAtUtc?: string | null; testId: string }> = ({ aggregatedAtUtc, testId }) => (
-  <p className="text-xs text-[var(--color-ink-muted)]" data-testid={testId}>
-    {aggregatedAtUtc ? formatMessage(t.aggregatedAt, { time: timeFormat.format(new Date(aggregatedAtUtc)) }) : t.notAggregated}
-  </p>
-);
+export const Freshness: React.FC<{ aggregatedAtUtc?: string | null; testId: string }> = ({ aggregatedAtUtc, testId }) => {
+  const t = useLocale().siteAnalytics;
+  return (
+    <p className="text-xs text-[var(--color-ink-muted)]" data-testid={testId}>
+      {aggregatedAtUtc ? formatMessage(t.aggregatedAt, { time: timeFormat.format(new Date(aggregatedAtUtc)) }) : t.notAggregated}
+    </p>
+  );
+};

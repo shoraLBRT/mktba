@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAuthorAnalytics } from '../../services/adminService';
 import type { AuthorAnalyticsDto } from '../../shared/types/ApiTypes';
+import { LocalizationProvider } from '../../localization/provider';
 import { AuthorAnalyticsSection } from './AuthorAnalyticsSection';
 
 vi.mock('../../services/adminService', () => ({ getAuthorAnalytics: vi.fn() }));
@@ -13,9 +14,11 @@ const fetchAnalytics = vi.mocked(getAuthorAnalytics);
 const renderSection = () =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter>
-        <AuthorAnalyticsSection />
-      </MemoryRouter>
+      <LocalizationProvider>
+        <MemoryRouter>
+          <AuthorAnalyticsSection />
+        </MemoryRouter>
+      </LocalizationProvider>
     </QueryClientProvider>,
   );
 

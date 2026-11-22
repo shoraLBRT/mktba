@@ -4,6 +4,7 @@ import { LAZY_LOCALE_KEYS, pickLocaleChunk } from './chunks';
 import { dictionaries, formatMessage, loadLocaleChunk, locale } from './index';
 import ruEditor from './locales/ru/editor.json';
 import ruPages from './locales/ru/pages.json';
+import ruSiteAnalytics from './locales/ru/admin/siteAnalytics.json';
 import coreEditor from './locales/ru/editor.json?locale-chunk=core';
 import corePages from './locales/ru/pages.json?locale-chunk=core';
 import { useLocale } from './hooks';
@@ -63,6 +64,7 @@ describe('dictionary chunks (#106)', () => {
     await first;
     expect(locale.addArticleEditor).toEqual(ruEditor.addArticleEditor);
     expect(locale.adminPage).toEqual(ruPages.adminPage);
+    expect(locale.siteAnalytics).toEqual(ruSiteAnalytics);
   });
 });
 

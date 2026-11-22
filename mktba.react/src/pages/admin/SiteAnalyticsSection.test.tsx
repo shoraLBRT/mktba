@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getSiteAnalytics } from '../../services/adminService';
 import type { SiteAnalyticsDto } from '../../shared/types/ApiTypes';
+import { LocalizationProvider } from '../../localization/provider';
 import { SiteAnalyticsSection } from './SiteAnalyticsSection';
 
 vi.mock('../../services/adminService', () => ({ getSiteAnalytics: vi.fn() }));
@@ -13,9 +14,11 @@ const fetchAnalytics = vi.mocked(getSiteAnalytics);
 const renderSection = () =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter>
-        <SiteAnalyticsSection />
-      </MemoryRouter>
+      <LocalizationProvider>
+        <MemoryRouter>
+          <SiteAnalyticsSection />
+        </MemoryRouter>
+      </LocalizationProvider>
     </QueryClientProvider>,
   );
 

@@ -13,16 +13,33 @@ import {
 type LocaleNamespaceModule = { default: LocaleNamespace };
 type LazyLocaleModules = Record<string, () => Promise<LocaleNamespaceModule>>;
 
-// Each file is split by key into chunks (./chunks.ts, the `localeChunks` plugin in vite.config.ts):
-// `core` is in the first load and the server render, the others load on demand.
+// Each top-level file is split by key into chunks (./chunks.ts, the `localeChunks` plugin in
+// vite.config.ts): `core` is in the first load and the server render, the others load on demand.
+// A file under `locales/<lang>/admin/` is all `admin`; its name is its one top-level key.
 const coreModules = import.meta.glob<LocaleNamespaceModule>('./locales/*/*.json', {
   eager: true,
   query: '?locale-chunk=core',
 });
 const lazyModules: Record<LazyLocaleChunk, LazyLocaleModules> = {
-  admin: import.meta.glob<LocaleNamespaceModule>('./locales/*/*.json', { query: '?locale-chunk=admin' }),
+  admin: {
+    ...import.meta.glob<LocaleNamespaceModule>('./locales/*/*.json', { query: '?locale-chunk=admin' }),
+    ...import.meta.glob<LocaleNamespaceModule>('./locales/*/admin/*.json'),
+  },
 };
 const localePathPattern = /^\.\/locales\/([^/]+)\/([^/]+)\.json(?:\?.*)?$/;
+const sectionPathPattern = /^\.\/locales\/([^/]+)\/(admin)\/([^/]+)\.json$/;
+
+/** Language, namespace and data of one locale module; a section file is wrapped in its key. */
+const readLocaleModule = (path: string, module: LocaleNamespaceModule) => {
+  const section = path.match(sectionPathPattern);
+  if (section) {
+    const [, language, folder, key] = section;
+    return { language, namespace: `${folder}/${key}`, data: { [key]: module.default } as LocaleNamespace };
+  }
+
+  const match = path.match(localePathPattern);
+  return match ? { language: match[1], namespace: match[2], data: module.default } : null;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -51,12 +68,12 @@ const collectLocaleNamespaces = (modules: [path: string, module: LocaleNamespace
   const byLanguage: LocaleNamespacesByLanguage = {};
 
   modules.forEach(([path, module]) => {
-    const match = path.match(localePathPattern);
-    if (!match) {
+    const localeModule = readLocaleModule(path, module);
+    if (!localeModule) {
       return;
     }
 
-    const [, language, namespace] = match;
+    const { language, namespace, data: namespaceData } = localeModule;
     const namespaceName = namespace as LocaleNamespaceName;
     byLanguage[language] ??= {};
 
@@ -64,7 +81,6 @@ const collectLocaleNamespaces = (modules: [path: string, module: LocaleNamespace
       throw new Error(`Duplicate locale namespace detected: ${language}/${namespace}.json`);
     }
 
-    const namespaceData = module.default;
     const languageOwners = (topLevelOwners[language] ??= {});
     validateNamespaceOwnership(language, namespace, namespaceData, languageOwners);
 
@@ -78,7 +94,8 @@ const mergeLanguage = (
   namespaces: Partial<Record<LocaleNamespaceName, LocaleNamespace>>,
   defaultNamespaces: Partial<Record<LocaleNamespaceName, LocaleNamespace>>,
 ): LocaleDictionary =>
-  REQUIRED_NAMESPACES.reduce<LocaleDictionary>((dictionary, namespace) => {
+  [...new Set([...REQUIRED_NAMESPACES, ...Object.keys(defaultNamespaces), ...Object.keys(namespaces)])].reduce<LocaleDictionary>((dictionary, name) => {
+    const namespace = name as LocaleNamespaceName;
     const fallbackNamespace = defaultNamespaces[namespace] ?? {};
     const localeNamespace = namespaces[namespace] ?? {};
     return mergeWithFallback(dictionary, mergeWithFallback(fallbackNamespace, localeNamespace));
