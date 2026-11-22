@@ -3,7 +3,7 @@ import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { trackEvent } from '../../analytics/events';
 import { METRIKA_GOALS, trackGoal } from '../../analytics/metrika';
-import { useLocale } from '../../localization/hooks';
+import { useLocale, useLocalizedPath } from '../../localization/hooks';
 import {
   normalizeSearchQuery,
   SEARCH_MAX_QUERY_LENGTH,
@@ -29,6 +29,7 @@ type SearchFormProps = {
  */
 export const SearchForm = ({ initialQuery = '', autoFocus = false, className }: SearchFormProps) => {
   const t = useLocale().search.form;
+  const localize = useLocalizedPath();
   const navigate = useNavigate();
   const inputId = useId();
 
@@ -37,11 +38,11 @@ export const SearchForm = ({ initialQuery = '', autoFocus = false, className }: 
     const query = normalizeSearchQuery(new FormData(event.currentTarget).get(SEARCH_QUERY_PARAM)?.toString());
     trackGoal(METRIKA_GOALS.search);
     trackEvent({ type: 'Search', query });
-    navigate(searchHref(query));
+    navigate(localize(searchHref(query)));
   };
 
   return (
-    <form role="search" action={SEARCH_PATH} method="get" onSubmit={handleSubmit} className={className}>
+    <form role="search" action={localize(SEARCH_PATH)} method="get" onSubmit={handleSubmit} className={className}>
       <label htmlFor={inputId} className="sr-only">
         {t.label}
       </label>

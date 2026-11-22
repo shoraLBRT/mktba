@@ -2,6 +2,7 @@
  * `sitemap.xml` and `robots.txt` (O-06, #57): pure builders the resource routes serve. Every URL
  * is made with {@link articleHref} and {@link siteUrlFor}, so the sitemap follows the reader's URLs.
  */
+import { DEFAULT_LANGUAGE, localizedPath } from '../localization/language';
 import { siteUrlFor } from './siteMeta';
 import { articleHref } from './slug';
 import type { SitemapArticleDto } from './types/ApiTypes';
@@ -10,11 +11,12 @@ import type { SitemapArticleDto } from './types/ApiTypes';
 export const SITEMAP_MAX_URLS = 50_000;
 
 /** Language of the URLs without a prefix (D6, #21): `/` is Russian, `/en/` is English. */
-export const DEFAULT_LOCALE = 'ru';
+export const DEFAULT_LOCALE: string = DEFAULT_LANGUAGE;
 
 /**
- * The locales the site has reader routes for. English pages arrive with Stage 5; until then an
- * English article (and the hreflang link to it) would point at a 404, so it is left out.
+ * The locales the sitemap lists. `/en/…` routes exist (I-01, #105), but the English interface (#109)
+ * and the hreflang rules (#104) do not yet, and those pages are not indexed until then, so English
+ * articles are left out.
  */
 export const SERVED_LOCALES: readonly string[] = [DEFAULT_LOCALE];
 
@@ -43,8 +45,7 @@ export type SitemapAlternate = { hreflang: string; href: string };
 export type SitemapEntry = { loc: string; lastmod: string | null; alternates: SitemapAlternate[] };
 
 /** The site-relative path of an article in its locale: no prefix for the default one. */
-export const localizedPath = (locale: string, path: string): string =>
-  locale === DEFAULT_LOCALE ? path : `/${locale}${path}`;
+export { localizedPath };
 
 /**
  * A W3C datetime (`2026-11-01T10:30:00Z`) for `lastmod`, or null for an unreadable value. A time

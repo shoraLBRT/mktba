@@ -9,6 +9,7 @@ import NotFoundPage from '../pages/NotFoundPage';
 import { serverApi } from '../server/api.server';
 import { useSession } from '../services/session';
 import { articleContentQueryKey, parseLegacyArticleId } from '../services/Article/articleQueries';
+import { languageFromRequest, localizedPath } from '../localization/language';
 import { ApiError } from '../shared/api-client/apiError';
 import { articleHref } from '../shared/slug';
 
@@ -27,18 +28,20 @@ export const handle: RouteHandle = { ownsMeta: true };
 /**
  * On the server: the article with its schools, so the HTML carries the title and every paragraph.
  * An old `/article/{slug-or-id}` URL, an id or an old slug is redirected (301, the query kept) to the
- * current `/{slug}`; an unknown one answers 404 and a removed one 410. An API that fails answers
+ * current `/{slug}` (`/en/{slug}` for an English article); an unknown one answers 404 and a removed one 410. An API that fails answers
  * 503 (see `serverApi`).
  */
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const requestedSlug = params.slug ?? '';
+  // `/en/{slug}` is the English article with that slug (D6, #21): a slug is unique within a language.
+  const language = languageFromRequest(request);
   const legacyArticleId = parseLegacyArticleId(requestedSlug);
 
   let content;
   try {
     content = legacyArticleId !== null
       ? await serverApi.getArticleContentById(legacyArticleId)
-      : await serverApi.getArticleContentBySlug(requestedSlug);
+      : await serverApi.getArticleContentBySlug(requestedSlug, language);
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.status === 410)) {
       return data<ArticleRouteData>({ missing: error.status }, { status: error.status });
@@ -48,12 +51,13 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   }
 
   const url = new URL(request.url);
-  if (content.slug && articleHref(content.slug) !== url.pathname) {
-    throw redirect(`${articleHref(content.slug)}${url.search}`, 301);
+  const canonicalPath = content.slug ? localizedPath(content.locale ?? language, articleHref(content.slug)) : null;
+  if (canonicalPath && canonicalPath !== url.pathname) {
+    throw redirect(`${canonicalPath}${url.search}`, 301);
   }
 
   const queryClient = createServerQueryClient();
-  queryClient.setQueryData(articleContentQueryKey(requestedSlug), content);
+  queryClient.setQueryData(articleContentQueryKey(requestedSlug, language), content);
   // The canonical schools come from the public layout's loader.
   await queryClient.prefetchQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, content.id],

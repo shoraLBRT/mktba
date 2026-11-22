@@ -64,6 +64,13 @@ const RoutesStub = createRoutesStub([
           { path: 'article/:slug', Component: ArticleRoute, loader: articleRoute.clientLoader, handle: articleRoute.handle },
           { path: ':slug', Component: ArticleRoute, loader: articleRoute.clientLoader, handle: articleRoute.handle },
           { path: 'admin/login', Component: AdminLoginRoute },
+          {
+            path: 'en',
+            children: [
+              { index: true, Component: HomeRoute, loader: homeRoute.clientLoader, handle: homeRoute.handle },
+              { path: ':slug', Component: ArticleRoute, loader: articleRoute.clientLoader, handle: articleRoute.handle },
+            ],
+          },
           { path: '*', Component: NotFoundRoute, loader: notFoundRoute.clientLoader, handle: notFoundRoute.handle },
         ],
       },
@@ -171,7 +178,7 @@ describe('AppRoutes', () => {
     renderAt('/namaz');
 
     expect(await screen.findByRole('heading', { name: 'Намаз', level: 1 })).toBeTruthy();
-    expect(getArticleContentBySlug).toHaveBeenCalledWith('namaz');
+    expect(getArticleContentBySlug).toHaveBeenCalledWith('namaz', 'ru');
     expect(getArticleContentById).not.toHaveBeenCalled();
     expect(screen.getByTestId('path').textContent).toBe('/namaz');
   });
@@ -182,7 +189,7 @@ describe('AppRoutes', () => {
     renderAt('/article/namaz?mazhab=hanafi');
 
     await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/namaz'));
-    expect(getArticleContentBySlug).toHaveBeenCalledWith('namaz');
+    expect(getArticleContentBySlug).toHaveBeenCalledWith('namaz', 'ru');
   });
 
   it('given an unknown slug, when opened, then shows the 404 page', async () => {
@@ -208,6 +215,47 @@ describe('AppRoutes', () => {
     renderAt('/namaz');
 
     await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/salat'));
+  });
+});
+
+describe('language in the URL (I-01, #105)', () => {
+  it('given /en/, when rendered, then the page is English: lang, og:locale, its own canonical, not indexed', async () => {
+    renderAt('/en/');
+
+    await waitFor(() => expect(document.documentElement.lang).toBe('en'));
+    expect(document.head.querySelector('meta[property="og:locale"]')?.getAttribute('content')).toBe('en_US');
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.test/en/');
+    // No `en` dictionary yet (#109): the Russian strings, kept out of the index.
+    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
+    expect(document.title).toBe('mktba — исламская wiki');
+  });
+
+  it('given /, when rendered, then the page is Russian', async () => {
+    renderAt('/');
+
+    await waitFor(() => expect(document.head.querySelector('meta[property="og:locale"]')?.getAttribute('content')).toBe('ru_RU'));
+    expect(document.documentElement.lang).toBe('ru');
+  });
+
+  it('given /en/{slug}, when opened, then asks for the English article with that slug', async () => {
+    vi.mocked(getArticleContentBySlug).mockResolvedValue({ ...article('prayer'), locale: 'en' });
+
+    renderAt('/en/prayer');
+
+    expect(await screen.findByRole('heading', { name: 'Намаз', level: 1 })).toBeTruthy();
+    expect(getArticleContentBySlug).toHaveBeenCalledWith('prayer', 'en');
+    expect(screen.getByTestId('path').textContent).toBe('/en/prayer');
+    const homeLinks = screen.getAllByRole('link', { name: 'Главная' });
+    expect(homeLinks.length).toBeGreaterThan(0);
+    homeLinks.forEach((link) => expect(link.getAttribute('href')).toBe('/en/'));
+  });
+
+  it('given an old id link to an English article, when opened, then replaces the URL with its /en/ one', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue({ ...article('prayer'), locale: 'en' });
+
+    renderAt('/article/7');
+
+    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/en/prayer'));
   });
 });
 

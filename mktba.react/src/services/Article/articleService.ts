@@ -1,3 +1,4 @@
+import { articleLocaleQuery, type Language } from '../../localization/language';
 import apiClient from '../../shared/api-client/ApiClient';
 import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../../shared/search';
 import type { ArticleContentCreateDto, ArticleContentDto, RecentArticlesDto, SearchResultsDto } from '../../shared/types/ApiTypes';
@@ -8,11 +9,13 @@ export const getArticleContentById = async (id: number): Promise<ArticleContentD
 };
 
 /**
- * Content by slug. An old slug answers with a redirect that the browser follows, so the result's
- * `slug` can differ from the one asked for: it is then the current slug.
+ * Content by slug in a language (the URL's, I-01). An old slug answers with a redirect that the
+ * browser follows, so the result's `slug` can differ from the one asked for: it is then the current slug.
  */
-export const getArticleContentBySlug = async (slug: string): Promise<ArticleContentDto> => {
-  const response = await apiClient.get<ArticleContentDto>(`/articles/by-slug/${encodeURIComponent(slug)}/content`);
+export const getArticleContentBySlug = async (slug: string, language: Language): Promise<ArticleContentDto> => {
+  const response = await apiClient.get<ArticleContentDto>(
+    `/articles/by-slug/${encodeURIComponent(slug)}/content${articleLocaleQuery(language)}`,
+  );
   return response.data;
 };
 

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Link } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
-import { useLocale } from '../localization/hooks';
+import { useLocale, useLocalizedPath } from '../localization/hooks';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { Input } from '../shared/ui/Input';
 import { isSearchableQuery, normalizeSearchQuery, searchHref } from '../shared/search';
@@ -53,6 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onExpandSidebarSearch,
 }) => {
   const locale = useLocale();
+  const localize = useLocalizedPath();
   const [searchValue, setSearchValue] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: navigationTree, isLoading, error } = useNavigationTree();
@@ -110,7 +111,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {/* The filter matches titles only; the full-text search may still find the words in the text. */}
             {isSearchableQuery(filterQuery) && (
               <Link
-                to={searchHref(filterQuery)}
+                to={localize(searchHref(filterQuery))}
                 onClick={onCloseMobile}
                 className="mt-1 inline-block text-[var(--color-brand-forest)] underline-offset-2 hover:underline"
               >

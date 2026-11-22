@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router';
-import { useLocale } from '../../localization/hooks';
+import { useLocale, useLocalizedPath } from '../../localization/hooks';
 import { articleHref } from '../../shared/slug';
 
 /** One article on the way from a root of the tree to the open one. */
@@ -30,12 +30,13 @@ const Separator = () => (
  */
 export const ArticleBreadcrumbs = ({ ancestors, currentTitle }: ArticleBreadcrumbsProps) => {
   const t = useLocale().articlePage;
+  const localize = useLocalizedPath();
 
   return (
     <nav aria-label={t.breadcrumbs} className="mb-5 text-[12.5px]" data-testid="article-breadcrumbs">
       <ol className="m-0 flex list-none flex-wrap items-center gap-1 p-0">
         <li className="flex items-center gap-1 text-[var(--color-brand-forest)]">
-          <Link to="/">{t.breadcrumbsHome}</Link>
+          <Link to={localize('/')}>{t.breadcrumbsHome}</Link>
           <Separator />
         </li>
         {ancestors.map((ancestor) => (

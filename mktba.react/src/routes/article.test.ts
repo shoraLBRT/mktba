@@ -14,13 +14,13 @@ const mockApi = (content: Response) =>
     String(input).includes('/content') ? content : json([]));
 
 /** Runs the loader for `/{slug}`, or for the old `/article/{slug}` when `legacy` is set; `search` is the query. */
-const load = (slug: string, { legacy = false, search = '' } = {}) => {
-  const url = `http://mktba.test${legacy ? '/article' : ''}/${slug}${search}`;
+const load = (slug: string, { legacy = false, search = '', english = false } = {}) => {
+  const url = `http://mktba.test${legacy ? '/article' : ''}${english ? '/en' : ''}/${slug}${search}`;
   return loader({
     params: { slug },
     request: new Request(url),
     context: {},
-    unstable_pattern: legacy ? '/article/:slug' : '/:slug',
+    unstable_pattern: legacy ? '/article/:slug' : english ? '/en/:slug' : '/:slug',
     unstable_url: new URL(url),
   } as unknown as Parameters<typeof loader>[0]);
 };
@@ -40,8 +40,30 @@ describe('article route loader', () => {
     const contentQuery = result.data.dehydratedState?.queries.find(
       (query) => query.queryKey[0] === APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT,
     );
-    expect(contentQuery?.queryKey).toEqual([APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, 'slug', 'salat']);
+    expect(contentQuery?.queryKey).toEqual([APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, 'slug', 'ru', 'salat']);
     expect(contentQuery?.state.data).toEqual(article('salat'));
+  });
+
+  it('given /en/{slug}, when it is loaded, then asks the API for the English article and keeps the URL (I-01)', async () => {
+    const fetchMock = mockApi(json({ ...article('prayer'), locale: 'en' }));
+
+    const result = await load('prayer', { english: true });
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/articles/by-slug/prayer/content?locale=en');
+    expect(result.data.missing).toBeNull();
+    const contentQuery = result.data.dehydratedState?.queries.find(
+      (query) => query.queryKey[0] === APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT,
+    );
+    expect(contentQuery?.queryKey).toEqual([APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, 'slug', 'en', 'prayer']);
+  });
+
+  it('given an old id link to an English article, when it is loaded, then redirects permanently to /en/{slug} (I-01)', async () => {
+    mockApi(json({ ...article('prayer'), locale: 'en' }));
+
+    const redirect = (await load('7', { legacy: true }).catch((thrown: unknown) => thrown)) as Response;
+
+    expect(redirect.status).toBe(301);
+    expect(redirect.headers.get('Location')).toBe('/en/prayer');
   });
 
   it('given an old slug, when it is loaded, then redirects permanently to the current slug URL', async () => {
