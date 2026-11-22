@@ -81,6 +81,9 @@ public static class AppErrors
     public static AppError AiProviderRequestFailed(int status, string providerMessage) =>
         new("ai_provider_request_failed", $"AI provider request failed ({status}): {providerMessage}", With(("status", status)));
 
+    // Search engines
+    public static AppError IndexNowNotConfigured => new("indexnow_not_configured", "IndexNow is not configured on this site.");
+
     // Articles
     public static AppError ArticleNotFound => new("article_not_found", "Article not found.");
     public static AppError ArticleGone => new("article_gone", "The article has been removed.");

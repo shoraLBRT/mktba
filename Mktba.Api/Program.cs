@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using Mktba.Application;
 using Mktba.Application.Configuration;
 using Mktba.Application.Mappings;
+using Mktba.Application.Services.IndexNow;
 using Mktba.Infrastructure;
 using Mktba.Infrastructure.Data;
 using Mktba.Infrastructure.Storage;
@@ -28,6 +29,7 @@ builder.Services.AddApplication();
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<FeedbackOptions>(builder.Configuration.GetSection(FeedbackOptions.SectionName));
+builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection(IndexNowOptions.SectionName));
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
 builder.Services.AddFileStorage(
     builder.Configuration.GetSection(FileStorageOptions.SectionName).Get<FileStorageOptions>() ?? new FileStorageOptions(),
@@ -68,6 +70,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient(IndexNowClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddSwaggerGen(options =>
 {
     // Fixed title and version: the document is committed (mktba.react/src/shared/api/openapi.json),
@@ -116,6 +119,7 @@ builder.Services.AddMktbaRateLimiting(builder.Configuration);
 if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
 {
     builder.Services.AddHostedService<FeedbackDeliveryWorker>();
+    builder.Services.AddHostedService<IndexNowWorker>();
 }
 
 var app = builder.Build();
@@ -166,6 +170,7 @@ app.MapProfileEndpoints();
 app.MapInviteEndpoints();
 app.MapSearchEndpoints();
 app.MapFeedbackEndpoints();
+app.MapSeoEndpoints();
 app.MapUploadEndpoints();
 
 app.Run();

@@ -63,6 +63,7 @@ export type AiStyleResponseDto = Schemas['AiStyleResponseDto'];
 export type AiConnectionCheckResultDto = Schemas['AiConnectionCheckResultDto'];
 export type NavigationArticleDto = Schemas['NavigationArticleDto'];
 export type SitemapArticleDto = Schemas['SitemapArticleDto'];
+export type IndexNowKeyDto = Schemas['IndexNowKeyDto'];
 export type RecentArticleDto = Schemas['RecentArticleDto'];
 export type RecentArticlesDto = Schemas['RecentArticlesDto'];
 export type SearchTextSegmentDto = Schemas['SearchTextSegmentDto'];

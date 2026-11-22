@@ -46,6 +46,8 @@ export default defineConfig({
         RateLimiting__Auth__PermitLimit: '1000',
         // A developer's appsettings.local.json may hold a real GitHub App key: e2e never files issues.
         Feedback__GitHub__Enabled: 'false',
+        // Nor does it ping IndexNow, whatever the local settings hold.
+        IndexNow__Enabled: 'false',
       },
       // Never reuse an API that is already running: it may point at a database with real data.
       reuseExistingServer: false,
@@ -55,6 +57,8 @@ export default defineConfig({
     },
     {
       command: 'npm run dev -- --port 5173 --strictPort',
+      // Test tokens for the webmaster verification tags (O-12, #61); crawler.spec checks them.
+      env: { YANDEX_VERIFICATION: 'e2e-yandex-token', GOOGLE_SITE_VERIFICATION: 'e2e-google-token' },
       url: APP_URL,
       reuseExistingServer: !isCI,
       timeout: 60_000,

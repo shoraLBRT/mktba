@@ -137,6 +137,7 @@
     "ai_provider_not_configured": "ИИ-провайдер не настроен. Укажите адрес, модель и API-ключ в настройках ИИ.",
     "ai_provider_empty_response": "Провайдер ИИ вернул пустой ответ.",
     "ai_provider_request_failed": "Провайдер ИИ вернул ошибку (код {status}).",
+    "indexnow_not_configured": "IndexNow на сайте не настроен.",
     "article_not_found": "Статья не найдена.",
     "article_gone": "Статья удалена.",
     "article_title_required": "Укажите название статьи.",

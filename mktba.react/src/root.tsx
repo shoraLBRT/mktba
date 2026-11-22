@@ -27,6 +27,7 @@ import { createQueryClient, invalidateArticleQueries } from './app/queryClient';
 import type { RouteHandle } from './app/routeHandle';
 import { SiteUrlContext } from './app/siteUrl';
 import { resolveSiteUrl } from './server/siteUrl.server';
+import { resolveSiteVerification, type SiteVerificationMeta } from './server/siteVerification.server';
 import {
   APPLE_TOUCH_ICON_PATH,
   FAVICON_ICO_PATH,
@@ -38,10 +39,15 @@ import {
 type RootData = {
   /** Public site address for canonical links and Open Graph URLs (`PUBLIC_SITE_URL`). */
   siteUrl: string;
+  /** Yandex Webmaster / Google Search Console verification tags (O-12, #61); empty when not configured. */
+  siteVerification: SiteVerificationMeta[];
 };
 
-/** On the server, once per document: the address absolute page URLs are built on. */
-export const loader = ({ request }: LoaderFunctionArgs): RootData => ({ siteUrl: resolveSiteUrl(request) });
+/** On the server, once per document: the address absolute page URLs are built on, and the verification tags. */
+export const loader = ({ request }: LoaderFunctionArgs): RootData => ({
+  siteUrl: resolveSiteUrl(request),
+  siteVerification: resolveSiteVerification(),
+});
 
 /**
  * The body text font (Inter, regular, Cyrillic) is fetched with the HTML instead of after the CSS
@@ -56,6 +62,7 @@ export const shouldRevalidate = () => false;
 
 /** The HTML document around every page (error pages included), rendered on the server. */
 export function Layout({ children }: { children: ReactNode }) {
+  const siteVerification = useRouteLoaderData<typeof loader>('root')?.siteVerification ?? [];
   return (
     <html lang="ru">
       <head>
@@ -66,6 +73,9 @@ export function Layout({ children }: { children: ReactNode }) {
         <link rel="apple-touch-icon" href={APPLE_TOUCH_ICON_PATH} />
         <link rel="manifest" href={WEB_MANIFEST_PATH} />
         <meta name="theme-color" content={THEME_COLOR} />
+        {siteVerification.map(({ name, content }) => (
+          <meta key={name} name={name} content={content} />
+        ))}
         <Meta />
         <Links />
       </head>

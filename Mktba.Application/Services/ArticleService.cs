@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
+using Mktba.Application.Services.IndexNow;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
 
@@ -11,12 +12,14 @@ namespace Mktba.Application.Services
         private readonly ArticleRepository _articleRepository;
         private readonly IMapper _mapper;
         private readonly TimeProvider _clock;
+        private readonly ISearchEngineNotifier _searchEngines;
 
-        public ArticleService(ArticleRepository articleRepository, IMapper mapper, TimeProvider clock)
+        public ArticleService(ArticleRepository articleRepository, IMapper mapper, TimeProvider clock, ISearchEngineNotifier searchEngines)
         {
             _articleRepository = articleRepository;
             _mapper = mapper;
             _clock = clock;
+            _searchEngines = searchEngines;
         }
 
         /// <summary>The articles <paramref name="viewer"/> may see, each with the status moves the viewer may make.</summary>
@@ -125,6 +128,8 @@ namespace Mktba.Application.Services
         /// <paramref name="viewer"/> only shapes the returned <see cref="ArticleReadDto.AllowedTransitions"/>.
         /// Every move is logged in the same save as an <see cref="ArticleStatusChange"/> (A-04, #87)
         /// with <paramref name="comment"/> (trimmed, blank = none) and the latest revision number.
+        /// A move into or out of Published, once saved, asks search engines to crawl the article's
+        /// page again (<see cref="ISearchEngineNotifier"/>, O-12 #61).
         /// </summary>
         /// <param name="changedById">The user making the move, recorded in the log.</param>
         /// <exception cref="NotFoundException">The article does not exist.</exception>
@@ -159,6 +164,7 @@ namespace Mktba.Application.Services
                 Comment = trimmedComment,
             });
 
+            var wasPublished = article.Status == ArticleStatus.Published;
             article.Status = target;
             if (target == ArticleStatus.Published)
             {
@@ -168,6 +174,11 @@ namespace Mktba.Application.Services
 
             await _articleRepository.UpdateAsync(article);
             await _articleRepository.SaveChangesAsync();
+            if (wasPublished || target == ArticleStatus.Published)
+            {
+                _searchEngines.ArticleChanged(article.Slug);
+            }
+
             return await WithLastStatusChangeAsync(ToReadDto(article, viewer), article, viewer);
         }
 

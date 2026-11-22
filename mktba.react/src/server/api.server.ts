@@ -5,6 +5,7 @@ import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../sh
 import { TAG_PAGE_PARAM } from '../shared/tag';
 import type {
   ArticleContentDto,
+  IndexNowKeyDto,
   AuthorArticlesDto,
   NavigationArticleDto,
   PublicProfileDto,
@@ -69,6 +70,7 @@ export const serverApi = {
   getArticleContentBySlug: (slug: string) =>
     getJson<ArticleContentDto>(`/articles/by-slug/${encodeURIComponent(slug)}/content`),
   getSitemapArticles: () => getJson<SitemapArticleDto[]>('/articles/sitemap'),
+  getIndexNowKey: () => getJson<IndexNowKeyDto>('/seo/indexnow-key'),
   getRecentArticles: () => getJson<RecentArticlesDto>('/articles/recent'),
   searchArticles: ({ query, page }: SearchRequest) =>
     getJson<SearchResultsDto>(
