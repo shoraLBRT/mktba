@@ -60,6 +60,30 @@ namespace Mktba.Infrastructure.Repositories
         }
 
         /// <summary>
+        /// Counts the articles <paramref name="viewer"/> may see by status, and those with content,
+        /// in two aggregate queries: no article or content row is loaded (A-07, #95). Content follows
+        /// the rule of <c>hasContent</c> on the article DTO: an opinion in a paragraph, an infobox
+        /// field, a non-blank infobox title or subtitle, or a non-blank summary.
+        /// </summary>
+        public async Task<ArticleSummaryCounts> GetSummaryCountsAsync(ArticleViewer viewer, CancellationToken cancellationToken = default)
+        {
+            var visible = _dbSet.AsNoTracking().VisibleTo(viewer);
+            var byStatus = await visible
+                .GroupBy(article => article.Status)
+                .Select(group => new { Status = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(row => row.Status, row => row.Count, cancellationToken);
+            var withContent = await visible
+                .CountAsync(article =>
+                    article.Paragraphs.Any(paragraph => paragraph.Opinions.Any())
+                    || article.InfoboxFields.Any()
+                    || (article.InfoboxTitle != null && article.InfoboxTitle.Trim() != "")
+                    || (article.InfoboxSubtitle != null && article.InfoboxSubtitle.Trim() != "")
+                    || (article.Summary != null && article.Summary.Trim() != ""),
+                    cancellationToken);
+            return new ArticleSummaryCounts(byStatus, withContent);
+        }
+
+        /// <summary>
         /// Every article an anonymous reader may see (Published), projected to
         /// <see cref="ArticleSitemapRow"/> in a single query with no content rows.
         /// </summary>

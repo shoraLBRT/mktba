@@ -1,29 +1,34 @@
 import React from 'react';
 import { Check, Database, FileText } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { getArticles } from '../../services/adminService';
+import { getArticleSummary } from '../../services/adminService';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { useLocale } from '../../localization/hooks';
 import { ArticleStatusBadge } from '../../components/article/ArticleStatusBadge';
-import type { ArticleStatus } from '../../shared/types/ApiTypes';
+import type { ArticleStatus, ArticleSummaryDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
 
-const ARTICLE_STATUSES: ArticleStatus[] = ['Draft', 'InReview', 'Published', 'Archived'];
+/** Each status, with its field in the summary's `byStatus`. */
+const ARTICLE_STATUSES: [ArticleStatus, keyof ArticleSummaryDto['byStatus']][] = [
+  ['Draft', 'draft'],
+  ['InReview', 'inReview'],
+  ['Published', 'published'],
+  ['Archived', 'archived'],
+];
 
 const share = (part: number, total: number) => (total > 0 ? `${Math.round((part / total) * 100)}%` : '0%');
 
-/** `/admin`: article counts by content and by status. */
+/** `/admin`: article counts by content and by status, counted by the API (A-07). */
 const AdminDashboardPage: React.FC = () => {
   const locale = useLocale();
   const t = locale.adminPage;
-  const articlesQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES], queryFn: getArticles });
+  const summaryQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.ADMIN_ARTICLES, 'summary'], queryFn: getArticleSummary });
 
-  const articles = articlesQuery.data ?? [];
-  const articleCount = articles.length;
-  const articlesWithContent = articles.filter((a) => a.hasContent).length;
-  const emptyArticles = articleCount - articlesWithContent;
-  const countByStatus = (status: ArticleStatus) => articles.filter((a) => a.status === status).length;
-  const shown = (value: number | string) => (articlesQuery.isLoading ? '...' : value);
+  const summary = summaryQuery.data;
+  const articleCount = summary?.total ?? 0;
+  const articlesWithContent = summary?.withContent ?? 0;
+  const emptyArticles = summary?.empty ?? 0;
+  const shown = (value: number | string) => (summaryQuery.isLoading ? '...' : value);
 
   return (
     <div className="space-y-4">
@@ -77,10 +82,10 @@ const AdminDashboardPage: React.FC = () => {
           {t.statusBreakdownTitle}
         </p>
         <div className="mt-3 flex flex-wrap gap-4" data-testid="article-status-breakdown">
-          {ARTICLE_STATUSES.map((status) => (
+          {ARTICLE_STATUSES.map(([status, field]) => (
             <div key={status} className="flex items-center gap-2">
               <ArticleStatusBadge status={status} />
-              <span className="text-lg font-semibold text-[var(--color-ink-strong)]">{shown(countByStatus(status))}</span>
+              <span className="text-lg font-semibold text-[var(--color-ink-strong)]">{shown(summary?.byStatus[field] ?? 0)}</span>
             </div>
           ))}
         </div>

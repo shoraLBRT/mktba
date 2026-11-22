@@ -29,6 +29,30 @@ namespace Mktba.Application.Services
             return articles.Select(article => ToReadDto(article, viewer)).ToList();
         }
 
+        /// <summary>
+        /// Article counts for the admin dashboard over the articles <paramref name="viewer"/> may see,
+        /// counted in the database instead of loading every article with its content (A-07, #95).
+        /// </summary>
+        public async Task<ArticleSummaryDto> GetSummaryAsync(ArticleViewer viewer, CancellationToken cancellationToken = default)
+        {
+            var counts = await _articleRepository.GetSummaryCountsAsync(viewer, cancellationToken);
+            int Count(ArticleStatus status) => counts.CountByStatus.GetValueOrDefault(status);
+            var total = counts.CountByStatus.Values.Sum();
+            return new ArticleSummaryDto
+            {
+                Total = total,
+                WithContent = counts.WithContent,
+                Empty = total - counts.WithContent,
+                ByStatus = new ArticleStatusCountsDto
+                {
+                    Draft = Count(ArticleStatus.Draft),
+                    InReview = Count(ArticleStatus.InReview),
+                    Published = Count(ArticleStatus.Published),
+                    Archived = Count(ArticleStatus.Archived),
+                },
+            };
+        }
+
         /// <summary>The largest page of the admin article list, and the most articles one bulk action takes.</summary>
         public const int MaxPageSize = 100;
 

@@ -14,14 +14,16 @@ import type {
   ArticleUpdateDto,
   ArticleReadDto,
   ArticleStatus,
+  ArticleSummaryDto,
   ReviewQueueItemDto,
   UpdateAiProviderSettingsDto,
   UserSummaryDto,
 } from '../shared/types/ApiTypes';
 import type { ArticleListParams } from '../shared/articleListParams';
 
-export const getArticles = async (): Promise<ArticleReadDto[]> => {
-  const response = await apiClient.get<ArticleReadDto[]>('/articles');
+/** The dashboard's article counts (A-07): counted by the API, no article is loaded. */
+export const getArticleSummary = async (): Promise<ArticleSummaryDto> => {
+  const response = await apiClient.get<ArticleSummaryDto>('/articles/summary');
   return response.data;
 };
 

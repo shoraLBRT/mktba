@@ -1096,6 +1096,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Article counts for the admin dashboard.
+         * @description Counts the articles the caller may see (an author: Published ones plus their own): the total, those with content (an opinion, an infobox or a summary, the rule of hasContent) and without, and the number in each status. Counted in the database; no article content is loaded.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleSummaryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/bulk/status": {
         parameters: {
             query?: never;
@@ -4194,6 +4233,25 @@ export interface components {
             changedAt: string;
             changedByDisplayName?: string | null;
             comment?: string | null;
+        };
+        ArticleStatusCountsDto: {
+            /** Format: int32 */
+            draft: number;
+            /** Format: int32 */
+            inReview: number;
+            /** Format: int32 */
+            published: number;
+            /** Format: int32 */
+            archived: number;
+        };
+        ArticleSummaryDto: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            withContent: number;
+            /** Format: int32 */
+            empty: number;
+            byStatus: components["schemas"]["ArticleStatusCountsDto"];
         };
         ArticleTagDto: {
             name: string;

@@ -84,6 +84,7 @@ mktba.react           → React 19 + TypeScript, React Router v7 framework mode 
 - `/articles/by-slug/{slug}/content` — the same content by slug; an old slug answers 302 to the current slug's URL
 - `/articles/recent?locale=&limit=` — the home page's lists (R-05, #41): `new` by `PublishedAt`, `updated` = saved after publication, by `UpdatedAt`; public, the same for every caller: Published, every ancestor Published, no empty stubs (`RecentArticlesService`)
 - `/articles/review-queue?locale=` — the moderation queue (A-04, #87), reviewers only: InReview articles with the revisions to compare; approve or return through `POST /articles/{id}/status` with an optional `comment`
+- `/articles/summary` — the admin dashboard's counts (A-07, #95; `CanEditArticles`): `ArticleSummaryDto { total, withContent, empty, byStatus: { draft, inReview, published, archived } }` over the articles the caller may see, counted in SQL (`ArticleRepository.GetSummaryCountsAsync`, the `hasContent` rule of `ArticleReadDto`), so the dashboard (`pages/admin/AdminDashboardPage.tsx`) no longer loads every article with its content through `GET /articles`
 - `/search?q=&locale=&page=&pageSize=` — full-text search (R-10, #46), public; items carry `title` / `summary` / `snippet` as `{ text, match }` runs and the snippet's `paragraphId`
 - `/paragraph` — paragraph CRUD (`GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `DELETE /{id}`)
 - `/schools` — `GET /system`, `GET /article/{articleId}`, `POST /`, `DELETE /{id}`

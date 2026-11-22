@@ -36,6 +36,7 @@ export type ArticleStatusChangeEntryDto = Schemas['ArticleStatusChangeEntryDto']
 export type ReviewQueueItemDto = Schemas['ReviewQueueItemDto'];
 export type ArticleListItemDto = Schemas['ArticleListItemDto'];
 export type ArticleListPageDto = Schemas['ArticleListPageDto'];
+export type ArticleSummaryDto = Schemas['ArticleSummaryDto'];
 export type ArticleBulkStatusDto = Schemas['ArticleBulkStatusDto'];
 export type ArticleBulkItemResultDto = Schemas['ArticleBulkItemResultDto'];
 export type ArticleBulkResultDto = Schemas['ArticleBulkResultDto'];
