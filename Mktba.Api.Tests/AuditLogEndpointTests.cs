@@ -7,11 +7,11 @@ using Mktba.Domain.Entities;
 namespace Mktba.Api.Tests;
 
 /// <summary>U-09 (#135): the API's role changes, status moves and trash actions land in the admin-only audit log.</summary>
-public sealed class AuditLogEndpointTests : IClassFixture<MktbaApiFactory>
+public abstract class AuditLogEndpointTests
 {
     private readonly MktbaApiFactory _factory;
 
-    public AuditLogEndpointTests(MktbaApiFactory factory)
+    protected AuditLogEndpointTests(MktbaApiFactory factory)
     {
         _factory = factory;
     }
@@ -83,4 +83,10 @@ public sealed class AuditLogEndpointTests : IClassFixture<MktbaApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<ArticleContentDto>(ApiJson.Options))!;
     }
+
+    /// <summary>On the InMemory provider.</summary>
+    public sealed class InMemory(MktbaApiFactory factory) : AuditLogEndpointTests(factory), IClassFixture<MktbaApiFactory>;
+
+    /// <summary>On a real PostgreSQL database (X-07, #161).</summary>
+    public sealed class OnPostgres(PostgresApiFactory factory) : AuditLogEndpointTests(factory), IClassFixture<PostgresApiFactory>;
 }
