@@ -8,6 +8,7 @@ import { getSiteAnalytics } from '../../services/adminService';
 import type { SiteAnalyticsDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
 import { BarChart } from './BarChart';
+import { WebVitalsCard } from './WebVitalsCard';
 import { Freshness, PeriodSwitch, SchoolShares, StatCard } from './analyticsParts';
 import { SECONDARY_COLOR, VIEWS_COLOR, dailyGeometry, formatDay } from './analyticsFormat';
 
@@ -110,6 +111,8 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
           />
         </Card>
       </div>
+
+      <WebVitalsCard webVitals={data.webVitals} />
 
       <Card className="p-6" data-testid="site-analytics-metrika">
         <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.metrikaTitle}</h3>

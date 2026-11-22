@@ -4211,6 +4211,11 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "value": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4222,7 +4227,10 @@
           "OpinionSwitched",
           "Search",
           "ScrollDepth",
-          "InternalLinkClick"
+          "InternalLinkClick",
+          "WebVitalLcp",
+          "WebVitalInp",
+          "WebVitalCls"
         ],
         "type": "string"
       },
@@ -6894,7 +6902,8 @@
           "to",
           "topArticles",
           "totals",
-          "viewsWithoutSchool"
+          "viewsWithoutSchool",
+          "webVitals"
         ],
         "type": "object",
         "properties": {
@@ -6939,6 +6948,12 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "webVitals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteWebVitalDto"
+            }
           }
         },
         "additionalProperties": false
@@ -6960,6 +6975,43 @@
             "format": "int32"
           },
           "searches": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SiteWebVitalDto": {
+        "required": [
+          "good",
+          "metric",
+          "needsImprovement",
+          "poor",
+          "samples"
+        ],
+        "type": "object",
+        "properties": {
+          "metric": {
+            "$ref": "#/components/schemas/AnalyticsEventType"
+          },
+          "samples": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "p75": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "good": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "needsImprovement": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "poor": {
             "type": "integer",
             "format": "int32"
           }

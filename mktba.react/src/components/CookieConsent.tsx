@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getConsent, initMetrika, setConsent } from '../analytics/metrika';
+import { startWebVitals } from '../analytics/events';
 import { useLocale } from '../localization/hooks';
 import { useHydrated } from '../shared/useHydrated';
 
@@ -15,6 +16,7 @@ export const CookieConsent = () => {
   const handleAccept = () => {
     setConsent(true);
     initMetrika();
+    startWebVitals();
     setAnswered(true);
   };
 

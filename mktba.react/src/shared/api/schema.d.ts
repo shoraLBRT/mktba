@@ -4387,9 +4387,11 @@ export interface components {
             targetPath?: string | null;
             /** Format: uuid */
             visitorId?: string | null;
+            /** Format: double */
+            value?: number | null;
         };
         /** @enum {string} */
-        AnalyticsEventType: "ArticleView" | "OpinionShown" | "OpinionSwitched" | "Search" | "ScrollDepth" | "InternalLinkClick";
+        AnalyticsEventType: "ArticleView" | "OpinionShown" | "OpinionSwitched" | "Search" | "ScrollDepth" | "InternalLinkClick" | "WebVitalLcp" | "WebVitalInp" | "WebVitalCls";
         AnalyticsSchoolTotalDto: {
             /** Format: int32 */
             schoolId: number;
@@ -5165,6 +5167,7 @@ export interface components {
             viewsWithoutSchool: number;
             /** Format: date-time */
             aggregatedAtUtc?: string | null;
+            webVitals: components["schemas"]["SiteWebVitalDto"][];
         };
         SiteAnalyticsTotalsDto: {
             /** Format: int32 */
@@ -5173,6 +5176,19 @@ export interface components {
             visitors: number;
             /** Format: int32 */
             searches: number;
+        };
+        SiteWebVitalDto: {
+            metric: components["schemas"]["AnalyticsEventType"];
+            /** Format: int32 */
+            samples: number;
+            /** Format: double */
+            p75?: number | null;
+            /** Format: int32 */
+            good: number;
+            /** Format: int32 */
+            needsImprovement: number;
+            /** Format: int32 */
+            poor: number;
         };
         SitemapArticleDto: {
             slug: string;
