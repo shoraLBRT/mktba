@@ -50,6 +50,16 @@ namespace Mktba.Api.Endpoints
             .Produces<ArticleListPageDto>()
             .RequireAuthorization(Policies.CanEditArticles);
 
+            group.MapGet("/summary", async (ClaimsPrincipal user, ArticleService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.GetSummaryAsync(user.ToArticleViewer(), cancellationToken)))
+            .WithSummary("Article counts for the admin dashboard.")
+            .WithDescription(
+                "Counts the articles the caller may see (an author: Published ones plus their own): the total, "
+                + "those with content (an opinion, an infobox or a summary, the rule of hasContent) and without, "
+                + "and the number in each status. Counted in the database; no article content is loaded.")
+            .Produces<ArticleSummaryDto>()
+            .RequireAuthorization(Policies.CanEditArticles);
+
             group.MapPost("/bulk/status", async (ArticleBulkStatusDto dto, ClaimsPrincipal user, ArticleService service, ArticleAccessGuard guard) =>
             {
                 var ids = dto.Ids.Distinct().ToList();

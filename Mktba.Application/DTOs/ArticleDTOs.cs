@@ -127,6 +127,30 @@ namespace Mktba.Application.DTOs
         public ArticleStatusChangeEntryDto? LastStatusChange { get; set; }
     }
 
+    /// <summary>
+    /// Article counts for the admin dashboard (A-07, #95), over the articles the caller may see.
+    /// </summary>
+    public class ArticleSummaryDto
+    {
+        /// <summary>Number of articles.</summary>
+        public int Total { get; set; }
+        /// <summary>Articles with content: an opinion, an infobox or a summary (the rule of hasContent).</summary>
+        public int WithContent { get; set; }
+        /// <summary>Articles without content: Total minus WithContent.</summary>
+        public int Empty { get; set; }
+        /// <summary>Number of articles in each status.</summary>
+        public ArticleStatusCountsDto ByStatus { get; set; } = new();
+    }
+
+    /// <summary>Number of articles in each status.</summary>
+    public class ArticleStatusCountsDto
+    {
+        public int Draft { get; set; }
+        public int InReview { get; set; }
+        public int Published { get; set; }
+        public int Archived { get; set; }
+    }
+
     /// <summary>One page of the admin article list.</summary>
     public class ArticleListPageDto
     {
