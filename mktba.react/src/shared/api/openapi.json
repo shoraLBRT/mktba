@@ -267,6 +267,47 @@
         }
       }
     },
+    "/analytics/me": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "The signed-in author's statistics over the last days: only the articles they write or co-write.",
+        "description": "Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). daily has every day, oldest first: views of the user's articles and the readers who viewed any of them, as counted on that day's authorship. readers summed over several days are reader-days (the anonymous visitor id changes every UTC day). topArticles (at most ten), depth, schools and viewsWithoutSchool cover only the articles the user writes or co-writes now; depth counts the views that reached 25, 50, 75 and 100 % of the text. An admin gets their own articles here too; the whole site is /analytics/site.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorAnalyticsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/{id}/content": {
       "get": {
         "tags": [
@@ -5215,6 +5256,114 @@
         },
         "additionalProperties": false
       },
+      "AuthorAnalyticsDayDto": {
+        "required": [
+          "day",
+          "readers",
+          "views"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "readers": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthorAnalyticsDto": {
+        "required": [
+          "daily",
+          "days",
+          "depth",
+          "from",
+          "schools",
+          "to",
+          "topArticles",
+          "totals",
+          "viewsWithoutSchool"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AuthorAnalyticsTotalsDto"
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorAnalyticsDayDto"
+            }
+          },
+          "topArticles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorArticleTotalDto"
+            }
+          },
+          "depth": {
+            "$ref": "#/components/schemas/ReadDepthDto"
+          },
+          "schools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsSchoolTotalDto"
+            }
+          },
+          "viewsWithoutSchool": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aggregatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthorAnalyticsTotalsDto": {
+        "required": [
+          "articlesViewed",
+          "readers",
+          "views"
+        ],
+        "type": "object",
+        "properties": {
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "readers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articlesViewed": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "AuthorArticleDto": {
         "required": [
           "id",
@@ -5246,6 +5395,41 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthorArticleTotalDto": {
+        "required": [
+          "articleId",
+          "depth",
+          "readers",
+          "slug",
+          "title",
+          "views"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "readers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "depth": {
+            "$ref": "#/components/schemas/ReadDepthDto"
           }
         },
         "additionalProperties": false
@@ -5800,6 +5984,39 @@
             "items": {
               "$ref": "#/components/schemas/ProfileLinkDto"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReadDepthDto": {
+        "required": [
+          "reachedDepth100",
+          "reachedDepth25",
+          "reachedDepth50",
+          "reachedDepth75",
+          "views"
+        ],
+        "type": "object",
+        "properties": {
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reachedDepth25": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reachedDepth50": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reachedDepth75": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reachedDepth100": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

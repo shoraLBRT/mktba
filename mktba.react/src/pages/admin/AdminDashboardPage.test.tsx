@@ -13,6 +13,7 @@ vi.mock('../../services/adminService', () => ({
 }));
 vi.mock('../../auth/useCurrentUser', () => ({ useCurrentUser: vi.fn() }));
 vi.mock('./SiteAnalyticsSection', () => ({ SiteAnalyticsSection: () => <div data-testid="site-analytics" /> }));
+vi.mock('./AuthorAnalyticsSection', () => ({ AuthorAnalyticsSection: () => <div data-testid="author-analytics" /> }));
 
 const signInAs = (role: UserRole) =>
   vi.mocked(useCurrentUser).mockReturnValue({ user: undefined, role, can: (policy) => roleAllows(role, policy) });
@@ -66,15 +67,17 @@ describe('AdminDashboardPage', () => {
     renderPage();
 
     expect(await screen.findByTestId('site-analytics')).toBeTruthy();
+    expect(screen.getByTestId('author-analytics')).toBeTruthy();
   });
 
-  it('given an author, when shown, then leaves the site statistics out', async () => {
+  it('given an author, when shown, then gives their own statistics but leaves the site statistics out', async () => {
     signInAs('Author');
     vi.mocked(getArticleSummary).mockResolvedValue({ total: 0, withContent: 0, empty: 0, byStatus: { draft: 0, inReview: 0, published: 0, archived: 0 } });
 
     renderPage();
 
     expect(await screen.findByText('Всего статей')).toBeTruthy();
+    expect(screen.getByTestId('author-analytics')).toBeTruthy();
     expect(screen.queryByTestId('site-analytics')).toBeNull();
   });
 });

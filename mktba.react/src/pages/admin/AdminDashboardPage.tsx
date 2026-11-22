@@ -8,6 +8,7 @@ import { ArticleStatusBadge } from '../../components/article/ArticleStatusBadge'
 import type { ArticleStatus, ArticleSummaryDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
 import { useCurrentUser } from '../../auth/useCurrentUser';
+import { AuthorAnalyticsSection } from './AuthorAnalyticsSection';
 import { SiteAnalyticsSection } from './SiteAnalyticsSection';
 
 /** Each status, with its field in the summary's `byStatus`. */
@@ -20,7 +21,10 @@ const ARTICLE_STATUSES: [ArticleStatus, keyof ArticleSummaryDto['byStatus']][] =
 
 const share = (part: number, total: number) => (total > 0 ? `${Math.round((part / total) * 100)}%` : '0%');
 
-/** `/admin`: article counts by content and by status, counted by the API (A-07), and for admins the site's own statistics (N-05). */
+/**
+ * `/admin`: article counts by content and by status, counted by the API (A-07), for admins the site's
+ * own statistics (N-05), and for everyone who writes the statistics of their own articles (P-03).
+ */
 const AdminDashboardPage: React.FC = () => {
   const locale = useLocale();
   const { can } = useCurrentUser();
@@ -95,6 +99,7 @@ const AdminDashboardPage: React.FC = () => {
       </Card>
 
       {can('canViewSiteAnalytics') ? <SiteAnalyticsSection /> : null}
+      {can('canEditArticles') ? <AuthorAnalyticsSection /> : null}
     </div>
   );
 };
