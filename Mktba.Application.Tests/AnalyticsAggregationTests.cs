@@ -40,7 +40,31 @@ public abstract class AnalyticsAggregationScenarios : IAsyncLifetime
         context.AnalyticsAuthorDays.RemoveRange(await context.AnalyticsAuthorDays.ToListAsync());
         context.AnalyticsTagDays.RemoveRange(await context.AnalyticsTagDays.ToListAsync());
         context.AnalyticsSearchDays.RemoveRange(await context.AnalyticsSearchDays.ToListAsync());
+        context.AnalyticsWebVitalDays.RemoveRange(await context.AnalyticsWebVitalDays.ToListAsync());
         await context.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task GivenWebVitalsOfADay_WhenAggregated_ThenEachMetricKeepsItsP75AndRatings()
+    {
+        var at = DayStart.AddHours(9);
+        await AddEventsAsync(
+            Vital(AnalyticsEventType.WebVitalLcp, at, 1200),
+            Vital(AnalyticsEventType.WebVitalLcp, at, 2500),
+            Vital(AnalyticsEventType.WebVitalLcp, at, 3000),
+            Vital(AnalyticsEventType.WebVitalLcp, at, 4500),
+            Vital(AnalyticsEventType.WebVitalCls, at, 0.05));
+
+        await ServiceRunAsync();
+
+        await using var context = CreateContext();
+        var vitals = await context.AnalyticsWebVitalDays.Where(d => d.Day == Day).ToListAsync();
+        vitals.Should().BeEquivalentTo(new[]
+        {
+            new { Metric = AnalyticsEventType.WebVitalLcp, Samples = 4, P75 = 3000.0, Good = 2, NeedsImprovement = 1, Poor = 1 },
+            new { Metric = AnalyticsEventType.WebVitalCls, Samples = 1, P75 = 0.05, Good = 1, NeedsImprovement = 0, Poor = 0 },
+        });
+        (await context.AnalyticsDays.SingleAsync(d => d.Day == Day)).ArticleViews.Should().Be(0);
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -298,6 +322,9 @@ public abstract class AnalyticsAggregationScenarios : IAsyncLifetime
 
     private static AnalyticsEvent Search(DateTime at, string query, Guid visitor, int? resultCount)
         => new() { Type = AnalyticsEventType.Search, OccurredAtUtc = at, Query = query, VisitorId = visitor, ResultCount = resultCount };
+
+    private static AnalyticsEvent Vital(AnalyticsEventType metric, DateTime at, double value)
+        => new() { Type = metric, OccurredAtUtc = at, MetricValue = value, ViewId = Guid.NewGuid() };
 
     private static AnalyticsEvent Event(AnalyticsEventType type, DateTime at, int articleId, Guid visitor, Action<AnalyticsEvent>? fill = null)
     {

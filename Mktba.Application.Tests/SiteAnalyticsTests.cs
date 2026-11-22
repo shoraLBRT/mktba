@@ -26,6 +26,7 @@ public abstract class SiteAnalyticsScenarios : IAsyncLifetime
         context.AnalyticsDays.RemoveRange(await context.AnalyticsDays.ToListAsync());
         context.AnalyticsArticleDays.RemoveRange(await context.AnalyticsArticleDays.ToListAsync());
         context.AnalyticsArticleSchoolDays.RemoveRange(await context.AnalyticsArticleSchoolDays.ToListAsync());
+        context.AnalyticsWebVitalDays.RemoveRange(await context.AnalyticsWebVitalDays.ToListAsync());
         await context.SaveChangesAsync();
     }
 
@@ -47,6 +48,31 @@ public abstract class SiteAnalyticsScenarios : IAsyncLifetime
         result.Schools.Should().BeEmpty();
         result.ViewsWithoutSchool.Should().Be(0);
         result.AggregatedAtUtc.Should().BeNull();
+        result.WebVitals.Should().Equal(
+            new SiteWebVitalDto(AnalyticsEventType.WebVitalLcp, 0, null, 0, 0, 0),
+            new SiteWebVitalDto(AnalyticsEventType.WebVitalInp, 0, null, 0, 0, 0),
+            new SiteWebVitalDto(AnalyticsEventType.WebVitalCls, 0, null, 0, 0, 0));
+    }
+
+    [Fact]
+    public async Task GetAsync_GivenWebVitalDays_AveragesTheirP75BySamplesAndAddsUpTheRatings()
+    {
+        await using (var context = CreateContext())
+        {
+            context.AnalyticsWebVitalDays.AddRange(
+                new AnalyticsWebVitalDay { Day = Today.AddDays(-9), Metric = AnalyticsEventType.WebVitalLcp, Samples = 50, P75 = 9000, Poor = 50 },
+                new AnalyticsWebVitalDay { Day = Today.AddDays(-1), Metric = AnalyticsEventType.WebVitalLcp, Samples = 3, P75 = 2000, Good = 3 },
+                new AnalyticsWebVitalDay { Day = Today, Metric = AnalyticsEventType.WebVitalLcp, Samples = 1, P75 = 6000, Poor = 1 },
+                new AnalyticsWebVitalDay { Day = Today, Metric = AnalyticsEventType.WebVitalInp, Samples = 2, P75 = 300, Good = 1, NeedsImprovement = 1 });
+            await context.SaveChangesAsync();
+        }
+
+        var result = await GetAsync(7);
+
+        result.WebVitals.Should().Equal(
+            new SiteWebVitalDto(AnalyticsEventType.WebVitalLcp, 4, 3000, 3, 0, 1),
+            new SiteWebVitalDto(AnalyticsEventType.WebVitalInp, 2, 300, 1, 1, 0),
+            new SiteWebVitalDto(AnalyticsEventType.WebVitalCls, 0, null, 0, 0, 0));
     }
 
     [Theory]

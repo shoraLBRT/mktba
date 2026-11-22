@@ -183,6 +183,9 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<int?>("ArticleId")
                         .HasColumnType("integer");
 
+                    b.Property<double?>("MetricValue")
+                        .HasColumnType("double precision");
+
                     b.Property<DateTime>("OccurredAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -278,6 +281,35 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasIndex("Day");
 
                     b.ToTable("AnalyticsTagDays");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.AnalyticsWebVitalDay", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Metric")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("Good")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NeedsImprovement")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("P75")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Poor")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Samples")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Day", "Metric");
+
+                    b.ToTable("AnalyticsWebVitalDays");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.Article", b =>

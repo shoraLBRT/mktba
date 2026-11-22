@@ -19,7 +19,7 @@ namespace Mktba.Application.DTOs
     /// (<paramref name="ArticleId"/>, <paramref name="ParagraphId"/>, <paramref name="OpinionId"/> of that
     /// paragraph); Search (<paramref name="Query"/>); ScrollDepth (<paramref name="ArticleId"/>,
     /// <paramref name="ScrollDepth"/>); InternalLinkClick (<paramref name="ArticleId"/> the link is in,
-    /// <paramref name="TargetPath"/>).
+    /// <paramref name="TargetPath"/>); WebVitalLcp, WebVitalInp, WebVitalCls (<paramref name="Value"/>; any page, no article).
     /// </param>
     /// <param name="ViewId">A random id the page makes anew for every page view; optional.</param>
     /// <param name="VisitorId">A random id the browser keeps for one UTC day at most, then replaces; optional. A repeated view of an article by it within 30 minutes is dropped.</param>
@@ -30,6 +30,7 @@ namespace Mktba.Application.DTOs
     /// <param name="ScrollDepth">25, 50, 75 or 100: the share of the text passed, in percent.</param>
     /// <param name="Query">The submitted query: 2 to 200 characters after trimming and collapsing white space.</param>
     /// <param name="TargetPath">The site-relative path the link leads to (starts with one '/'); its query and fragment are dropped; at most 512 characters.</param>
+    /// <param name="Value">A Web Vital of the page load: LCP and INP in milliseconds (0 to 60000), CLS as a score (0 to 10).</param>
     public record AnalyticsEventDto(
         AnalyticsEventType Type,
         Guid? ViewId = null,
@@ -40,7 +41,8 @@ namespace Mktba.Application.DTOs
         int? ScrollDepth = null,
         string? Query = null,
         string? TargetPath = null,
-        Guid? VisitorId = null
+        Guid? VisitorId = null,
+        double? Value = null
     );
 
     /// <summary>The events are stored.</summary>

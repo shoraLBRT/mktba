@@ -2,6 +2,7 @@ import { startTransition, StrictMode } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { HydratedRouter } from 'react-router/dom';
 import { getConsent, initMetrika } from './analytics/metrika';
+import { startWebVitals } from './analytics/events';
 import { installClientErrorReporting } from './services/clientErrors';
 import { startSession } from './services/session';
 
@@ -21,3 +22,6 @@ startTransition(() => {
     </StrictMode>,
   );
 });
+
+// Web Vitals (N-11, #153): a lazy chunk, fetched after hydration has started and only with consent.
+startWebVitals();

@@ -41,6 +41,11 @@ const analytics: SiteAnalyticsDto = {
   ],
   viewsWithoutSchool: 6,
   aggregatedAtUtc: '2026-11-20T14:00:00Z',
+  webVitals: [
+    { metric: 'WebVitalLcp', samples: 4, p75: 3120.4, good: 2, needsImprovement: 1, poor: 1 },
+    { metric: 'WebVitalInp', samples: 2, p75: 150, good: 2, needsImprovement: 0, poor: 0 },
+    { metric: 'WebVitalCls', samples: 0, p75: null, good: 0, needsImprovement: 0, poor: 0 },
+  ],
 };
 
 describe('SiteAnalyticsSection', () => {
@@ -73,6 +78,12 @@ describe('SiteAnalyticsSection', () => {
     expect(within(schools).getByText('Мазхаб не выбран')).toBeTruthy();
     expect(within(schools).getByText('6 · 50%')).toBeTruthy();
     expect(screen.getByTestId('site-analytics-freshness').textContent).toMatch(/^Обновлено: /);
+
+    const lcp = screen.getByTestId('web-vital-WebVitalLcp');
+    expect(lcp.textContent).toContain('3120 мс (требует улучшения)');
+    expect(lcp.textContent).toContain('50% · 25% · 25%');
+    expect(screen.getByTestId('web-vital-WebVitalInp').textContent).toContain('150 мс (хорошо)');
+    expect(screen.getByTestId('web-vital-WebVitalCls').textContent).toContain('нет замеров');
   });
 
   it('given another period chosen, when clicked, then asks for that many days', async () => {

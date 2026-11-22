@@ -84,3 +84,22 @@ export const trackEvent = (event: AnalyticsEventInput): void => {
   }
 };
 
+let webVitalsStarted = false;
+
+/**
+ * Starts measuring Web Vitals (N-11, #153) once per page load: the measuring code and `web-vitals`
+ * are a chunk of their own, fetched here after hydration has started, so the first load does not
+ * carry them; that chunk imports nothing of the site (it is handed `trackEvent`), so fetching it
+ * needs no preload list. Called on start with consent and when the visitor gives it
+ * (`CookieConsent`); without consent nothing is fetched. LCP and CLS are read from the browser's
+ * buffer, so a late start still sees them.
+ */
+export const startWebVitals = (): void => {
+  if (webVitalsStarted || typeof window === 'undefined' || navigator.webdriver || getConsent() !== true) return;
+  webVitalsStarted = true;
+  import('./webVitals')
+    .then((module) => module.observeWebVitals(trackEvent, flushEvents))
+    .catch(() => {
+      webVitalsStarted = false;
+    });
+};

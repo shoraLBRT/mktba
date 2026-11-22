@@ -50,7 +50,7 @@ public class AnalyticsEventService
     private static readonly HashSet<int> ScrollDepths = [25, 50, 75, 100];
 
     private static readonly AnalyticsEventType[] OncePerViewTypes =
-        [AnalyticsEventType.ArticleView, AnalyticsEventType.OpinionShown, AnalyticsEventType.ScrollDepth];
+        [AnalyticsEventType.ArticleView, AnalyticsEventType.OpinionShown, AnalyticsEventType.ScrollDepth, .. WebVitals.Metrics];
 
     /// <summary>What makes an event of <see cref="OncePerViewTypes"/> the same as another in its page view.</summary>
     private readonly record struct OncePerViewKey(Guid ViewId, AnalyticsEventType Type, int? ArticleId, int? ParagraphId, short? ScrollDepth);
@@ -228,6 +228,18 @@ public class AnalyticsEventService
             }
 
             entity.Query = query;
+            return entity;
+        }
+
+        // Web Vitals (N-11, #153) are measured on any page: no article, no mazhab.
+        if (WebVitals.IsWebVital(dto.Type))
+        {
+            if (dto.Value is not double value || !double.IsFinite(value) || value < 0 || value > WebVitals.MaxValue(dto.Type))
+            {
+                return null;
+            }
+
+            entity.MetricValue = value;
             return entity;
         }
 

@@ -246,7 +246,7 @@ export interface paths {
         put?: never;
         /**
          * Stores reader events of the site's own statistics. No sign-in; sent only with the visitor's consent.
-         * @description Events: ArticleView, OpinionShown, OpinionSwitched, Search, ScrollDepth, InternalLinkClick, 1 to 50 per request (analytics_events_required, analytics_too_many_events). Nothing about the sender is stored: no account, address or browser; the time is the server's. A request from a bot (by its User-Agent, read but not stored) keeps none of its events; an article view, a paragraph's opinion shown or a scroll depth sent again in the same page view, and a visitor's view of an article viewed less than 30 minutes ago, are dropped. An event without a field its type needs, about an article that is not Published or about an opinion of another paragraph is dropped, and the answer says how many were kept. 429 with Retry-After: too_many_requests (this client sent too many requests).
+         * @description Events: ArticleView, OpinionShown, OpinionSwitched, Search, ScrollDepth, InternalLinkClick, WebVitalLcp, WebVitalInp, WebVitalCls, 1 to 50 per request (analytics_events_required, analytics_too_many_events). Nothing about the sender is stored: no account, address or browser; the time is the server's. A request from a bot (by its User-Agent, read but not stored) keeps none of its events; an article view, a paragraph's opinion shown, a scroll depth or a Web Vital sent again in the same page view, and a visitor's view of an article viewed less than 30 minutes ago, are dropped. An event without a field its type needs, about an article that is not Published or about an opinion of another paragraph is dropped, and the answer says how many were kept. 429 with Retry-After: too_many_requests (this client sent too many requests).
          */
         post: {
             parameters: {
@@ -4387,9 +4387,11 @@ export interface components {
             targetPath?: string | null;
             /** Format: uuid */
             visitorId?: string | null;
+            /** Format: double */
+            value?: number | null;
         };
         /** @enum {string} */
-        AnalyticsEventType: "ArticleView" | "OpinionShown" | "OpinionSwitched" | "Search" | "ScrollDepth" | "InternalLinkClick";
+        AnalyticsEventType: "ArticleView" | "OpinionShown" | "OpinionSwitched" | "Search" | "ScrollDepth" | "InternalLinkClick" | "WebVitalLcp" | "WebVitalInp" | "WebVitalCls";
         AnalyticsSchoolTotalDto: {
             /** Format: int32 */
             schoolId: number;
@@ -5165,6 +5167,7 @@ export interface components {
             viewsWithoutSchool: number;
             /** Format: date-time */
             aggregatedAtUtc?: string | null;
+            webVitals: components["schemas"]["SiteWebVitalDto"][];
         };
         SiteAnalyticsTotalsDto: {
             /** Format: int32 */
@@ -5173,6 +5176,19 @@ export interface components {
             visitors: number;
             /** Format: int32 */
             searches: number;
+        };
+        SiteWebVitalDto: {
+            metric: components["schemas"]["AnalyticsEventType"];
+            /** Format: int32 */
+            samples: number;
+            /** Format: double */
+            p75?: number | null;
+            /** Format: int32 */
+            good: number;
+            /** Format: int32 */
+            needsImprovement: number;
+            /** Format: int32 */
+            poor: number;
         };
         SitemapArticleDto: {
             slug: string;

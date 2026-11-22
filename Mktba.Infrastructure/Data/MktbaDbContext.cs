@@ -41,6 +41,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<AnalyticsAuthorDay> AnalyticsAuthorDays { get; set; } = null!;
         public DbSet<AnalyticsTagDay> AnalyticsTagDays { get; set; } = null!;
         public DbSet<AnalyticsSearchDay> AnalyticsSearchDays { get; set; } = null!;
+        public DbSet<AnalyticsWebVitalDay> AnalyticsWebVitalDays { get; set; } = null!;
 
         /// <summary>Longest stored User-Agent of a refresh session; longer values are cut.</summary>
         public const int SessionUserAgentMaxLength = 256;
@@ -634,6 +635,11 @@ namespace Mktba.Infrastructure.Data
             {
                 searchDay.HasKey(d => new { d.Day, d.Query });
                 searchDay.Property(d => d.Query).HasMaxLength(AnalyticsEvent.QueryMaxLength);
+            });
+            modelBuilder.Entity<AnalyticsWebVitalDay>(vitalDay =>
+            {
+                vitalDay.HasKey(d => new { d.Day, d.Metric });
+                vitalDay.Property(d => d.Metric).HasConversion<string>().HasMaxLength(32);
             });
 
             // Uploaded files (U-08, #73): the record outlives the file and its uploader.

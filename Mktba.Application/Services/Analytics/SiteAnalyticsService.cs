@@ -49,6 +49,24 @@ public class SiteAnalyticsService
                 : new AnalyticsArticleTotalDto(t.Id, null, null, t.Views, t.Readers))
             .ToList();
 
+        // N-11 (#153): one row per metric; a period's p75 is its days' p75s averaged by samples (an estimate,
+        // the raw values are not kept in the summaries), the ratings are exact sums.
+        var vitalDays = await _summaries.GetWebVitalDaysAsync(from, to, cancellationToken);
+        var webVitals = WebVitals.Metrics
+            .Select(metric =>
+            {
+                var rows = vitalDays.Where(d => d.Metric == metric).ToList();
+                var samples = rows.Sum(d => d.Samples);
+                return new SiteWebVitalDto(
+                    metric,
+                    samples,
+                    samples == 0 ? null : rows.Sum(d => d.P75 * d.Samples) / samples,
+                    rows.Sum(d => d.Good),
+                    rows.Sum(d => d.NeedsImprovement),
+                    rows.Sum(d => d.Poor));
+            })
+            .ToList();
+
         var bySchool = await _summaries.GetSchoolViewsAsync(from, to, cancellationToken);
         var schoolNames = await _summaries.GetSchoolNamesAsync(bySchool.Select(s => s.Id).ToList(), cancellationToken);
         var schools = bySchool
@@ -64,6 +82,7 @@ public class SiteAnalyticsService
             topArticles,
             schools,
             Math.Max(0, totals.ArticleViews - schools.Sum(s => s.Views)),
-            built.Count == 0 ? null : built.Values.Max(d => d.AggregatedAtUtc));
+            built.Count == 0 ? null : built.Values.Max(d => d.AggregatedAtUtc),
+            webVitals);
     }
 }
