@@ -33,17 +33,27 @@ public static class DatabaseMigrator
     /// </summary>
     public static async Task EnsureUpToDateAsync(MktbaDbContext context, CancellationToken cancellationToken = default)
     {
-        if (!context.Database.IsRelational())
-        {
-            return;
-        }
-
-        var pending = (await context.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
+        var pending = await GetPendingMigrationsAsync(context, cancellationToken);
         if (pending.Count > 0)
         {
             throw new InvalidOperationException(
                 $"The database has {pending.Count} pending migration(s), the latest {pending[^1]}. "
                 + "Apply them first with `dotnet Mktba.Api.dll --migrate` (or set Database:MigrateOnStartup=true).");
         }
+    }
+
+    /// <summary>
+    /// The migrations not applied yet, oldest first (an empty database has all of them); none on the
+    /// InMemory provider of the API tests. Read by the startup check and by readiness (X-05, #159).
+    /// </summary>
+    public static async Task<IReadOnlyList<string>> GetPendingMigrationsAsync(
+        MktbaDbContext context, CancellationToken cancellationToken = default)
+    {
+        if (!context.Database.IsRelational())
+        {
+            return [];
+        }
+
+        return (await context.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
     }
 }

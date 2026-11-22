@@ -94,8 +94,20 @@ services:
       # IndexNow (O-12, #61): empty key = off. The site serves the key at /indexnow-key.txt.
       IndexNow__Key: ${INDEXNOW_KEY:-}
       IndexNow__SiteUrl: https://${SITE_HOST}
+      # Alerts to the owner's Telegram chat (X-05, #159): off while the token or the chat is empty.
+      Alerts__Stand: ${ALERT_STAND:-}
+      Alerts__Telegram__BotToken: ${ALERT_TELEGRAM_BOT_TOKEN:-}
+      Alerts__Telegram__ChatId: ${ALERT_TELEGRAM_CHAT_ID:-}
     volumes:
       - uploads:/app/App_Data/uploads
+    # Readiness (X-05, #159): the database reachable and fully migrated. The runtime image has no
+    # curl, so the API's own binary asks GET /health/ready; deploy.sh's `up --wait` waits for it.
+    healthcheck:
+      test: ["CMD", "dotnet", "Mktba.Api.dll", "--health-probe"]
+      interval: 15s
+      timeout: 10s
+      retries: 4
+      start_period: 30s
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -118,8 +130,16 @@ services:
       # Webmaster verification meta tags (O-12, #61); empty = no tag.
       YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
       GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+    # The SSR server answers (robots.txt is rendered by it without calling the API).
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/robots.txt').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 15s
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks: [proxy]
 
   caddy:

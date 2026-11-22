@@ -39,6 +39,12 @@ public sealed class RateLimitingOptions
     /// a batch every few seconds at most; the address only keys the limiter's in-memory window.
     /// </summary>
     public RateLimitRule Analytics { get; set; } = new() { PermitLimit = 60, WindowSeconds = 60 };
+
+    /// <summary>
+    /// Browser error reports (<c>POST /client-errors</c>, X-05 #159), partitioned by client IP. The
+    /// script sends a few per page at most; the address only keys the limiter's in-memory window.
+    /// </summary>
+    public RateLimitRule ClientErrors { get; set; } = new() { PermitLimit = 10, WindowSeconds = 60 };
 }
 
 public sealed class RateLimitRule
@@ -56,6 +62,7 @@ internal static class RateLimitingSetup
     public const string FeedbackPolicy = "feedback";
     public const string UploadPolicy = "uploads";
     public const string AnalyticsPolicy = "analytics";
+    public const string ClientErrorsPolicy = "client-errors";
 
     public static IServiceCollection AddMktbaRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -83,6 +90,10 @@ internal static class RateLimitingSetup
             limiter.AddPolicy(AnalyticsPolicy, context => FixedWindow(
                 "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 options.Analytics));
+
+            limiter.AddPolicy(ClientErrorsPolicy, context => FixedWindow(
+                "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                options.ClientErrors));
 
             limiter.AddPolicy(AiPolicy, context => FixedWindow(UserOrIp(context), options.Ai));
 

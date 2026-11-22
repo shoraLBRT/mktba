@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Mktba.Api.Observability;
 using Mktba.Application.Services.Analytics;
 using Mktba.Application.Services.Feedback;
 using Mktba.Application.Services.IndexNow;
@@ -46,6 +48,7 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
         ["RateLimiting:Feedback:PermitLimit"] = "10000",
         ["RateLimiting:Uploads:PermitLimit"] = "10000",
         ["RateLimiting:Analytics:PermitLimit"] = "10000",
+        ["RateLimiting:ClientErrors:PermitLimit"] = "10000",
         ["Feedback:Intake:MaxPerHour"] = "0",
     };
 
@@ -74,6 +77,10 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
         foreach (var (key, value) in _settings)
         {
             builder.UseSetting(key, value);
+        }
+        if (Logs is not null)
+        {
+            builder.ConfigureLogging(logging => logging.AddProvider(Logs));
         }
         builder.ConfigureServices(services =>
         {
@@ -105,6 +112,10 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<ISearchResultCounter>();
             services.AddSingleton<ISearchResultCounter>(new StubSearchResultCounter(this));
 
+            // Nor Telegram: alerts go to the test's channel, or nowhere.
+            services.RemoveAll<IAlertChannel>();
+            services.AddSingleton(AlertChannel ?? new NoAlertChannel());
+
             // Uploaded files go to a directory of this factory only, removed with it.
             services.RemoveAll<IFileStorage>();
             services.AddSingleton<IFileStorage>(new LocalFileStorage(StorageRoot));
@@ -127,6 +138,12 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
     internal int SearchCounts => _searchCounts;
 
     private int _searchCounts;
+
+    /// <summary>A stand-in alert channel; null (the default) is one that is not configured.</summary>
+    internal IAlertChannel? AlertChannel { get; init; }
+
+    /// <summary>Captures the API's log entries when set.</summary>
+    internal CapturingLoggerProvider? Logs { get; init; }
 
     /// <summary>Where this factory's API stores uploaded files.</summary>
     internal string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), $"mktba-api-tests-files-{Guid.NewGuid():N}");
@@ -166,6 +183,14 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
             Interlocked.Increment(ref factory._searchCounts);
             return Task.FromResult(factory.SearchResults.GetValueOrDefault(query, 1));
         }
+    }
+
+    private sealed class NoAlertChannel : IAlertChannel
+    {
+        public bool IsConfigured => false;
+
+        public Task SendAsync(string text, CancellationToken cancellationToken)
+            => throw new InvalidOperationException("Tests send no alerts.");
     }
 
     private sealed class RemoteIpFromHeaderStartupFilter : IStartupFilter

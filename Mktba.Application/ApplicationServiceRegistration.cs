@@ -46,6 +46,7 @@ namespace Mktba.Application
             services.AddScoped<FeedbackDeliveryService>();
             services.AddSingleton<IFeedbackIssueTracker, GitHubIssueClient>();
             services.AddSingleton<IndexNowQueue>();
+            services.AddSingleton<Mktba.Application.Services.Observability.ClientErrorService>();
             services.AddSingleton<ISearchEngineNotifier>(provider => provider.GetRequiredService<IndexNowQueue>());
             services.AddSingleton<IIndexNowClient, IndexNowClient>();
             return services;

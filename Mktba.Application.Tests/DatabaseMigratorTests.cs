@@ -24,6 +24,23 @@ public class DatabaseMigratorTests
     }
 
     [Fact]
+    public async Task GivenEmptyDatabase_WhenListingPendingMigrations_ThenAllAreListedUntilMigrated()
+    {
+        await WithEmptyDatabaseAsync(async database =>
+        {
+            await using (var context = database.CreateContext())
+            {
+                var pending = await DatabaseMigrator.GetPendingMigrationsAsync(context);
+                pending.Should().Equal(context.Database.GetMigrations());
+                await DatabaseMigrator.MigrateAsync(context);
+            }
+
+            await using var check = database.CreateContext();
+            (await DatabaseMigrator.GetPendingMigrationsAsync(check)).Should().BeEmpty();
+        });
+    }
+
+    [Fact]
     public async Task GivenEmptyDatabase_WhenMigrating_ThenSchemaIsCurrentAndSystemSchoolsExist()
     {
         await WithEmptyDatabaseAsync(async database =>
