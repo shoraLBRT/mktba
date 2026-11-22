@@ -72,6 +72,22 @@ public class ArticleTrashTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenPublishedEnglishArticle_WhenTrashed_ThenItsSlugAnswersGoneInEnglishOnly()
+    {
+        var article = await AddAsync("prayer", ArticleStatus.Published, everPublished: true);
+        article.Locale = "en";
+        await _context.SaveChangesAsync();
+
+        await _articles.MoveToTrashAsync(article.Id, deletedById: null);
+        _context.ChangeTracker.Clear();
+
+        var english = () => _content.GetContentBySlugAsync("prayer", ArticleViewer.Anonymous, "en");
+        var russian = () => _content.GetContentBySlugAsync("prayer", ArticleViewer.Anonymous, "ru");
+        await english.Should().ThrowAsync<GoneException>();
+        await russian.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
     public async Task GivenNeverPublishedDraft_WhenTrashed_ThenItsSlugIsNotFound()
     {
         var article = await AddAsync("chernovik", ArticleStatus.Draft, everPublished: false);
