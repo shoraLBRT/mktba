@@ -28,6 +28,11 @@ namespace Mktba.Application.Services.Analytics;
 /// Two requests of one page view racing each other can still both land; the client sends one
 /// request at a time, so this is left to the aggregates.
 /// </para>
+/// <para>
+/// A search is stored with the number of articles the site's search finds for it at that moment
+/// (<see cref="ISearchResultCounter"/>, N-06, #100), counted once per distinct query of the request,
+/// so the search analytics can list the queries that found nothing. The browser is not asked.
+/// </para>
 /// </summary>
 public class AnalyticsEventService
 {
@@ -45,11 +50,13 @@ public class AnalyticsEventService
     private readonly record struct OncePerViewKey(Guid ViewId, AnalyticsEventType Type, int? ArticleId, int? ParagraphId, short? ScrollDepth);
 
     private readonly AnalyticsEventRepository _events;
+    private readonly ISearchResultCounter _searchResults;
     private readonly TimeProvider _timeProvider;
 
-    public AnalyticsEventService(AnalyticsEventRepository events, TimeProvider timeProvider)
+    public AnalyticsEventService(AnalyticsEventRepository events, ISearchResultCounter searchResults, TimeProvider timeProvider)
     {
         _events = events;
+        _searchResults = searchResults;
         _timeProvider = timeProvider;
     }
 
@@ -103,10 +110,27 @@ public class AnalyticsEventService
         var accepted = await DropRepeatsAsync(valid, now, cancellationToken);
         if (accepted.Count > 0)
         {
+            await CountSearchResultsAsync(accepted, cancellationToken);
             await _events.AddRangeAsync(accepted, cancellationToken);
         }
 
         return new AnalyticsAcceptedDto(accepted.Count);
+    }
+
+    /// <summary>Sets <see cref="AnalyticsEvent.ResultCount"/> of every search, asking the search once per distinct query.</summary>
+    private async Task CountSearchResultsAsync(List<AnalyticsEvent> events, CancellationToken cancellationToken)
+    {
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var search in events.Where(e => e.Type == AnalyticsEventType.Search))
+        {
+            var query = search.Query!;
+            if (!counts.TryGetValue(query, out var count))
+            {
+                count = counts[query] = await _searchResults.CountAsync(query, cancellationToken);
+            }
+
+            search.ResultCount = count;
+        }
     }
 
     /// <summary>

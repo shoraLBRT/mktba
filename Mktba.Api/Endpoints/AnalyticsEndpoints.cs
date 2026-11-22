@@ -48,6 +48,21 @@ public static class AnalyticsEndpoints
             .Produces<SiteAnalyticsDto>()
             .RequireAuthorization(Policies.CanViewSiteAnalytics);
 
+        builder.MapGet("/analytics/search", async (int? days, SearchAnalyticsService service, CancellationToken ct) =>
+            Results.Ok(await service.GetAsync(days ?? SearchAnalyticsService.DefaultDays, ct)))
+            .WithTags("Analytics")
+            .WithSummary("What readers searched for with the site's search over the last days, and what found nothing.")
+            .WithDescription(
+                "Read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by "
+                + "default, kept within 1 to 365; the period ends today (UTC). Queries are in lower case and "
+                + "counted for a day only when at least minSearchers distinct visitors made them that day "
+                + "(a phrase one person typed is never shown, nor kept once the day is final); totals count "
+                + "every search. topQueries: the twenty most searched; queriesWithoutResults: the twenty "
+                + "that most often found no article. searchers summed over several days are searcher-days. "
+                + "Search phrases from external search engines are in Yandex Metrika, not here.")
+            .Produces<SearchAnalyticsDto>()
+            .RequireAuthorization(Policies.CanViewSiteAnalytics);
+
         builder.MapGet("/analytics/me", async (int? days, ClaimsPrincipal principal, AuthorAnalyticsService service, CancellationToken ct) =>
                 principal.GetUserId() is int userId
                     ? Results.Ok(await service.GetAsync(userId, days ?? AuthorAnalyticsService.DefaultDays, ct))

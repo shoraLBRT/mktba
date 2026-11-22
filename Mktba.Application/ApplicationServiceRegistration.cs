@@ -22,6 +22,7 @@ namespace Mktba.Application
             services.AddScoped<RecentArticlesService>();
             services.AddScoped<AuthorArticlesService>();
             services.AddScoped<ArticleSearchService>();
+            services.AddScoped<ISearchResultCounter>(provider => provider.GetRequiredService<ArticleSearchService>());
             services.AddScoped<ArticleContentService>();
             services.AddScoped<ArticleRevisionService>();
             services.AddScoped<ArticleDraftService>();
@@ -39,6 +40,7 @@ namespace Mktba.Application
             services.AddScoped<AnalyticsAggregationService>();
             services.AddScoped<SiteAnalyticsService>();
             services.AddScoped<AuthorAnalyticsService>();
+            services.AddScoped<SearchAnalyticsService>();
             services.AddScoped<ImageUploadService>();
             services.AddScoped<UploadCleanupService>();
             services.AddScoped<FeedbackDeliveryService>();

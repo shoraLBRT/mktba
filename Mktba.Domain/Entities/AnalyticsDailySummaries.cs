@@ -22,6 +22,9 @@ public class AnalyticsDay
     /// <summary>Searches submitted on the day.</summary>
     public int Searches { get; set; }
 
+    /// <summary>Searches of the day that found no article (N-06, #100); a search stored before results were counted is not one.</summary>
+    public int SearchesWithoutResults { get; set; }
+
     /// <summary>
     /// The day was aggregated after it had closed and settled, so it is never aggregated again and
     /// its raw events may be removed once they are old enough. A day not final yet (today, or one
@@ -114,7 +117,11 @@ public class AnalyticsTagDay
     public int Articles { get; set; }
 }
 
-/// <summary>One search query on one UTC day, compared without regard to case (stored in lower case).</summary>
+/// <summary>
+/// One search query on one UTC day, compared without regard to case (stored in lower case). Once the
+/// day is final only queries made by at least <c>Analytics:SearchQueryMinSearchers</c> distinct
+/// visitors keep a row (N-06, #100): a phrase only one person typed is not kept as text.
+/// </summary>
 public class AnalyticsSearchDay
 {
     public DateOnly Day { get; set; }
@@ -125,4 +132,7 @@ public class AnalyticsSearchDay
 
     /// <summary>Distinct visitor ids that searched for it.</summary>
     public int Searchers { get; set; }
+
+    /// <summary>Of <see cref="Searches"/>, those that found no article (N-06, #100).</summary>
+    public int SearchesWithoutResults { get; set; }
 }

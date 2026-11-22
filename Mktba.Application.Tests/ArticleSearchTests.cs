@@ -145,6 +145,22 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
     }
 
     [Fact]
+    public async Task GivenMatchesInTheDefaultLocaleOnly_WhenCounted_ThenTheCountIsWhatTheResultsPageFinds()
+    {
+        for (var number = 1; number <= 3; number++)
+        {
+            await SaveAsync(Published($"Хадж {number}", $"hadzh-{number}"));
+        }
+        await SaveAsync(Published("Хадж in English", "hadzh-en", locale: "en"));
+
+        await using var context = _database.CreateContext();
+        var service = new ArticleSearchService(new ArticleSearchRepository(context));
+
+        (await service.CountAsync("хадж")).Should().Be(3);
+        (await service.CountAsync("словокоторогонетнигде")).Should().Be(0);
+    }
+
+    [Fact]
     public async Task GivenOutOfRangePaging_WhenSearched_ThenPageAndPageSizeAreClamped()
     {
         var results = await SearchAsync("ничегонет", page: -3, pageSize: 1000);

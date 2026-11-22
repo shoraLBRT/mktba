@@ -57,9 +57,29 @@ public sealed class AnalyticsEndpointTests : IClassFixture<MktbaApiFactory>
         var search = stored.Single(e => e.Type == AnalyticsEventType.Search);
         search.Query.Should().Be("намаз в пути");
         search.ArticleId.Should().BeNull();
+        search.ResultCount.Should().Be(1, "the factory's search finds one article for a query it was not told about");
 
         stored.Single(e => e.Type == AnalyticsEventType.ScrollDepth).ScrollDepth.Should().Be(75);
         stored.Single(e => e.Type == AnalyticsEventType.InternalLinkClick).TargetPath.Should().Be("/zakyat");
+    }
+
+    [Fact]
+    public async Task GivenSearches_WhenPosting_ThenEachIsStoredWithWhatTheSiteSearchFindsForIt()
+    {
+        _factory.SearchResults["пятничная молитва"] = 7;
+        _factory.SearchResults["несуществующая тема"] = 0;
+        var viewId = Guid.NewGuid();
+
+        var response = await PostAsync(
+            new { type = "Search", viewId, query = "пятничная   молитва" },
+            new { type = "Search", viewId, query = "несуществующая тема" },
+            new { type = "Search", viewId, query = "несуществующая тема" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var stored = await LoadAsync(viewId);
+        stored.Should().HaveCount(3);
+        stored.Single(e => e.Query == "пятничная молитва").ResultCount.Should().Be(7);
+        stored.Where(e => e.Query == "несуществующая тема").Should().HaveCount(2).And.OnlyContain(e => e.ResultCount == 0);
     }
 
     [Fact]
