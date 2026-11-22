@@ -22,8 +22,18 @@ public class SchoolService
         return schools.Select(ToDto).ToList();
     }
 
-    public async Task<List<SchoolDto>> GetByArticleIdAsync(int articleId, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The custom schools of one article. An article <paramref name="viewer"/> may not see
+    /// (<see cref="ArticleViewer.CanSee(ArticleStatus, int?, IEnumerable{int})"/>) counts as missing,
+    /// as on the other article reads, so the schools of drafts do not leak through ids (#194).
+    /// </summary>
+    /// <exception cref="NotFoundException"><c>article_not_found</c>: no such article, or it is not visible.</exception>
+    public async Task<List<SchoolDto>> GetByArticleIdAsync(int articleId, ArticleViewer viewer, CancellationToken cancellationToken = default)
     {
+        var article = await _articleRepo.GetAccessRowAsync(articleId, cancellationToken);
+        if (article is null || !viewer.CanSee(article.Status, article.AuthorId, article.CoAuthorIds))
+            throw new NotFoundException(AppErrors.ArticleNotFound);
+
         var schools = await _schoolRepo.GetByArticleIdAsync(articleId, cancellationToken);
         return schools.Select(ToDto).ToList();
     }

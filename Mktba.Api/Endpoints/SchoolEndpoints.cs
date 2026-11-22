@@ -19,11 +19,17 @@ public static class SchoolEndpoints
         }).Produces<List<SchoolDto>>();
 
         // GET /schools/article/{articleId} — custom schools scoped to an article
-        group.MapGet("/article/{articleId:int}", async (int articleId, SchoolService service, CancellationToken ct) =>
+        group.MapGet("/article/{articleId:int}", async (int articleId, ClaimsPrincipal user, SchoolService service, CancellationToken ct) =>
         {
-            var schools = await service.GetByArticleIdAsync(articleId, ct);
+            var schools = await service.GetByArticleIdAsync(articleId, user.ToArticleViewer(), ct);
             return Results.Ok(schools);
-        }).Produces<List<SchoolDto>>();
+        })
+            .WithSummary("Custom schools of one article.")
+            .WithDescription(
+                "An article that is not Published answers 404 article_not_found except to an admin or its "
+                + "own author or co-author, as the other article reads do; so does an article that does not exist.")
+            .Produces<List<SchoolDto>>()
+            .ProducesApiProblem(StatusCodes.Status404NotFound);
 
         // POST /schools — create a custom school for an article the caller may edit
         group.MapPost("/", async (SchoolCreateDto dto, ClaimsPrincipal user, ArticleAccessGuard guard, SchoolService service, CancellationToken ct) =>
