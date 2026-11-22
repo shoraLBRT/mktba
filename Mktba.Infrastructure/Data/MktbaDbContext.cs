@@ -35,6 +35,12 @@ namespace Mktba.Infrastructure.Data
         public DbSet<FeedbackMessage> FeedbackMessages { get; set; } = null!;
         public DbSet<StoredFile> StoredFiles { get; set; } = null!;
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; } = null!;
+        public DbSet<AnalyticsDay> AnalyticsDays { get; set; } = null!;
+        public DbSet<AnalyticsArticleDay> AnalyticsArticleDays { get; set; } = null!;
+        public DbSet<AnalyticsArticleSchoolDay> AnalyticsArticleSchoolDays { get; set; } = null!;
+        public DbSet<AnalyticsAuthorDay> AnalyticsAuthorDays { get; set; } = null!;
+        public DbSet<AnalyticsTagDay> AnalyticsTagDays { get; set; } = null!;
+        public DbSet<AnalyticsSearchDay> AnalyticsSearchDays { get; set; } = null!;
 
         /// <summary>Longest stored User-Agent of a refresh session; longer values are cut.</summary>
         public const int SessionUserAgentMaxLength = 256;
@@ -598,6 +604,36 @@ namespace Mktba.Infrastructure.Data
                 analyticsEvent.Property(e => e.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
                 analyticsEvent.Property(e => e.Query).HasMaxLength(AnalyticsEvent.QueryMaxLength);
                 analyticsEvent.Property(e => e.TargetPath).HasMaxLength(AnalyticsEvent.TargetPathMaxLength);
+            });
+
+            // Daily summaries (N-04, #98): keyed by what a dashboard asks about, then the day; every
+            // table is also indexed by the day alone, which a rebuild deletes by and a site-wide
+            // dashboard reads by. No foreign keys, like the log they come from.
+            modelBuilder.Entity<AnalyticsDay>().HasKey(d => d.Day);
+            modelBuilder.Entity<AnalyticsArticleDay>(articleDay =>
+            {
+                articleDay.HasKey(d => new { d.ArticleId, d.Day });
+                articleDay.HasIndex(d => d.Day);
+            });
+            modelBuilder.Entity<AnalyticsArticleSchoolDay>(schoolDay =>
+            {
+                schoolDay.HasKey(d => new { d.ArticleId, d.SchoolId, d.Day });
+                schoolDay.HasIndex(d => d.Day);
+            });
+            modelBuilder.Entity<AnalyticsAuthorDay>(authorDay =>
+            {
+                authorDay.HasKey(d => new { d.UserId, d.Day });
+                authorDay.HasIndex(d => d.Day);
+            });
+            modelBuilder.Entity<AnalyticsTagDay>(tagDay =>
+            {
+                tagDay.HasKey(d => new { d.TagId, d.Day });
+                tagDay.HasIndex(d => d.Day);
+            });
+            modelBuilder.Entity<AnalyticsSearchDay>(searchDay =>
+            {
+                searchDay.HasKey(d => new { d.Day, d.Query });
+                searchDay.Property(d => d.Query).HasMaxLength(AnalyticsEvent.QueryMaxLength);
             });
 
             // Uploaded files (U-08, #73): the record outlives the file and its uploader.
