@@ -54,3 +54,20 @@ test('a user fills in their profile and readers get it by its address, without t
 
   expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).ok()).toBe(true);
 });
+
+// P-04 (#92): the profile page shows the signed-in user's own edits and publications by week.
+test('the profile page charts the user’s own edits and publications of this week', async ({ page, request }) => {
+  const article = await publishArticle(request, `E2E статья для графика ${Date.now()}`, null);
+  await logIn(page);
+
+  await page.goto('/admin/profile');
+
+  const card = page.getByTestId('activity-chart');
+  await expect(card.getByRole('heading', { name: 'Моя активность' })).toBeVisible();
+  await expect(card.getByRole('img', { name: 'График активности по неделям' })).toBeVisible();
+  await expect(card.getByTestId('activity-week')).toHaveCount(12);
+  // Other specs share the database, so only "at least one" of each is certain.
+  await expect(card.getByTestId('activity-totals')).toHaveText(/правок — [1-9]\d*, публикаций — [1-9]\d*/);
+
+  expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).ok()).toBe(true);
+});

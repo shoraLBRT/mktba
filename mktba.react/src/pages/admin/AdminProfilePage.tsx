@@ -33,6 +33,7 @@ import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
 import { Input } from '../../shared/ui/Input';
 import { Textarea } from '../../shared/ui/Textarea';
+import { ActivityChartCard } from './ActivityChartCard';
 
 const fieldId = (key: ProfileFieldKey) => `profile-${key}`;
 const errorId = (key: ProfileFieldKey) => `profile-${key}-error`;
@@ -372,6 +373,8 @@ const AdminProfilePage: React.FC = () => {
           </form>
         </Card>
       )}
+
+      <ActivityChartCard />
     </div>
   );
 };

@@ -39,6 +39,19 @@ public static class ProfileEndpoints
             .Produces<UserProfileDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status401Unauthorized);
 
+        own.MapGet("/activity", async (int? weeks, ClaimsPrincipal principal, UserActivityService service, CancellationToken cancellationToken) =>
+                principal.GetUserId() is int userId
+                    ? Results.Ok(await service.GetAsync(userId, weeks ?? UserActivityService.DefaultWeeks, cancellationToken))
+                    : ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized))
+            .WithSummary("The signed-in user's activity by week: edits and publications.")
+            .WithDescription(
+                "Weeks run Monday to Sunday in UTC, oldest first; the last is the current week so far, and every week is present "
+                + "even when empty. edits = revisions the user saved (restores included); publications = the user's articles, "
+                + "written or co-authored, first published that week. weeks is 12 by default, kept within 1 to 52. Only the user's "
+                + "own activity: it is not shown to readers.")
+            .Produces<UserActivityDto>()
+            .ProducesApiProblem(StatusCodes.Status401Unauthorized);
+
         var users = builder.MapGroup("/users").WithTags("Users").RequireAuthorization(Policies.CanManageUsers);
 
         users.MapGet("/{id:int}/profile", async (int id, UserProfileService service, CancellationToken cancellationToken) =>

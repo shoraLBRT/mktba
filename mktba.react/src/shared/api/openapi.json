@@ -2438,6 +2438,47 @@
         }
       }
     },
+    "/profile/activity": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "The signed-in user's activity by week: edits and publications.",
+        "description": "Weeks run Monday to Sunday in UTC, oldest first; the last is the current week so far, and every week is present even when empty. edits = revisions the user saved (restores included); publications = the user's articles, written or co-authored, first published that week. weeks is 12 by default, kept within 1 to 52. Only the user's own activity: it is not shown to readers.",
+        "parameters": [
+          {
+            "name": "weeks",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserActivityDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/authors/{slug}": {
       "get": {
         "tags": [
@@ -3634,6 +3675,29 @@
   },
   "components": {
     "schemas": {
+      "ActivityWeekDto": {
+        "required": [
+          "edits",
+          "publications",
+          "weekStart"
+        ],
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "edits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publications": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminAuthResponseDto": {
         "required": [
           "accessToken",
@@ -6202,6 +6266,21 @@
           "sizeBytes": {
             "type": "integer",
             "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserActivityDto": {
+        "required": [
+          "weeks"
+        ],
+        "type": "object",
+        "properties": {
+          "weeks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityWeekDto"
+            }
           }
         },
         "additionalProperties": false
