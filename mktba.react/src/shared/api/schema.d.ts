@@ -235,6 +235,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/analytics/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stores reader events of the site's own statistics. No sign-in; sent only with the visitor's consent.
+         * @description Events: ArticleView, OpinionShown, OpinionSwitched, Search, ScrollDepth, InternalLinkClick, 1 to 50 per request (analytics_events_required, analytics_too_many_events). Nothing about the sender is stored: no account, address or browser; the time is the server's. An event without a field its type needs, about an article that is not Published or about an opinion of another paragraph is dropped, and the answer says how many were kept. 429 with Retry-After: too_many_requests (this client sent too many requests).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AnalyticsEventBatchDto"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AnalyticsAcceptedDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}/content": {
         parameters: {
             query?: never;
@@ -3940,6 +4001,32 @@ export interface components {
         AiStyleResponseDto: {
             styledText: string;
         };
+        AnalyticsAcceptedDto: {
+            /** Format: int32 */
+            accepted: number;
+        };
+        AnalyticsEventBatchDto: {
+            events?: components["schemas"]["AnalyticsEventDto"][] | null;
+        };
+        AnalyticsEventDto: {
+            type: components["schemas"]["AnalyticsEventType"];
+            /** Format: uuid */
+            viewId?: string | null;
+            /** Format: int32 */
+            articleId?: number | null;
+            /** Format: int32 */
+            paragraphId?: number | null;
+            /** Format: int32 */
+            opinionId?: number | null;
+            /** Format: int32 */
+            schoolId?: number | null;
+            /** Format: int32 */
+            scrollDepth?: number | null;
+            query?: string | null;
+            targetPath?: string | null;
+        };
+        /** @enum {string} */
+        AnalyticsEventType: "ArticleView" | "OpinionShown" | "OpinionSwitched" | "Search" | "ScrollDepth" | "InternalLinkClick";
         ApiProblemDetails: {
             title: string;
             /** Format: int32 */

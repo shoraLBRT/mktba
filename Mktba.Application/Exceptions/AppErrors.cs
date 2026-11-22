@@ -272,6 +272,12 @@ public static class AppErrors
     public static AppError FeedbackLimitReached =>
         new("feedback_limit_reached", "Too many feedback messages were received lately. Try again later.");
 
+    // Analytics events (N-02)
+    public static AppError AnalyticsEventsRequired => new("analytics_events_required", "Send at least one event.");
+
+    public static AppError AnalyticsTooManyEvents(int maxCount) =>
+        new("analytics_too_many_events", $"At most {maxCount} events can be sent at once.", With(("maxCount", maxCount)));
+
     // Uploads (U-08)
     public static AppError UploadFileRequired => new("upload_file_required", "Attach the file as the form field 'file'.");
 

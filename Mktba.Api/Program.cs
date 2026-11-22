@@ -164,6 +164,7 @@ app.MapProfileEndpoints();
 app.MapInviteEndpoints();
 app.MapSearchEndpoints();
 app.MapFeedbackEndpoints();
+app.MapAnalyticsEndpoints();
 app.MapSeoEndpoints();
 app.MapUploadEndpoints();
 

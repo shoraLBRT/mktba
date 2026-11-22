@@ -24,6 +24,8 @@ import { useMazhab } from '../context/mazhabContext';
 import { METRIKA_GOALS } from '../analytics/metrika';
 import { useReadToEnd } from '../analytics/useReadToEnd';
 import { useTrackEvent } from '../analytics/useTrackEvent';
+import { trackEvent } from '../analytics/events';
+import { useInternalLinkClicks, useOpinionImpressions, useScrollDepth } from '../analytics/articleEvents';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
 import { articleHref, authorHref } from '../shared/slug';
@@ -164,7 +166,51 @@ const ArticlePage: React.FC = () => {
     const boundedIndex = Math.max(0, Math.min(index, total - 1));
     setAlternative(paragraphId, boundedIndex);
     track(METRIKA_GOALS.opinionSwitch, { paragraphId, index: boundedIndex });
+    const opinionId = renderedParagraphs.find((paragraph) => paragraph.paragraphId === paragraphId)?.opinions[boundedIndex]?.id;
+    if (opinionId !== undefined) {
+      trackEvent({ type: 'OpinionSwitched', articleId, paragraphId, opinionId, schoolId: selectedSchoolId });
+    }
   };
+
+  // The site's own events (N-02, #96), counted once the page is hydrated, so the reader's mazhab is
+  // known. The callbacks change only with the article: what is on screen is read from refs when reported.
+  const articleReady = hydrated && articleContent !== undefined;
+  const articleRef = useRef<HTMLElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const schoolIdRef = useRef(selectedSchoolId);
+  const shownOpinionsRef = useRef(new Map<number, number>());
+  useEffect(() => {
+    schoolIdRef.current = selectedSchoolId;
+    shownOpinionsRef.current = new Map(renderedParagraphs.flatMap((paragraph) =>
+      paragraph.hasAlternatives && paragraph.activeOpinion ? [[paragraph.paragraphId, paragraph.activeOpinion.id] as const] : []));
+  });
+  const versionedParagraphKey = articleReady
+    ? renderedParagraphs.filter((paragraph) => paragraph.hasAlternatives).map((paragraph) => paragraph.paragraphId).join(',')
+    : '';
+
+  useEffect(() => {
+    if (articleReady) trackEvent({ type: 'ArticleView', articleId, schoolId: schoolIdRef.current });
+  }, [articleReady, articleId]);
+
+  const reportOpinionShown = useCallback((paragraphId: number) => {
+    const opinionId = shownOpinionsRef.current.get(paragraphId);
+    if (opinionId !== undefined) {
+      trackEvent({ type: 'OpinionShown', articleId, paragraphId, opinionId, schoolId: schoolIdRef.current });
+    }
+  }, [articleId]);
+  useOpinionImpressions(textRef, versionedParagraphKey, reportOpinionShown);
+
+  const reportScrollDepth = useCallback(
+    (scrollDepth: number) => trackEvent({ type: 'ScrollDepth', articleId, scrollDepth, schoolId: schoolIdRef.current }),
+    [articleId],
+  );
+  useScrollDepth(textRef, articleReady && renderedParagraphs.length > 0, reportScrollDepth);
+
+  const reportLinkFollowed = useCallback(
+    (targetPath: string) => trackEvent({ type: 'InternalLinkClick', articleId, targetPath, schoolId: schoolIdRef.current }),
+    [articleId],
+  );
+  useInternalLinkClicks(articleRef, articleReady, reportLinkFollowed);
 
   // Structured data breadcrumbs (O-05): the visible trail, without the section titles that link nowhere.
   const breadcrumbSteps = useMemo(
@@ -252,7 +298,7 @@ const ArticlePage: React.FC = () => {
   return (
     <div className="xl:flex xl:gap-0">
       {documentHead}
-      <article className="min-w-0 flex-1 overflow-hidden border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-r-none xl:border-r xl:border-[var(--color-border-soft)]">
+      <article ref={articleRef} className="min-w-0 flex-1 overflow-hidden border-right border-[var(--color-border-soft)] bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:rounded-r-none xl:border-r xl:border-[var(--color-border-soft)]">
         <div className="mx-auto max-w-[760px] px-4 py-6 pb-24 sm:px-6 lg:px-8 xl:px-10">
           <ArticleBreadcrumbs ancestors={breadcrumbItems.slice(0, -1)} currentTitle={articleContent.title} />
 
@@ -273,7 +319,7 @@ const ArticlePage: React.FC = () => {
 
           {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);
               `flow-root` keeps the float inside the column. */}
-          <div className="@container flow-root">
+          <div ref={textRef} className="@container flow-root">
           <div id={ARTICLE_OVERVIEW_ANCHOR} className="scroll-mt-24">
             <ArticleInfoboxPanel infobox={articleContent.infobox} />
           </div>

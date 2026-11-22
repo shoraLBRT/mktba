@@ -34,6 +34,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<RefreshSession> RefreshSessions { get; set; } = null!;
         public DbSet<FeedbackMessage> FeedbackMessages { get; set; } = null!;
         public DbSet<StoredFile> StoredFiles { get; set; } = null!;
+        public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; } = null!;
 
         /// <summary>Longest stored User-Agent of a refresh session; longer values are cut.</summary>
         public const int SessionUserAgentMaxLength = 256;
@@ -584,6 +585,16 @@ namespace Mktba.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(f => f.ArticleId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Own analytics events (N-02, #96): an append-only log without foreign keys, read by time range.
+            modelBuilder.Entity<AnalyticsEvent>(analyticsEvent =>
+            {
+                analyticsEvent.HasIndex(e => e.OccurredAtUtc);
+                analyticsEvent.HasIndex(e => new { e.ArticleId, e.OccurredAtUtc });
+                analyticsEvent.Property(e => e.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
+                analyticsEvent.Property(e => e.Query).HasMaxLength(AnalyticsEvent.QueryMaxLength);
+                analyticsEvent.Property(e => e.TargetPath).HasMaxLength(AnalyticsEvent.TargetPathMaxLength);
             });
 
             // Uploaded files (U-08, #73): the record outlives the file and its uploader.
