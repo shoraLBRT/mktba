@@ -19,8 +19,8 @@ type HomeRouteData = {
 export const handle: RouteHandle = { ownsMeta: true };
 
 /**
- * On the server: the lists of new and updated articles, so they are in the HTML. The sections and
- * the title search read the navigation tree the public layout's loader already fetched.
+ * On the server: the lists of new and updated articles, so they are in the HTML. The sections read
+ * the navigation tree the public layout's loader already fetched; the search field leads to /search.
  */
 export async function loader(): Promise<HomeRouteData> {
   const queryClient = createServerQueryClient();
