@@ -5,10 +5,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { invalidateArticleQueries } from '../../app/queryClient';
 import { useCurrentUser } from '../../auth/useCurrentUser';
+import { NoticeBanner } from '../../components/admin/NoticeBanner';
+import { useNotice } from '../../components/admin/useNotice';
 import { ArticleStatusBadge } from '../../components/article/ArticleStatusBadge';
 import { formatMessage } from '../../localization';
 import { useFormat, useLocale } from '../../localization/hooks';
 import { bulkChangeArticleStatus, getArticleList, getUsers } from '../../services/adminService';
+import { moveArticleToTrash, TRASH_QUERY_KEY } from '../../services/Article/trashService';
 import { extractApiErrorMessage, translateApiError } from '../../shared/api-client/apiError';
 import {
   ARTICLE_STATUSES,
@@ -128,6 +131,20 @@ const AdminArticlesPage = () => {
     },
   });
 
+  // M-11 (#133): only an admin moves an article to the trash, as in the API.
+  const trashes = can('canEditAnyArticle');
+  const { notice, showNotice, clearNotice } = useNotice();
+  const trashMutation = useMutation({
+    mutationFn: (item: ArticleListItemDto) => moveArticleToTrash(item.id),
+    onSuccess: (_, item) => {
+      showNotice('success', formatMessage(locale.articleTrash.movedToTrash, { title: item.title }));
+      setSelectedIds(selectedIds.filter((id) => id !== item.id));
+      void invalidateArticleQueries(queryClient);
+      void queryClient.invalidateQueries({ queryKey: TRASH_QUERY_KEY });
+    },
+    onError: (failure) => showNotice('error', `${locale.articleTrash.actionError}: ${extractApiErrorMessage(failure)}`),
+  });
+
   const userEmails = new Map((usersQuery.data ?? []).map((entry) => [entry.id, entry.email]));
   const authorLabel = (authorId: number | null | undefined) => {
     if (authorId === null || authorId === undefined) return t.noValue;
@@ -194,6 +211,23 @@ const AdminArticlesPage = () => {
               <Link to={`/admin/articles/${item.id}/analytics`} className="text-[var(--color-brand-forest)] hover:underline">
                 {locale.articleAnalytics.openLink}
               </Link>
+            </>
+          ) : null}
+          {trashes ? (
+            <>
+              {' · '}
+              <button
+                type="button"
+                disabled={trashMutation.isPending}
+                onClick={() => {
+                  if (window.confirm(formatMessage(locale.articleTrash.moveToTrashConfirm, { title: item.title }))) {
+                    trashMutation.mutate(item);
+                  }
+                }}
+                className="text-red-700 hover:underline disabled:opacity-50"
+              >
+                {locale.articleTrash.moveToTrash}
+              </button>
             </>
           ) : null}
         </div>
@@ -320,6 +354,7 @@ const AdminArticlesPage = () => {
         </div>
       ) : null}
       {bulkError ? <p role="alert" className="m-0 text-sm text-red-600">{bulkError}</p> : null}
+      <NoticeBanner notice={notice} onClose={clearNotice} />
 
       <Card className="overflow-hidden">
         {listQuery.isError ? (

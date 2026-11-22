@@ -25,11 +25,13 @@ public class TagMigrationTests : IClassFixture<PostgresDatabaseFixture>
     public async Task GivenCommaSeparatedTags_WhenMigrationRuns_ThenEachLanguageGetsOneTagPerNameWithSlugsAndOrder()
     {
         Article first, second, english, untagged, onTagsSlug;
-        await using (var context = _database.CreateContext())
+        await using (var context = _database.CreatePreTrashContext())
         {
-            var migrations = context.Database.GetMigrations().ToList();
+            // Migrations are found by the real context type; the rows are written without the trash columns.
+            await using var migrating = _database.CreateContext();
+            var migrations = migrating.Database.GetMigrations().ToList();
             var before = migrations[migrations.FindIndex(id => id.EndsWith("_AddTags", StringComparison.Ordinal)) - 1];
-            var migrator = context.GetService<IMigrator>();
+            var migrator = migrating.GetService<IMigrator>();
             await migrator.MigrateAsync(before);
 
             first = Article("Первая", "pervaya", " Фикх ,намаз,  Фикх   намаза ,123");

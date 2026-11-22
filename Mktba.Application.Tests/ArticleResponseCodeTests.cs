@@ -52,7 +52,8 @@ public class ArticleResponseCodeTests : IDisposable
 
     private async Task DeleteAsync(Article article)
     {
-        await _articles.DeleteAsync(article.Id);
+        await _articles.MoveToTrashAsync(article.Id, deletedById: null);
+        await _articles.PurgeAsync(article.Id);
         _context.ChangeTracker.Clear();
     }
 

@@ -326,6 +326,12 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DeletedById")
+                        .HasColumnType("integer");
+
                     b.Property<string>("InfoboxSubtitle")
                         .HasMaxLength(240)
                         .HasColumnType("character varying(240)");
@@ -400,6 +406,10 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
+
+                    b.HasIndex("DeletedAt");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("PublishedRevisionId");
 
@@ -1271,6 +1281,11 @@ namespace Mktba.Infrastructure.Migrations
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Mktba.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Mktba.Domain.Entities.Article", "ParentArticle")
                         .WithMany("ChildArticles")
                         .HasForeignKey("ParentArticleId")
@@ -1282,6 +1297,8 @@ namespace Mktba.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Author");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("ParentArticle");
 

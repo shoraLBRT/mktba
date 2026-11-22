@@ -4,6 +4,8 @@ import { MemoryRouter, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
 import { bulkChangeArticleStatus, getArticleList, getUsers } from '../../services/adminService';
+import { moveArticleToTrash } from '../../services/Article/trashService';
+import { ApiError, translateApiError } from '../../shared/api-client/apiError';
 import type { ArticleListItemDto } from '../../shared/types/ApiTypes';
 import AdminArticlesPage from './AdminArticlesPage';
 
@@ -12,6 +14,7 @@ vi.mock('../../services/adminService', () => ({
   getUsers: vi.fn(),
   bulkChangeArticleStatus: vi.fn(),
 }));
+vi.mock('../../services/Article/trashService', () => ({ moveArticleToTrash: vi.fn(), TRASH_QUERY_KEY: ['adminTrash'] }));
 vi.mock('../../auth/useCurrentUser', () => ({
   useCurrentUser: () => ({ user: { id: 1, email: 'admin@mktba.test', role: 'Admin' }, role: 'Admin', can: () => true }),
 }));
@@ -122,5 +125,33 @@ describe('AdminArticlesPage', () => {
 
     expect(await screen.findByText('Статей с такими условиями нет.')).toBeTruthy();
     expect((screen.getByLabelText('Поиск') as HTMLInputElement).value).toBe('нет');
+  });
+
+  it('given a confirmed move to the trash, when clicked, then trashes that article and says so', async () => {
+    vi.mocked(moveArticleToTrash).mockReset().mockResolvedValue();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderAt();
+    const table = await screen.findByRole('table');
+
+    fireEvent.click(within(table).getAllByRole('button', { name: 'В корзину' })[0]);
+
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('«Намаз»'));
+    await waitFor(() => expect(moveArticleToTrash).toHaveBeenCalledWith(1));
+    expect(await screen.findByText('Статья «Намаз» перемещена в корзину.')).toBeTruthy();
+    confirm.mockRestore();
+  });
+
+  it('given a section with children, when moved to the trash, then shows the refusal', async () => {
+    vi.mocked(moveArticleToTrash)
+      .mockReset()
+      .mockRejectedValue(new ApiError(translateApiError('article_has_children'), 400, 'article_has_children'));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderAt();
+    const table = await screen.findByRole('table');
+
+    fireEvent.click(within(table).getAllByRole('button', { name: 'В корзину' })[1]);
+
+    expect(await screen.findByText(/сначала перенесите или удалите их/)).toBeTruthy();
+    confirm.mockRestore();
   });
 });

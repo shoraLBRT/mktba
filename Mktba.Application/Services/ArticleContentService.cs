@@ -143,6 +143,10 @@ namespace Mktba.Application.Services
                 ?? throw new ValidationException(AppErrors.LocaleUnsupported(dto.Locale!));
             var tagNames = TagRules.NormalizeList(dto.Tags);
             var slug = await _slugs.ChooseAsync(dto.Slug, dto.Title, locale, articleId: null);
+            if (dto.ParentArticleId is int parentId && !await _articleRepo.ExistsAsync(parentId))
+            {
+                throw new ValidationException(AppErrors.ArticleParentNotFound(parentId));
+            }
 
             try
             {

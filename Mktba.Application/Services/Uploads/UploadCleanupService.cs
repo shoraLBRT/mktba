@@ -114,7 +114,8 @@ public sealed class UploadCleanupService
         }
 
         var users = _db.Users.AsNoTracking();
-        var articles = _db.Articles.AsNoTracking();
+        // A trashed article can still be restored, so its files count as used until it is purged.
+        var articles = _db.Articles.IgnoreQueryFilters().AsNoTracking();
         await ScanAsync(users.Where(user => user.AvatarUrl != null).Select(user => user.AvatarUrl), StoredFileUsage.Avatar);
         await ScanAsync(_db.Opinions.AsNoTracking().Select(opinion => (string?)opinion.Content), StoredFileUsage.Article);
         await ScanAsync(articles.Where(article => article.SocialImageUrl != null).Select(article => article.SocialImageUrl), StoredFileUsage.Article);

@@ -40,6 +40,7 @@ export type ArticleSummaryDto = Schemas['ArticleSummaryDto'];
 export type ArticleBulkStatusDto = Schemas['ArticleBulkStatusDto'];
 export type ArticleBulkItemResultDto = Schemas['ArticleBulkItemResultDto'];
 export type ArticleBulkResultDto = Schemas['ArticleBulkResultDto'];
+export type ArticleTrashItemDto = Schemas['ArticleTrashItemDto'];
 export type ArticleCreateDto = Schemas['ArticleCreateDto'];
 export type ArticleMoveDto = Schemas['ArticleMoveDto'];
 export type ArticleUpdateDto = Schemas['ArticleUpdateDto'];

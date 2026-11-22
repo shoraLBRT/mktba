@@ -71,7 +71,7 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
     }
 
     [Fact]
-    public async Task GivenDraftArchivedAndHiddenUnderDraftParent_WhenSearched_ThenOnlyTheReachablePublishedArticleIsFound()
+    public async Task GivenDraftArchivedTrashedAndHiddenUnderDraftParent_WhenSearched_ThenOnlyTheReachablePublishedArticleIsFound()
     {
         var visibleParent = Published("Раздел видимый", "visible-parent");
         var visible = await SaveAsync(Published("Истинджа открытая", "visible-child", parent: visibleParent));
@@ -80,6 +80,9 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
         await SaveAsync(Published("Истинджа на проверке", "in-review", opinions: "Истинджа", status: ArticleStatus.InReview));
         var draftParent = Published("Раздел скрытый", "hidden-parent", status: ArticleStatus.Draft);
         await SaveAsync(Published("Истинджа под черновиком", "hidden-child", opinions: "Истинджа", parent: draftParent));
+        var trashed = Published("Истинджа в корзине", "trashed");
+        trashed.DeletedAt = new DateTime(2026, 11, 22, 0, 0, 0, DateTimeKind.Utc);
+        await SaveAsync(trashed);
 
         var results = await SearchAsync("истинджа");
 
@@ -258,11 +261,13 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
         try
         {
             int articleId;
-            await using (var context = database.CreateContext())
+            await using (var context = database.CreatePreTrashContext())
             {
-                var migrations = context.Database.GetMigrations().ToList();
+                // Migrations are found by the real context type; the row is written without the trash columns.
+                await using var migrating = database.CreateContext();
+                var migrations = migrating.Database.GetMigrations().ToList();
                 var before = migrations[migrations.FindIndex(id => id.EndsWith("_AddArticleSearch", StringComparison.Ordinal)) - 1];
-                var migrator = context.GetService<IMigrator>();
+                var migrator = migrating.GetService<IMigrator>();
 
                 await migrator.MigrateAsync(before);
                 var article = Published("Существующая", "existing", opinions: "Текст про итикаф.");

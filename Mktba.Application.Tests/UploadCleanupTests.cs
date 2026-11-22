@@ -110,6 +110,37 @@ public sealed class UploadCleanupTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenFilesOfATrashedArticle_WhenCleanupRuns_ThenTheyCountAsUsedUntilThePurge()
+    {
+        var social = await UploadAsync();
+        var inSummary = await UploadAsync();
+        var inText = await UploadAsync();
+        var article = new Article
+        {
+            Title = "В корзине",
+            Slug = "v-korzine",
+            SocialImageUrl = Url(social),
+            Summary = "Схема: " + Url(inSummary),
+            DeletedAt = Start,
+        };
+        article.Paragraphs.Add(new Paragraph { Order = 1, Opinions = { new Opinion { Content = $"![a]({Url(inText)})", IsDefault = true } } });
+        _db.Articles.Add(article);
+        await _db.SaveChangesAsync();
+
+        for (var run = 0; run < 3; run++)
+        {
+            _clock.Advance(Grace);
+            (await Service().RunAsync()).Should().Be(new UploadCleanupRun(Checked: 3, Used: 3, Unused: 0, Deleted: 0));
+        }
+
+        foreach (var name in new[] { social, inSummary, inText })
+        {
+            (await RecordAsync(name)).Usage.Should().Be(StoredFileUsage.Article);
+            (await FileExistsAsync(name)).Should().BeTrue();
+        }
+    }
+
+    [Fact]
     public async Task GivenUnusedFileThatIsUsedAgain_WhenCleanupRuns_ThenTheMarkIsClearedAndTheGraceStartsOver()
     {
         var name = await UploadAsync();

@@ -56,6 +56,7 @@ public class TagRepository : GenericRepository<Tag>
     /// </summary>
     public Task<List<Article>> GetArticlesCarryingAsync(IReadOnlyCollection<int> tagIds, CancellationToken cancellationToken = default)
         => _context.Articles
+            .IgnoreQueryFilters()
             .Include(article => article.TagLinks)
                 .ThenInclude(link => link.Tag)
             .Where(article => article.TagLinks.Any(link => tagIds.Contains(link.TagId)))

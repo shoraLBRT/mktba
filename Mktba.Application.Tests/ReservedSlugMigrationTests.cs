@@ -24,11 +24,13 @@ public class ReservedSlugMigrationTests : IClassFixture<PostgresDatabaseFixture>
     public async Task GivenArticlesWithReservedSlugs_WhenMigrationRuns_ThenTheyGetFreeSuffixesAndRedirectFromTheOldSlug()
     {
         Article search, searchTaken, englishAdmin, ordinary;
-        await using (var context = _database.CreateContext())
+        await using (var context = _database.CreatePreTrashContext())
         {
-            var migrations = context.Database.GetMigrations().ToList();
+            // Migrations are found by the real context type; the rows are written without the trash columns.
+            await using var migrating = _database.CreateContext();
+            var migrations = migrating.Database.GetMigrations().ToList();
             var before = migrations[migrations.FindIndex(id => id.EndsWith("_MoveArticlesOffReservedSlugs", StringComparison.Ordinal)) - 1];
-            var migrator = context.GetService<IMigrator>();
+            var migrator = migrating.GetService<IMigrator>();
             await migrator.MigrateAsync(before);
 
             search = Article("Поиск", "search");

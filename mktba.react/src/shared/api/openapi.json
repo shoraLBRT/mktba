@@ -1675,7 +1675,8 @@
         "tags": [
           "Articles"
         ],
-        "description": "Deletes the article. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug.",
+        "summary": "Moves the article to the trash.",
+        "description": "The article disappears from the site, the tree, search and every list; its slug stays reserved and its content, revisions, drafts and files are kept. If it had been published, reading it by slug answers 410 article_gone. Answers 400 article_has_children while it has children outside the trash, 404 article_not_found when there is no such article outside the trash.",
         "parameters": [
           {
             "name": "id",
@@ -1690,6 +1691,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not Found",
@@ -1968,6 +1979,109 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/trash": {
+      "get": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "The trashed articles, most recently trashed first.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleTrashItemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/trash/{id}/restore": {
+      "post": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "Takes the article out of the trash.",
+        "description": "It comes back with the status, slug and content it had, last among its parent's children (the root's, when the parent was purged). Answers 400 article_parent_in_trash while the parent is in the trash, 404 article_not_in_trash when the article is not there.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/trash/{id}": {
+      "delete": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "Deletes a trashed article for good.",
+        "description": "Removes it with its content, revisions and drafts; this cannot be undone. If it was ever published, its current and old slugs are recorded, so reading them by slug answers 410 article_gone until another article takes the slug. Its children still in the trash move to the root. Answers 404 article_not_in_trash when the article is not in the trash.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "404": {
             "description": "Not Found",
@@ -5699,6 +5813,57 @@
           },
           "slug": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleTrashItemDto": {
+        "required": [
+          "deletedAt",
+          "id",
+          "locale",
+          "parentInTrash",
+          "slug",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deletedByDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentArticleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "parentTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentInTrash": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
