@@ -83,6 +83,46 @@ public sealed class AnalyticsEndpointTests : IClassFixture<MktbaApiFactory>
     }
 
     [Fact]
+    public async Task GivenMoreDistinctSearchesThanTheCap_WhenPosting_ThenOnlyTheFirstQueriesAreCountedAndTheRestKeptWithoutACount()
+    {
+        var viewId = Guid.NewGuid();
+        var queries = Enumerable.Range(1, 5).Select(i => $"вопрос номер {i} {viewId:N}").ToArray();
+        foreach (var query in queries)
+        {
+            _factory.SearchResults[query] = 4;
+        }
+
+        var response = await PostAsync(
+            new { type = "Search", viewId, query = queries[0] },
+            new { type = "Search", viewId, query = queries[1] },
+            new { type = "Search", viewId, query = queries[0] },
+            new { type = "Search", viewId, query = queries[2] },
+            new { type = "Search", viewId, query = queries[3] },
+            new { type = "Search", viewId, query = queries[4] });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        (await response.Content.ReadFromJsonAsync<AnalyticsAcceptedDto>(ApiJson.Options))!.Accepted.Should().Be(6);
+        var stored = await LoadAsync(viewId);
+        stored.Where(e => e.Query == queries[0] || e.Query == queries[1] || e.Query == queries[2])
+            .Should().HaveCount(4).And.OnlyContain(e => e.ResultCount == 4);
+        stored.Where(e => e.Query == queries[3] || e.Query == queries[4])
+            .Should().HaveCount(2).And.OnlyContain(e => e.ResultCount == null);
+        _factory.SearchCounts.Should().Be(3, "the site's search runs once per counted query");
+    }
+
+    [Fact]
+    public async Task GivenABotsSearches_WhenPosting_ThenTheSearchIsNeverRun()
+    {
+        var viewId = Guid.NewGuid();
+        var before = _factory.SearchCounts;
+        var response = await PostAsAsync("curl/8.4.0", new { type = "Search", viewId, query = $"бот ищет {viewId:N}" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        (await LoadAsync(viewId)).Should().BeEmpty();
+        _factory.SearchCounts.Should().Be(before);
+    }
+
+    [Fact]
     public async Task GivenStaleOrIncompleteEvents_WhenPosting_ThenOnlyTheValidOnesAreKept()
     {
         var published = await SeedArticleAsync(ArticleStatus.Published);

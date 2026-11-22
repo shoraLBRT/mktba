@@ -103,7 +103,7 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
 
             // The search needs PostgreSQL: a search event's result count comes from SearchResults.
             services.RemoveAll<ISearchResultCounter>();
-            services.AddSingleton<ISearchResultCounter>(new StubSearchResultCounter(SearchResults));
+            services.AddSingleton<ISearchResultCounter>(new StubSearchResultCounter(this));
 
             // Uploaded files go to a directory of this factory only, removed with it.
             services.RemoveAll<IFileStorage>();
@@ -122,6 +122,11 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
     /// set here, 1 for a query not set.
     /// </summary>
     internal ConcurrentDictionary<string, int> SearchResults { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>How many times the stand-in search has been run.</summary>
+    internal int SearchCounts => _searchCounts;
+
+    private int _searchCounts;
 
     /// <summary>Where this factory's API stores uploaded files.</summary>
     internal string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), $"mktba-api-tests-files-{Guid.NewGuid():N}");
@@ -154,10 +159,13 @@ public sealed class MktbaApiFactory : WebApplicationFactory<Program>
             => Task.FromResult(false);
     }
 
-    private sealed class StubSearchResultCounter(ConcurrentDictionary<string, int> results) : ISearchResultCounter
+    private sealed class StubSearchResultCounter(MktbaApiFactory factory) : ISearchResultCounter
     {
         public Task<int> CountAsync(string query, CancellationToken cancellationToken = default)
-            => Task.FromResult(results.GetValueOrDefault(query, 1));
+        {
+            Interlocked.Increment(ref factory._searchCounts);
+            return Task.FromResult(factory.SearchResults.GetValueOrDefault(query, 1));
+        }
     }
 
     private sealed class RemoteIpFromHeaderStartupFilter : IStartupFilter

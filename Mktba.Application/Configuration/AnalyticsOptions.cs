@@ -25,5 +25,13 @@ public sealed class AnalyticsOptions
 
     public int MinSearchers => Math.Max(1, SearchQueryMinSearchers);
 
+    /// <summary>
+    /// How many distinct search queries of one <c>POST /analytics/events</c> request get their results
+    /// counted with the site's search (N-06, #100); the others are stored with no count. The endpoint
+    /// is public, so this keeps it from running the search more often than a reader could. 0 or less:
+    /// nothing is counted.
+    /// </summary>
+    public int MaxSearchCountsPerRequest { get; set; } = 3;
+
     public TimeSpan AggregationInterval => TimeSpan.FromMinutes(Math.Max(1, AggregationIntervalMinutes));
 }
