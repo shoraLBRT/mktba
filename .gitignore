@@ -380,3 +380,5 @@ Mktba.Api/App_Data/
 
 # Deployment stand settings (X-01, #63): secrets, never committed.
 deploy/.env
+# What deploy/deploy.sh deployed on this machine (X-02, #64).
+deploy/.deploy-history

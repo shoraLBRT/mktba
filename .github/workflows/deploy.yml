@@ -1,0 +1,231 @@
+# Deploy from CI (X-02, #64): publishes the images to GHCR and deploys a stand over SSH with
+# deploy/deploy.sh (pull -> migrate as a separate step -> switch api and web). README «Деплой из CI».
+#
+#   push to main          -> API image sha-<commit>; staging gets sha-<commit>
+#   release (release.yml) -> API image <version> (+ sha-<commit>); production gets <version>
+#   manual run            -> any stand; empty tag builds the selected commit, a tag redeploys
+#                            images that already exist (rollback)
+#
+# Inert until the owner turns a stand on: the deploy job runs only when the repository variable
+# DEPLOY_STAGING_ENABLED / DEPLOY_PRODUCTION_ENABLED is 'true' and is skipped otherwise. Pull
+# requests never trigger this workflow, so nothing is published from a PR.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      version:
+        description: Release tag (vX.Y.Z) to publish and deploy to production
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Stand
+        type: choice
+        options: [staging, production]
+        required: true
+      tag:
+        description: Existing image tag to deploy (rollback), e.g. 1.4.0 or sha-1a2b3c4; empty builds the selected commit
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    outputs:
+      stand: ${{ steps.plan.outputs.stand }}
+      tag: ${{ steps.plan.outputs.tag }}
+      build: ${{ steps.plan.outputs.build }}
+      enabled: ${{ steps.plan.outputs.enabled }}
+      prefix: ${{ steps.plan.outputs.prefix }}
+      api_tags: ${{ steps.plan.outputs.api_tags }}
+    steps:
+      - id: plan
+        env:
+          VERSION: ${{ inputs.version }}
+          DISPATCH_STAND: ${{ inputs.environment }}
+          DISPATCH_TAG: ${{ inputs.tag }}
+          STAGING_ENABLED: ${{ vars.DEPLOY_STAGING_ENABLED }}
+          PRODUCTION_ENABLED: ${{ vars.DEPLOY_PRODUCTION_ENABLED }}
+        run: |
+          set -euo pipefail
+          sha_tag="sha-${GITHUB_SHA::7}"
+          prefix="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mktba"
+          if [[ -n $VERSION ]]; then
+            [[ $VERSION =~ ^v?[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]] || { echo "::error::Bad version: $VERSION"; exit 1; }
+            stand=production; tag=${VERSION#v}; build=true
+            api_tags="$prefix-api:$tag,$prefix-api:$sha_tag"
+          elif [[ $GITHUB_EVENT_NAME == workflow_dispatch ]]; then
+            stand=$DISPATCH_STAND
+            if [[ -n $DISPATCH_TAG ]]; then
+              [[ $DISPATCH_TAG =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$ ]] || { echo "::error::Bad tag: $DISPATCH_TAG"; exit 1; }
+              tag=$DISPATCH_TAG; build=false; api_tags=""
+            else
+              tag=$sha_tag; build=true; api_tags="$prefix-api:$sha_tag"
+            fi
+          else
+            stand=staging; tag=$sha_tag; build=true; api_tags="$prefix-api:$sha_tag"
+          fi
+          case $stand in
+            staging) enabled=${STAGING_ENABLED:-false} ;;
+            production) enabled=${PRODUCTION_ENABLED:-false} ;;
+            *) echo "::error::Unknown stand: $stand"; exit 1 ;;
+          esac
+          [[ $enabled == true ]] || echo "::notice::Deploy to $stand is off (repository variable DEPLOY_${stand^^}_ENABLED is not 'true'); images are still published."
+          {
+            echo "stand=$stand"; echo "tag=$tag"; echo "build=$build"; echo "enabled=$enabled"
+            echo "prefix=$prefix"; echo "api_tags=$api_tags"
+          } >>"$GITHUB_OUTPUT"
+
+  api-image:
+    name: api image
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # One API image serves every stand; migrate runs the same image with --migrate.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Mktba.Api/Dockerfile
+          push: true
+          tags: ${{ needs.plan.outputs.api_tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+  deploy:
+    name: deploy
+    needs: [plan, api-image]
+    if: >-
+      always() && needs.plan.result == 'success' && needs.plan.outputs.enabled == 'true'
+      && (needs.api-image.result == 'success' || needs.api-image.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.plan.outputs.stand }}
+      url: https://${{ vars.SITE_HOST }}
+    # One deployment per stand at a time; a newer one waits instead of cancelling a running one.
+    concurrency:
+      group: deploy-${{ needs.plan.outputs.stand }}
+      cancel-in-progress: false
+    env:
+      STAND: ${{ needs.plan.outputs.stand }}
+      TAG: ${{ needs.plan.outputs.tag }}
+      PREFIX: ${{ needs.plan.outputs.prefix }}
+      SITE_HOST: ${{ vars.SITE_HOST }}
+      API_HOST: ${{ vars.API_HOST }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/mktba' }}
+    steps:
+      - name: Check the stand's settings
+        env:
+          SSH_KEY_SET: ${{ secrets.DEPLOY_SSH_KEY != '' }}
+          KNOWN_HOSTS_SET: ${{ vars.DEPLOY_KNOWN_HOSTS != '' }}
+        run: |
+          missing=()
+          [[ -n $SITE_HOST ]] || missing+=("variable SITE_HOST")
+          [[ -n $API_HOST ]] || missing+=("variable API_HOST")
+          [[ -n $DEPLOY_HOST ]] || missing+=("variable DEPLOY_HOST")
+          [[ -n $DEPLOY_USER ]] || missing+=("variable DEPLOY_USER")
+          [[ $KNOWN_HOSTS_SET == true ]] || missing+=("variable DEPLOY_KNOWN_HOSTS")
+          [[ $SSH_KEY_SET == true ]] || missing+=("secret DEPLOY_SSH_KEY")
+          if (( ${#missing[@]} )); then
+            echo "::error::Environment '$STAND' is enabled but lacks: ${missing[*]} (README «Деплой из CI»)"
+            exit 1
+          fi
+          for value in "$SITE_HOST" "$API_HOST" "$DEPLOY_HOST"; do
+            [[ $value =~ ^[A-Za-z0-9.-]+$ ]] || { echo "::error::Bad host name: $value"; exit 1; }
+          done
+          [[ $DEPLOY_USER =~ ^[a-z_][a-z0-9_-]*$ ]] || { echo "::error::Bad DEPLOY_USER"; exit 1; }
+          [[ $DEPLOY_PORT =~ ^[0-9]+$ ]] || { echo "::error::Bad DEPLOY_PORT"; exit 1; }
+          [[ $DEPLOY_PATH =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "::error::Bad DEPLOY_PATH"; exit 1; }
+
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The web image bakes VITE_API_BASE_URL (and the Metrika id) in, so it is built per stand.
+      - name: Build and push the web image
+        if: needs.plan.outputs.build == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: mktba.react
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=https://${{ vars.API_HOST }}
+            VITE_METRIKA_ID=${{ vars.METRIKA_ID }}
+          tags: ${{ needs.plan.outputs.prefix }}-web:${{ needs.plan.outputs.tag }}-${{ needs.plan.outputs.stand }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=web-${{ needs.plan.outputs.stand }}
+          cache-to: type=gha,scope=web-${{ needs.plan.outputs.stand }},mode=max
+
+      - name: Check that the images to redeploy exist
+        if: needs.plan.outputs.build != 'true'
+        run: |
+          for image in "$PREFIX-api:$TAG" "$PREFIX-web:$TAG-$STAND"; do
+            docker buildx imagetools inspect "$image" >/dev/null \
+              || { echo "::error::$image is not in the registry; deploy a tag that was deployed to $STAND before"; exit 1; }
+          done
+
+      - name: Set up SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" >~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" >~/.ssh/known_hosts
+
+      - name: Deploy (pull, migrate, switch)
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ssh_opts=(-i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          target="$DEPLOY_USER@$DEPLOY_HOST"
+          ssh "${ssh_opts[@]}" "$target" "mkdir -p '$DEPLOY_PATH'"
+          scp -P "$DEPLOY_PORT" -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh "$target:$DEPLOY_PATH/"
+          # The job's token (valid only while the job runs) lets the server pull; logged out afterwards.
+          printf '%s' "$REGISTRY_TOKEN" | ssh "${ssh_opts[@]}" "$target" \
+            "set -e; cd '$DEPLOY_PATH'; trap 'docker logout ghcr.io >/dev/null' EXIT; docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin >/dev/null; bash ./deploy.sh deploy '$PREFIX' '$TAG' '-$STAND'"
+
+      - name: Smoke check
+        run: |
+          curl -fsS -o /dev/null --retry 12 --retry-delay 5 --retry-all-errors "https://$API_HOST/schools/system"
+          curl -fsS -o /dev/null --retry 12 --retry-delay 5 --retry-all-errors "https://$SITE_HOST/"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### $STAND: $TAG (${{ job.status }})"
+            echo "Roll back: run **Deploy** manually with environment \`$STAND\` and the previous tag,"
+            echo "or on the server \`bash $DEPLOY_PATH/deploy.sh rollback\`."
+          } >>"$GITHUB_STEP_SUMMARY"
