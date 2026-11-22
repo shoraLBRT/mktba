@@ -1,6 +1,11 @@
 import { render, renderHook, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { dictionaries, formatMessage, locale } from './index';
+import { LAZY_LOCALE_KEYS, pickLocaleChunk } from './chunks';
+import { dictionaries, formatMessage, loadLocaleChunk, locale } from './index';
+import ruEditor from './locales/ru/editor.json';
+import ruPages from './locales/ru/pages.json';
+import coreEditor from './locales/ru/editor.json?locale-chunk=core';
+import corePages from './locales/ru/pages.json?locale-chunk=core';
 import { useLocale } from './hooks';
 import { LocalizationProvider } from './provider';
 import { getValidatedDefaultLocaleNamespaces, REQUIRED_NAMESPACES, validateNamespaceOwnership } from './validation';
@@ -20,6 +25,44 @@ describe('dictionaries', () => {
     expect(locale).toBe(dictionaries.ru);
     expect(locale.brand.name).toBe('mktba');
     expect(typeof locale.adminPage.cleanupDone).toBe('string');
+  });
+});
+
+describe('dictionary chunks (#106)', () => {
+  const files = { pages: ruPages, editor: ruEditor } as Record<string, Record<string, unknown>>;
+
+  it('given every lazy key, when looked up, then its namespace file has it', () => {
+    Object.values(LAZY_LOCALE_KEYS).forEach((byNamespace) =>
+      Object.entries(byNamespace).forEach(([namespace, keys]) =>
+        keys?.forEach((key) => expect(Object.keys(files[namespace] ?? {}), `${namespace}.${key}`).toContain(key)),
+      ),
+    );
+  });
+
+  it('given a namespace file, when split, then its chunks are disjoint and together are the file', () => {
+    Object.entries(files).forEach(([namespace, data]) => {
+      const core = pickLocaleChunk(namespace, data, 'core');
+      const admin = pickLocaleChunk(namespace, data, 'admin');
+
+      expect(Object.keys(core).filter((key) => key in admin)).toEqual([]);
+      expect({ ...core, ...admin }).toEqual(data);
+    });
+  });
+
+  it('given the core chunk import, when loaded, then it has the public keys and none of the admin ones', () => {
+    expect(Object.keys(corePages)).toContain('articlePage');
+    expect(Object.keys(corePages)).toContain('adminLoginPage');
+    expect(Object.keys(corePages)).not.toContain('adminPage');
+    expect(Object.keys(coreEditor)).toEqual(['versionedParagraph']);
+  });
+
+  it('given the admin chunk, when loaded, then the dictionary has its keys and a second load is shared', async () => {
+    const first = loadLocaleChunk('admin');
+
+    expect(loadLocaleChunk('admin')).toBe(first);
+    await first;
+    expect(locale.addArticleEditor).toEqual(ruEditor.addArticleEditor);
+    expect(locale.adminPage).toEqual(ruPages.adminPage);
   });
 });
 

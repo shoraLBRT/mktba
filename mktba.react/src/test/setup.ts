@@ -1,5 +1,6 @@
 import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
+import { loadLocaleChunk } from '../localization';
 
 // Vitest globals are off, so Testing Library cannot register its own cleanup.
 afterEach(() => {
@@ -15,3 +16,7 @@ if (typeof Range !== 'undefined' && !Range.prototype.getClientRects) {
 if (typeof document !== 'undefined' && !document.elementFromPoint) {
   document.elementFromPoint = () => null;
 }
+
+// The admin's strings are a lazy dictionary chunk that the admin route loads before rendering;
+// component tests render admin pages directly, so load it once up front.
+await loadLocaleChunk('admin');

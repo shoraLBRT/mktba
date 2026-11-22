@@ -1,5 +1,12 @@
 import { dictionaries as loadedDictionaries } from './loader';
 
+export { loadLocaleChunk } from './loader';
+export type { LazyLocaleChunk } from './chunks';
+
+/**
+ * Typed as every key of every file, but the keys of a lazy chunk (./chunks.ts, the admin's) are
+ * there only once `loadLocaleChunk` has resolved; the admin route awaits it before rendering.
+ */
 export const dictionaries = loadedDictionaries as typeof loadedDictionaries & {
   ru: typeof import('./locales/ru/brand.json')
     & typeof import('./locales/ru/shared.json')

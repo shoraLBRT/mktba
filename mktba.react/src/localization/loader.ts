@@ -1,3 +1,4 @@
+import type { LazyLocaleChunk } from './chunks';
 import {
   DEFAULT_LOCALE,
   getValidatedDefaultLocaleNamespaces,
@@ -10,9 +11,18 @@ import {
 } from './validation';
 
 type LocaleNamespaceModule = { default: LocaleNamespace };
+type LazyLocaleModules = Record<string, () => Promise<LocaleNamespaceModule>>;
 
-const localeModules = import.meta.glob<LocaleNamespaceModule>('./locales/*/*.json', { eager: true });
-const localePathPattern = /^\.\/locales\/([^/]+)\/([^/]+)\.json$/;
+// Each file is split by key into chunks (./chunks.ts, the `localeChunks` plugin in vite.config.ts):
+// `core` is in the first load and the server render, the others load on demand.
+const coreModules = import.meta.glob<LocaleNamespaceModule>('./locales/*/*.json', {
+  eager: true,
+  query: '?locale-chunk=core',
+});
+const lazyModules: Record<LazyLocaleChunk, LazyLocaleModules> = {
+  admin: import.meta.glob<LocaleNamespaceModule>('./locales/*/*.json', { query: '?locale-chunk=admin' }),
+};
+const localePathPattern = /^\.\/locales\/([^/]+)\/([^/]+)\.json(?:\?.*)?$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -34,11 +44,13 @@ const mergeWithFallback = <T extends Record<string, unknown>>(fallback: T, overr
   return result as T;
 };
 
-const buildLocaleNamespaces = (): LocaleNamespacesByLanguage => {
-  const byLanguage: LocaleNamespacesByLanguage = {};
-  const topLevelOwners: Record<string, Record<string, string>> = {};
+// Who owns each top-level key, per language, across every chunk loaded so far.
+const topLevelOwners: Record<string, Record<string, string>> = {};
 
-  Object.entries(localeModules).forEach(([path, module]) => {
+const collectLocaleNamespaces = (modules: [path: string, module: LocaleNamespaceModule][]): LocaleNamespacesByLanguage => {
+  const byLanguage: LocaleNamespacesByLanguage = {};
+
+  modules.forEach(([path, module]) => {
     const match = path.match(localePathPattern);
     if (!match) {
       return;
@@ -62,21 +74,53 @@ const buildLocaleNamespaces = (): LocaleNamespacesByLanguage => {
   return byLanguage;
 };
 
+const mergeLanguage = (
+  namespaces: Partial<Record<LocaleNamespaceName, LocaleNamespace>>,
+  defaultNamespaces: Partial<Record<LocaleNamespaceName, LocaleNamespace>>,
+): LocaleDictionary =>
+  REQUIRED_NAMESPACES.reduce<LocaleDictionary>((dictionary, namespace) => {
+    const fallbackNamespace = defaultNamespaces[namespace] ?? {};
+    const localeNamespace = namespaces[namespace] ?? {};
+    return mergeWithFallback(dictionary, mergeWithFallback(fallbackNamespace, localeNamespace));
+  }, {});
+
 const buildDictionaries = (): Record<string, LocaleDictionary> => {
-  const localeNamespaces = buildLocaleNamespaces();
+  const localeNamespaces = collectLocaleNamespaces(Object.entries(coreModules));
   const defaultNamespaces = getValidatedDefaultLocaleNamespaces(localeNamespaces[DEFAULT_LOCALE]);
 
   return Object.fromEntries(
-    Object.entries(localeNamespaces).map(([language, namespaces]) => {
-      const merged = REQUIRED_NAMESPACES.reduce<LocaleDictionary>((dictionary, namespace) => {
-        const fallbackNamespace = defaultNamespaces[namespace];
-        const localeNamespace = namespaces[namespace] ?? {};
-        return mergeWithFallback(dictionary, mergeWithFallback(fallbackNamespace, localeNamespace));
-      }, {});
-
-      return [language, merged];
-    }),
-  ) as Record<string, LocaleDictionary>;
+    Object.entries(localeNamespaces).map(([language, namespaces]) => [language, mergeLanguage(namespaces, defaultNamespaces)]),
+  );
 };
 
 export const dictionaries = buildDictionaries();
+
+const loadedChunks = new Map<LazyLocaleChunk, Promise<void>>();
+
+const loadChunk = async (chunk: LazyLocaleChunk) => {
+  const modules = await Promise.all(
+    Object.entries(lazyModules[chunk]).map(async ([path, load]) => [path, await load()] as [string, LocaleNamespaceModule]),
+  );
+  const localeNamespaces = collectLocaleNamespaces(modules);
+  const defaultNamespaces = localeNamespaces[DEFAULT_LOCALE] ?? {};
+
+  // In place: every holder of a dictionary (the provider, `locale`) sees the new keys.
+  Object.entries(dictionaries).forEach(([language, dictionary]) => {
+    Object.assign(dictionary, mergeLanguage(localeNamespaces[language] ?? {}, defaultNamespaces));
+  });
+};
+
+/**
+ * Adds the keys of a lazy chunk (./chunks.ts) to every dictionary. Await it before rendering what
+ * reads them; repeated calls share one load.
+ */
+export const loadLocaleChunk = (chunk: LazyLocaleChunk): Promise<void> => {
+  let pending = loadedChunks.get(chunk);
+  if (!pending) {
+    pending = loadChunk(chunk);
+    pending.catch(() => loadedChunks.delete(chunk));
+    loadedChunks.set(chunk, pending);
+  }
+
+  return pending;
+};
