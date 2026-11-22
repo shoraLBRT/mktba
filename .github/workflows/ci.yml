@@ -18,8 +18,7 @@ jobs:
     name: backend
     runs-on: ubuntu-latest
     # The PostgreSQL tests (PostgresDatabaseFixture, and the API tests on PostgresApiFactory, X-07) run
-    # against this real PostgreSQL: each test class
-    # creates and drops its own database on this server.
+    # against this real PostgreSQL: each test class creates and drops its own database on this server.
     services:
       postgres:
         image: postgres:16
