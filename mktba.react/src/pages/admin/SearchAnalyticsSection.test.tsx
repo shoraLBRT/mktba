@@ -34,6 +34,7 @@ const analytics: SearchAnalyticsDto = {
   queriesWithoutResults: [{ query: 'закят с золота', searches: 4, searchers: 3, searchesWithoutResults: 4 }],
   minSearchers: 2,
   aggregatedAtUtc: '2026-11-20T14:00:00Z',
+  previous: { from: '2026-11-17', to: '2026-11-18', totals: { searches: 25, searchesWithoutResults: 5 } },
 };
 
 describe('SearchAnalyticsSection', () => {
@@ -50,7 +51,7 @@ describe('SearchAnalyticsSection', () => {
     const withoutResults = screen.getByTestId('search-analytics-without-results');
     expect(within(withoutResults).getByText('5')).toBeTruthy();
     expect(within(withoutResults).getByText('Доля от всех поисков: 25%.')).toBeTruthy();
-    expect(fetchAnalytics).toHaveBeenCalledWith(30);
+    expect(fetchAnalytics).toHaveBeenCalledWith({ days: 30 });
     expect(screen.getByTestId('search-analytics-privacy').textContent).toContain('не меньше 2');
 
     const missing = within(screen.getByTestId('search-analytics-queries-without-results')).getAllByRole('link');
@@ -80,7 +81,21 @@ describe('SearchAnalyticsSection', () => {
     await screen.findByTestId('search-analytics-searches');
     fireEvent.click(screen.getByRole('button', { name: '7 дн.' }));
 
-    expect(fetchAnalytics).toHaveBeenLastCalledWith(7);
+    expect(fetchAnalytics).toHaveBeenLastCalledWith({ days: 7 });
+  });
+
+  it('given the previous period and a filter, when shown and typed, then gives the change and narrows both tables', async () => {
+    fetchAnalytics.mockResolvedValue(analytics);
+    renderSection();
+
+    expect((await screen.findByTestId('search-analytics-searches-change')).textContent).toBe('−20% к предыдущему (25)');
+    expect(screen.getByTestId('search-analytics-without-results-change').textContent).toBe('Как в предыдущем периоде');
+
+    fireEvent.change(screen.getByTestId('search-analytics-filter'), { target: { value: 'намаз' } });
+
+    expect(within(screen.getByTestId('search-analytics-top-queries')).getAllByRole('row')).toHaveLength(2);
+    expect(screen.queryByTestId('search-analytics-queries-without-results')).toBeNull();
+    expect(screen.getByText('Под фильтр ничего не подходит.')).toBeTruthy();
   });
 
   it('given the request fails, when shown, then says so', async () => {

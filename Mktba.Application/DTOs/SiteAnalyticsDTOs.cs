@@ -38,7 +38,8 @@ namespace Mktba.Application.DTOs
     /// </summary>
     /// <param name="From">The first day of the previous period.</param>
     /// <param name="To">The day before the shown period's first day.</param>
-    public record AnalyticsPreviousPeriodDto<TTotals>(DateOnly From, DateOnly To, TTotals Totals);
+    public record AnalyticsPreviousPeriodDto<TTotals>(DateOnly From, DateOnly To, TTotals Totals)
+        where TTotals : class;
 
     /// <summary>
     /// The admin dashboard's statistics over the last <paramref name="Days"/> UTC days, today included

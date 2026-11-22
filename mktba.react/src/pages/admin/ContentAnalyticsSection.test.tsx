@@ -68,13 +68,17 @@ describe('ContentAnalyticsSection', () => {
     renderSection();
 
     expect(within(await screen.findByTestId('content-analytics-without-views-total')).getByText('73')).toBeTruthy();
-    expect(fetchAnalytics).toHaveBeenCalledWith(30);
+    expect(fetchAnalytics).toHaveBeenCalledWith({ days: 30 });
     expect(screen.getByText('Показаны 1 из 73.')).toBeTruthy();
 
     const stubRows = within(screen.getByTestId('content-analytics-stubs')).getAllByRole('row');
     expect(within(stubRows[1]).getAllByRole('cell').slice(1).map((cell) => cell.textContent)).toEqual(['12', '9']);
     const stubLinks = within(stubRows[1]).getAllByRole('link');
-    expect(stubLinks.map((link) => link.getAttribute('href'))).toEqual(['/article-2', '/admin/articles/2/edit']);
+    expect(stubLinks.map((link) => link.getAttribute('href'))).toEqual([
+      '/article-2',
+      '/admin/articles/2/analytics?from=2026-10-22&to=2026-11-20',
+      '/admin/articles/2/edit',
+    ]);
 
     const blockCells = within(within(screen.getByTestId('content-analytics-uncovered')).getAllByRole('row')[1]).getAllByRole('cell');
     expect(blockCells.slice(1).map((cell) => cell.textContent)).toEqual(['Блок 2, мнений: 2', 'Маликитский, Ханбалитский', '7', '40']);
@@ -110,7 +114,7 @@ describe('ContentAnalyticsSection', () => {
     await screen.findByTestId('content-analytics-stubs');
     fireEvent.click(screen.getByRole('button', { name: '90 дн.' }));
 
-    expect(fetchAnalytics).toHaveBeenLastCalledWith(90);
+    expect(fetchAnalytics).toHaveBeenLastCalledWith({ days: 90 });
   });
 
   it('given the request fails, when shown, then says so', async () => {

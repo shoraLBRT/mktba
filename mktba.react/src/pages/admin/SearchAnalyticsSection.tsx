@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { formatMessage } from '../../localization';
+import { type Locale, formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
-import { getSearchAnalytics } from '../../services/adminService';
+import { type AnalyticsPeriodQuery, getSearchAnalytics } from '../../services/adminService';
 import { searchHref } from '../../shared/search';
 import type { SearchAnalyticsDto, SearchQueryTotalDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
-import { Freshness, PeriodSwitch, StatCard } from './analyticsParts';
-import { share } from './analyticsFormat';
+import {
+  CardHeading,
+  ComparisonNote,
+  CsvButton,
+  FilterInput,
+  Freshness,
+  PeriodPicker,
+  StatCard,
+} from './analyticsParts';
+import { matchesFilter, share } from './analyticsFormat';
+import { DEFAULT_PERIOD, periodKey } from './analyticsPeriod';
 
 // Kept here rather than in APP_CONSTANTS, which the article page loads too.
 const SEARCH_ANALYTICS_QUERY_KEY = 'searchAnalytics';
@@ -19,6 +28,8 @@ const TEST_IDS = {
   topQueries: 'search-analytics-top-queries',
   queriesWithoutResults: 'search-analytics-queries-without-results',
   freshness: 'search-analytics-freshness',
+  comparison: 'search-analytics-comparison',
+  filter: 'search-analytics-filter',
 };
 
 type QueryTableProps = {
@@ -62,8 +73,20 @@ const QueryTable: React.FC<QueryTableProps> = ({ queries, emptyText, testId }) =
   );
 };
 
+/** A query table as CSV rows, the header first. */
+const queryRows = (t: Locale['searchAnalytics'], queries: SearchQueryTotalDto[]) => [
+  [t.queryColumn, t.searchesColumn, t.searchersColumn, t.withoutResultsColumn],
+  ...queries.map((query) => [query.query, query.searches, query.searchers, query.searchesWithoutResults]),
+];
+
 const AnalyticsBody: React.FC<{ data: SearchAnalyticsDto }> = ({ data }) => {
-  const t = useLocale().searchAnalytics;
+  const locale = useLocale();
+  const t = locale.searchAnalytics;
+  const tools = locale.analyticsTools;
+  const [filter, setFilter] = useState('');
+  const withoutResults = data.queriesWithoutResults.filter((query) => matchesFilter(filter, query.query));
+  const top = data.topQueries.filter((query) => matchesFilter(filter, query.query));
+  const filtered = filter.trim() !== '';
   return (
     <div className="space-y-4">
       <p className="max-w-2xl text-sm text-[var(--color-ink-muted)]" data-testid="search-analytics-privacy">
@@ -71,31 +94,48 @@ const AnalyticsBody: React.FC<{ data: SearchAnalyticsDto }> = ({ data }) => {
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard testId={TEST_IDS.searches} label={t.searches} value={data.totals.searches} />
+        <StatCard testId={TEST_IDS.searches} label={t.searches} value={data.totals.searches} previous={data.previous.totals.searches} />
         <StatCard
           testId={TEST_IDS.withoutResults}
           label={t.searchesWithoutResults}
           value={data.totals.searchesWithoutResults}
+          previous={data.previous.totals.searchesWithoutResults}
           hint={formatMessage(t.searchesWithoutResultsHint, {
             share: share(data.totals.searchesWithoutResults, data.totals.searches),
           })}
         />
       </div>
+      <ComparisonNote previous={data.previous} testId={TEST_IDS.comparison} />
+
+      {data.topQueries.length > 0 ? <FilterInput value={filter} onChange={setFilter} testId={TEST_IDS.filter} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-6">
-          <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.withoutResultsTitle}</h3>
+          <CardHeading title={t.withoutResultsTitle}>
+            <CsvButton
+              table={t.withoutResultsTitle}
+              name="search-without-results"
+              period={data}
+              rows={() => queryRows(t, withoutResults)}
+            />
+          </CardHeading>
           <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{t.withoutResultsDescription}</p>
           <QueryTable
-            queries={data.queriesWithoutResults}
-            emptyText={t.noQueriesWithoutResults}
+            queries={withoutResults}
+            emptyText={filtered && data.queriesWithoutResults.length > 0 ? tools.filterNothing : t.noQueriesWithoutResults}
             testId={TEST_IDS.queriesWithoutResults}
           />
         </Card>
 
         <Card className="p-6">
-          <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.topQueriesTitle}</h3>
-          <QueryTable queries={data.topQueries} emptyText={t.noQueries} testId={TEST_IDS.topQueries} />
+          <CardHeading title={t.topQueriesTitle}>
+            <CsvButton table={t.topQueriesTitle} name="search-top-queries" period={data} rows={() => queryRows(t, top)} />
+          </CardHeading>
+          <QueryTable
+            queries={top}
+            emptyText={filtered && data.topQueries.length > 0 ? tools.filterNothing : t.noQueries}
+            testId={TEST_IDS.topQueries}
+          />
         </Card>
       </div>
 
@@ -119,10 +159,10 @@ export const SearchAnalyticsSection: React.FC = () => {
   const locale = useLocale();
   const t = locale.searchAnalytics;
   const common = locale.siteAnalytics;
-  const [days, setDays] = useState<number>(30);
+  const [period, setPeriod] = useState<AnalyticsPeriodQuery>(DEFAULT_PERIOD);
   const query = useQuery({
-    queryKey: [SEARCH_ANALYTICS_QUERY_KEY, days],
-    queryFn: () => getSearchAnalytics(days),
+    queryKey: [SEARCH_ANALYTICS_QUERY_KEY, periodKey(period)],
+    queryFn: () => getSearchAnalytics(period),
   });
 
   const body = () => {
@@ -140,7 +180,7 @@ export const SearchAnalyticsSection: React.FC = () => {
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-ink-muted)]">{t.description}</p>
         </div>
-        <PeriodSwitch days={days} onChange={setDays} />
+        <PeriodPicker value={period} onChange={setPeriod} />
       </div>
       {body()}
     </section>

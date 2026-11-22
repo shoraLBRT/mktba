@@ -166,32 +166,38 @@ export const checkAiConnection = async (): Promise<AiConnectionCheckResultDto> =
   return response.data;
 };
 
+/**
+ * The period of a statistics endpoint (N-08, #102): the last `days` UTC days, today included, or the
+ * UTC days `from` to `to` (`yyyy-MM-dd`, both included). Sent as the query string as it is.
+ */
+export type AnalyticsPeriodQuery = { days: number } | { from: string; to: string };
+
 /** The admin dashboard's site-wide statistics (N-05): the last `days` UTC days, today included. */
-export const getSiteAnalytics = async (days: number): Promise<SiteAnalyticsDto> => {
-  const response = await apiClient.get<SiteAnalyticsDto>('/analytics/site', { params: { days } });
+export const getSiteAnalytics = async (period: AnalyticsPeriodQuery): Promise<SiteAnalyticsDto> => {
+  const response = await apiClient.get<SiteAnalyticsDto>('/analytics/site', { params: period });
   return response.data;
 };
 
-/** The search analytics of the admin dashboard (N-06): popular queries and those that found nothing, over the last `days` UTC days. */
-export const getSearchAnalytics = async (days: number): Promise<SearchAnalyticsDto> => {
-  const response = await apiClient.get<SearchAnalyticsDto>('/analytics/search', { params: { days } });
+/** The search analytics of the admin dashboard (N-06): popular queries and those that found nothing, over the period. */
+export const getSearchAnalytics = async (period: AnalyticsPeriodQuery): Promise<SearchAnalyticsDto> => {
+  const response = await apiClient.get<SearchAnalyticsDto>('/analytics/search', { params: period });
   return response.data;
 };
 
-/** The content analytics of the admin dashboard (N-07): what to write, finish or refresh, over the last `days` UTC days. */
-export const getContentAnalytics = async (days: number): Promise<ContentAnalyticsDto> => {
-  const response = await apiClient.get<ContentAnalyticsDto>('/analytics/content', { params: { days } });
+/** The content analytics of the admin dashboard (N-07): what to write, finish or refresh, over the period. */
+export const getContentAnalytics = async (period: AnalyticsPeriodQuery): Promise<ContentAnalyticsDto> => {
+  const response = await apiClient.get<ContentAnalyticsDto>('/analytics/content', { params: period });
   return response.data;
 };
 
-/** The author dashboard (P-03): the signed-in user's own articles over the last `days` UTC days, today included. */
-export const getAuthorAnalytics = async (days: number): Promise<AuthorAnalyticsDto> => {
-  const response = await apiClient.get<AuthorAnalyticsDto>('/analytics/me', { params: { days } });
+/** The author dashboard (P-03): the signed-in user's own articles over the period, today included. */
+export const getAuthorAnalytics = async (period: AnalyticsPeriodQuery): Promise<AuthorAnalyticsDto> => {
+  const response = await apiClient.get<AuthorAnalyticsDto>('/analytics/me', { params: period });
   return response.data;
 };
 
 /** One article's statistics (N-09, #103): an admin any article, an author their own. */
-export const getArticleAnalytics = async (articleId: number, days: number): Promise<ArticleAnalyticsDto> => {
-  const response = await apiClient.get<ArticleAnalyticsDto>(`/analytics/articles/${articleId}`, { params: { days } });
+export const getArticleAnalytics = async (articleId: number, period: AnalyticsPeriodQuery): Promise<ArticleAnalyticsDto> => {
+  const response = await apiClient.get<ArticleAnalyticsDto>(`/analytics/articles/${articleId}`, { params: period });
   return response.data;
 };

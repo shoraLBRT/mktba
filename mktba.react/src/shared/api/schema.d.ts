@@ -4516,7 +4516,7 @@ export interface components {
             from: string;
             /** Format: date */
             to: string;
-            totals?: components["schemas"]["ArticleAnalyticsTotalsDto"];
+            totals: components["schemas"]["ArticleAnalyticsTotalsDto"];
         };
         ArticleAuthorDto: {
             displayName: string;
@@ -4869,7 +4869,7 @@ export interface components {
             from: string;
             /** Format: date */
             to: string;
-            totals?: components["schemas"]["AuthorAnalyticsTotalsDto"];
+            totals: components["schemas"]["AuthorAnalyticsTotalsDto"];
         };
         AuthorArticleDto: {
             /** Format: int32 */
@@ -5173,7 +5173,7 @@ export interface components {
             from: string;
             /** Format: date */
             to: string;
-            totals?: components["schemas"]["SearchAnalyticsTotalsDto"];
+            totals: components["schemas"]["SearchAnalyticsTotalsDto"];
         };
         SearchQueryTotalDto: {
             query: string;
@@ -5262,7 +5262,7 @@ export interface components {
             from: string;
             /** Format: date */
             to: string;
-            totals?: components["schemas"]["SiteAnalyticsTotalsDto"];
+            totals: components["schemas"]["SiteAnalyticsTotalsDto"];
         };
         SiteWebVitalDto: {
             metric: components["schemas"]["AnalyticsEventType"];

@@ -39,6 +39,7 @@ const analytics: AuthorAnalyticsDto = {
   schools: [{ schoolId: 3, name: 'Ханафитский', views: 4, readers: 3 }],
   viewsWithoutSchool: 6,
   aggregatedAtUtc: '2026-11-20T14:00:00Z',
+  previous: { from: '2026-11-17', to: '2026-11-18', totals: { views: 8, readers: 5, articlesViewed: 2 } },
 };
 
 describe('AuthorAnalyticsSection', () => {
@@ -55,7 +56,7 @@ describe('AuthorAnalyticsSection', () => {
     expect(within(screen.getByTestId('author-analytics-readers')).getByText('5')).toBeTruthy();
     expect(within(screen.getByTestId('author-analytics-articles')).getByText('2')).toBeTruthy();
     expect(within(screen.getByTestId('author-analytics-finished')).getByText('40%')).toBeTruthy();
-    expect(fetchAnalytics).toHaveBeenCalledWith(30);
+    expect(fetchAnalytics).toHaveBeenCalledWith({ days: 30 });
 
     const days = screen.getAllByTestId('author-analytics-day');
     expect(days).toHaveLength(2);
@@ -87,7 +88,7 @@ describe('AuthorAnalyticsSection', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '90 дн.' }));
 
-    expect(fetchAnalytics).toHaveBeenLastCalledWith(90);
+    expect(fetchAnalytics).toHaveBeenLastCalledWith({ days: 90 });
     expect(screen.getByRole('button', { name: '90 дн.' }).getAttribute('aria-pressed')).toBe('true');
   });
 

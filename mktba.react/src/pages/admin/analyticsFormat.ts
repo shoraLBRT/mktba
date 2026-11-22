@@ -20,3 +20,11 @@ export const dailyGeometry = (days: number) => ({
   barGap: 1,
   groupGap: 2,
 });
+
+/** Whether the texts together contain every word of the table filter (N-08), ignoring case. */
+export const matchesFilter = (filter: string, ...texts: (string | null | undefined)[]) => {
+  const words = filter.toLocaleLowerCase('ru').split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const haystack = texts.filter(Boolean).join(' ').toLocaleLowerCase('ru');
+  return words.every((word) => haystack.includes(word));
+};

@@ -4,13 +4,23 @@ import { useQuery } from '@tanstack/react-query';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
-import { getSiteAnalytics } from '../../services/adminService';
+import { type AnalyticsPeriodQuery, getSiteAnalytics } from '../../services/adminService';
 import type { SiteAnalyticsDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
 import { BarChart } from './BarChart';
 import { WebVitalsCard } from './WebVitalsCard';
-import { Freshness, PeriodSwitch, SchoolShares, StatCard } from './analyticsParts';
-import { SECONDARY_COLOR, VIEWS_COLOR, dailyGeometry, formatDay } from './analyticsFormat';
+import {
+  CardHeading,
+  ComparisonNote,
+  CsvButton,
+  FilterInput,
+  Freshness,
+  PeriodPicker,
+  SchoolShares,
+  StatCard,
+} from './analyticsParts';
+import { SECONDARY_COLOR, VIEWS_COLOR, dailyGeometry, formatDay, matchesFilter } from './analyticsFormat';
+import { DEFAULT_PERIOD, articleStatsHref, periodKey } from './analyticsPeriod';
 
 /** Yandex Metrika's own report, when this build has a counter (N-01): traffic sources and devices live there (D7). */
 const metrikaCounterId = Number(import.meta.env.VITE_METRIKA_ID ?? 0);
@@ -22,20 +32,44 @@ const TEST_IDS = {
   day: 'site-analytics-day',
   schools: 'site-analytics-schools',
   freshness: 'site-analytics-freshness',
+  comparison: 'site-analytics-comparison',
+  filter: 'site-analytics-filter',
 };
 
 const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
-  const t = useLocale().siteAnalytics;
+  const locale = useLocale();
+  const t = locale.siteAnalytics;
+  const tools = locale.analyticsTools;
+  const [filter, setFilter] = useState('');
+  const topArticles = data.topArticles.filter((article) => matchesFilter(filter, article.title, article.slug));
+  const previous = data.previous.totals;
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard testId={TEST_IDS.views} label={t.articleViews} value={data.totals.articleViews} />
-        <StatCard testId={TEST_IDS.visitors} label={t.visitors} value={data.totals.visitors} hint={t.visitorsHint} />
-        <StatCard testId={TEST_IDS.searches} label={t.searches} value={data.totals.searches} />
+        <StatCard testId={TEST_IDS.views} label={t.articleViews} value={data.totals.articleViews} previous={previous.articleViews} />
+        <StatCard
+          testId={TEST_IDS.visitors}
+          label={t.visitors}
+          value={data.totals.visitors}
+          previous={previous.visitors}
+          hint={t.visitorsHint}
+        />
+        <StatCard testId={TEST_IDS.searches} label={t.searches} value={data.totals.searches} previous={previous.searches} />
       </div>
+      <ComparisonNote previous={data.previous} testId={TEST_IDS.comparison} />
 
       <Card className="p-6">
-        <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.dailyTitle}</h3>
+        <CardHeading title={t.dailyTitle}>
+          <CsvButton
+            table={t.dailyTitle}
+            name="site-daily"
+            period={data}
+            rows={() => [
+              [tools.dayColumn, t.articleViews, t.visitors, t.searches],
+              ...data.daily.map((day) => [day.day, day.articleViews, day.visitors, day.searches]),
+            ]}
+          />
+        </CardHeading>
         {data.totals.articleViews + data.totals.visitors + data.totals.searches === 0 ? (
           <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{t.empty}</p>
         ) : null}
@@ -64,9 +98,24 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-6">
-          <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.topArticlesTitle}</h3>
-          {data.topArticles.length === 0 ? (
-            <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t.noArticles}</p>
+          <CardHeading title={t.topArticlesTitle}>
+            <CsvButton
+              table={t.topArticlesTitle}
+              name="site-top-articles"
+              period={data}
+              rows={() => [
+                [tools.articleIdColumn, tools.titleColumn, tools.slugColumn, t.viewsColumn, t.readersColumn],
+                ...topArticles.map((article) => [article.articleId, article.title, article.slug, article.views, article.readers]),
+              ]}
+            />
+          </CardHeading>
+          {data.topArticles.length > 0 ? (
+            <div className="mt-3">
+              <FilterInput value={filter} onChange={setFilter} testId={TEST_IDS.filter} />
+            </div>
+          ) : null}
+          {topArticles.length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{data.topArticles.length === 0 ? t.noArticles : tools.filterNothing}</p>
           ) : (
             <table className="mt-3 w-full text-sm" data-testid="site-analytics-top-articles">
               <thead>
@@ -77,13 +126,22 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
                 </tr>
               </thead>
               <tbody>
-                {data.topArticles.map((article) => (
+                {topArticles.map((article) => (
                   <tr key={article.articleId} className="border-t border-[var(--color-border-soft)]">
                     <td className="py-2 pr-3">
                       {article.slug ? (
-                        <Link to={`/${article.slug}`} className="text-[var(--color-brand-forest)] hover:underline">
-                          {article.title}
-                        </Link>
+                        <>
+                          <Link to={`/${article.slug}`} className="text-[var(--color-brand-forest)] hover:underline">
+                            {article.title}
+                          </Link>
+                          {' · '}
+                          <Link
+                            to={articleStatsHref(article.articleId, data)}
+                            className="text-xs text-[var(--color-ink-muted)] hover:underline"
+                          >
+                            {tools.statsLink}
+                          </Link>
+                        </>
                       ) : (
                         <span className="text-[var(--color-ink-muted)]">
                           {formatMessage(t.deletedArticle, { id: article.articleId })}
@@ -100,7 +158,18 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
         </Card>
 
         <Card className="p-6">
-          <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.schoolsTitle}</h3>
+          <CardHeading title={t.schoolsTitle}>
+            <CsvButton
+              table={t.schoolsTitle}
+              name="site-schools"
+              period={data}
+              rows={() => [
+                [tools.schoolColumn, t.viewsColumn, t.readersColumn],
+                ...data.schools.map((school) => [school.name ?? formatMessage(t.deletedSchool, { id: school.schoolId }), school.views, school.readers]),
+                [t.withoutSchool, data.viewsWithoutSchool, null],
+              ]}
+            />
+          </CardHeading>
           <p className="mt-1 mb-3 text-sm text-[var(--color-ink-muted)]">{t.schoolsDescription}</p>
           <SchoolShares
             schools={data.schools}
@@ -143,10 +212,10 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
  */
 export const SiteAnalyticsSection: React.FC = () => {
   const t = useLocale().siteAnalytics;
-  const [days, setDays] = useState<number>(30);
+  const [period, setPeriod] = useState<AnalyticsPeriodQuery>(DEFAULT_PERIOD);
   const query = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.SITE_ANALYTICS, days],
-    queryFn: () => getSiteAnalytics(days),
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SITE_ANALYTICS, periodKey(period)],
+    queryFn: () => getSiteAnalytics(period),
   });
 
   const body = () => {
@@ -164,7 +233,7 @@ export const SiteAnalyticsSection: React.FC = () => {
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-ink-muted)]">{t.description}</p>
         </div>
-        <PeriodSwitch days={days} onChange={setDays} />
+        <PeriodPicker value={period} onChange={setPeriod} />
       </div>
       {body()}
     </section>

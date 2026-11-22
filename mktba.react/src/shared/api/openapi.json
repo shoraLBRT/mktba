@@ -4562,7 +4562,8 @@
       "ArticleAnalyticsTotalsDtoAnalyticsPreviousPeriodDto": {
         "required": [
           "from",
-          "to"
+          "to",
+          "totals"
         ],
         "type": "object",
         "properties": {
@@ -5834,7 +5835,8 @@
       "AuthorAnalyticsTotalsDtoAnalyticsPreviousPeriodDto": {
         "required": [
           "from",
-          "to"
+          "to",
+          "totals"
         ],
         "type": "object",
         "properties": {
@@ -6892,7 +6894,8 @@
       "SearchAnalyticsTotalsDtoAnalyticsPreviousPeriodDto": {
         "required": [
           "from",
-          "to"
+          "to",
+          "totals"
         ],
         "type": "object",
         "properties": {
@@ -7193,7 +7196,8 @@
       "SiteAnalyticsTotalsDtoAnalyticsPreviousPeriodDto": {
         "required": [
           "from",
-          "to"
+          "to",
+          "totals"
         ],
         "type": "object",
         "properties": {
