@@ -58,6 +58,9 @@ services:
       Storage__Local__RootPath: /app/App_Data/uploads
       Feedback__SiteUrl: https://${SITE_HOST}
       Feedback__GitHub__PrivateKey: ${FEEDBACK_GITHUB_PRIVATE_KEY:-}
+      # IndexNow (O-12, #61): empty key = off. The site serves the key at /indexnow-key.txt.
+      IndexNow__Key: ${INDEXNOW_KEY:-}
+      IndexNow__SiteUrl: https://${SITE_HOST}
     volumes:
       - uploads:/app/App_Data/uploads
     depends_on:
@@ -77,6 +80,9 @@ services:
       PORT: "3000"
       API_INTERNAL_URL: http://api:8080
       PUBLIC_SITE_URL: https://${SITE_HOST}
+      # Webmaster verification meta tags (O-12, #61); empty = no tag.
+      YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
+      GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
     depends_on:
       - api
     networks: [proxy]

@@ -479,7 +479,10 @@ docker compose -f deploy/docker-compose.yml up -d --build
 
 1. DNS: записи A/AAAA `SITE_HOST` и `API_HOST` на сервер; открытые порты 80 и 443 (TCP, 443/UDP для HTTP/3).
 2. В `deploy/.env`: `ACME_EMAIL`, `POSTGRES_PASSWORD`, `JWT_SIGNING_KEY` (`openssl rand -base64 48`);
-   по желанию — `FEEDBACK_GITHUB_PRIVATE_KEY` (PEM одной строкой с `\n`) и `METRIKA_ID`.
+   по желанию — `FEEDBACK_GITHUB_PRIVATE_KEY` (PEM одной строкой с `\n`), `METRIKA_ID`, а для
+   поисковиков (O-12) — `INDEXNOW_KEY` (уходит в `IndexNow__Key`; `IndexNow__SiteUrl` = `https://<SITE_HOST>`),
+   `YANDEX_VERIFICATION` и `GOOGLE_SITE_VERIFICATION` (переменные `web`). `/indexnow-key.txt`,
+   `robots.txt` и карты сайта отдаёт `web`, как и остальные страницы.
 3. Сразу после первого запуска зарегистрировать первого админа на `https://<SITE_HOST>/admin/login`:
    первая регистрация без приглашения становится админом.
 4. Резервные копии томов `pgdata` и `uploads` (X-04, #158).

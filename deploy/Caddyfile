@@ -4,7 +4,8 @@
 	email {$ACME_EMAIL}
 }
 
-# The site: server-rendered pages and static assets.
+# The site: server-rendered pages and static assets, robots.txt, the sitemaps and
+# /indexnow-key.txt (all of them routes of the web server).
 {$SITE_HOST} {
 	encode zstd gzip
 	reverse_proxy web:3000
