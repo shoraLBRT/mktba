@@ -112,7 +112,7 @@ public sealed class InviteRegistrationTests
     public async Task GivenTheOnlyAdmin_WhenGivenAnotherRole_ThenItIsRefusedAndAnotherAdminCanBeDemoted()
     {
         using var context = NewContext();
-        var users = new UserAdminService(new UserRepository(context));
+        var users = new UserAdminService(new UserRepository(context), new AuditLogRepository(context), TimeProvider.System);
 
         var act = () => users.ChangeRoleAsync(_adminId, UserRole.Reader);
         (await act.Should().ThrowAsync<ValidationException>()).Which.Error.Code.Should().Be("last_admin_demotion");

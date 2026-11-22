@@ -21,6 +21,7 @@ namespace Mktba.Infrastructure
             services.AddScoped<InviteRepository>();
             services.AddScoped<RefreshSessionRepository>();
             services.AddScoped<ArticleDraftRepository>();
+            services.AddScoped<AuditLogRepository>();
             return services;
         }
     }

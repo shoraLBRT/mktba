@@ -9,18 +9,25 @@ namespace Mktba.Application.Services;
 public class UserAdminService
 {
     private readonly UserRepository _users;
+    private readonly AuditLogRepository _auditLog;
+    private readonly TimeProvider _clock;
 
-    public UserAdminService(UserRepository users)
+    public UserAdminService(UserRepository users, AuditLogRepository auditLog, TimeProvider clock)
     {
         _users = users;
+        _auditLog = auditLog;
+        _clock = clock;
     }
 
     /// <summary>
     /// Gives user <paramref name="userId"/> <paramref name="role"/>. The change applies from their next
     /// request, since the role is read from the database every time. The last admin cannot be given
-    /// another role, so the platform never loses its last administrator.
+    /// another role, so the platform never loses its last administrator. A real change is an entry of
+    /// the audit log (U-09, #135) in the same save; giving a user the role they already have is not.
     /// </summary>
-    public async Task<UserSummaryDto> ChangeRoleAsync(int userId, UserRole role, CancellationToken cancellationToken = default)
+    /// <param name="changedById">The admin making the change, recorded in the audit log.</param>
+    public async Task<UserSummaryDto> ChangeRoleAsync(
+        int userId, UserRole role, int? changedById = null, CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(role))
         {
@@ -34,6 +41,19 @@ public class UserAdminService
             && await _users.CountByRoleAsync(UserRole.Admin, cancellationToken) <= 1)
         {
             throw new ValidationException(AppErrors.LastAdminDemotion);
+        }
+
+        if (user.Role != role)
+        {
+            _auditLog.Add(new AuditLogEntry
+            {
+                OccurredAt = _clock.GetUtcNow().UtcDateTime,
+                ActorId = changedById,
+                Action = AuditAction.UserRoleChanged,
+                TargetUserId = user.Id,
+                FromValue = user.Role.ToString(),
+                ToValue = role.ToString(),
+            });
         }
 
         user.Role = role;

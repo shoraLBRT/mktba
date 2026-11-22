@@ -25,7 +25,7 @@ public class ArticleOrderTests : IDisposable
         _context = TestDbHelper.CreateInMemoryContext();
         var articleRepo = new ArticleRepository(_context);
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, new RecordingSearchEngineNotifier());
+        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, new RecordingSearchEngineNotifier(), new AuditLogRepository(_context));
         var uow = Substitute.For<IUnitOfWork>();
         uow.SaveChangesAsync().Returns(_ => _context.SaveChangesAsync());
         _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, new TagRepository(_context), new ArticleDraftRepository(_context), TimeProvider.System);

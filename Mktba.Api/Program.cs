@@ -178,6 +178,7 @@ app.MapTagEndpoints();
 app.MapAdminEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
+app.MapAuditLogEndpoints();
 app.MapProfileEndpoints();
 app.MapInviteEndpoints();
 app.MapSearchEndpoints();

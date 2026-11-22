@@ -30,7 +30,7 @@ public class ArticleRevisionTests : IDisposable
         _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, new TagRepository(_context), new ArticleDraftRepository(_context), TimeProvider.System);
         _revisions = new ArticleRevisionService(articleRepo, _content);
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, new RecordingSearchEngineNotifier());
+        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, new RecordingSearchEngineNotifier(), new AuditLogRepository(_context));
     }
 
     public void Dispose() => _context.Dispose();

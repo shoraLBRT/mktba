@@ -220,9 +220,9 @@ namespace Mktba.Api.Endpoints
             .Produces<List<ArticleTrashItemDto>>()
             .RequireAuthorization(Policies.CanEditAnyArticle);
 
-            group.MapPost("/trash/{id:int}/restore", async (int id, ArticleService service) =>
+            group.MapPost("/trash/{id:int}/restore", async (int id, ClaimsPrincipal user, ArticleService service) =>
             {
-                await service.RestoreAsync(id);
+                await service.RestoreAsync(id, user.GetUserId());
                 return Results.NoContent();
             })
             .WithSummary("Takes the article out of the trash.")
@@ -234,9 +234,9 @@ namespace Mktba.Api.Endpoints
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status404NotFound)
             .RequireAuthorization(Policies.CanEditAnyArticle);
 
-            group.MapDelete("/trash/{id:int}", async (int id, ArticleService service) =>
+            group.MapDelete("/trash/{id:int}", async (int id, ClaimsPrincipal user, ArticleService service) =>
             {
-                await service.PurgeAsync(id);
+                await service.PurgeAsync(id, user.GetUserId());
                 return Results.NoContent();
             })
             .WithSummary("Deletes a trashed article for good.")
