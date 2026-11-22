@@ -3,11 +3,7 @@
 # VITE_* values are baked into the browser bundle at build time, so each stand (staging, production)
 # gets its own image. API_INTERNAL_URL and PUBLIC_SITE_URL are read when the server starts.
 
-# package-lock.json is written by npm 11; npm 10 (bundled with Node 22) rejects it as out of sync.
-FROM node:22-alpine AS npm
-RUN npm install -g npm@11.6.1 --no-audit --no-fund
-
-FROM npm AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -19,7 +15,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
 RUN test -n "$VITE_API_BASE_URL" || (echo "VITE_API_BASE_URL build argument is required" >&2; exit 1)
 RUN npm run build
 
-FROM npm AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
