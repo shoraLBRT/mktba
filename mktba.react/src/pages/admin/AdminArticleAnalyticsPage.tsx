@@ -16,6 +16,19 @@ import { SECONDARY_COLOR, VIEWS_COLOR, dailyGeometry, formatDay, share } from '.
 // Kept here rather than in APP_CONSTANTS, which the article page loads too.
 const ARTICLE_ANALYTICS_QUERY_KEY = 'articleAnalytics';
 
+const TEST_IDS = {
+  views: 'article-analytics-views',
+  readers: 'article-analytics-readers',
+  finished: 'article-analytics-finished',
+  switches: 'article-analytics-switches',
+  clicks: 'article-analytics-clicks',
+  day: 'article-analytics-day',
+  depth: 'article-analytics-depth',
+  schools: 'article-analytics-schools',
+  freshness: 'article-analytics-freshness',
+  unavailable: 'article-analytics-unavailable',
+};
+
 const linkClass = 'text-sm text-[var(--color-brand-forest)] hover:underline';
 
 const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
@@ -25,21 +38,21 @@ const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard testId="article-analytics-views" label={t.views} value={data.totals.views} />
-        <StatCard testId="article-analytics-readers" label={t.readers} value={data.totals.readers} hint={t.readersHint} />
+        <StatCard testId={TEST_IDS.views} label={t.views} value={data.totals.views} />
+        <StatCard testId={TEST_IDS.readers} label={t.readers} value={data.totals.readers} hint={t.readersHint} />
         <StatCard
-          testId="article-analytics-finished"
+          testId={TEST_IDS.finished}
           label={t.finished}
           value={share(data.depth.reachedDepth100, data.depth.views)}
           hint={t.finishedHint}
         />
         <StatCard
-          testId="article-analytics-switches"
+          testId={TEST_IDS.switches}
           label={t.opinionSwitches}
           value={data.totals.opinionSwitches}
           hint={formatMessage(t.opinionSwitchesHint, { shown: data.totals.opinionsShown })}
         />
-        <StatCard testId="article-analytics-clicks" label={t.linkClicks} value={data.totals.internalLinkClicks} hint={t.linkClicksHint} />
+        <StatCard testId={TEST_IDS.clicks} label={t.linkClicks} value={data.totals.internalLinkClicks} hint={t.linkClicksHint} />
       </div>
 
       <Card className="p-6">
@@ -65,7 +78,7 @@ const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
             values: [day.views, day.readers],
           }))}
           geometry={dailyGeometry(data.daily.length)}
-          groupTestId="article-analytics-day"
+          groupTestId={TEST_IDS.day}
         />
       </Card>
 
@@ -73,7 +86,7 @@ const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
         <Card className="p-6">
           <h3 className="text-base font-semibold text-[var(--color-ink-strong)]">{t.depthTitle}</h3>
           <p className="mt-1 mb-3 text-sm text-[var(--color-ink-muted)]">{t.depthDescription}</p>
-          <DepthBars depth={data.depth} testId="article-analytics-depth" />
+          <DepthBars depth={data.depth} testId={TEST_IDS.depth} />
         </Card>
 
         <Card className="p-6">
@@ -84,12 +97,12 @@ const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
             viewsWithoutSchool={data.viewsWithoutSchool}
             totalViews={data.depth.views}
             emptyText={t.empty}
-            testId="article-analytics-schools"
+            testId={TEST_IDS.schools}
           />
         </Card>
       </div>
 
-      <Freshness aggregatedAtUtc={data.aggregatedAtUtc} testId="article-analytics-freshness" />
+      <Freshness aggregatedAtUtc={data.aggregatedAtUtc} testId={TEST_IDS.freshness} />
     </div>
   );
 };
@@ -115,7 +128,7 @@ const AdminArticleAnalyticsPage: React.FC = () => {
     || (isAxiosError(query.error) && [403, 404].includes(query.error.response?.status ?? 0));
 
   const body = () => {
-    if (unavailable) return <p className="text-sm text-[var(--color-ink-muted)]" data-testid="article-analytics-unavailable">{t.notFound}</p>;
+    if (unavailable) return <p className="text-sm text-[var(--color-ink-muted)]" data-testid={TEST_IDS.unavailable}>{t.notFound}</p>;
     if (query.isError) return <p className="text-sm text-red-700">{t.loadFailed}</p>;
     if (!query.data) return <p className="text-sm text-[var(--color-ink-muted)]">{t.loading}</p>;
     return <AnalyticsBody data={query.data} />;
