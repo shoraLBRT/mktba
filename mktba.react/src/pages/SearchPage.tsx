@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
 import { PageLinks } from '../components/PageLinks';
 import { SearchForm } from '../components/search/SearchForm';
-import { useLocale, useLocalizedPath } from '../localization/hooks';
+import { useFormat, useLocale, useLocalizedPath } from '../localization/hooks';
 import { searchArticles } from '../services/Article/articleService';
 import {
   isSearchableQuery,
@@ -92,6 +92,7 @@ const NothingFound = ({ query }: { query: string }) => {
  */
 const SearchPage = () => {
   const t = useLocale().search;
+  const format = useFormat();
   const localize = useLocalizedPath();
   const statusId = useId();
   const [searchParams] = useSearchParams();
@@ -125,7 +126,7 @@ const SearchPage = () => {
         {searchable && !isError && isPending && <p className={noteClass}>{t.loading}</p>}
         {searchable && results && results.total === 0 && <NothingFound query={results.query} />}
         {searchable && results && results.total > 0 && (
-          <p className={noteClass}>{t.found.replace('{count}', String(results.total))}</p>
+          <p className={noteClass}>{format.plural(t.found, results.total)}</p>
         )}
       </div>
 

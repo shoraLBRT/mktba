@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useLanguage, useLocale } from '../../localization/hooks';
 import { type AnalyticsPeriodQuery, getArticleAnalytics } from '../../services/adminService';
 import type { ArticleAnalyticsDto } from '../../shared/types/ApiTypes';
 import { articleHref } from '../../shared/slug';
@@ -35,6 +35,7 @@ const linkClass = 'text-sm text-[var(--color-brand-forest)] hover:underline';
 
 const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
   const locale = useLocale();
+  const language = useLanguage();
   const t = locale.articleAnalytics;
   const common = locale.siteAnalytics;
   const tools = locale.analyticsTools;
@@ -89,9 +90,9 @@ const AnalyticsBody: React.FC<{ data: ArticleAnalyticsDto }> = ({ data }) => {
           ]}
           groups={data.daily.map((day) => ({
             key: day.day,
-            label: formatDay(day.day),
+            label: formatDay(language, day.day),
             title: formatMessage(t.daySummary, {
-              date: formatDay(day.day),
+              date: formatDay(language, day.day),
               views: day.views,
               readers: day.readers,
               switches: day.opinionSwitches,

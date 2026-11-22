@@ -1,7 +1,6 @@
 import { Link } from 'react-router';
-import { useLocale } from '../../localization/hooks';
+import { useFormat, useLocale } from '../../localization/hooks';
 import { authorHref } from '../../shared/slug';
-import { formatRussianDate } from '../../shared/lib/formatDate';
 import type { ArticleAuthorDto } from '../../shared/types/ApiTypes';
 
 type ArticleDatesProps = {
@@ -38,8 +37,9 @@ const DateLineView = ({ template, iso, text }: DateLine) => {
  */
 export const ArticleDates = ({ publishedAt, updatedAt, readingMinutes = null, authors }: ArticleDatesProps) => {
   const t = useLocale().articlePage;
-  const published = publishedAt ? formatRussianDate(publishedAt) : null;
-  const updated = updatedAt ? formatRussianDate(updatedAt) : null;
+  const format = useFormat();
+  const published = publishedAt ? format.date(publishedAt) : null;
+  const updated = updatedAt ? format.date(updatedAt) : null;
   const lines = [
     publishedAt && published ? { template: t.publishedOn, iso: publishedAt, text: published } : null,
     updatedAt && updated && updated !== published ? { template: t.updatedOn, iso: updatedAt, text: updated } : null,

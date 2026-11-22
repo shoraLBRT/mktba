@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router';
 import { ArticleListEntry } from '../components/ArticleListEntry';
 import { PageLinks } from '../components/PageLinks';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
-import { useLocale, useLocalizedPath } from '../localization/hooks';
+import { useFormat, useLocale, useLocalizedPath } from '../localization/hooks';
 import { getTagPage } from '../services/tagService';
 import { ApiError } from '../shared/api-client/apiError';
 import { readTagPage, tagHref, tagPageCount, tagPageHref, tagPageQueryKey } from '../shared/tag';
@@ -19,6 +19,7 @@ const noteClass = 'm-0 text-base leading-7 text-[var(--color-ink-muted)]';
  */
 const TagPage = () => {
   const locale = useLocale();
+  const format = useFormat();
   const localize = useLocalizedPath();
   const t = locale.tagPage;
   const { slug = '' } = useParams();
@@ -71,7 +72,7 @@ const TagPage = () => {
         <h1 className="m-0 mt-1 text-3xl font-bold tracking-[-0.03em] [overflow-wrap:anywhere] text-[var(--color-ink-strong)]">
           {tag.name}
         </h1>
-        <p className="mb-0 mt-2 text-sm text-[var(--color-ink-muted)]">{t.articlesCount.replace('{count}', String(tag.total))}</p>
+        <p className="mb-0 mt-2 text-sm text-[var(--color-ink-muted)]">{format.plural(t.articlesCount, tag.total)}</p>
       </header>
       <ul aria-label={t.articlesLabel} className="m-0 flex list-none flex-col gap-4 p-0">
         {tag.items.map((article) => (

@@ -5,7 +5,7 @@ import { ArticleListEntry } from '../components/ArticleListEntry';
 import { PageLinks } from '../components/PageLinks';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { AuthorStructuredData } from '../components/StructuredData';
-import { useLocale, useLocalizedPath } from '../localization/hooks';
+import { useFormat, useLocale, useLocalizedPath } from '../localization/hooks';
 import { getAuthor, getAuthorArticles } from '../services/authorService';
 import { ApiError } from '../shared/api-client/apiError';
 import {
@@ -113,6 +113,7 @@ type ArticleListProps = {
 
 const ArticleList = ({ slug, articles, failed, onRetry }: ArticleListProps) => {
   const locale = useLocale();
+  const format = useFormat();
   const localize = useLocalizedPath();
   const t = locale.authorPage;
   const titleId = useId();
@@ -134,7 +135,7 @@ const ArticleList = ({ slug, articles, failed, onRetry }: ArticleListProps) => {
       {articles && articles.total === 0 && <p className={noteClass}>{t.articlesEmpty}</p>}
       {articles && articles.total > 0 && (
         <>
-          <p className="m-0 text-sm text-[var(--color-ink-muted)]">{t.articlesCount.replace('{count}', String(articles.total))}</p>
+          <p className="m-0 text-sm text-[var(--color-ink-muted)]">{format.plural(t.articlesCount, articles.total)}</p>
           <ul className="m-0 flex list-none flex-col gap-4 p-0">
             {articles.items.map((article) => (
               <ArticleListEntry key={article.id} article={article} />

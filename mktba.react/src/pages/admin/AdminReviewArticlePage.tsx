@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateArticleQueries } from '../../app/queryClient';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useFormat, useLocale } from '../../localization/hooks';
 import { changeArticleStatus, getReviewQueue } from '../../services/adminService';
 import { compareArticleRevisions, getArticleRevision } from '../../services/Article/revisionService';
 import { getSchoolsByArticleId, getSystemSchools } from '../../services/schoolService';
@@ -15,7 +15,7 @@ import { Card } from '../../shared/ui/Card';
 import { Textarea } from '../../shared/ui/Textarea';
 import { compareSnapshots } from '../article-history/revisionDiff';
 import { RevisionDiffSections } from '../article-history/RevisionDiffView';
-import { revisionDateTime, useSnapshotLabels } from '../article-history/snapshotLabels';
+import { useSnapshotLabels } from '../article-history/snapshotLabels';
 import { EMPTY_SNAPSHOT, REVIEW_QUEUE_QUERY_KEY, canReturnWith, reviewComparisonOf } from './review/reviewQueue';
 
 /** Longest comment the API keeps with a status move (`StatusChangeCommentMaxLength`). */
@@ -30,6 +30,7 @@ const AdminReviewArticlePage = () => {
   const numericId = Number(articleId);
   const locale = useLocale();
   const t = locale.adminReview;
+  const format = useFormat();
   const queryClient = useQueryClient();
   const [decided, setDecided] = useState<{ target: ArticleStatus; title: string } | null>(null);
 
@@ -89,7 +90,7 @@ const AdminReviewArticlePage = () => {
       </div>
       <p className="m-0 text-sm text-[var(--color-ink-muted)]">
         {item.authorDisplayName ? formatMessage(t.byAuthor, { name: item.authorDisplayName }) : t.noAuthor}
-        {item.submittedAt ? ` · ${formatMessage(t.submittedAt, { date: revisionDateTime.format(new Date(item.submittedAt)) })}` : null}
+        {item.submittedAt ? ` · ${formatMessage(t.submittedAt, { date: format.date(item.submittedAt, 'longDateTime') })}` : null}
       </p>
       <ReviewComparisonCard item={item} />
       <ReviewDecisionCard

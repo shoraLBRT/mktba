@@ -3,8 +3,6 @@ import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
 import type { SectionLabels } from './revisionDiff';
 
-export const revisionDateTime = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
-
 /** The section names of a snapshot comparison, in Russian. */
 export const useSnapshotLabels = (): SectionLabels => {
   const t = useLocale().articleHistoryPage;

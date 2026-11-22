@@ -54,7 +54,7 @@ describe('SearchPage', () => {
   it('given results, when rendered, then lists them with the matched words marked and links to the article', () => {
     renderSearch('/search?q=намаз', results());
 
-    expect(screen.getByRole('status').textContent).toContain('Найдено статей: 2');
+    expect(screen.getByRole('status').textContent).toContain('Найдено 2 статьи');
     const items = within(screen.getByRole('list', { name: 'Результаты поиска' })).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByRole('link', { name: 'Условия намаза' }).getAttribute('href')).toBe('/salat#p-7');

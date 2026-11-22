@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateArticleQueries } from '../../app/queryClient';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useFormat, useLocale } from '../../localization/hooks';
 import { changeArticleStatus, getArticleById } from '../../services/adminService';
 import { Button } from '../../shared/ui/Button';
 import type { ArticleReadDto, ArticleStatus } from '../../shared/types/ApiTypes';
@@ -26,7 +26,6 @@ type ArticleStatusPanelProps = {
   disabled?: boolean;
 };
 
-const returnedAt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
 
 /**
  * The reviewer's comment while a returned article is a draft again (A-04, #87): the latest move was
@@ -34,12 +33,13 @@ const returnedAt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeSty
  */
 export const ReturnedForRevisionNote = ({ article }: { article: Pick<ArticleReadDto, 'status' | 'lastStatusChange'> }) => {
   const t = useLocale().editArticlePage;
+  const format = useFormat();
   const change = article.lastStatusChange;
   if (article.status !== 'Draft' || !change || change.fromStatus !== 'InReview' || change.toStatus !== 'Draft' || !change.comment) {
     return null;
   }
 
-  const date = returnedAt.format(new Date(change.changedAt));
+  const date = format.date(change.changedAt, 'longDateTime');
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" data-testid="returned-for-revision">
       <p className="m-0 font-semibold">{t.returnedTitle}</p>

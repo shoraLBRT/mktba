@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateArticleQueries } from '../app/queryClient';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { formatMessage } from '../localization';
-import { useLocale } from '../localization/hooks';
+import { useFormat, useLocale } from '../localization/hooks';
 import {
   compareArticleRevisions,
   getArticleRevisions,
@@ -17,7 +17,7 @@ import { Input } from '../shared/ui/Input';
 import type { ArticleRevisionSummaryDto } from '../shared/types/ApiTypes';
 import { compareSnapshots } from './article-history/revisionDiff';
 import { RevisionDiffSections } from './article-history/RevisionDiffView';
-import { revisionDateTime, useSnapshotLabels } from './article-history/snapshotLabels';
+import { useSnapshotLabels } from './article-history/snapshotLabels';
 
 /**
  * An article's revision history on a page of its own: every save, a comparison of two revisions and
@@ -147,6 +147,7 @@ type RevisionRowProps = {
 
 const RevisionRow = ({ revision, isFrom, isTo, isLatest, restoring, onPickFrom, onPickTo, onRestore }: RevisionRowProps) => {
   const t = useLocale().articleHistoryPage;
+  const format = useFormat();
   const [confirming, setConfirming] = useState(false);
   const [comment, setComment] = useState('');
   const title = formatMessage(t.revisionNumber, { number: revision.number });
@@ -163,7 +164,7 @@ const RevisionRow = ({ revision, isFrom, isTo, isLatest, restoring, onPickFrom, 
               ) : null}
             </p>
             <p className="m-0 text-xs text-[var(--color-ink-subtle)]">
-              {revisionDateTime.format(new Date(revision.createdAt))} · {revision.authorDisplayName ?? revision.authorEmail ?? t.unknownAuthor}
+              {format.date(revision.createdAt, 'longDateTime')} · {revision.authorDisplayName ?? revision.authorEmail ?? t.unknownAuthor}
             </p>
             <p className="m-0 text-sm text-[var(--color-ink-default)]">{revision.comment ?? t.noComment}</p>
           </div>

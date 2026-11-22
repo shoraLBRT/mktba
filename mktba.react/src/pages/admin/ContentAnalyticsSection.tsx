@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useLanguage, useLocale } from '../../localization/hooks';
+import { formatDate } from '../../localization/format';
+import type { Language } from '../../localization/language';
 import { type AnalyticsPeriodQuery, getContentAnalytics } from '../../services/adminService';
 import type { ContentAnalyticsDto, ContentArticleDto, UncoveredOpinionBlockDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
@@ -33,8 +35,7 @@ const TEST_IDS = {
 const PUBLISHED: DateColumn = 'publishedAt';
 const UPDATED: DateColumn = 'updatedAt';
 
-const dateFormat = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium' });
-const formatDate = (value?: string | null) => (value ? dateFormat.format(new Date(value)) : '—');
+const formatOptionalDate = (language: Language, value?: string | null) => (value ? formatDate(language, value, 'mediumDate') : '—');
 
 const headClass = 'text-left text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]';
 const linkClass = 'text-[var(--color-brand-forest)] hover:underline';
@@ -81,6 +82,7 @@ type ArticleTableProps = {
 
 const ArticleTable: React.FC<ArticleTableProps> = ({ list, period, filtered, date, showReaders = false, emptyText, testId }) => {
   const locale = useLocale();
+  const language = useLanguage();
   const t = locale.contentAnalytics;
   if (list.items.length === 0) {
     return <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{filtered ? locale.analyticsTools.filterNothing : emptyText}</p>;
@@ -105,7 +107,7 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ list, period, filtered, dat
           {list.items.map((article) => (
             <tr key={article.articleId} className="border-t border-[var(--color-border-soft)]">
               <ArticleCell articleId={article.articleId} title={article.title} slug={article.slug} period={period} />
-              {date ? <td className="whitespace-nowrap py-2 pl-2 text-right tabular-nums">{formatDate(article[date])}</td> : null}
+              {date ? <td className="whitespace-nowrap py-2 pl-2 text-right tabular-nums">{formatOptionalDate(language, article[date])}</td> : null}
               <td className="py-2 pl-2 text-right tabular-nums">{article.views}</td>
               {showReaders ? <td className="py-2 pl-2 text-right tabular-nums">{article.readers}</td> : null}
             </tr>

@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useLanguage, useLocale } from '../../localization/hooks';
 import { type AnalyticsPeriodQuery, getSiteAnalytics } from '../../services/adminService';
 import type { SiteAnalyticsDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
@@ -38,6 +38,7 @@ const TEST_IDS = {
 
 const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
   const locale = useLocale();
+  const language = useLanguage();
   const t = locale.siteAnalytics;
   const tools = locale.analyticsTools;
   const [filter, setFilter] = useState('');
@@ -82,9 +83,9 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
           ]}
           groups={data.daily.map((day) => ({
             key: day.day,
-            label: formatDay(day.day),
+            label: formatDay(language, day.day),
             title: formatMessage(t.daySummary, {
-              date: formatDay(day.day),
+              date: formatDay(language, day.day),
               views: day.articleViews,
               visitors: day.visitors,
               searches: day.searches,

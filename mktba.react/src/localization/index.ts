@@ -37,8 +37,12 @@ export const dictionaryFor = (language: Language): Locale =>
 /** Whether the language has a dictionary of its own, not only the default one's strings. */
 export const hasOwnDictionary = (language: Language): boolean => language in dictionaries;
 
-export const formatMessage = (template: string, params: Record<string, string | number>): string =>
-  Object.entries(params).reduce(
-    (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
-    template,
-  );
+export {
+  formatDate,
+  formatMessage,
+  formatNumber,
+  formatPlural,
+  isPluralForms,
+  type DateStyle,
+  type PluralForms,
+} from './format';

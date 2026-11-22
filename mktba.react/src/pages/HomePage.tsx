@@ -4,9 +4,8 @@ import { Link } from 'react-router';
 import { SearchForm } from '../components/search/SearchForm';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useNavigationTree } from '../hooks/useNavigationTree';
-import { useLocale } from '../localization/hooks';
+import { useFormat, useLocale } from '../localization/hooks';
 import { getRecentArticles } from '../services/Article/articleService';
-import { formatRussianDate } from '../shared/lib/formatDate';
 import { articleHref } from '../shared/slug';
 import type { NavigationArticleDto, RecentArticleDto } from '../shared/types/ApiTypes';
 import { homeSections } from './home/homeTree';
@@ -77,6 +76,7 @@ type RecentListProps = {
 
 const RecentList = ({ title, articles, dateTemplate, dateOf, emptyText }: RecentListProps) => {
   const titleId = useId();
+  const format = useFormat();
   const [beforeDate, afterDate = ''] = dateTemplate.split('{date}');
 
   if (articles.length === 0 && !emptyText) {
@@ -102,7 +102,7 @@ const RecentList = ({ title, articles, dateTemplate, dateOf, emptyText }: Recent
               )}
               <p className="mb-0 mt-1 text-xs text-[var(--color-ink-subtle)]">
                 {beforeDate}
-                <time dateTime={new Date(dateOf(article)).toISOString()}>{formatRussianDate(dateOf(article))}</time>
+                <time dateTime={new Date(dateOf(article)).toISOString()}>{format.date(dateOf(article))}</time>
                 {afterDate}
               </p>
             </li>

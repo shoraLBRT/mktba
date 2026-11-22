@@ -1,4 +1,5 @@
 import type { LazyLocaleChunk } from './chunks';
+import { isPluralForms } from './format';
 import {
   DEFAULT_LOCALE,
   getValidatedDefaultLocaleNamespaces,
@@ -50,7 +51,9 @@ const mergeWithFallback = <T extends Record<string, unknown>>(fallback: T, overr
   Object.entries(override).forEach(([key, value]) => {
     const fallbackValue = result[key];
 
-    if (isRecord(fallbackValue) && isRecord(value)) {
+    // Plural forms are one entry: a language's own set replaces the default's whole, so English
+    // never picks up a Russian `few`.
+    if (isRecord(fallbackValue) && isRecord(value) && !isPluralForms(value)) {
       result[key] = mergeWithFallback(fallbackValue, value);
       return;
     }

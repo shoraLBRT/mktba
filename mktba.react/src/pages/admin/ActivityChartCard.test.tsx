@@ -42,11 +42,11 @@ describe('ActivityChartCard', () => {
     const drawn = screen.getAllByTestId('activity-week');
     expect(drawn).toHaveLength(3);
     expect(drawn[1].querySelector('title')?.textContent).toBe(
-      `Неделя с ${formatWeekStart('2026-11-09')}: правок — 4, публикаций — 1`,
+      `Неделя с ${formatWeekStart('ru', '2026-11-09')}: правок — 4, публикаций — 1`,
     );
     const rows = within(screen.getByRole('table')).getAllByRole('row');
     expect(rows).toHaveLength(4);
-    expect(rows[2].textContent).toBe(`${formatWeekStart('2026-11-09')}41`);
+    expect(rows[2].textContent).toBe(`${formatWeekStart('ru', '2026-11-09')}41`);
     expect(screen.queryByText('За эти недели нет ни правок, ни публикаций.')).toBeNull();
   });
 
@@ -70,6 +70,6 @@ describe('ActivityChartCard', () => {
 
 describe('formatWeekStart', () => {
   it('given a week start, when formatting, then prints its UTC calendar day', () => {
-    expect(formatWeekStart('2026-11-16')).toMatch(/^16 нояб/);
+    expect(formatWeekStart('ru', '2026-11-16')).toMatch(/^16 нояб/);
   });
 });

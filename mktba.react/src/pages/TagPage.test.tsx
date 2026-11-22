@@ -52,7 +52,7 @@ describe('TagPage', () => {
     renderTag('/tags/fikkh', tagPage());
 
     expect(screen.getByRole('heading', { level: 1, name: 'Фикх' })).toBeTruthy();
-    expect(screen.getByText('Статей: 2')).toBeTruthy();
+    expect(screen.getByText('2 статьи')).toBeTruthy();
     const list = screen.getByRole('list', { name: 'Статьи с этим тегом' });
     const links = within(list).getAllByRole('link');
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['/salat', '/zakyat']);

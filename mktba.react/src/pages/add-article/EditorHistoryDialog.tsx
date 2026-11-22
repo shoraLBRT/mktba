@@ -4,14 +4,14 @@ import { X } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useFormat, useLocale } from '../../localization/hooks';
 import { getArticleRevision, getArticleRevisions, restoreArticleRevision } from '../../services/Article/revisionService';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import type { ArticleRevisionSummaryDto, SchoolDto } from '../../shared/types/ApiTypes';
 import { compareSnapshots } from '../article-history/revisionDiff';
 import { RevisionDiffSections } from '../article-history/RevisionDiffView';
-import { revisionDateTime, useSnapshotLabels } from '../article-history/snapshotLabels';
+import { useSnapshotLabels } from '../article-history/snapshotLabels';
 import { articleDraftSnapshot, type ArticleDraft } from './articleDraft';
 import { PreviewDialog } from './PreviewDialog';
 
@@ -173,6 +173,7 @@ type HistoryRowProps = {
 
 const HistoryRow = ({ revision, isLatest, hasUnsavedChanges, restoring, onRestore }: HistoryRowProps) => {
   const t = useLocale().articleHistoryPage;
+  const format = useFormat();
   const [confirming, setConfirming] = useState(false);
   const [comment, setComment] = useState('');
   const title = formatMessage(t.revisionNumber, { number: revision.number });
@@ -185,7 +186,7 @@ const HistoryRow = ({ revision, isLatest, hasUnsavedChanges, restoring, onRestor
         ) : null}
       </p>
       <p className="m-0 text-xs text-[var(--color-ink-subtle)]">
-        {revisionDateTime.format(new Date(revision.createdAt))} · {revision.authorDisplayName ?? revision.authorEmail ?? t.unknownAuthor}
+        {format.date(revision.createdAt, 'longDateTime')} · {revision.authorDisplayName ?? revision.authorEmail ?? t.unknownAuthor}
       </p>
       <p className="m-0 text-sm text-[var(--color-ink-default)]">{revision.comment ?? t.noComment}</p>
       {isLatest ? null : confirming ? (

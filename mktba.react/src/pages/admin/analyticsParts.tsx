@@ -1,10 +1,11 @@
 import React, { useId, useState } from 'react';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useLanguage, useLocale } from '../../localization/hooks';
 import type { AnalyticsPeriodQuery } from '../../services/adminService';
 import type { AnalyticsSchoolTotalDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
-import { ANALYTICS_PERIODS, SECONDARY_COLOR, VIEWS_COLOR, formatDay, share, timeFormat } from './analyticsFormat';
+import { ANALYTICS_PERIODS, SECONDARY_COLOR, VIEWS_COLOR, formatDay, share } from './analyticsFormat';
+import { formatDate } from '../../localization/format';
 import { type CsvCell, csvFileName, downloadCsv } from './analyticsCsv';
 import { MAX_PERIOD_DAYS, rangeEnding, rangeError, todayUtc } from './analyticsPeriod';
 
@@ -53,9 +54,10 @@ export const StatCard: React.FC<StatCardProps> = ({ label, value, hint, testId, 
 /** The dates the totals are compared with. */
 export const ComparisonNote: React.FC<{ previous: { from: string; to: string }; testId: string }> = ({ previous, testId }) => {
   const t = useLocale().analyticsTools;
+  const language = useLanguage();
   return (
     <p className="text-xs text-[var(--color-ink-muted)]" data-testid={testId}>
-      {formatMessage(t.comparedWith, { from: formatDay(previous.from), to: formatDay(previous.to) })}
+      {formatMessage(t.comparedWith, { from: formatDay(language, previous.from), to: formatDay(language, previous.to) })}
     </p>
   );
 };
@@ -253,9 +255,10 @@ export const SchoolShares: React.FC<SchoolSharesProps> = ({ schools, viewsWithou
 /** When the summaries were last rebuilt. */
 export const Freshness: React.FC<{ aggregatedAtUtc?: string | null; testId: string }> = ({ aggregatedAtUtc, testId }) => {
   const t = useLocale().siteAnalytics;
+  const language = useLanguage();
   return (
     <p className="text-xs text-[var(--color-ink-muted)]" data-testid={testId}>
-      {aggregatedAtUtc ? formatMessage(t.aggregatedAt, { time: timeFormat.format(new Date(aggregatedAtUtc)) }) : t.notAggregated}
+      {aggregatedAtUtc ? formatMessage(t.aggregatedAt, { time: formatDate(language, aggregatedAtUtc, 'shortDateTime') }) : t.notAggregated}
     </p>
   );
 };
