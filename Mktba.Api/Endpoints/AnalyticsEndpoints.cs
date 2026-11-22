@@ -63,6 +63,24 @@ public static class AnalyticsEndpoints
             .Produces<SearchAnalyticsDto>()
             .RequireAuthorization(Policies.CanViewSiteAnalytics);
 
+        builder.MapGet("/analytics/content", async (int? days, ContentAnalyticsService service, CancellationToken ct) =>
+            Results.Ok(await service.GetAsync(days ?? ContentAnalyticsService.DefaultDays, ct)))
+            .WithTags("Analytics")
+            .WithSummary("What to write, finish or refresh next: unread articles, stubs with readers, blocks missing a mazhab, out-of-date articles.")
+            .WithDescription(
+                "Views are read from the daily summaries, rebuilt every hour: today is counted so far. days "
+                + "is 30 by default, kept within 1 to 365; the period ends today (UTC). The articles are "
+                + "taken as they are now: Published only, every language. articlesWithoutViews: articles "
+                + "with content, Published before the period began, not viewed in it, oldest publication "
+                + "first. stubsWithTraffic: stubs (no text, infobox or summary) viewed in the period, most "
+                + "views first. uncoveredBlocks: blocks of two or more opinions with no opinion linked to "
+                + "one or more canonical mazhabs (their readers get the default opinion), most views by "
+                + "those mazhabs' readers first. staleArticles: articles with content not saved for "
+                + "staleAfterDays days, most views first. Each list holds at most 50 entries; total counts "
+                + "them all. readers are reader-days.")
+            .Produces<ContentAnalyticsDto>()
+            .RequireAuthorization(Policies.CanViewSiteAnalytics);
+
         builder.MapGet("/analytics/me", async (int? days, ClaimsPrincipal principal, AuthorAnalyticsService service, CancellationToken ct) =>
                 principal.GetUserId() is int userId
                     ? Results.Ok(await service.GetAsync(userId, days ?? AuthorAnalyticsService.DefaultDays, ct))

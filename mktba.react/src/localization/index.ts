@@ -15,7 +15,8 @@ export const dictionaries = loadedDictionaries as typeof loadedDictionaries & {
     // Section files of the admin chunk: the file name is the key.
     & { siteAnalytics: typeof import('./locales/ru/admin/siteAnalytics.json') }
     & { authorDashboard: typeof import('./locales/ru/admin/authorDashboard.json') }
-    & { searchAnalytics: typeof import('./locales/ru/admin/searchAnalytics.json') };
+    & { searchAnalytics: typeof import('./locales/ru/admin/searchAnalytics.json') }
+    & { contentAnalytics: typeof import('./locales/ru/admin/contentAnalytics.json') };
 };
 
 export type SupportedLocale = keyof typeof dictionaries;

@@ -378,6 +378,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/analytics/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What to write, finish or refresh next: unread articles, stubs with readers, blocks missing a mazhab, out-of-date articles.
+         * @description Views are read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). The articles are taken as they are now: Published only, every language. articlesWithoutViews: articles with content, Published before the period began, not viewed in it, oldest publication first. stubsWithTraffic: stubs (no text, infobox or summary) viewed in the period, most views first. uncoveredBlocks: blocks of two or more opinions with no opinion linked to one or more canonical mazhabs (their readers get the default opinion), most views by those mazhabs' readers first. staleArticles: articles with content not saved for staleAfterDays days, most views first. Each list holds at most 50 entries; total counts them all. readers are reader-days.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentAnalyticsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/analytics/me": {
         parameters: {
             query?: never;
@@ -4689,6 +4730,41 @@ export interface components {
             stack?: string | null;
             page?: string | null;
         };
+        ContentAnalyticsDto: {
+            /** Format: int32 */
+            days: number;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            articlesWithoutViews: components["schemas"]["ContentArticleListDto"];
+            stubsWithTraffic: components["schemas"]["ContentArticleListDto"];
+            uncoveredBlocks: components["schemas"]["UncoveredOpinionBlockListDto"];
+            staleArticles: components["schemas"]["ContentArticleListDto"];
+            /** Format: int32 */
+            staleAfterDays: number;
+            /** Format: date-time */
+            aggregatedAtUtc?: string | null;
+        };
+        ContentArticleDto: {
+            /** Format: int32 */
+            articleId: number;
+            title: string;
+            slug: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            readers: number;
+        };
+        ContentArticleListDto: {
+            /** Format: int32 */
+            total: number;
+            items: components["schemas"]["ContentArticleDto"][];
+        };
         CurrentUserDto: {
             /** Format: int32 */
             id: number;
@@ -5046,6 +5122,28 @@ export interface components {
         TagRenameDto: {
             name: string;
             slug?: string | null;
+        };
+        UncoveredOpinionBlockDto: {
+            /** Format: int32 */
+            articleId: number;
+            title: string;
+            slug: string;
+            /** Format: int32 */
+            paragraphId: number;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            opinions: number;
+            missingSchools: string[];
+            /** Format: int32 */
+            missingSchoolViews: number;
+            /** Format: int32 */
+            articleViews: number;
+        };
+        UncoveredOpinionBlockListDto: {
+            /** Format: int32 */
+            total: number;
+            items: components["schemas"]["UncoveredOpinionBlockDto"][];
         };
         UpdateAiProviderSettingsDto: {
             baseUrl: string;

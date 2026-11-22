@@ -10,6 +10,7 @@ import { Card } from '../../shared/ui/Card';
 import { useCurrentUser } from '../../auth/useCurrentUser';
 import { AuthorAnalyticsSection } from './AuthorAnalyticsSection';
 import { SearchAnalyticsSection } from './SearchAnalyticsSection';
+import { ContentAnalyticsSection } from './ContentAnalyticsSection';
 import { SiteAnalyticsSection } from './SiteAnalyticsSection';
 
 /** Each status, with its field in the summary's `byStatus`. */
@@ -101,6 +102,7 @@ const AdminDashboardPage: React.FC = () => {
 
       {can('canViewSiteAnalytics') ? <SiteAnalyticsSection /> : null}
       {can('canViewSiteAnalytics') ? <SearchAnalyticsSection /> : null}
+      {can('canViewSiteAnalytics') ? <ContentAnalyticsSection /> : null}
       {can('canEditArticles') ? <AuthorAnalyticsSection /> : null}
     </div>
   );

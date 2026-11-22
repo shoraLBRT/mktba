@@ -298,6 +298,37 @@
         }
       }
     },
+    "/analytics/content": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "What to write, finish or refresh next: unread articles, stubs with readers, blocks missing a mazhab, out-of-date articles.",
+        "description": "Views are read from the daily summaries, rebuilt every hour: today is counted so far. days is 30 by default, kept within 1 to 365; the period ends today (UTC). The articles are taken as they are now: Published only, every language. articlesWithoutViews: articles with content, Published before the period began, not viewed in it, oldest publication first. stubsWithTraffic: stubs (no text, infobox or summary) viewed in the period, most views first. uncoveredBlocks: blocks of two or more opinions with no opinion linked to one or more canonical mazhabs (their readers get the default opinion), most views by those mazhabs' readers first. staleArticles: articles with content not saved for staleAfterDays days, most views first. Each list holds at most 50 entries; total counts them all. readers are reader-days.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentAnalyticsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/analytics/me": {
       "get": {
         "tags": [
@@ -5561,6 +5592,116 @@
         },
         "additionalProperties": false
       },
+      "ContentAnalyticsDto": {
+        "required": [
+          "articlesWithoutViews",
+          "days",
+          "from",
+          "staleAfterDays",
+          "staleArticles",
+          "stubsWithTraffic",
+          "to",
+          "uncoveredBlocks"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "articlesWithoutViews": {
+            "$ref": "#/components/schemas/ContentArticleListDto"
+          },
+          "stubsWithTraffic": {
+            "$ref": "#/components/schemas/ContentArticleListDto"
+          },
+          "uncoveredBlocks": {
+            "$ref": "#/components/schemas/UncoveredOpinionBlockListDto"
+          },
+          "staleArticles": {
+            "$ref": "#/components/schemas/ContentArticleListDto"
+          },
+          "staleAfterDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aggregatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentArticleDto": {
+        "required": [
+          "articleId",
+          "readers",
+          "slug",
+          "title",
+          "updatedAt",
+          "views"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "readers": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentArticleListDto": {
+        "required": [
+          "items",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentArticleDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "CurrentUserDto": {
         "required": [
           "email",
@@ -6820,6 +6961,79 @@
           "slug": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UncoveredOpinionBlockDto": {
+        "required": [
+          "articleId",
+          "articleViews",
+          "missingSchools",
+          "missingSchoolViews",
+          "opinions",
+          "paragraphId",
+          "position",
+          "slug",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "paragraphId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opinions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingSchools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missingSchoolViews": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleViews": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UncoveredOpinionBlockListDto": {
+        "required": [
+          "items",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UncoveredOpinionBlockDto"
+            }
           }
         },
         "additionalProperties": false

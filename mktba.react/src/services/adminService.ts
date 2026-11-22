@@ -16,6 +16,7 @@ import type {
   ArticleStatus,
   ArticleSummaryDto,
   AuthorAnalyticsDto,
+  ContentAnalyticsDto,
   SearchAnalyticsDto,
   SiteAnalyticsDto,
   ReviewQueueItemDto,
@@ -173,6 +174,12 @@ export const getSiteAnalytics = async (days: number): Promise<SiteAnalyticsDto> 
 /** The search analytics of the admin dashboard (N-06): popular queries and those that found nothing, over the last `days` UTC days. */
 export const getSearchAnalytics = async (days: number): Promise<SearchAnalyticsDto> => {
   const response = await apiClient.get<SearchAnalyticsDto>('/analytics/search', { params: { days } });
+  return response.data;
+};
+
+/** The content analytics of the admin dashboard (N-07): what to write, finish or refresh, over the last `days` UTC days. */
+export const getContentAnalytics = async (days: number): Promise<ContentAnalyticsDto> => {
+  const response = await apiClient.get<ContentAnalyticsDto>('/analytics/content', { params: { days } });
   return response.data;
 };
 
