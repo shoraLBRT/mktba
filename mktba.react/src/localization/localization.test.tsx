@@ -4,9 +4,11 @@ import { LAZY_LOCALE_KEYS, pickLocaleChunk } from './chunks';
 import { dictionaries, dictionaryFor, formatMessage, hasOwnDictionary, loadLocaleChunk, locale } from './index';
 import ruEditor from './locales/ru/editor.json';
 import ruPages from './locales/ru/pages.json';
+import ruShared from './locales/ru/shared.json';
 import ruSiteAnalytics from './locales/ru/admin/siteAnalytics.json';
 import coreEditor from './locales/ru/editor.json?locale-chunk=core';
 import corePages from './locales/ru/pages.json?locale-chunk=core';
+import coreShared from './locales/ru/shared.json?locale-chunk=core';
 import { useLanguage, useLocale, useLocalizedPath } from './hooks';
 import { LocalizationProvider } from './provider';
 import { getValidatedDefaultLocaleNamespaces, REQUIRED_NAMESPACES, validateNamespaceOwnership } from './validation';
@@ -30,7 +32,7 @@ describe('dictionaries', () => {
 });
 
 describe('dictionary chunks (#106)', () => {
-  const files = { pages: ruPages, editor: ruEditor } as Record<string, Record<string, unknown>>;
+  const files = { pages: ruPages, shared: ruShared, editor: ruEditor } as Record<string, Record<string, unknown>>;
 
   it('given every lazy key, when looked up, then its namespace file has it', () => {
     Object.values(LAZY_LOCALE_KEYS).forEach((byNamespace) =>
@@ -55,6 +57,8 @@ describe('dictionary chunks (#106)', () => {
     expect(Object.keys(corePages)).toContain('adminLoginPage');
     expect(Object.keys(corePages)).not.toContain('adminPage');
     expect(Object.keys(coreEditor)).toEqual(['versionedParagraph']);
+    expect(Object.keys(coreShared)).toContain('layout');
+    expect(Object.keys(coreShared)).not.toContain('createNode');
   });
 
   it('given the admin chunk, when loaded, then the dictionary has its keys and a second load is shared', async () => {
@@ -65,6 +69,7 @@ describe('dictionary chunks (#106)', () => {
     expect(locale.addArticleEditor).toEqual(ruEditor.addArticleEditor);
     expect(locale.adminPage).toEqual(ruPages.adminPage);
     expect(locale.siteAnalytics).toEqual(ruSiteAnalytics);
+    expect(locale.inviteStatus).toEqual(ruShared.inviteStatus);
   });
 });
 

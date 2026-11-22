@@ -72,12 +72,17 @@ const iconButtonClasses = 'rounded-lg p-1.5 text-[var(--color-ink-muted)] hover:
  * The `/` menu of an empty paragraph: open while the paragraph holds `/` and a word that matches a
  * kind, until Escape closes it for that text. Takes the arrows, Enter, Tab and Escape from the text.
  */
-const useSlashMenu = (content: string | null, onChoose: (kind: SlashMenuKind) => void, labels: Record<SlashMenuKind, string>) => {
+const useSlashMenu = (
+  content: string | null,
+  onChoose: (kind: SlashMenuKind) => void,
+  labels: Record<SlashMenuKind, string>,
+  aliases: Record<SlashMenuKind, readonly string[]>,
+) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [dismissedFor, setDismissedFor] = useState<string | null>(null);
   const [queryOfIndex, setQueryOfIndex] = useState<string | null>(null);
   const query = content === null ? null : slashMenuQuery(content);
-  const kinds = query === null || content === dismissedFor ? [] : filterSlashMenuKinds(query, labels);
+  const kinds = query === null || content === dismissedFor ? [] : filterSlashMenuKinds(query, labels, aliases);
   // A new query starts at the first match (state adjusted during render, as React recommends).
   if (query !== queryOfIndex) {
     setQueryOfIndex(query);
@@ -183,6 +188,7 @@ export const DocumentBlockEditor = ({
     block.kind === 'paragraph' && isPlainTextFocused ? block.content : null,
     (kind) => onChooseBlockKind(block.id, kind),
     t.slashMenu.kinds,
+    t.slashMenu.aliases,
   );
   const slashMenuId = `slash-menu-${block.id}`;
   const headingClasses =

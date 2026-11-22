@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import editor from '../../localization/locales/ru/editor.json';
 import { filterSlashMenuKinds, slashMenuQuery } from './slashMenuKinds';
 
-const labels = { paragraph: 'Текст', heading2: 'Заголовок H2', heading3: 'Подзаголовок H3', versioned: 'Блок мнений' };
+const { kinds: labels, aliases } = editor.addArticleEditor.slashMenu;
 
 describe('slashMenuQuery', () => {
   it('given a paragraph holding only a slash and a word, when read, then gives the word in lower case', () => {
@@ -19,13 +20,14 @@ describe('slashMenuQuery', () => {
 
 describe('filterSlashMenuKinds', () => {
   it('given no query, when filtered, then every kind is offered in menu order', () => {
-    expect(filterSlashMenuKinds('', labels)).toEqual(['paragraph', 'heading2', 'heading3', 'versioned']);
+    expect(filterSlashMenuKinds('', labels, aliases)).toEqual(['paragraph', 'heading2', 'heading3', 'versioned']);
   });
 
   it('given a label part or an alias, when filtered, then only the matching kinds are offered', () => {
-    expect(filterSlashMenuKinds('h2', labels)).toEqual(['heading2']);
-    expect(filterSlashMenuKinds('подз', labels)).toEqual(['heading3']);
-    expect(filterSlashMenuKinds('мнен', labels)).toEqual(['versioned']);
-    expect(filterSlashMenuKinds('zzz', labels)).toEqual([]);
+    expect(filterSlashMenuKinds('h2', labels, aliases)).toEqual(['heading2']);
+    expect(filterSlashMenuKinds('подз', labels, aliases)).toEqual(['heading3']);
+    expect(filterSlashMenuKinds('мнен', labels, aliases)).toEqual(['versioned']);
+    expect(filterSlashMenuKinds('абз', labels, aliases)).toEqual(['paragraph']);
+    expect(filterSlashMenuKinds('zzz', labels, aliases)).toEqual([]);
   });
 });
