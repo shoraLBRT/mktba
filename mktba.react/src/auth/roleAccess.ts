@@ -23,6 +23,8 @@ const POLICY_ROLES = {
   canConfigure: ['Admin'],
   /** The whole site's own statistics on the dashboard. */
   canViewSiteAnalytics: ['Admin'],
+  /** The audit log of publications, deletions and role changes. */
+  canViewAuditLog: ['Admin'],
 } as const satisfies Record<string, readonly UserRole[]>;
 
 export type RolePolicy = keyof typeof POLICY_ROLES;

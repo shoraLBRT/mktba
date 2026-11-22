@@ -2176,6 +2176,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The audit log (U-09, #135): who changed what and when, newest first. Admin only.
+         * @description Logged actions: ArticleStatusChanged (publication included; fromValue/toValue are statuses), ArticleTrashed, ArticleRestored, ArticlePurged, UserRoleChanged (fromValue/toValue are roles). Filters: action, actorId, articleId, targetUserId. page from 1, pageSize 1 to 100 (50 by default). Each entry is written in the same save as its action and is never changed or removed. Only the acting user's id and the ids of the article or user acted on are kept, with the article's title at the time; no IP address, no User-Agent.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    action?: string;
+                    actorId?: number;
+                    articleId?: number;
+                    targetUserId?: number;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditLogPageDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/status": {
         parameters: {
             query?: never;
@@ -3114,6 +3160,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/authors/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The public profile of an author, by slug.
+         * @description Only what readers may see: no email, no user id. Answers 404 author_not_found unless the user has a display name and is the author or a co-author of at least one Published article, so accounts cannot be listed through it. degree and institution are self-declared and given only for a user whose role is Scholar.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicProfileDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/authors/{slug}/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The articles an author wrote or co-authored, for the author's public page.
+         * @description Only articles a reader can open: Published, not under a non-Published parent, and not empty stubs; ordered by publishedAt, latest first. The same list for every caller; no content. The list may be empty for a public author. locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1; pageSize is 20 by default, kept within 1 to 50. Answers 404 author_not_found exactly when GET /authors/{slug} does.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    locale?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthorArticlesDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/profile": {
         parameters: {
             query?: never;
@@ -3240,119 +3399,6 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/authors/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * The public profile of an author, by slug.
-         * @description Only what readers may see: no email, no user id. Answers 404 author_not_found unless the user has a display name and is the author or a co-author of at least one Published article, so accounts cannot be listed through it. degree and institution are self-declared and given only for a user whose role is Scholar.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    slug: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PublicProfileDto"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/authors/{slug}/articles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * The articles an author wrote or co-authored, for the author's public page.
-         * @description Only articles a reader can open: Published, not under a non-Published parent, and not empty stubs; ordered by publishedAt, latest first. The same list for every caller; no content. The list may be empty for a public author. locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1; pageSize is 20 by default, kept within 1 to 50. Answers 404 author_not_found exactly when GET /authors/{slug} does.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    locale?: string;
-                    page?: number;
-                    pageSize?: number;
-                };
-                header?: never;
-                path: {
-                    slug: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["AuthorArticlesDto"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -4997,6 +5043,42 @@ export interface components {
             title: string;
             /** Format: int32 */
             parentArticleId?: number | null;
+        };
+        /** @enum {string} */
+        AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged";
+        AuditLogEntryDto: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            occurredAt: string;
+            action: components["schemas"]["AuditAction"];
+            /** Format: int32 */
+            actorId?: number | null;
+            actor?: components["schemas"]["AuditLogUserDto"];
+            /** Format: int32 */
+            articleId?: number | null;
+            articleTitle?: string | null;
+            articleAvailable: boolean;
+            /** Format: int32 */
+            targetUserId?: number | null;
+            targetUser?: components["schemas"]["AuditLogUserDto"];
+            fromValue?: string | null;
+            toValue?: string | null;
+        };
+        AuditLogPageDto: {
+            items: components["schemas"]["AuditLogEntryDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        AuditLogUserDto: {
+            /** Format: int32 */
+            id: number;
+            email: string;
+            displayName?: string | null;
         };
         AuthorAnalyticsDayDto: {
             /** Format: date */

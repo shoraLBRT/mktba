@@ -26,6 +26,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleCoAuthor> ArticleCoAuthors { get; set; } = null!;
         public DbSet<ArticleRevision> ArticleRevisions { get; set; } = null!;
         public DbSet<ArticleStatusChange> ArticleStatusChanges { get; set; } = null!;
+        public DbSet<AuditLogEntry> AuditLogEntries { get; set; } = null!;
         public DbSet<ArticleDraft> ArticleDrafts { get; set; } = null!;
         public DbSet<Paragraph> Paragraphs { get; set; } = null!;
         public DbSet<Opinion> Opinions { get; set; } = null!;
@@ -51,6 +52,9 @@ namespace Mktba.Infrastructure.Data
         public DbSet<AnalyticsTagDay> AnalyticsTagDays { get; set; } = null!;
         public DbSet<AnalyticsSearchDay> AnalyticsSearchDays { get; set; } = null!;
         public DbSet<AnalyticsWebVitalDay> AnalyticsWebVitalDays { get; set; } = null!;
+
+        /// <summary>Longest stored before/after value of an audit log entry (a status or a role name).</summary>
+        public const int AuditValueMaxLength = 32;
 
         /// <summary>Longest stored User-Agent of a refresh session; longer values are cut.</summary>
         public const int SessionUserAgentMaxLength = 256;
@@ -290,6 +294,18 @@ namespace Mktba.Infrastructure.Data
                 change.Property(c => c.ToStatus).HasConversion<string>().HasMaxLength(16).IsRequired();
                 change.Property(c => c.Comment).HasMaxLength(StatusChangeCommentMaxLength);
                 change.HasIndex(c => new { c.ArticleId, c.ChangedAt });
+            });
+
+            // Audit log (U-09, #135): append-only, plain ids without foreign keys, so an entry outlives
+            // the article and the user it names.
+            modelBuilder.Entity<AuditLogEntry>(entry =>
+            {
+                entry.Property(e => e.Action).HasConversion<string>().HasMaxLength(32).IsRequired();
+                entry.Property(e => e.FromValue).HasMaxLength(AuditValueMaxLength);
+                entry.Property(e => e.ToValue).HasMaxLength(AuditValueMaxLength);
+                entry.HasIndex(e => e.OccurredAt);
+                entry.HasIndex(e => new { e.ArticleId, e.OccurredAt });
+                entry.HasIndex(e => new { e.ActorId, e.OccurredAt });
             });
 
             modelBuilder.Entity<Article>()

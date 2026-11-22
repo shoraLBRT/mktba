@@ -76,6 +76,6 @@ public class ArticleSummaryTests : IClassFixture<PostgresDatabaseFixture>
     private static ArticleService ServiceOn(Infrastructure.Data.MktbaDbContext context)
     {
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        return new ArticleService(new ArticleRepository(context), mapper, TimeProvider.System, new RecordingSearchEngineNotifier());
+        return new ArticleService(new ArticleRepository(context), mapper, TimeProvider.System, new RecordingSearchEngineNotifier(), new AuditLogRepository(context));
     }
 }

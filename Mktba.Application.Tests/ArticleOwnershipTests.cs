@@ -24,7 +24,7 @@ public class ArticleOwnershipTests : IDisposable
         _context = TestDbHelper.CreateInMemoryContext();
         var articleRepo = new ArticleRepository(_context);
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, new RecordingSearchEngineNotifier());
+        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, new RecordingSearchEngineNotifier(), new AuditLogRepository(_context));
         _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), Substitute.For<IUnitOfWork>(), new TagRepository(_context), new ArticleDraftRepository(_context), TimeProvider.System);
         _tree = new NavigationTreeService(articleRepo);
     }

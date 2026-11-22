@@ -13,9 +13,12 @@ namespace Mktba.Application.Services
         private readonly IMapper _mapper;
         private readonly TimeProvider _clock;
         private readonly ISearchEngineNotifier _searchEngines;
+        private readonly AuditLogRepository _auditLog;
 
-        public ArticleService(ArticleRepository articleRepository, IMapper mapper, TimeProvider clock, ISearchEngineNotifier searchEngines)
+        public ArticleService(
+            ArticleRepository articleRepository, IMapper mapper, TimeProvider clock, ISearchEngineNotifier searchEngines, AuditLogRepository auditLog)
         {
+            _auditLog = auditLog;
             _articleRepository = articleRepository;
             _mapper = mapper;
             _clock = clock;
@@ -158,6 +161,7 @@ namespace Mktba.Application.Services
         /// <param name="changedById">The user making the move, recorded in the log.</param>
         /// <exception cref="NotFoundException">The article does not exist.</exception>
         /// <exception cref="ValidationException">The transition is not allowed, or the comment is too long.</exception>
+        /// <remarks>The move is also an entry of the audit log (U-09, #135), in the same save.</remarks>
         public async Task<ArticleReadDto> ChangeStatusAsync(
             int id, ArticleStatus target, ArticleViewer viewer, int? changedById = null, string? comment = null)
         {
@@ -186,6 +190,16 @@ namespace Mktba.Application.Services
                 ChangedAt = now,
                 RevisionNumber = latestRevisionNumber == 0 ? null : latestRevisionNumber,
                 Comment = trimmedComment,
+            });
+            _auditLog.Add(new AuditLogEntry
+            {
+                OccurredAt = now,
+                ActorId = changedById,
+                Action = AuditAction.ArticleStatusChanged,
+                ArticleId = id,
+                ArticleTitle = article.Title,
+                FromValue = article.Status.ToString(),
+                ToValue = target.ToString(),
             });
 
             var wasPublished = article.Status == ArticleStatus.Published;
@@ -372,6 +386,7 @@ namespace Mktba.Application.Services
 
             article.DeletedAt = _clock.GetUtcNow().UtcDateTime;
             article.DeletedById = deletedById;
+            AddAuditEntry(AuditAction.ArticleTrashed, article, deletedById);
             Renumber((await _articleRepository.GetSiblingsAsync(article.ParentArticleId))
                 .Where(sibling => sibling.Id != article.Id));
             await _articleRepository.SaveChangesAsync();
@@ -405,7 +420,8 @@ namespace Mktba.Application.Services
         /// </summary>
         /// <exception cref="NotFoundException"><c>article_not_in_trash</c>: no such article in the trash.</exception>
         /// <exception cref="ValidationException"><c>article_parent_in_trash</c>: its parent is in the trash; restore that first.</exception>
-        public async Task RestoreAsync(int id)
+        /// <param name="restoredById">The user restoring it, recorded in the audit log (U-09, #135).</param>
+        public async Task RestoreAsync(int id, int? restoredById)
         {
             var article = await _articleRepository.GetTrashedAsync(id)
                 ?? throw new NotFoundException(AppErrors.ArticleNotInTrash);
@@ -417,6 +433,7 @@ namespace Mktba.Application.Services
             article.Order = await _articleRepository.GetNextSiblingOrderAsync(article.ParentArticleId);
             article.DeletedAt = null;
             article.DeletedById = null;
+            AddAuditEntry(AuditAction.ArticleRestored, article, restoredById);
             await _articleRepository.SaveChangesAsync();
             if (article.Status == ArticleStatus.Published)
             {
@@ -431,7 +448,8 @@ namespace Mktba.Application.Services
         /// be restored on their own. Files it used are left to the upload cleanup.
         /// </summary>
         /// <exception cref="NotFoundException"><c>article_not_in_trash</c>: no such article in the trash.</exception>
-        public async Task PurgeAsync(int id)
+        /// <param name="purgedById">The user purging it, recorded in the audit log (U-09, #135).</param>
+        public async Task PurgeAsync(int id, int? purgedById)
         {
             var article = await _articleRepository.GetTrashedAsync(id)
                 ?? throw new NotFoundException(AppErrors.ArticleNotInTrash);
@@ -452,8 +470,19 @@ namespace Mktba.Application.Services
                 await _articleRepository.AddDeletedSlugsAsync(article.Locale, slugs, _clock.GetUtcNow().UtcDateTime);
             }
 
+            AddAuditEntry(AuditAction.ArticlePurged, article, purgedById);
             await _articleRepository.DeleteAsync(article);
             await _articleRepository.SaveChangesAsync();
         }
+
+        /// <summary>Adds an audit log entry (U-09, #135) for an action on <paramref name="article"/> to the coming save.</summary>
+        private void AddAuditEntry(AuditAction action, Article article, int? actorId) => _auditLog.Add(new AuditLogEntry
+        {
+            OccurredAt = _clock.GetUtcNow().UtcDateTime,
+            ActorId = actorId,
+            Action = action,
+            ArticleId = article.Id,
+            ArticleTitle = article.Title,
+        });
     }
 }

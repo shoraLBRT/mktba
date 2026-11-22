@@ -78,6 +78,7 @@ public abstract class EndpointAuthorizationMatrixTests
         ["GET /articles/trash"] = Policies.CanEditAnyArticle,
         ["POST /articles/trash/{id:int}/restore"] = Policies.CanEditAnyArticle,
         ["DELETE /articles/trash/{id:int}"] = Policies.CanEditAnyArticle,
+        ["GET /audit-log"] = Policies.CanViewAuditLog,
         ["POST /articles/{id:int}/move"] = Policies.CanEditAnyArticle,
         ["GET /articles/{id:int}/authors"] = Policies.CanEditAnyArticle,
         ["PUT /articles/{id:int}/authors"] = Policies.CanEditAnyArticle,

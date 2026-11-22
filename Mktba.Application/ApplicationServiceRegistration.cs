@@ -33,6 +33,7 @@ namespace Mktba.Application
             services.AddScoped<AdminAuthService>();
             services.AddScoped<InviteService>();
             services.AddScoped<UserAdminService>();
+            services.AddScoped<AuditLogService>();
             services.AddScoped<UserProfileService>();
             services.AddScoped<UserActivityService>();
             services.AddScoped<FeedbackService>();

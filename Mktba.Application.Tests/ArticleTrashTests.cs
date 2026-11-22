@@ -29,7 +29,7 @@ public class ArticleTrashTests : IDisposable
         _context = TestDbHelper.CreateInMemoryContext();
         var articleRepo = new ArticleRepository(_context);
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        _articles = new ArticleService(articleRepo, mapper, new FeedbackTests.FakeClock(Now), _searchEngines);
+        _articles = new ArticleService(articleRepo, mapper, new FeedbackTests.FakeClock(Now), _searchEngines, new AuditLogRepository(_context));
         var uow = Substitute.For<IUnitOfWork>();
         uow.SaveChangesAsync().Returns(_ => _context.SaveChangesAsync());
         _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), uow, new TagRepository(_context), new ArticleDraftRepository(_context), TimeProvider.System);
@@ -148,7 +148,7 @@ public class ArticleTrashTests : IDisposable
         _context.ChangeTracker.Clear();
         OrdersUnder(parent.Id).Should().Equal((a.Id, 0), (c.Id, 1));
 
-        await _articles.RestoreAsync(b.Id);
+        await _articles.RestoreAsync(b.Id, restoredById: null);
         _context.ChangeTracker.Clear();
 
         OrdersUnder(parent.Id).Should().Equal((a.Id, 0), (c.Id, 1), (b.Id, 2));
@@ -193,11 +193,11 @@ public class ArticleTrashTests : IDisposable
         await _articles.MoveToTrashAsync(child.Id, deletedById: null);
         await _articles.MoveToTrashAsync(parent.Id, deletedById: null);
 
-        var restoreChild = () => _articles.RestoreAsync(child.Id);
+        var restoreChild = () => _articles.RestoreAsync(child.Id, restoredById: null);
         (await restoreChild.Should().ThrowAsync<ValidationException>()).Which.Error.Code.Should().Be("article_parent_in_trash");
 
-        await _articles.RestoreAsync(parent.Id);
-        await _articles.RestoreAsync(child.Id);
+        await _articles.RestoreAsync(parent.Id, restoredById: null);
+        await _articles.RestoreAsync(child.Id, restoredById: null);
         _context.ChangeTracker.Clear();
         OrdersUnder(parent.Id).Should().Equal((child.Id, 0));
     }
@@ -207,8 +207,8 @@ public class ArticleTrashTests : IDisposable
     {
         var article = await AddAsync("namaz", ArticleStatus.Published, everPublished: true);
 
-        var restore = () => _articles.RestoreAsync(article.Id);
-        var purge = () => _articles.PurgeAsync(article.Id);
+        var restore = () => _articles.RestoreAsync(article.Id, restoredById: null);
+        var purge = () => _articles.PurgeAsync(article.Id, purgedById: null);
 
         (await restore.Should().ThrowAsync<NotFoundException>()).Which.Error.Code.Should().Be("article_not_in_trash");
         (await purge.Should().ThrowAsync<NotFoundException>()).Which.Error.Code.Should().Be("article_not_in_trash");
@@ -221,7 +221,7 @@ public class ArticleTrashTests : IDisposable
         var article = await AddAsync("namaz", ArticleStatus.Published, everPublished: true, oldSlug: "salat");
         await _articles.MoveToTrashAsync(article.Id, deletedById: null);
 
-        await _articles.PurgeAsync(article.Id);
+        await _articles.PurgeAsync(article.Id, purgedById: null);
         _context.ChangeTracker.Clear();
 
         (await _context.Articles.IgnoreQueryFilters().CountAsync()).Should().Be(0);
@@ -241,13 +241,13 @@ public class ArticleTrashTests : IDisposable
         await _articles.MoveToTrashAsync(child.Id, deletedById: null);
         await _articles.MoveToTrashAsync(parent.Id, deletedById: null);
 
-        await _articles.PurgeAsync(parent.Id);
+        await _articles.PurgeAsync(parent.Id, purgedById: null);
         _context.ChangeTracker.Clear();
 
         var trash = await _articles.GetTrashAsync();
         trash.Should().ContainSingle().Which.Should().BeEquivalentTo(new { child.Id, ParentArticleId = (int?)null, ParentInTrash = false });
 
-        await _articles.RestoreAsync(child.Id);
+        await _articles.RestoreAsync(child.Id, restoredById: null);
         _context.ChangeTracker.Clear();
         (await _tree.GetTreeAsync(TestViewers.Admin)).Select(node => node.Title).Should().Equal("koren", "statya");
     }

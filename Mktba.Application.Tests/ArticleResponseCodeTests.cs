@@ -24,7 +24,7 @@ public class ArticleResponseCodeTests : IDisposable
         _context = TestDbHelper.CreateInMemoryContext();
         var articleRepo = new ArticleRepository(_context);
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, new RecordingSearchEngineNotifier());
+        _articles = new ArticleService(articleRepo, mapper, TimeProvider.System, new RecordingSearchEngineNotifier(), new AuditLogRepository(_context));
         _content = new ArticleContentService(articleRepo, new ParagraphRepository(_context), Substitute.For<IUnitOfWork>(), new TagRepository(_context), new ArticleDraftRepository(_context), TimeProvider.System);
     }
 
@@ -53,7 +53,7 @@ public class ArticleResponseCodeTests : IDisposable
     private async Task DeleteAsync(Article article)
     {
         await _articles.MoveToTrashAsync(article.Id, deletedById: null);
-        await _articles.PurgeAsync(article.Id);
+        await _articles.PurgeAsync(article.Id, purgedById: null);
         _context.ChangeTracker.Clear();
     }
 
