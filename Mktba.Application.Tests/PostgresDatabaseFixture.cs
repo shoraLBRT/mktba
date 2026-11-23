@@ -39,7 +39,7 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
         => new(new DbContextOptionsBuilder<MktbaDbContext>().UseNpgsql(ConnectionTo(_databaseName)).Options);
 
     /// <summary>
-    /// A context whose model has no trash columns (M-11, #133), for tests that write articles into the
+    /// A context whose model has no trash columns (M-11, #133) nor translation-source columns (I-06, #110), for tests that write articles into the
     /// schema of an older migration before migrating it further.
     /// </summary>
     public MktbaDbContext CreatePreTrashContext()
@@ -55,6 +55,10 @@ public sealed class PostgresDatabaseFixture : IAsyncLifetime
             article.Ignore(a => a.DeletedBy);
             article.Ignore(a => a.DeletedById);
             article.Ignore(a => a.DeletedAt);
+            // Nor the translation source (I-06, #110), added after those migrations too.
+            article.Ignore(a => a.TranslatedFrom);
+            article.Ignore(a => a.TranslatedFromId);
+            article.Ignore(a => a.TranslatedFromRevision);
         }
     }
 
