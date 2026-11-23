@@ -101,6 +101,45 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
     }
 
     [Fact]
+    public async Task GivenAnEnglishArticle_WhenSearchedWithOtherWordForms_ThenEnglishMorphologyFindsIt()
+    {
+        var article = await SaveAsync(Published("Prayers of travellers", "travellers-prayers", locale: "en",
+            opinions: "A traveller shortens the obligatory prayers."));
+
+        var found = (await SearchAsync("traveller prayer shortened", locale: "en")).Items.Should().ContainSingle().Subject;
+
+        found.Id.Should().Be(article.Id);
+        found.Title.Should().Contain(new SearchTextSegmentDto("Prayers", true));
+        found.Snippet.Should().Contain(new SearchTextSegmentDto("shortens", true));
+    }
+
+    [Fact]
+    public async Task GivenArticlesInEachLocale_WhenIndexed_ThenEachUsesTheConfigurationOfItsLanguage()
+    {
+        var russian = await SaveAsync(Published("Намазы", "config-ru", opinions: "Намазы в пути."));
+        var english = await SaveAsync(Published("Prayers", "config-en", locale: "en", opinions: "Prayers on the road."));
+
+        await using var context = _database.CreateContext();
+        (await context.Database.SqlQuery<string>($"""
+            SELECT mktba_search_config(l)::text AS "Value" FROM unnest(ARRAY['ru', 'en', 'xx']) WITH ORDINALITY AS t(l, n) ORDER BY n
+            """).ToListAsync()).Should().Equal("russian", "english", "russian");
+
+        foreach (var (article, configuration) in new[] { (russian, "russian"), (english, "english") })
+        {
+            var matches = await context.Database.SqlQuery<bool>($"""
+                SELECT a."SearchVector" = setweight(to_tsvector({configuration}::regconfig, a."Title"), 'A')
+                        || setweight(to_tsvector({configuration}::regconfig, ' '), 'B')
+                    AND o."SearchVector" = setweight(to_tsvector({configuration}::regconfig, o."Content"), 'D') AS "Value"
+                FROM "Articles" a
+                JOIN "Paragraphs" p ON p."ArticleId" = a."Id"
+                JOIN "Opinions" o ON o."ParagraphId" = p."Id"
+                WHERE a."Id" = {article.Id}
+                """).SingleAsync();
+            matches.Should().BeTrue($"the {article.Locale} article is indexed with the {configuration} configuration");
+        }
+    }
+
+    [Fact]
     public async Task GivenMarkdownAndHtmlInOpinion_WhenSearched_ThenSnippetIsPlainTextAndLinkTargetsAreNotSearched()
     {
         await SaveAsync(Published("Разметка", "markup", opinions:

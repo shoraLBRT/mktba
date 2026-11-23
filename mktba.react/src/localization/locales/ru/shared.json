@@ -209,6 +209,8 @@
     "feedback_limit_reached": "Сейчас пришло слишком много сообщений. Попробуйте отправить позже.",
     "analytics_events_required": "Не передано ни одного события статистики.",
     "analytics_too_many_events": "За один раз можно передать не больше {maxCount} событий статистики.",
+    "analytics_period_invalid": "Начало периода не может быть позже его конца.",
+    "analytics_period_too_long": "Период — не длиннее {maxDays} дней.",
     "system_school_delete_forbidden": "Системные школы удалять нельзя.",
     "article_status_transition_invalid": "Статью нельзя перевести в этот статус из текущего.",
     "article_status_comment_too_long": "Комментарий к смене статуса — не длиннее {maxLength} символов.",

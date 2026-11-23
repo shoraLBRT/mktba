@@ -184,6 +184,8 @@
     "feedback_limit_reached": "Too many messages are arriving right now. Please try again later.",
     "analytics_events_required": "No statistics events were sent.",
     "analytics_too_many_events": "At most {maxCount} statistics events can be sent at once.",
+    "analytics_period_invalid": "The start of the period cannot be after its end.",
+    "analytics_period_too_long": "The period can be at most {maxDays} days long.",
     "system_school_delete_forbidden": "System schools cannot be deleted.",
     "article_status_transition_invalid": "The article cannot be moved to this status from its current one.",
     "article_status_comment_too_long": "The status change comment can be at most {maxLength} characters long.",
