@@ -1,12 +1,14 @@
-import { DEFAULT_LANGUAGE, type Language } from './language';
-import { dictionaries as loadedDictionaries, localeFileLanguages } from './loader';
+import { DEFAULT_LANGUAGE, languageFromPath, type Language } from './language';
+import { dictionaries as loadedDictionaries, dictionaryLanguage, localeFileLanguages } from './loader';
 
 export { isLanguageLoaded, loadLanguage, loadLocaleChunk } from './loader';
 export type { LazyLocaleChunk } from './chunks';
 
 /**
- * Typed as every key of every file, but the keys of a lazy chunk (./chunks.ts, the admin's) are
- * there only once `loadLocaleChunk` has resolved; the admin route awaits it before rendering.
+ * Typed as every key of every file, but a language is there only once it is loaded (`loadLanguage`;
+ * Russian also comes with the Russian pages' route modules, `./defaultLanguage.ts`), and the keys of
+ * a lazy chunk (./chunks.ts, the admin's) only once `loadLocaleChunk` has resolved; the admin route
+ * awaits it before rendering. Read a dictionary through `dictionaryFor`, which checks.
  */
 export const dictionaries = loadedDictionaries as typeof loadedDictionaries & {
   ru: typeof import('./locales/ru/brand.json')
@@ -27,15 +29,27 @@ export const dictionaries = loadedDictionaries as typeof loadedDictionaries & {
 export type SupportedLocale = keyof typeof dictionaries;
 export type Locale = (typeof dictionaries)['ru'];
 
-export const locale: Locale = dictionaries.ru;
+/**
+ * The dictionary of a language (for a language without files: the default one's). Its keys are the
+ * language's own; only the admin's fall back to Russian (`loader.ts`). It must be loaded first
+ * (`loadLanguage`): the entries load the page's language, the provider waits for any other.
+ */
+export const dictionaryFor = (language: Language): Locale => {
+  const dictionary = (dictionaries as Record<string, unknown>)[dictionaryLanguage(language)];
+  if (!dictionary) {
+    throw new Error(`The "${language}" dictionary is not loaded: await loadLanguage("${language}") first.`);
+  }
+
+  return dictionary as Locale;
+};
 
 /**
- * The dictionary of a language. A language with files falls back to the default one key by key
- * (`loader.ts`); until `loadLanguage` has loaded it (the provider waits for that), and for a language
- * without files, this is the default dictionary.
+ * The dictionary of the reader's language, for code outside React (the API error messages): the
+ * language of the browser's URL, the one the page renders in. On the server, where one process
+ * renders every language, it is the default one; a component reads `useLocale()` instead.
  */
-export const dictionaryFor = (language: Language): Locale =>
-  ((dictionaries as Record<string, unknown>)[language] ?? dictionaries[DEFAULT_LANGUAGE]) as Locale;
+export const readerLocale = (): Locale =>
+  dictionaryFor(typeof window === 'undefined' ? DEFAULT_LANGUAGE : languageFromPath(window.location.pathname));
 
 /** Whether the language has dictionary files of its own, not only the default one's strings. */
 export const hasOwnDictionary = (language: Language): boolean => localeFileLanguages.has(language);

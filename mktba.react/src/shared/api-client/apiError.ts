@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { formatMessage, locale } from '../../localization';
+import { formatMessage, readerLocale } from '../../localization';
 
 type ProblemPayload = {
   code?: unknown;
@@ -25,8 +25,6 @@ export class ApiError extends Error {
   }
 }
 
-const apiErrorMessages: Record<string, string> = locale.apiErrors;
-
 const extractString = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
     return undefined;
@@ -48,10 +46,12 @@ const extractParams = (value: unknown): MessageParams | undefined => {
 };
 
 /**
- * The Russian message for an API error code (see `apiErrors` in locales/ru/shared.json).
- * Unknown or missing codes get a generic message: server text is never shown to users.
+ * The message for an API error code in the reader's language (`apiErrors` in
+ * locales/<lang>/shared.json; `readerLocale()`). Unknown or missing codes get a generic message:
+ * server text is never shown to users.
  */
 export const translateApiError = (code: string | undefined, params?: MessageParams): string => {
+  const apiErrorMessages: Record<string, string> = readerLocale().apiErrors;
   const template =
     code && Object.hasOwn(apiErrorMessages, code) ? apiErrorMessages[code] : apiErrorMessages.fallback;
   return params ? formatMessage(template, params) : template;
@@ -64,7 +64,7 @@ export const toApiError = (error: unknown): ApiError => {
 
   if (axios.isAxiosError(error)) {
     if (!error.response) {
-      return new ApiError(locale.apiErrors.network);
+      return new ApiError(readerLocale().apiErrors.network);
     }
 
     const payload: ProblemPayload =
@@ -84,7 +84,7 @@ export const toApiError = (error: unknown): ApiError => {
     return new ApiError(error.message);
   }
 
-  return new ApiError(locale.common.unknownError);
+  return new ApiError(readerLocale().common.unknownError);
 };
 
 export const extractApiErrorMessage = (error: unknown): string => toApiError(error).message;
