@@ -48,7 +48,7 @@ export const SearchForm = ({ initialQuery = '', autoFocus = false, className }: 
       </label>
       <div className="flex items-stretch gap-2">
         <div className="relative min-w-0 flex-1">
-          <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" aria-hidden="true" />
+          <Search size={18} className="pointer-events-none absolute inset-s-4 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" aria-hidden="true" />
           <Input
             id={inputId}
             type="search"
@@ -60,7 +60,7 @@ export const SearchForm = ({ initialQuery = '', autoFocus = false, className }: 
             required
             minLength={SEARCH_MIN_QUERY_LENGTH}
             maxLength={SEARCH_MAX_QUERY_LENGTH}
-            className="h-full rounded-2xl py-3 pl-11 pr-4 text-base"
+            className="h-full rounded-2xl py-3 ps-11 pe-4 text-base"
           />
         </div>
         <Button type="submit" variant="primary" className="rounded-2xl px-5">

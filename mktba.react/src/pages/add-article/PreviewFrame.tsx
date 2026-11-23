@@ -78,13 +78,11 @@ export const PreviewFrame = ({ width, title, children }: PreviewFrameProps) => {
         title={title}
         data-testid="article-preview-frame"
         data-scale={scale}
-        className="mx-auto box-content block rounded-xl border border-[var(--color-border-soft)] bg-white shadow-sm"
+        className={`mx-auto box-content block rounded-xl border border-[var(--color-border-soft)] bg-white shadow-sm ${scale < 1 ? 'ms-0 origin-top-left rtl:origin-top-right' : ''}`}
         style={{
           width,
           height: frameHeight,
           transform: scale < 1 ? `scale(${scale})` : undefined,
-          transformOrigin: 'top left',
-          marginLeft: scale < 1 ? 0 : undefined,
         }}
       />
       {body ? createPortal(<div onClickCapture={handleClickCapture}>{children}</div>, body) : null}

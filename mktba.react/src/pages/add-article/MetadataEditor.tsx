@@ -114,7 +114,7 @@ export const MetadataEditor = ({
             placeholder={text.summaryPlaceholder}
             className="resize-none rounded-xl text-[13px] leading-6"
           />
-          <p className={`mt-1 text-right text-[11px] ${summary.length >= SUMMARY_MAX ? 'text-amber-500' : 'text-[var(--color-ink-subtle)]'}`}>
+          <p className={`mt-1 text-end text-[11px] ${summary.length >= SUMMARY_MAX ? 'text-amber-500' : 'text-[var(--color-ink-subtle)]'}`}>
             {summary.length}/{SUMMARY_MAX}
           </p>
         </div>
@@ -143,7 +143,7 @@ export const MetadataEditor = ({
                       event.stopPropagation();
                       onTagsChange(tags.filter((t) => t !== tag));
                     }}
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--color-brand-forest)] hover:text-white transition-colors"
+                    className="ms-0.5 rounded-full p-0.5 hover:bg-[var(--color-brand-forest)] hover:text-white transition-colors"
                   >
                     <X size={8} />
                   </button>
@@ -213,7 +213,7 @@ export const MetadataEditor = ({
 
           <div className="relative">
             <div className="relative">
-              <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
+              <Search size={13} className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
               <Input
                 value={relatedSearch}
                 disabled={disabled}
@@ -224,12 +224,12 @@ export const MetadataEditor = ({
                 onFocus={() => setIsRelatedDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setIsRelatedDropdownOpen(false), 150)}
                 placeholder={text.relatedLinksSearchPlaceholder}
-                className="pl-9 text-[13px]"
+                className="ps-9 text-[13px]"
               />
             </div>
 
             {isRelatedDropdownOpen && (filteredArticleOptions.length > 0 || relatedSearch.trim()) && (
-              <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-20 max-h-52 overflow-y-auto rounded-2xl border border-[var(--color-border-soft)] bg-white shadow-[0_20px_50px_rgba(28,27,24,0.12)]">
+              <div className="absolute inset-s-0 inset-e-0 top-[calc(100%+4px)] z-20 max-h-52 overflow-y-auto rounded-2xl border border-[var(--color-border-soft)] bg-white shadow-[0_20px_50px_rgba(28,27,24,0.12)]">
                 {filteredArticleOptions.length > 0 ? (
                   filteredArticleOptions.slice(0, 30).map((option) => (
                     <button
@@ -239,7 +239,7 @@ export const MetadataEditor = ({
                         event.preventDefault();
                         selectRelatedArticle(option);
                       }}
-                      className="flex w-full items-start gap-2 px-4 py-2.5 text-left transition-colors hover:bg-[var(--color-page-panel)]"
+                      className="flex w-full items-start gap-2 px-4 py-2.5 text-start transition-colors hover:bg-[var(--color-page-panel)]"
                     >
                       <Check size={13} className="mt-0.5 shrink-0 text-transparent" />
                       <span className="min-w-0 flex-1">

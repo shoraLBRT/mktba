@@ -26,7 +26,7 @@ export const CookieConsent = () => {
   };
 
   return (
-    <div className="fixed bottom-5 left-5 z-50 max-w-[320px] rounded-2xl border border-[var(--color-border-soft)] bg-white p-4 shadow-lg">
+    <div className="fixed bottom-5 inset-s-5 z-50 max-w-[320px] rounded-2xl border border-[var(--color-border-soft)] bg-white p-4 shadow-lg">
       <p className="text-[12.5px] leading-relaxed text-[var(--color-ink-muted)]">{t.message}</p>
       <div className="mt-3 flex gap-2">
         <button

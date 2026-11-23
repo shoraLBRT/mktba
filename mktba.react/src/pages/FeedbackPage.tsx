@@ -292,7 +292,7 @@ const FeedbackPage = () => {
         </div>
 
         {/* The trap for bots (F-03): people neither see nor reach it, and its value is sent as it is. */}
-        <div aria-hidden="true" className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden">
+        <div aria-hidden="true" className="absolute inset-s-[-9999px] top-auto h-px w-px overflow-hidden">
           <label htmlFor="feedback-website">{t.websiteLabel}</label>
           <input
             ref={websiteRef}
@@ -316,7 +316,7 @@ const FeedbackPage = () => {
           {request.from === null ? (
             <p className="mb-0 mt-2">{t.attachedNothing}</p>
           ) : null}
-          <ul className="mb-0 mt-2 list-disc space-y-1 pl-5">
+          <ul className="mb-0 mt-2 list-disc space-y-1 ps-5">
             {request.from !== null && (
               <li className="[overflow-wrap:anywhere]">
                 {t.attachedPage}

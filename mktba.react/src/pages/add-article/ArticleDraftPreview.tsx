@@ -123,7 +123,7 @@ export const ArticleDraftPreview = ({ draft, article, schools, navigationTree, o
               onClick={close}
               aria-label={t.close}
               data-dialog-close
-              className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-strong)]"
+              className="ms-auto flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-strong)]"
             >
               <X size={16} />
             </button>
@@ -134,11 +134,11 @@ export const ArticleDraftPreview = ({ draft, article, schools, navigationTree, o
           {/* The site's navigation sidebar is not rendered; its place is kept, so the column is as wide as on the site. */}
           <div
             aria-hidden="true"
-            className="hidden shrink-0 border-r border-[var(--color-border-soft)] bg-[var(--color-page-panel)] lg:block"
+            className="hidden shrink-0 border-e border-[var(--color-border-soft)] bg-[var(--color-page-panel)] lg:block"
             style={{ width: APP_CONSTANTS.DIMENSIONS.SIDEBAR_WIDTH }}
           />
           <div className="min-w-0 flex-1 xl:flex xl:gap-0">
-            <article className="min-w-0 flex-1 overflow-hidden bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:border-r xl:border-[var(--color-border-soft)]">
+            <article className="min-w-0 flex-1 overflow-hidden bg-white shadow-[0_24px_80px_rgba(28,27,24,0.05)] xl:border-e xl:border-[var(--color-border-soft)]">
               <div className="mx-auto max-w-[760px] px-4 py-6 pb-24 sm:px-6 lg:px-8 xl:px-10">
                 <ArticleBreadcrumbs
                   ancestors={parentPath.map((node) => ({ id: node.id, slug: node.slug, title: node.title, hasContent: node.hasContent }))}

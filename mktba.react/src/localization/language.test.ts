@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { articleLocaleQuery, languageFromPath, languageFromRequest, localizedPath } from './language';
+import { articleLocaleQuery, DIRECTIONS, LANGUAGES, languageFromPath, languageFromRequest, localizedPath } from './language';
 
 describe('languageFromPath', () => {
   it.each([
@@ -47,5 +47,11 @@ describe('articleLocaleQuery', () => {
 
   it('given English, when building, then the API is asked for it', () => {
     expect(articleLocaleQuery('en')).toBe('?locale=en');
+  });
+});
+
+describe('DIRECTIONS', () => {
+  it('given every language of the site, when reading its direction, then Russian and English are left to right', () => {
+    expect(LANGUAGES.map((language) => DIRECTIONS[language])).toEqual(['ltr', 'ltr']);
   });
 });

@@ -136,7 +136,7 @@ export const NavigationRow: React.FC<NavigationRowProps> = React.memo(
           dropPosition ? dropMarkerClass[dropPosition] : '',
           dragAndDrop?.draggedArticleId === article.id ? 'opacity-50' : '',
         ].join(' ')}
-        style={{ paddingLeft: `${6 + depth * 12}px` }}
+        style={{ paddingInlineStart: `${6 + depth * 12}px` }}
       >
         {dragAndDrop ? (
           // Pointer only: the keyboard moves a row with its move buttons and the parent picker.
@@ -160,7 +160,7 @@ export const NavigationRow: React.FC<NavigationRowProps> = React.memo(
             className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[var(--color-ink-subtle)] transition-colors hover:bg-white hover:text-[var(--color-ink-default)]"
             aria-label={expanded ? locale.navigationTree.collapseSection : locale.navigationTree.expandSection}
           >
-            {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+            {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} className="rtl:-scale-x-100" />}
           </button>
         ) : (
           <span className="block h-[18px] w-[18px] shrink-0" />

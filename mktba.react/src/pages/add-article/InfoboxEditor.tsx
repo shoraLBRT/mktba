@@ -82,7 +82,7 @@ export const InfoboxEditor = ({
 
   return (
     <section className={cn('w-full', className)}>
-      <aside className="mb-6 w-full overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-sm shadow-sm lg:float-right lg:mb-4 lg:ml-6 lg:w-[320px]">
+      <aside className="mb-6 w-full overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-sm shadow-sm lg:float-end lg:mb-4 lg:ms-6 lg:w-[320px]">
         <div className="bg-[var(--color-brand-forest)] px-4 py-3 text-white">
           <label className="block">
             <span className="sr-only">{text.titleLabel}</span>
@@ -113,7 +113,7 @@ export const InfoboxEditor = ({
             {draft.fields.map((field, index) => {
               return (
                 <div key={field.id} className="group relative px-4 py-3">
-                  <div className="pointer-events-none absolute right-1 top-1 z-10 flex items-center gap-0.5 rounded-full bg-white/92 px-1 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                  <div className="pointer-events-none absolute inset-e-1 top-1 z-10 flex items-center gap-0.5 rounded-full bg-white/92 px-1 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                     <Button
                       variant="ghost"
                       disabled={disabled || index === 0}

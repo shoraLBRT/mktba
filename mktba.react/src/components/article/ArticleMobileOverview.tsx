@@ -49,7 +49,7 @@ export const ArticleMobileOverview = ({ tocItems, summary, tags }: ArticleMobile
             <p className={captionClass}>{sidebarText.onThisPage}</p>
             <ul className="m-0 list-none space-y-0.5 p-0">
               {tocItems.map((item) => (
-                <li key={item.id} className={item.depth === 3 ? 'pl-4' : undefined}>
+                <li key={item.id} className={item.depth === 3 ? 'ps-4' : undefined}>
                   <a
                     href={`#${item.id}`}
                     className="block py-1.5 text-[13.5px] leading-5 text-[var(--color-brand-forest)] hover:underline"

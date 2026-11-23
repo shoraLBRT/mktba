@@ -44,7 +44,7 @@ export const DraftSaveIndicator = ({ status, isSaving }: { status: DraftSaveStat
   const tone = status === 'failed' && !isSaving ? 'text-red-700' : 'text-[var(--color-ink-muted)]';
 
   return (
-    <p role="status" data-testid="draft-save-indicator" className={`mb-3 mt-0 text-right text-xs ${tone}`}>
+    <p role="status" data-testid="draft-save-indicator" className={`mb-3 mt-0 text-end text-xs ${tone}`}>
       {isSaving ? t.saving : t[status]}
     </p>
   );

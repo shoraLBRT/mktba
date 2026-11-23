@@ -77,9 +77,9 @@ export const ArticleInfoboxPanel = ({ infobox }: ArticleInfoboxPanelProps) => {
     <aside
       aria-label={normalizedInfobox.title}
       data-print-block=""
-      className="mb-6 w-full min-w-0 overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-sm shadow-sm @2xl:float-right @2xl:mb-4 @2xl:ml-6 @2xl:w-[320px]"
+      className="mb-6 w-full min-w-0 overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-sm shadow-sm @2xl:float-end @2xl:mb-4 @2xl:ms-6 @2xl:w-[320px]"
     >
-      <div className="relative bg-[var(--color-brand-forest)] px-4 py-3 text-white max-sm:pr-12">
+      <div className="relative bg-[var(--color-brand-forest)] px-4 py-3 text-white max-sm:pe-12">
         <p className={`m-0 text-[15px] font-semibold leading-6 ${WRAP}`}>{normalizedInfobox.title}</p>
         {normalizedInfobox.subtitle ? (
           <p className={`mb-0 mt-1 text-[12px] leading-5 text-[#cfeedd] ${WRAP}`}>{normalizedInfobox.subtitle}</p>
@@ -90,7 +90,7 @@ export const ArticleInfoboxPanel = ({ infobox }: ArticleInfoboxPanelProps) => {
           aria-controls={bodyId}
           aria-label={openOnPhone ? t.hideDetails : t.showDetails}
           onClick={() => setOpenOnPhone((current) => !current)}
-          className="absolute inset-0 flex items-center justify-end pr-4 sm:hidden print:hidden"
+          className="absolute inset-0 flex items-center justify-end pe-4 sm:hidden print:hidden"
         >
           {openOnPhone ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
         </button>

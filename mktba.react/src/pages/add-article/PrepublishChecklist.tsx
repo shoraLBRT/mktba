@@ -22,7 +22,7 @@ export const PrepublishChecklist = ({ warnings, onJump }: PrepublishChecklistPro
           {t.none}
         </p>
       ) : (
-        <ul className="m-0 space-y-1 pl-0">
+        <ul className="m-0 space-y-1 ps-0">
           {warnings.map((warning) => (
             <li key={JSON.stringify(warning)}className="flex list-none items-start justify-between gap-2 text-[11px] text-amber-800">
               <span className="flex min-w-0 items-start gap-1.5 break-words">

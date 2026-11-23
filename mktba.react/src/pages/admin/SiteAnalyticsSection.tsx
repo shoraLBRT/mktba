@@ -120,16 +120,16 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
           ) : (
             <table className="mt-3 w-full text-sm" data-testid="site-analytics-top-articles">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]">
+                <tr className="text-start text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]">
                   <th scope="col" className="pb-2 font-semibold">{t.articleColumn}</th>
-                  <th scope="col" className="pb-2 text-right font-semibold">{t.viewsColumn}</th>
-                  <th scope="col" className="pb-2 text-right font-semibold">{t.readersColumn}</th>
+                  <th scope="col" className="pb-2 text-end font-semibold">{t.viewsColumn}</th>
+                  <th scope="col" className="pb-2 text-end font-semibold">{t.readersColumn}</th>
                 </tr>
               </thead>
               <tbody>
                 {topArticles.map((article) => (
                   <tr key={article.articleId} className="border-t border-[var(--color-border-soft)]">
-                    <td className="py-2 pr-3">
+                    <td className="py-2 pe-3">
                       {article.slug ? (
                         <>
                           <Link to={`/${article.slug}`} className="text-[var(--color-brand-forest)] hover:underline">
@@ -149,8 +149,8 @@ const AnalyticsBody: React.FC<{ data: SiteAnalyticsDto }> = ({ data }) => {
                         </span>
                       )}
                     </td>
-                    <td className="py-2 text-right tabular-nums">{article.views}</td>
-                    <td className="py-2 text-right tabular-nums">{article.readers}</td>
+                    <td className="py-2 text-end tabular-nums">{article.views}</td>
+                    <td className="py-2 text-end tabular-nums">{article.readers}</td>
                   </tr>
                 ))}
               </tbody>

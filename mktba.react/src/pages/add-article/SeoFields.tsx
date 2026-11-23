@@ -27,7 +27,7 @@ const labelClass = 'mb-1 block text-[11px] font-semibold uppercase tracking-[0.1
 const Counter = ({ id, count, max }: { id: string; count: number; max: number }) => {
   const t = useLocale().addArticlePage.seo;
   return (
-    <p id={id} className="mb-0 mt-1 text-right text-[11px] text-[var(--color-ink-subtle)]">
+    <p id={id} className="mb-0 mt-1 text-end text-[11px] text-[var(--color-ink-subtle)]">
       {formatMessage(t.counter, { count, max })}
     </p>
   );

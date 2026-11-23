@@ -329,7 +329,7 @@ test('an admin reorders sections and moves one under another parent', async ({ p
   await page.getByRole('button', { name: 'Переместить', exact: true }).click();
   await expect(childTitles).toHaveText([second]);
   // A top-level row has no depth indent.
-  await expect(row(first)).toHaveAttribute('style', /padding-left: 6px/);
+  await expect(row(first)).toHaveAttribute('style', /padding-inline-start: 6px/);
 });
 
 test('an admin drags sections in the tree and renames one, and the server keeps both', async ({ page }) => {

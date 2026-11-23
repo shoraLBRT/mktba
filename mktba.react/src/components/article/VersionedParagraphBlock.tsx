@@ -114,7 +114,7 @@ export const VersionedParagraphBlock = ({
                 tabIndex={isActive ? 0 : -1}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
                 onClick={() => onSelect(index)}
-                className={`${index === 0 ? 'ml-auto ' : ''}flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-2 py-0.5 text-[11px] font-semibold transition-colors`}
+                className={`${index === 0 ? 'ms-auto ' : ''}flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-2 py-0.5 text-[11px] font-semibold transition-colors`}
                 style={{
                   backgroundColor: isActive ? tabPalette.accent : 'var(--color-surface)',
                   color: isActive ? 'var(--color-surface)' : tabPalette.accent,

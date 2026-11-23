@@ -13,7 +13,7 @@ export const MAZHAB_HINT_STORAGE_KEY = 'mktba.mazhabHintSeen';
 // From `md` up the picker is in the header and the panel opens under it; below `md` it is in the bar at
 // the bottom of the screen (`MainLayout`) and the panel opens above the bar.
 const PANEL_POSITION =
-  'fixed right-3 bottom-[calc(var(--layout-bottom-bar-height)+env(safe-area-inset-bottom)+0.5rem)] z-50 md:bottom-auto md:top-[calc(var(--layout-header-height)+0.5rem)]';
+  'fixed inset-e-3 bottom-[calc(var(--layout-bottom-bar-height)+env(safe-area-inset-bottom)+0.5rem)] z-50 md:bottom-auto md:top-[calc(var(--layout-header-height)+0.5rem)]';
 
 const readHintSeen = (): boolean => {
   try {
@@ -129,7 +129,7 @@ export const MazhabSelector = () => {
                     type="button"
                     onClick={() => handleSelect(school.id)}
                     aria-pressed={isActive}
-                    className="relative rounded-xl border px-2.5 py-2 text-left transition-colors"
+                    className="relative rounded-xl border px-2.5 py-2 text-start transition-colors"
                     style={{
                       backgroundColor: palette.bg,
                       borderColor: isActive ? palette.accent : palette.border,
@@ -138,7 +138,7 @@ export const MazhabSelector = () => {
                     {isActive && (
                       <Check
                         size={11}
-                        className="absolute right-1.5 top-1.5"
+                        className="absolute inset-e-1.5 top-1.5"
                         style={{ color: palette.accent }}
                       />
                     )}
@@ -159,7 +159,7 @@ export const MazhabSelector = () => {
             <button
               type="button"
               onClick={() => handleSelect(null)}
-              className="mt-2 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11.5px] transition-colors hover:bg-[var(--color-surface-muted)]"
+              className="mt-2 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-[11.5px] transition-colors hover:bg-[var(--color-surface-muted)]"
               aria-pressed={selectedSchoolId === null}
             >
               <span
@@ -172,7 +172,7 @@ export const MazhabSelector = () => {
                 {t.noPreference}
               </span>
               {selectedSchoolId === null && (
-                <Check size={11} className="ml-auto text-[var(--color-ink-muted)]" />
+                <Check size={11} className="ms-auto text-[var(--color-ink-muted)]" />
               )}
             </button>
 
@@ -181,7 +181,7 @@ export const MazhabSelector = () => {
                 <button
                   type="button"
                   onClick={() => void handleCopyLink(selectedSchool.slug)}
-                  className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11.5px] text-[var(--color-ink-default)] transition-colors hover:bg-[var(--color-surface-muted)]"
+                  className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-[11.5px] text-[var(--color-ink-default)] transition-colors hover:bg-[var(--color-surface-muted)]"
                 >
                   <Link2 size={12} className="shrink-0 text-[var(--color-ink-muted)]" />
                   {t.copyLink}
@@ -213,7 +213,7 @@ export const MazhabSelector = () => {
               type="button"
               onClick={dismissHint}
               aria-label={t.hintClose}
-              className="-mr-1 -mt-1 shrink-0 rounded-lg p-1 text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-muted)]"
+              className="-me-1 -mt-1 shrink-0 rounded-lg p-1 text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-muted)]"
             >
               <X size={13} />
             </button>
@@ -271,7 +271,7 @@ export const MazhabSelector = () => {
                 const palette = getPaletteForSchool(school);
 
                 return (
-                  <li key={school.id} className="border-l-2 pl-2.5" style={{ borderColor: palette.accent }}>
+                  <li key={school.id} className="border-s-2 ps-2.5" style={{ borderColor: palette.accent }}>
                     <p className="m-0 text-[12px] font-semibold" style={{ color: palette.accent }}>
                       {school.name} ({school.shortName})
                     </p>

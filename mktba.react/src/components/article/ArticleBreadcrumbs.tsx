@@ -20,7 +20,7 @@ type ArticleBreadcrumbsProps = {
 };
 
 const Separator = () => (
-  <ChevronRight size={12} aria-hidden="true" className="shrink-0 text-[#bebdb8]" />
+  <ChevronRight size={12} aria-hidden="true" className="shrink-0 text-[#bebdb8] rtl:-scale-x-100" />
 );
 
 /**

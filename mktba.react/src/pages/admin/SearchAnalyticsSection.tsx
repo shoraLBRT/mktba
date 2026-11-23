@@ -48,24 +48,24 @@ const QueryTable: React.FC<QueryTableProps> = ({ queries, emptyText, testId }) =
   return (
     <table className="mt-3 w-full text-sm" data-testid={testId}>
       <thead>
-        <tr className="text-left text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]">
+        <tr className="text-start text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]">
           <th scope="col" className="pb-2 font-semibold">{t.queryColumn}</th>
-          <th scope="col" className="pb-2 text-right font-semibold">{t.searchesColumn}</th>
-          <th scope="col" className="pb-2 text-right font-semibold">{t.searchersColumn}</th>
-          <th scope="col" className="pb-2 text-right font-semibold">{t.withoutResultsColumn}</th>
+          <th scope="col" className="pb-2 text-end font-semibold">{t.searchesColumn}</th>
+          <th scope="col" className="pb-2 text-end font-semibold">{t.searchersColumn}</th>
+          <th scope="col" className="pb-2 text-end font-semibold">{t.withoutResultsColumn}</th>
         </tr>
       </thead>
       <tbody>
         {queries.map((query) => (
           <tr key={query.query} className="border-t border-[var(--color-border-soft)]">
-            <td className="py-2 pr-3 [overflow-wrap:anywhere]">
+            <td className="py-2 pe-3 [overflow-wrap:anywhere]">
               <Link to={searchHref(query.query)} className="text-[var(--color-brand-forest)] hover:underline">
                 {query.query}
               </Link>
             </td>
-            <td className="py-2 text-right tabular-nums">{query.searches}</td>
-            <td className="py-2 text-right tabular-nums">{query.searchers}</td>
-            <td className="py-2 text-right tabular-nums">{query.searchesWithoutResults}</td>
+            <td className="py-2 text-end tabular-nums">{query.searches}</td>
+            <td className="py-2 text-end tabular-nums">{query.searchers}</td>
+            <td className="py-2 text-end tabular-nums">{query.searchesWithoutResults}</td>
           </tr>
         ))}
       </tbody>

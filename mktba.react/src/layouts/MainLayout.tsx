@@ -65,7 +65,7 @@ const MainLayout: React.FC = () => {
           of the fixed mazhab bar inside it, and the bar must sit at the bottom of the viewport. */}
       <header className="print:hidden! sticky top-0 z-40 flex h-[var(--layout-header-height)] items-stretch border-b border-[var(--color-border-soft)] bg-white md:bg-[rgba(255,255,255,0.94)] md:backdrop-blur-md">
         <div
-          className="hidden items-center border-r border-[var(--color-border-soft)] px-4 transition-[width] duration-200 lg:flex"
+          className="hidden items-center border-e border-[var(--color-border-soft)] px-4 transition-[width] duration-200 lg:flex"
           style={{ width: logoWidth }}
         >
           <Link to={localize('/')} className="flex min-w-0 flex-col leading-none">
@@ -76,7 +76,7 @@ const MainLayout: React.FC = () => {
         </div>
 
         <div className="flex min-w-0 flex-1 items-stretch">
-          <div className="flex items-center border-r border-[var(--color-border-soft)] px-1 sm:px-3">
+          <div className="flex items-center border-e border-[var(--color-border-soft)] px-1 sm:px-3">
             <button
               type="button"
               onClick={toggleCollapsed}
@@ -84,7 +84,7 @@ const MainLayout: React.FC = () => {
               title={collapsed ? locale.layout.navigation.open : locale.layout.navigation.close}
               aria-label={collapsed ? locale.layout.navigation.open : locale.layout.navigation.close}
             >
-              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              {collapsed ? <PanelLeftOpen size={16} className="rtl:-scale-x-100" /> : <PanelLeftClose size={16} className="rtl:-scale-x-100" />}
             </button>
 
             {/* Below `lg` the brand column is hidden, so the brand itself leads home. */}
@@ -97,7 +97,7 @@ const MainLayout: React.FC = () => {
 
             <Link
               to={localize('/')}
-              className="ml-1 hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-brand-forest)] lg:flex"
+              className="ms-1 hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-brand-forest)] lg:flex"
               title={locale.layout.menu.home}
               aria-label={locale.layout.menu.home}
             >
@@ -105,7 +105,7 @@ const MainLayout: React.FC = () => {
             </Link>
           </div>
 
-          <div className="ml-auto flex items-center gap-1 px-2 sm:gap-1.5 sm:px-4">
+          <div className="ms-auto flex items-center gap-1 px-2 sm:gap-1.5 sm:px-4">
             <button
               type="button"
               onClick={openSearchDialog}
@@ -155,7 +155,7 @@ const MainLayout: React.FC = () => {
                 aria-label={locale.layout.actions.logout}
                 title={locale.layout.actions.logout}
               >
-                <LogOut size={14} />
+                <LogOut size={14} className="rtl:-scale-x-100" />
               </Button>
             ) : null}
 
@@ -166,7 +166,7 @@ const MainLayout: React.FC = () => {
               title={collapsed ? locale.layout.navigation.open : locale.layout.navigation.close}
               aria-label={collapsed ? locale.layout.navigation.open : locale.layout.navigation.close}
             >
-              {isMobileSidebarOpen ? <PanelLeftClose size={18} /> : <ChevronRight size={18} />}
+              {isMobileSidebarOpen ? <PanelLeftClose size={18} className="rtl:-scale-x-100" /> : <ChevronRight size={18} className="rtl:-scale-x-100" />}
             </button>
           </div>
         </div>

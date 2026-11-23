@@ -97,14 +97,14 @@ export const EditorHistoryDialog = ({ articleId, draft, hasUnsavedChanges, schoo
               onClick={close}
               aria-label={t.close}
               data-dialog-close
-              className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-strong)]"
+              className="ms-auto flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-strong)]"
             >
               <X size={16} />
             </button>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
-            <div className="shrink-0 border-b border-[var(--color-border-soft)] p-4 lg:w-96 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+            <div className="shrink-0 border-b border-[var(--color-border-soft)] p-4 lg:w-96 lg:overflow-y-auto lg:border-b-0 lg:border-e">
               {error ? <p role="alert" className="mb-3 mt-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
               {revisionsQuery.isError ? <p className="m-0 text-sm text-red-600">{t.loadError}</p> : null}
               {revisionsQuery.isSuccess && revisions.length === 0 ? <p className="m-0 text-sm text-[var(--color-ink-muted)]">{t.empty}</p> : null}
@@ -182,7 +182,7 @@ const HistoryRow = ({ revision, isLatest, hasUnsavedChanges, restoring, onRestor
       <p className="m-0 text-sm font-semibold text-[var(--color-ink-strong)]">
         {title}
         {revision.isPublished ? (
-          <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">{t.publishedBadge}</span>
+          <span className="ms-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">{t.publishedBadge}</span>
         ) : null}
       </p>
       <p className="m-0 text-xs text-[var(--color-ink-subtle)]">

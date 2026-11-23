@@ -4,6 +4,7 @@ import i18next from 'eslint-plugin-i18next'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
+import mktba from './eslint/logicalDirection.js'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
@@ -68,6 +69,17 @@ export default defineConfig([
           message: 'Russian text belongs in src/localization/locales/ru/*.json (admin-only text in the admin chunk), not in code.',
         },
       ],
+    },
+  },
+  {
+    // RTL readiness (I-09, #113): logical direction utilities only, so an RTL language mirrors the
+    // layout without rewriting it. Justified exceptions: the `allow` list here, or an
+    // `eslint-disable-next-line mktba/logical-direction -- <why>` at the spot.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}', 'src/**/*.d.ts', 'src/test/**'],
+    plugins: { mktba },
+    rules: {
+      'mktba/logical-direction': ['error', { allow: [] }],
     },
   },
 ])

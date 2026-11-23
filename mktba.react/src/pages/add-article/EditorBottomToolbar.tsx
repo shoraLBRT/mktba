@@ -38,11 +38,14 @@ const ToolbarIconButton = ({
   label,
   onClick,
   disabled,
+  mirrored = false,
 }: {
   icon: typeof Bold;
   label: string;
   onClick: () => void;
   disabled: boolean;
+  /** A direction-bearing icon (undo/redo) is mirrored in a right-to-left interface (#113). */
+  mirrored?: boolean;
 }) => (
   <button
     type="button"
@@ -52,7 +55,7 @@ const ToolbarIconButton = ({
     disabled={disabled}
     className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)] disabled:cursor-not-allowed disabled:opacity-40"
   >
-    <Icon size={14} />
+    <Icon size={14} className={mirrored ? 'rtl:-scale-x-100' : undefined} />
   </button>
 );
 
@@ -78,8 +81,8 @@ export const EditorBottomToolbar = ({ disabled, onFormat, onInsertArticleLink, o
           <ToolbarIconButton icon={ListOrdered} label={t.formatting.orderedList} onClick={() => onFormat('orderedList')} disabled={disabled} />
           <ToolbarIconButton icon={Quote} label={t.formatting.quote} onClick={() => onFormat('quote')} disabled={disabled} />
           <ToolbarIconButton icon={Superscript} label={t.formatting.footnote} onClick={() => onFormat('footnote')} disabled={disabled} />
-          <ToolbarIconButton icon={Undo2} label={t.formatting.undo} onClick={onUndo} disabled={disabled} />
-          <ToolbarIconButton icon={Redo2} label={t.formatting.redo} onClick={onRedo} disabled={disabled} />
+          <ToolbarIconButton icon={Undo2} label={t.formatting.undo} onClick={onUndo} disabled={disabled} mirrored />
+          <ToolbarIconButton icon={Redo2} label={t.formatting.redo} onClick={onRedo} disabled={disabled} mirrored />
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-[var(--color-border-soft)] bg-[rgba(255,255,255,0.94)] px-1.5 py-1 shadow-[0_18px_48px_rgba(28,27,24,0.08)] backdrop-blur-sm">

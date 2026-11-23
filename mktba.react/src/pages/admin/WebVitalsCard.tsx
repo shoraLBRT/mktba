@@ -43,11 +43,11 @@ export const WebVitalsCard: React.FC<{ webVitals: WebVital[] }> = ({ webVitals }
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm" data-testid="site-analytics-web-vitals">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]">
+            <tr className="text-start text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]">
               <th scope="col" className="pb-2 font-semibold">{t.webVitalsMetricColumn}</th>
-              <th scope="col" className="pb-2 text-right font-semibold">{t.webVitalsP75Column}</th>
-              <th scope="col" className="pb-2 pl-3 text-right font-semibold">{t.webVitalsRatingColumn}</th>
-              <th scope="col" className="pb-2 pl-3 text-right font-semibold">{t.webVitalsSamplesColumn}</th>
+              <th scope="col" className="pb-2 text-end font-semibold">{t.webVitalsP75Column}</th>
+              <th scope="col" className="pb-2 ps-3 text-end font-semibold">{t.webVitalsRatingColumn}</th>
+              <th scope="col" className="pb-2 ps-3 text-end font-semibold">{t.webVitalsSamplesColumn}</th>
             </tr>
           </thead>
           <tbody>
@@ -61,8 +61,8 @@ export const WebVitalsCard: React.FC<{ webVitals: WebVital[] }> = ({ webVitals }
                     : formatMessage(t.webVitalsMs, { value: Math.round(vital.p75) });
               return (
                 <tr key={vital.metric} className="border-t border-[var(--color-border-soft)]" data-testid={`web-vital-${vital.metric}`}>
-                  <td className="py-2 pr-3">{names[vital.metric] ?? vital.metric}</td>
-                  <td className="py-2 text-right tabular-nums">
+                  <td className="py-2 pe-3">{names[vital.metric] ?? vital.metric}</td>
+                  <td className="py-2 text-end tabular-nums">
                     {rating ? (
                       <span className={RATING_CLASSES[rating]} title={ratingNames[rating]}>
                         {p75}
@@ -72,12 +72,12 @@ export const WebVitalsCard: React.FC<{ webVitals: WebVital[] }> = ({ webVitals }
                       <span className="text-[var(--color-ink-muted)]">{p75}</span>
                     )}
                   </td>
-                  <td className="py-2 pl-3 text-right tabular-nums">
+                  <td className="py-2 ps-3 text-end tabular-nums">
                     {vital.samples === 0
                       ? '—'
                       : [vital.good, vital.needsImprovement, vital.poor].map((n) => percent(n, vital.samples)).join(' · ')}
                   </td>
-                  <td className="py-2 pl-3 text-right tabular-nums">{vital.samples}</td>
+                  <td className="py-2 ps-3 text-end tabular-nums">{vital.samples}</td>
                 </tr>
               );
             })}

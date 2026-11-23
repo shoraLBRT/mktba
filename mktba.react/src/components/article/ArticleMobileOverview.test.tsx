@@ -37,7 +37,7 @@ describe('ArticleMobileOverview', () => {
     expect(details.classList.contains('xl:hidden')).toBe(true);
     expect(within(details).getByText('Содержание и описание')).toBeTruthy();
     expect(within(details).getByRole('link', { name: 'Условия' }).getAttribute('href')).toBe('#usloviya');
-    expect(within(details).getByRole('link', { name: 'Ният' }).closest('li')?.className).toBe('pl-4');
+    expect(within(details).getByRole('link', { name: 'Ният' }).closest('li')?.className).toBe('ps-4');
     expect(within(details).getByText('Кратко о статье')).toBeTruthy();
     expect(within(details).getByRole('link', { name: 'намаз' }).getAttribute('href')).toBe('/tags/namaz');
   });

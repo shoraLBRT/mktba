@@ -57,7 +57,7 @@ export const SessionsPanel = ({ onError, onEnded }: SessionsPanelProps) => {
                 <p className="truncate text-sm font-semibold text-[var(--color-ink-strong)]" title={session.userAgent ?? undefined}>
                   {session.userAgent || t.sessionsUnknownDevice}
                   {session.isCurrent ? (
-                    <span className="ml-2 rounded bg-[var(--color-brand-forest-soft)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--color-brand-forest)]">
+                    <span className="ms-2 rounded bg-[var(--color-brand-forest-soft)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--color-brand-forest)]">
                       {t.sessionsCurrent}
                     </span>
                   ) : null}
@@ -84,7 +84,7 @@ export const SessionsPanel = ({ onError, onEnded }: SessionsPanelProps) => {
       <Card className="p-6">
         <p className="mb-4 text-sm text-[var(--color-ink-muted)]">{t.sessionsLogoutAllHint}</p>
         <Button variant="danger" onClick={() => logOutAllMutation.mutate()} disabled={logOutAllMutation.isPending}>
-          <LogOut size={14} />
+          <LogOut size={14} className="rtl:-scale-x-100" />
           {t.sessionsLogoutAll}
         </Button>
       </Card>

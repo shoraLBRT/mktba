@@ -189,7 +189,7 @@ export const EditorHelpRail = ({
                   setIsRelatedDropdownOpen(false);
                   setDropdownRect(null);
                 }}
-                className="flex w-full items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--color-page-panel)]"
+                className="flex w-full items-start gap-2 px-3 py-2 text-start transition-colors hover:bg-[var(--color-page-panel)]"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12px] font-medium text-[var(--color-ink-strong)]">{option.title}</span>
@@ -224,23 +224,23 @@ export const EditorHelpRail = ({
                   type="button"
                   disabled={isLocked || isLoadingParents}
                   onClick={onToggleParentDropdown}
-                  className="flex w-full items-center justify-between rounded-lg border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-3 py-2 text-left text-[12px] text-[var(--color-ink-strong)] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-between rounded-lg border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-3 py-2 text-start text-[12px] text-[var(--color-ink-strong)] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span className="truncate">{selectedParent?.path ?? t.selectParentArticle}</span>
                   <ChevronDown size={14} className="shrink-0 text-[var(--color-ink-subtle)]" />
                 </button>
 
                 {isParentDropdownOpen ? (
-                  <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-white shadow-[0_20px_50px_rgba(28,27,24,0.12)]">
+                  <div className="absolute inset-s-0 inset-e-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-[var(--color-border-soft)] bg-white shadow-[0_20px_50px_rgba(28,27,24,0.12)]">
                     <form autoComplete="off" className="border-b border-[var(--color-border-soft)] p-3">
                       <div className="relative">
-                        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
+                        <Search size={14} className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                         <Input
                           value={parentSearch ?? ''}
                           disabled={isLocked}
                           onChange={(event) => onParentSearchChange?.(event.target.value)}
                           placeholder={t.parentSearchPlaceholder}
-                          className="pl-9"
+                          className="ps-9"
                         />
                       </div>
                       <button
@@ -260,7 +260,7 @@ export const EditorHelpRail = ({
                               key={option.id}
                               type="button"
                               onClick={() => onSelectParent?.(option)}
-                              className={`flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors ${isSelected ? 'bg-[var(--color-brand-forest-soft)]' : 'hover:bg-[var(--color-page-panel)]'}`}
+                              className={`flex w-full items-start gap-2 rounded-xl px-3 py-2 text-start transition-colors ${isSelected ? 'bg-[var(--color-brand-forest-soft)]' : 'hover:bg-[var(--color-page-panel)]'}`}
                             >
                               <span className="mt-0.5 shrink-0 text-[var(--color-brand-forest)]">
                                 {isSelected ? <Check size={14} /> : <FolderTree size={14} />}
@@ -424,7 +424,7 @@ export const EditorHelpRail = ({
                   className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[12px] leading-5 text-[var(--color-ink-strong)] placeholder:text-[var(--color-ink-subtle)] outline-none focus:ring-0 disabled:opacity-60"
                 />
                 {summary.length > 0 && (
-                  <p className={`mt-1 text-right text-[10px] ${summary.length >= SUMMARY_MAX ? 'text-amber-500' : 'text-[var(--color-ink-subtle)]'}`}>
+                  <p className={`mt-1 text-end text-[10px] ${summary.length >= SUMMARY_MAX ? 'text-amber-500' : 'text-[var(--color-ink-subtle)]'}`}>
                     {summary.length}/{SUMMARY_MAX}
                   </p>
                 )}
@@ -445,7 +445,7 @@ export const EditorHelpRail = ({
                           type="button"
                           aria-label={`${tm.removeTag} ${tag}`}
                           onClick={(e) => { e.stopPropagation(); onTagsChange?.(tags.filter((tt) => tt !== tag)); }}
-                          className="ml-0.5 rounded-full p-0.5 leading-none hover:bg-[var(--color-brand-forest)] hover:text-white transition-colors"
+                          className="ms-0.5 rounded-full p-0.5 leading-none hover:bg-[var(--color-brand-forest)] hover:text-white transition-colors"
                         >
                           ×
                         </button>
@@ -493,7 +493,7 @@ export const EditorHelpRail = ({
 
                 {/* Search input — portal dropdown renders into document.body */}
                 <div ref={relatedSearchWrapRef} className="relative">
-                  <Search size={12} className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
+                  <Search size={12} className="pointer-events-none absolute inset-s-0 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                   <input
                     type="text"
                     value={relatedSearch}
@@ -502,7 +502,7 @@ export const EditorHelpRail = ({
                     onFocus={openRelatedDropdown}
                     onBlur={closeRelatedDropdown}
                     placeholder={tm.relatedLinksSearchPlaceholder}
-                    className="w-full border-0 bg-transparent py-0.5 pl-5 pr-0 text-[12px] text-[var(--color-ink-strong)] placeholder:text-[var(--color-ink-subtle)] outline-none focus:ring-0"
+                    className="w-full border-0 bg-transparent py-0.5 ps-5 pe-0 text-[12px] text-[var(--color-ink-strong)] placeholder:text-[var(--color-ink-subtle)] outline-none focus:ring-0"
                   />
                 </div>
               </div>

@@ -158,7 +158,7 @@ const AdminLoginPage: React.FC = () => {
     <div className="flex min-h-[calc(100vh-var(--layout-header-height)-3rem)] items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
       <Card className="w-full max-w-5xl overflow-hidden border border-[var(--color-border-soft)] bg-[rgba(255,255,255,0.96)] shadow-[0_28px_90px_rgba(28,27,24,0.10)]">
         <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="border-b border-[var(--color-border-soft)] bg-[linear-gradient(135deg,rgba(45,106,79,0.13),rgba(244,243,238,0.5))] px-6 py-8 lg:border-b-0 lg:border-r lg:px-8 lg:py-10">
+          <div className="border-b border-[var(--color-border-soft)] bg-[linear-gradient(135deg,rgba(45,106,79,0.13),rgba(244,243,238,0.5))] px-6 py-8 lg:border-b-0 lg:border-e lg:px-8 lg:py-10">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-brand-forest)]">{t.heroEyebrow}</p>
             <h1 className="m-0 text-3xl font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">
               {isRegisterMode ? t.registerTitle : t.loginTitle}
@@ -214,14 +214,14 @@ const AdminLoginPage: React.FC = () => {
                   {t.emailLabel}
                 </label>
                 <div className="relative">
-                  <Mail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
+                  <Mail size={16} className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                   <Input
                     {...fieldA11y('email')}
                     type="email"
                     autoComplete="email"
                     value={formValues.email}
                     onChange={change('email')}
-                    className="h-12 pl-10"
+                    className="h-12 ps-10"
                   />
                 </div>
                 {fieldError('email')}
@@ -232,14 +232,14 @@ const AdminLoginPage: React.FC = () => {
                   {t.passwordLabel}
                 </label>
                 <div className="relative">
-                  <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
+                  <LockKeyhole size={16} className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                   <Input
                     {...fieldA11y('password')}
                     type="password"
                     autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                     value={formValues.password}
                     onChange={change('password')}
-                    className="h-12 pl-10"
+                    className="h-12 ps-10"
                   />
                 </div>
                 {isRegisterMode ? (
@@ -256,14 +256,14 @@ const AdminLoginPage: React.FC = () => {
                     {t.passwordConfirmLabel}
                   </label>
                   <div className="relative">
-                    <LockKeyhole size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
+                    <LockKeyhole size={16} className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]" />
                     <Input
                       {...fieldA11y('passwordConfirm')}
                       type="password"
                       autoComplete="new-password"
                       value={formValues.passwordConfirm}
                       onChange={change('passwordConfirm')}
-                      className="h-12 pl-10"
+                      className="h-12 ps-10"
                     />
                   </div>
                   {fieldError('passwordConfirm')}

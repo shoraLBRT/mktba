@@ -151,17 +151,17 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
           <div className="overflow-x-auto">
             <table className="mt-3 w-full text-sm" data-testid="author-analytics-top-articles">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]">
+                <tr className="text-start text-[11px] uppercase tracking-widest text-[var(--color-ink-subtle)]">
                   <th scope="col" className="pb-2 font-semibold">{common.articleColumn}</th>
-                  <th scope="col" className="pb-2 text-right font-semibold">{common.viewsColumn}</th>
-                  <th scope="col" className="pb-2 text-right font-semibold">{common.readersColumn}</th>
-                  <th scope="col" className="pb-2 text-right font-semibold">{t.finishedColumn}</th>
+                  <th scope="col" className="pb-2 text-end font-semibold">{common.viewsColumn}</th>
+                  <th scope="col" className="pb-2 text-end font-semibold">{common.readersColumn}</th>
+                  <th scope="col" className="pb-2 text-end font-semibold">{t.finishedColumn}</th>
                 </tr>
               </thead>
               <tbody>
                 {topArticles.map((article) => (
                   <tr key={article.articleId} className="border-t border-[var(--color-border-soft)]">
-                    <td className="py-2 pr-3">
+                    <td className="py-2 pe-3">
                       <Link to={`/${article.slug}`} className="text-[var(--color-brand-forest)] hover:underline">
                         {article.title}
                       </Link>
@@ -173,9 +173,9 @@ const AnalyticsBody: React.FC<{ data: AuthorAnalyticsDto }> = ({ data }) => {
                         {locale.articleAnalytics.openLink}
                       </Link>
                     </td>
-                    <td className="py-2 text-right tabular-nums">{article.views}</td>
-                    <td className="py-2 text-right tabular-nums">{article.readers}</td>
-                    <td className="py-2 text-right tabular-nums">{share(article.depth.reachedDepth100, article.depth.views)}</td>
+                    <td className="py-2 text-end tabular-nums">{article.views}</td>
+                    <td className="py-2 text-end tabular-nums">{article.readers}</td>
+                    <td className="py-2 text-end tabular-nums">{share(article.depth.reachedDepth100, article.depth.views)}</td>
                   </tr>
                 ))}
               </tbody>

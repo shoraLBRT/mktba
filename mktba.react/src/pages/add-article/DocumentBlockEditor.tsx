@@ -242,7 +242,7 @@ export const DocumentBlockEditor = ({
               // The block's node moves in the page, which may take the focus away from the handle.
               requestAnimationFrame(() => gripRef.current?.focus());
             }}
-            className="-ml-1 cursor-grab rounded p-0.5 text-[var(--color-ink-subtle)] hover:bg-white hover:text-[var(--color-ink-strong)] active:cursor-grabbing disabled:cursor-default disabled:opacity-30"
+            className="-ms-1 cursor-grab rounded p-0.5 text-[var(--color-ink-subtle)] hover:bg-white hover:text-[var(--color-ink-strong)] active:cursor-grabbing disabled:cursor-default disabled:opacity-30"
             title={formatMessage(t.blockActions.drag, { index: index + 1, total })}
             aria-label={formatMessage(t.blockActions.drag, { index: index + 1, total })}
           >
