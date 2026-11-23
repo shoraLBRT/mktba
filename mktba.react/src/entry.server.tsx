@@ -6,6 +6,8 @@ import { isbot } from 'isbot';
 import { renderToReadableStream } from 'react-dom/server';
 import { applySecurityHeaders } from './server/securityHeaders.server';
 import { logServerError } from './server/serverErrors.server';
+import { loadLanguage } from './localization';
+import { languageFromRequest } from './localization/language';
 
 export const streamTimeout = 5_000;
 
@@ -30,6 +32,10 @@ export default async function handleRequest(
   if (request.method.toUpperCase() === 'HEAD') {
     return new Response(null, { status: responseStatusCode, headers: responseHeaders });
   }
+
+  // The page's dictionary (a language other than the default is a lazy chunk, I-05 #109); loaded
+  // once per process, then this resolves at once.
+  await loadLanguage(languageFromRequest(request));
 
   let shellRendered = false;
   // Abort after streamTimeout, leaving time to flush the rejected boundaries.

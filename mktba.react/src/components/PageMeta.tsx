@@ -1,7 +1,7 @@
 import { useSiteUrl } from '../app/siteUrl';
 import { useLanguage, useLocale } from '../localization/hooks';
-import { hasOwnDictionary } from '../localization/index';
 import { localizedPath, OG_LOCALES } from '../localization/language';
+import { SERVED_LOCALES } from '../shared/sitemap';
 import {
   DEFAULT_SOCIAL_IMAGE_PATH,
   documentTitle,
@@ -55,9 +55,11 @@ export const PageMeta = ({
   const canonical = path === undefined ? null : siteUrlFor(localizedPath(language, path), siteUrl);
   const imagePath = image === undefined ? DEFAULT_SOCIAL_IMAGE_PATH : image;
   const imageUrl = imagePath ? siteUrlFor(imagePath, siteUrl) : null;
-  // A language without its own dictionary shows the Russian interface: kept out of search results
-  // until its dictionary exists (`en`, #109), so it never competes with the Russian page.
-  const hidden = noIndex || !hasOwnDictionary(language);
+  // A language is indexed only once the site serves it to search engines: the same list as the
+  // sitemap (`SERVED_LOCALES`). `/en/…` has its interface (#109), but its lists still show the
+  // Russian articles and there is no hreflang yet (#110, #112, #104), so it stays out of the index
+  // until #104 adds `en` there.
+  const hidden = noIndex || !SERVED_LOCALES.includes(language);
   const robots = hidden ? (noFollow ? ROBOTS_NOINDEX_NOFOLLOW : ROBOTS_NOINDEX) : null;
 
   return (

@@ -38,6 +38,14 @@ export const LAZY_LOCALE_KEYS: Record<LazyLocaleChunk, Partial<Record<string, re
   },
 };
 
+/**
+ * The chunks another language translates (I-05, #109). The admin (`/admin/*`, the editor and
+ * `article/*` included) is Russian only by design (A-06, #35; its routes are not under `/en/`), so
+ * the `admin` chunk exists only in `ru`: a translation holds exactly the `core` keys of each
+ * top-level file and no `admin/` files. `completeness.test.ts` holds every language to that.
+ */
+export const TRANSLATED_LOCALE_CHUNKS: readonly LocaleChunk[] = ['core'];
+
 export const LOCALE_CHUNK_QUERY = 'locale-chunk';
 
 const chunkOfKey = (namespace: string, key: string): LocaleChunk =>

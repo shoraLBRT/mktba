@@ -1,0 +1,235 @@
+{
+  "homePage": {
+    "title": "mktba: an Islamic wiki",
+    "lead": "The views of the four madhabs in one place.",
+    "sections": {
+      "title": "Sections",
+      "empty": "There are no sections yet.",
+      "more": "and {count} more"
+    },
+    "newArticles": {
+      "title": "New articles",
+      "empty": "No articles have been published yet."
+    },
+    "updatedArticles": {
+      "title": "Updated articles"
+    },
+    "about": {
+      "title": "What is mktba",
+      "paragraphs": [
+        "mktba is an open Islamic wiki. Articles are grouped into sections, and where the schools of Islamic law differ, the opinions of the Hanafi, Maliki, Shafi'i and Hanbali madhabs are shown side by side.",
+        "Choose your madhab with the “Madhab” button (in the site header, or at the bottom of the screen on a phone), and articles will open its opinion right away. The other opinions stay on the neighbouring tabs."
+      ]
+    }
+  },
+  "search": {
+    "title": "Search",
+    "documentTitle": "Search: {query}",
+    "form": {
+      "label": "Search articles",
+      "placeholder": "What to look for: salah, conditions of wudu…",
+      "submit": "Search"
+    },
+    "dialog": {
+      "title": "Search articles",
+      "close": "Close search",
+      "hint": "Enter shows the results, Esc closes.",
+      "open": "Search",
+      "shortcut": "Ctrl K"
+    },
+    "prompt": "Enter a query of at least {min} characters. We search article titles, descriptions, tags and texts.",
+    "tooLong": "The query is too long: at most {max} characters.",
+    "loading": "Searching…",
+    "error": "The search failed.",
+    "retry": "Try again",
+    "found": {
+      "one": "{count} article found",
+      "other": "{count} articles found"
+    },
+    "resultsLabel": "Search results",
+    "empty": {
+      "title": "Nothing was found for {query}.",
+      "hintsTitle": "What you can try:",
+      "hints": [
+        "check for typos;",
+        "remove some words: an article must contain every word of the query;",
+        "replace a word with a synonym or another spelling of the term."
+      ],
+      "homeLink": "Browse the sections on the home page"
+    },
+    "pagination": {
+      "label": "Result pages",
+      "previous": "← Previous",
+      "next": "Next →",
+      "position": "Page {page} of {pages}"
+    }
+  },
+  "notFoundPage": {
+    "title": "Page not found",
+    "message": "There is no such page: the link may be out of date, or there is a typo in the address.",
+    "homeLink": "Go to the home page"
+  },
+  "goneArticlePage": {
+    "title": "Article deleted",
+    "message": "This article used to be on the site, but it has been removed. Other material is on the home page.",
+    "homeLink": "Go to the home page"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "message": "An error occurred while showing the page. Try reloading it or go back to the home page.",
+    "reload": "Reload the page",
+    "homeLink": "Go to the home page"
+  },
+  "articlePage": {
+    "noContent": "The text of this article has not been written yet.",
+    "loadError": "Could not load the article",
+    "uiModeUpdated": "Paragraph display mode updated",
+    "overview": "Overview",
+    "publishedOn": "Published {date}",
+    "updatedOn": "Updated {date}",
+    "breadcrumbs": "Path to the article",
+    "breadcrumbsHome": "Home",
+    "readingTime": "{minutes} min read",
+    "readingTimeLabel": "Reading time: about {minutes} min",
+    "author": "Author:",
+    "authors": "Authors:",
+    "headingLink": "Link to the section “{title}”",
+    "paragraphLink": "Link to paragraph {number}",
+    "childArticles": "In this section",
+    "relatedArticles": "Related articles",
+    "adjacentArticles": "Neighbouring articles",
+    "previousArticle": "Previous article",
+    "nextArticle": "Next article",
+    "sources": "Sources",
+    "sourceAuthor": "{author}. ",
+    "sourceDetails": ". {details}",
+    "sourceCitationsSeparator": " — ",
+    "sourceCitationsDivider": ", ",
+    "sourceCitationLink": "Go to the paragraph that cites the source",
+    "sourceCitedInText": "in the text",
+    "backToTop": "Back to top",
+    "reportError": "Report an error",
+    "reportErrorPrompt": "Found an error or an inaccuracy in the article?",
+    "print": "Print"
+  },
+  "articleRightSidebar": {
+    "onThisPage": "On this page",
+    "summaryTitle": "Summary",
+    "tagsTitle": "Tags",
+    "relatedArticles": "Related articles"
+  },
+  "articleMobileOverview": {
+    "contentsAndSummary": "Contents and summary",
+    "contents": "Contents",
+    "summary": "Summary"
+  },
+  "articleInfobox": {
+    "defaultTitle": "Overview",
+    "noFields": "The infobox is set up, but its fields are not filled in yet.",
+    "expand": "More",
+    "collapse": "Less",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "implementationNote": "Infobox fields are stored as ordered key-value facts of the article."
+  },
+  "adminLoginPage": {
+    "registerTitle": "Sign up",
+    "loginTitle": "Administrator sign-in",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "passwordConfirmLabel": "Repeat the password",
+    "passwordHint": "At least {min} characters. A phrase of several words works well.",
+    "inviteTokenLabel": "Invitation code",
+    "firstAdminHint": "The first person to sign up becomes an administrator without an invitation",
+    "registerAction": "Sign up",
+    "loginAction": "Sign in",
+    "haveAccount": "I already have an account",
+    "createAccount": "Sign up with an invitation",
+    "errors": {
+      "emailRequired": "Enter your email.",
+      "passwordRequired": "Enter your password.",
+      "passwordMismatch": "The passwords do not match.",
+      "inviteTokenRequired": "Enter the invitation code."
+    },
+    "heroEyebrow": "Admin access",
+    "featureCards": [
+      [
+        "Content",
+        "Manage articles and paragraphs"
+      ],
+      [
+        "AI",
+        "Check and configure the AI provider"
+      ],
+      [
+        "Access",
+        "Sign-up by a one-time invitation with a role"
+      ]
+    ],
+    "sessionHint": "JWT session for admin actions",
+    "authStatusLoading": "Checking the sign-in status..."
+  },
+  "feedbackPage": {
+    "title": "Feedback",
+    "intro": "Found an error in an article, something does not work, or you have an idea? Write to us. No sign-up needed.",
+    "typeLegend": "What the message is about",
+    "types": {
+      "ArticleError": "Error in an article",
+      "SiteProblem": "Site problem",
+      "Idea": "Idea"
+    },
+    "textLabel": "Message",
+    "textCounter": "{count} of {max}",
+    "textCounterLabel": "Characters entered: {count} of {max}",
+    "contactLabel": "Contact for a reply",
+    "optional": "optional",
+    "contactHint": "Email, Telegram or another way to reach you. Only the site's editors see the contact; it is never published.",
+    "websiteLabel": "Website (leave this field empty)",
+    "attachedTitle": "What will be sent with the message",
+    "attachedPage": "Page address:",
+    "attachedArticle": "Article:",
+    "attachedMazhab": "Selected madhab:",
+    "attachedMazhabNone": "none",
+    "attachedNothing": "The page address is unknown. If the message is about a particular page, mention it in the text.",
+    "publicNotice": "The message text, page address, article title and madhab go to the project's public issue list on GitHub, where anyone can read them. Do not include personal data in the message. The contact is not included.",
+    "submit": "Send",
+    "submitting": "Sending…",
+    "errorTitle": "The message was not sent",
+    "errorKeepsText": "Your text is kept in the form. Please try again.",
+    "successTitle": "Message #{id} sent",
+    "successMessage": "Thank you! The editors will read it. If you left a contact, we will reply there.",
+    "backToPage": "Back to the page",
+    "backHome": "Go to the home page",
+    "sendAnother": "Write another one"
+  },
+  "tagPage": {
+    "kicker": "Tag",
+    "title": "Tag “{name}”",
+    "metaDescription": "mktba articles tagged “{name}”.",
+    "articlesCount": {
+      "one": "{count} article",
+      "other": "{count} articles"
+    },
+    "articlesLabel": "Articles with this tag",
+    "pagesLabel": "Article list pages",
+    "loadError": "Could not load the tag page."
+  },
+  "authorPage": {
+    "avatarAlt": "Photo of the author: {name}",
+    "selfDeclaredTitle": "Education",
+    "degree": "Degree",
+    "institution": "Institution",
+    "selfDeclaredNote": "Provided by the author. The mktba editors have not checked this yet.",
+    "linksLabel": "Author's links",
+    "articlesTitle": "Articles",
+    "articlesCount": {
+      "one": "{count} article",
+      "other": "{count} articles"
+    },
+    "articlesEmpty": "The author has no articles open to readers yet.",
+    "pagesLabel": "Article list pages",
+    "loadError": "Could not load the author page.",
+    "articlesLoadError": "Could not load the articles.",
+    "metaDescription": "{name}: the author's articles on mktba."
+  }
+}

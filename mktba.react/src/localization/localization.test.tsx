@@ -132,8 +132,8 @@ describe('LocalizationProvider', () => {
     expect(document.documentElement.lang).toBe('ru');
   });
 
-  it('given a language without its own dictionary, when rendered, then it reads the ru strings and sets its own page language', () => {
-    const Probe = () => <span>{`${useLanguage()}:${useLocale().brand.name}:${useLocalizedPath()('/search')}`}</span>;
+  it('given English, when rendered, then it reads the en strings and sets its own page language', () => {
+    const Probe = () => <span>{`${useLanguage()}:${useLocale().layout.menu.home}:${useLocalizedPath()('/search')}`}</span>;
 
     render(
       <LocalizationProvider language="en">
@@ -141,11 +141,15 @@ describe('LocalizationProvider', () => {
       </LocalizationProvider>,
     );
 
-    expect(screen.getByText('en:mktba:/en/search')).toBeDefined();
+    expect(screen.getByText('en:Home:/en/search')).toBeDefined();
     expect(document.documentElement.lang).toBe('en');
-    expect(dictionaryFor('en')).toBe(dictionaries.ru);
     expect(hasOwnDictionary('ru')).toBe(true);
-    expect(hasOwnDictionary('en')).toBe(false);
+    expect(hasOwnDictionary('en')).toBe(true);
+  });
+
+  it('given English, when an admin key is read, then it falls back to the Russian string (the admin is Russian only)', () => {
+    expect(dictionaryFor('en').adminPage).toEqual(dictionaries.ru.adminPage);
+    expect(dictionaryFor('en').versionedParagraph.tabCommon).toBe('Common opinion');
   });
 
   it('given no provider, when the locale hook runs, then it throws', () => {

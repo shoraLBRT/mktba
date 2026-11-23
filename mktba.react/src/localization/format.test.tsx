@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { formatDate, formatNumber, formatPlural, isPluralForms, type PluralForms } from './format';
 import { useFormat } from './hooks';
-import { dictionaries } from './index';
 import { LocalizationProvider } from './provider';
-import type { Language } from './language';
+import { LANGUAGES, type Language } from './language';
+
+const localeFiles = import.meta.glob<Record<string, unknown>>('./locales/**/*.json', { eager: true, import: 'default' });
 
 const articles: PluralForms = { one: '{count} статья', few: '{count} статьи', many: '{count} статей', other: '{count} статьи' };
 const englishArticles: PluralForms = { one: '{count} article', other: '{count} articles' };
@@ -87,19 +88,23 @@ describe('isPluralForms', () => {
     expect(isPluralForms(null)).toBe(false);
   });
 
-  it('given every Russian plural entry, when checked, then it has the forms Russian needs', () => {
+  it.each(LANGUAGES)('given every %s plural entry, when checked, then it has exactly the forms the language needs', (language) => {
+    const categories = new Intl.PluralRules(language).resolvedOptions().pluralCategories;
     const found: string[] = [];
     const walk = (value: unknown, path: string) => {
       if (isPluralForms(value)) {
         found.push(path);
-        expect(Object.keys(value).sort(), path).toEqual(['few', 'many', 'one', 'other']);
+        expect(Object.keys(value).sort(), `${language}: ${path}`).toEqual([...categories].sort());
         return;
       }
       if (typeof value === 'object' && value !== null) {
         Object.entries(value).forEach(([key, child]) => walk(child, path ? `${path}.${key}` : key));
       }
     };
-    walk(dictionaries.ru, '');
+    // The language's own files: its merged dictionary also holds the default's strings it falls back to.
+    Object.entries(localeFiles)
+      .filter(([path]) => path.startsWith(`./locales/${language}/`))
+      .forEach(([, data]) => walk(data, ''));
     expect(found).toEqual(expect.arrayContaining(['search.found', 'tagPage.articlesCount', 'authorPage.articlesCount']));
   });
 });

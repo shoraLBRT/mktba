@@ -14,9 +14,9 @@ export const SITEMAP_MAX_URLS = 50_000;
 export const DEFAULT_LOCALE: string = DEFAULT_LANGUAGE;
 
 /**
- * The locales the sitemap lists. `/en/…` routes exist (I-01, #105), but the English interface (#109)
- * and the hreflang rules (#104) do not yet, and those pages are not indexed until then, so English
- * articles are left out.
+ * The locales served to search engines: the sitemap lists them, and `PageMeta` marks every page of
+ * any other language `noindex`. `/en/…` has its routes (I-01, #105) and its interface (#109), but
+ * not yet its own lists or the hreflang rules (#110, #112, #104): `en` is added here with #104.
  */
 export const SERVED_LOCALES: readonly string[] = [DEFAULT_LOCALE];
 
