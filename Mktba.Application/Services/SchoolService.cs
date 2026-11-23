@@ -16,10 +16,18 @@ public class SchoolService
         _articleRepo = articleRepo;
     }
 
-    public async Task<List<SchoolDto>> GetSystemSchoolsAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The canonical schools named in <paramref name="requestedLocale"/> (I-07, #111): the
+    /// <see cref="SchoolTranslation"/> for that language, or the Russian name when the school has none.
+    /// </summary>
+    /// <param name="requestedLocale">Language of the names; null or blank means <see cref="Locales.Default"/>.</param>
+    /// <exception cref="ValidationException">locale_unsupported.</exception>
+    public async Task<List<SchoolDto>> GetSystemSchoolsAsync(string? requestedLocale = null, CancellationToken cancellationToken = default)
     {
-        var schools = await _schoolRepo.GetSystemSchoolsAsync(cancellationToken);
-        return schools.Select(ToDto).ToList();
+        var locale = Locales.Normalize(requestedLocale)
+            ?? throw new ValidationException(AppErrors.LocaleUnsupported(requestedLocale!));
+        var schools = await _schoolRepo.GetSystemSchoolsAsync(locale, cancellationToken);
+        return schools.Select(s => ToDto(s, locale)).ToList();
     }
 
     /// <summary>
@@ -86,4 +94,13 @@ public class SchoolService
 
     private static SchoolDto ToDto(School s) =>
         new(s.Id, s.Slug, s.Name, s.ShortName, s.IsSystem, s.ArticleScopeId);
+
+    /// <summary>A school named in <paramref name="locale"/>, or in Russian when it has no such translation.</summary>
+    private static SchoolDto ToDto(School s, string locale)
+    {
+        var translation = s.Translations.FirstOrDefault(t => t.Locale == locale);
+        return translation is null
+            ? ToDto(s)
+            : new(s.Id, s.Slug, translation.Name, translation.ShortName, s.IsSystem, s.ArticleScopeId);
+    }
 }

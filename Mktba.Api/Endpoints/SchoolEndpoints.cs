@@ -11,12 +11,19 @@ public static class SchoolEndpoints
     {
         var group = builder.MapGroup("/schools").WithTags("Schools");
 
-        // GET /schools/system — all 4 canonical mazhabs
-        group.MapGet("/system", async (SchoolService service, CancellationToken ct) =>
+        // GET /schools/system — all 4 canonical mazhabs, named in the reader's language
+        group.MapGet("/system", async (string? locale, SchoolService service, CancellationToken ct) =>
         {
-            var schools = await service.GetSystemSchoolsAsync(ct);
+            var schools = await service.GetSystemSchoolsAsync(locale, ct);
             return Results.Ok(schools);
-        }).Produces<List<SchoolDto>>();
+        })
+            .WithSummary("The four canonical schools, named in one language (I-07, #111).")
+            .WithDescription(
+                "locale defaults to ru (an unsupported one answers 400 locale_unsupported). name and shortName are "
+                + "the school's names in that language, or the Russian ones when the school has no translation into "
+                + "it; id and slug are the same in every language.")
+            .Produces<List<SchoolDto>>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest);
 
         // GET /schools/article/{articleId} — custom schools scoped to an article
         group.MapGet("/article/{articleId:int}", async (int articleId, ClaimsPrincipal user, SchoolService service, CancellationToken ct) =>
