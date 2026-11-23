@@ -6,6 +6,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import { LocalizationProvider } from '../localization/provider';
 import { MazhabProvider } from './MazhabProvider';
 import { MAZHAB_STORAGE_KEY, useMazhab } from './mazhabContext';
 
@@ -28,14 +29,16 @@ const SelectedSchool = () => {
 
 const treeAt = (url: string) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, 'mazhab-link'], SYSTEM_SCHOOLS);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, 'ru', 'mazhab-link'], SYSTEM_SCHOOLS);
   return (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[url]}>
-        <MazhabProvider>
-          <SelectedSchool />
-        </MazhabProvider>
-      </MemoryRouter>
+      <LocalizationProvider>
+        <MemoryRouter initialEntries={[url]}>
+          <MazhabProvider>
+            <SelectedSchool />
+          </MazhabProvider>
+        </MemoryRouter>
+      </LocalizationProvider>
     </QueryClientProvider>
   );
 };

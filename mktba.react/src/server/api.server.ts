@@ -82,6 +82,6 @@ export const serverApi = {
     getJson<AuthorArticlesDto>(`/authors/${encodeURIComponent(slug)}/articles?${AUTHOR_PAGE_PARAM}=${page}`),
   getTagPage: (slug: string, page: number) =>
     getJson<TagPageDto>(`/tags/${encodeURIComponent(slug)}?${TAG_PAGE_PARAM}=${page}`),
-  getSystemSchools: () => getJson<SchoolDto[]>('/schools/system'),
+  getSystemSchools: (language: Language) => getJson<SchoolDto[]>(`/schools/system${articleLocaleQuery(language)}`),
   getSchoolsByArticleId: (articleId: number) => getJson<SchoolDto[]>(`/schools/article/${articleId}`),
 };

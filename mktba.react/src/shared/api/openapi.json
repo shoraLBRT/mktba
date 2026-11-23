@@ -3151,6 +3151,17 @@
         "tags": [
           "Schools"
         ],
+        "summary": "The four canonical schools, named in one language (I-07, #111).",
+        "description": "locale defaults to ru (an unsupported one answers 400 locale_unsupported). name and shortName are the school's names in that language, or the Russian ones when the school has no translation into it; id and slug are the same in every language.",
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -3161,6 +3172,16 @@
                   "items": {
                     "$ref": "#/components/schemas/SchoolDto"
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
                 }
               }
             }

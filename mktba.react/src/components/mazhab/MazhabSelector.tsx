@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSystemSchools } from '../../services/schoolService';
 import { MAZHAB_LINK_PARAM, useMazhab } from '../../context/mazhabContext';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
-import { useLocale } from '../../localization/hooks';
+import { useLanguage, useLocale } from '../../localization/hooks';
 import { useHydrated } from '../../shared/useHydrated';
 import { getPaletteForSchool } from './schoolPalette';
 
@@ -34,6 +34,7 @@ type CopyState = 'idle' | 'copied' | 'failed';
  */
 export const MazhabSelector = () => {
   const locale = useLocale();
+  const language = useLanguage();
   const t = locale.mazhabSelector;
   const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
@@ -44,8 +45,8 @@ export const MazhabSelector = () => {
   const ref = useRef<HTMLDivElement>(null);
 
   const { data: systemSchools = [] } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
-    queryFn: getSystemSchools,
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, language],
+    queryFn: () => getSystemSchools(language),
   });
 
   const selectedSchool = systemSchools.find((school) => school.id === selectedSchoolId);

@@ -7,7 +7,7 @@ import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useMazhab } from '../context/mazhabContext';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { formatMessage } from '../localization';
-import { useLocale } from '../localization/hooks';
+import { useLanguage, useLocale } from '../localization/hooks';
 import { sendFeedback } from '../services/feedbackService';
 import { getSystemSchools } from '../services/schoolService';
 import { toApiError, translateApiError } from '../shared/api-client/apiError';
@@ -49,14 +49,15 @@ const linkClass = 'text-[var(--color-brand-forest)] underline [overflow-wrap:any
  */
 const FeedbackPage = () => {
   const t = useLocale().feedbackPage;
+  const language = useLanguage();
   const siteUrl = useSiteUrl();
   const [searchParams] = useSearchParams();
   const request = readFeedbackRequest(searchParams);
 
   const { selectedSchoolId } = useMazhab();
   const { data: systemSchools = [] } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
-    queryFn: getSystemSchools,
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, language],
+    queryFn: () => getSystemSchools(language),
     staleTime: Infinity,
   });
   const school = systemSchools.find((candidate) => candidate.id === selectedSchoolId) ?? null;

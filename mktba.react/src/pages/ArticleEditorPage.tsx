@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
+import { DEFAULT_LANGUAGE } from '../localization/language';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { invalidateArticleQueries } from '../app/queryClient';
@@ -147,8 +148,8 @@ const useArticleSchools = (articleId: number | null, onError: (message: string) 
   const queryKey = [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, articleId];
 
   const systemSchoolsQuery = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
-    queryFn: getSystemSchools,
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, DEFAULT_LANGUAGE],
+    queryFn: () => getSystemSchools(),
   });
 
   const articleSchoolsQuery = useQuery({

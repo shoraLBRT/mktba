@@ -1,3 +1,4 @@
+import { articleLocaleQuery, DEFAULT_LANGUAGE, type Language } from '../localization/language';
 import apiClient from '../shared/api-client/ApiClient';
 import type { SchoolDto } from '../shared/types/ApiTypes';
 
@@ -8,8 +9,13 @@ export interface SchoolCreatePayload {
   articleScopeId: number;
 }
 
-export const getSystemSchools = async (): Promise<SchoolDto[]> => {
-  const response = await apiClient.get<SchoolDto[]>('/schools/system');
+/**
+ * The canonical schools named in a language (I-07, #111): the English names for `en`, the Russian ones
+ * for the default language or for a school without a translation. Ids and slugs are the same in every
+ * language; the query key is `[SYSTEM_SCHOOLS, language]`.
+ */
+export const getSystemSchools = async (language: Language = DEFAULT_LANGUAGE): Promise<SchoolDto[]> => {
+  const response = await apiClient.get<SchoolDto[]>(`/schools/system${articleLocaleQuery(language)}`);
   return response.data;
 };
 

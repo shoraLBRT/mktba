@@ -5,6 +5,7 @@ import { invalidateArticleQueries } from '../../app/queryClient';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { formatMessage } from '../../localization';
 import { useFormat, useLocale } from '../../localization/hooks';
+import { DEFAULT_LANGUAGE } from '../../localization/language';
 import { changeArticleStatus, getReviewQueue } from '../../services/adminService';
 import { compareArticleRevisions, getArticleRevision } from '../../services/Article/revisionService';
 import { getSchoolsByArticleId, getSystemSchools } from '../../services/schoolService';
@@ -107,7 +108,7 @@ const ReviewComparisonCard = ({ item }: { item: ReviewQueueItemDto }) => {
   const comparison = reviewComparisonOf(item);
   const labels = useSnapshotLabels();
 
-  const systemSchoolsQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS], queryFn: getSystemSchools });
+  const systemSchoolsQuery = useQuery({ queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, DEFAULT_LANGUAGE], queryFn: () => getSystemSchools() });
   const articleSchoolsQuery = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, item.id],
     queryFn: () => getSchoolsByArticleId(item.id),
