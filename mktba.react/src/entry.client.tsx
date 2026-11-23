@@ -26,8 +26,9 @@ const hydrate = () =>
     );
   });
 
-// The server rendered the page in its language: hydrate with the same strings. The default language
-// is in the bundle; another one is a lazy chunk (I-05, #109), fetched first.
+// The server rendered the page in its language: hydrate with the same strings. Every language's
+// strings are a lazy chunk (I-05 #109, I-02 #106); the Russian pages' route modules bring theirs
+// (`localization/defaultLanguage.ts`), so they are here already; another language's is fetched first.
 const language = languageFromPath(window.location.pathname);
 if (isLanguageLoaded(language)) {
   hydrate();
