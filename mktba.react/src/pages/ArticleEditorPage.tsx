@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { flushSync } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
-import { DEFAULT_LANGUAGE } from '../localization/language';
+import { DEFAULT_LANGUAGE, isLanguage } from '../localization/language';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { invalidateArticleQueries } from '../app/queryClient';
@@ -90,6 +90,8 @@ import type { RichTextHandle } from './add-article/richText/RichTextEditor';
 import { InternalLinkWarnings } from './add-article/InternalLinkWarnings';
 import { SlugField } from './add-article/SlugField';
 import { PublicationPanel } from './add-article/PublicationPanel';
+import { TranslationsPanel } from './add-article/TranslationsPanel';
+import { TranslationSourcePane } from './add-article/TranslationSourcePane';
 import { seoSnippetOf } from './add-article/seoSnippet';
 import { findPrepublishWarnings, isPublishingMove } from './add-article/prepublishChecks';
 import { PrepublishChecklist } from './add-article/PrepublishChecklist';
@@ -185,6 +187,10 @@ const useArticleSchools = (articleId: number | null, onError: (message: string) 
   };
 };
 
+/** The `kind` of the translations block (I-06, #110), kept out of JSX attributes. */
+const EDIT_PANEL = { kind: 'edit' } as const;
+const CREATE_PANEL = { kind: 'create' } as const;
+
 /**
  * The article editor for both a new article (`mode.kind === 'create'`) and an existing one.
  * Everything the user edits is one `ArticleDraft`; what differs by mode is spelled out where it
@@ -204,6 +210,10 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const editT = locale.editArticlePage;
   const editorText = locale.addArticleEditor;
   const articleId = mode.kind === 'edit' ? mode.article.id : null;
+  // I-06 (#110): the original shown beside a translation, new or saved.
+  const translationSourceId = mode.kind === 'create' ? mode.translation?.sourceId ?? null : mode.article.translatedFrom?.articleId ?? null;
+  const [isSourceShown, setIsSourceShown] = useState(true);
+  const showSource = translationSourceId !== null && isSourceShown;
 
   // The draft as last saved (or loaded): what is different from it would be lost by leaving.
   const [baseline, setBaseline] = useState(() => initialArticleDraft(mode));
@@ -313,7 +323,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const saveMutation = useMutation({
     mutationFn: async ({ saved }: { saved: ArticleDraft; stay: boolean }): Promise<string> => {
       if (articleId === null) {
-        const created = await createArticleContent(buildArticleCreateDto(saved));
+        const created = await createArticleContent(buildArticleCreateDto(saved, mode.kind === 'create' ? mode.translation : undefined));
         return created.slug ?? String(created.id);
       }
 
@@ -745,7 +755,23 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
           }}
         />
 
-        <div className="min-w-0 lg:col-start-2 xl:px-6">
+        {/* I-06 (#110): a translation's original sits beside the document from 2xl, above it below that. */}
+        <div className={showSource ? 'min-w-0 lg:col-start-2 xl:px-6 2xl:grid 2xl:grid-cols-2 2xl:items-start 2xl:gap-6' : 'min-w-0 lg:col-start-2 xl:px-6'}>
+        {showSource ? (
+          <TranslationSourcePane
+            sourceId={translationSourceId}
+            revision={mode.kind === 'edit' ? mode.article.translatedFrom?.revision : undefined}
+            onHide={() => setIsSourceShown(false)}
+          />
+        ) : null}
+        <div className="min-w-0">
+          {translationSourceId !== null && !isSourceShown ? (
+            <div className="mx-auto mb-4 max-w-[840px] text-end">
+              <button type="button" onClick={() => setIsSourceShown(true)} className="text-[12px] text-[var(--color-brand-forest)] hover:underline">
+                {locale.articleTranslation.sourcePane.show}
+              </button>
+            </div>
+          ) : null}
           <div className="mx-auto max-w-[840px]">
             {notice ? <EditorNotice notice={notice} onDismiss={() => setNotice(null)} /> : null}
             {draftOffer ? (
@@ -890,6 +916,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
             onAddBlock={(kind) => setBlocks((current) => insertBlockAfter(current, activeTarget?.blockId ?? null, kind))}
           />
         </div>
+        </div>
 
         <EditorHelpRail
           {...stats}
@@ -910,6 +937,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
             />
           )}
           publication={(
+            <>
             <PublicationPanel
               checks={(
                 <PrepublishChecklist
@@ -937,7 +965,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                   onChange={(value) => setField('slug', value)}
                   // A new article goes back to following the title; a saved one takes the derived slug once.
                   onFillFromTitle={() => setField('slug', mode.kind === 'edit' ? articleSlugFromTitle(title) : null)}
-                  locale={mode.kind === 'edit' ? mode.article.locale ?? undefined : undefined}
+                  locale={mode.kind === 'edit' ? mode.article.locale ?? undefined : mode.translation?.locale}
                 />
               )}
               editComment={mode.kind === 'edit' ? { value: draft.editComment, onChange: (value) => setField('editComment', value) } : undefined}
@@ -947,6 +975,18 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
               url={snippetUrl}
               disabled={isLocked}
             />
+            {mode.kind === 'edit' ? (
+              <TranslationsPanel
+                {...EDIT_PANEL}
+                article={mode.article}
+                draftRevision={draft.translatedFromRevision}
+                onMarkUpToDate={(revision) => setField('translatedFromRevision', revision)}
+                disabled={isLocked}
+              />
+            ) : (
+              <TranslationsPanel {...CREATE_PANEL} translation={mode.translation} />
+            )}
+            </>
           )}
           isLocked={isLocked}
           {...(mode.kind === 'create'
@@ -1107,9 +1147,18 @@ const EditArticleLoader: React.FC<{ articleId: number }> = ({ articleId }) => {
  */
 const ArticleEditorPage: React.FC = () => {
   const { articleId } = useParams<{ articleId: string }>();
-  return articleId === undefined
-    ? <ArticleEditor mode={{ kind: 'create' }} />
-    : <EditArticleLoader articleId={Number(articleId)} />;
+  const [searchParams] = useSearchParams();
+  if (articleId !== undefined) {
+    return <EditArticleLoader articleId={Number(articleId)} />;
+  }
+
+  // `?translationOf={id}&locale={code}` (I-06, #110) starts a translation; anything else a plain new article.
+  const sourceId = Number(searchParams.get('translationOf'));
+  const translationLocale = searchParams.get('locale');
+  const translation = Number.isInteger(sourceId) && sourceId > 0 && isLanguage(translationLocale)
+    ? { sourceId, locale: translationLocale }
+    : undefined;
+  return <ArticleEditor key={translation ? `${translation.sourceId}-${translation.locale}` : 'new'} mode={{ kind: 'create', translation }} />;
 };
 
 export default ArticleEditorPage;

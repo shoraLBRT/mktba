@@ -4767,6 +4767,8 @@ export interface components {
             editComment?: string | null;
             locale?: string | null;
             seo?: components["schemas"]["ArticleSeoDto"];
+            /** Format: int32 */
+            translationOfId?: number | null;
         };
         ArticleContentDto: {
             /** Format: int32 */
@@ -4791,6 +4793,10 @@ export interface components {
             sources?: components["schemas"]["SourceDto"][] | null;
             authors?: components["schemas"]["ArticleAuthorDto"][] | null;
             tagLinks?: components["schemas"]["ArticleTagDto"][] | null;
+            translations?: components["schemas"]["ArticleTranslationDto"][] | null;
+            translatedFrom?: components["schemas"]["ArticleTranslationSourceDto"];
+            /** Format: int32 */
+            translatedFromRevision?: number | null;
         };
         ArticleCreateDto: {
             title: string;
@@ -5038,6 +5044,26 @@ export interface components {
         ArticleTagDto: {
             name: string;
             slug: string;
+        };
+        ArticleTranslationDto: {
+            /** Format: int32 */
+            articleId: number;
+            locale: string;
+            slug: string;
+            title: string;
+            status: components["schemas"]["ArticleStatus"];
+        };
+        ArticleTranslationSourceDto: {
+            /** Format: int32 */
+            articleId: number;
+            locale: string;
+            slug: string;
+            title: string;
+            /** Format: int32 */
+            revision: number;
+            /** Format: int32 */
+            latestRevision: number;
+            isOutdated: boolean;
         };
         ArticleTrashItemDto: {
             /** Format: int32 */

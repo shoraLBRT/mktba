@@ -59,7 +59,60 @@ namespace Mktba.Application.Services
             var authors = (await _articleRepo.ListNamedCreditsAsync(article.Id))
                 .Select(credit => new ArticleAuthorDto(credit.DisplayName, credit.HasPublicPage ? credit.Slug : null))
                 .ToList();
-            return BuildArticleContentDto(article, includeUnpublishedLinks: viewer.CanEdit(article)) with { Authors = authors };
+            var content = BuildArticleContentDto(article, includeUnpublishedLinks: viewer.CanEdit(article)) with { Authors = authors };
+            return await WithTranslationsAsync(content, article, viewer);
+        }
+
+        /// <summary>
+        /// Adds the article's other language versions the viewer may see and, for those who may edit
+        /// a translation, its source and whether the source has changed since (I-06, #110).
+        /// </summary>
+        private async Task<ArticleContentDto> WithTranslationsAsync(ArticleContentDto content, Article article, ArticleViewer viewer)
+        {
+            var group = await _articleRepo.ListTranslationGroupAsync(article.TranslationGroupId);
+            bool Visible(ArticleTranslationRow row) => viewer.CanSee(row.Status, row.AuthorId, row.CoAuthorIds);
+
+            var translations = group
+                .Where(row => row.Id != article.Id && Visible(row))
+                .Select(row => new ArticleTranslationDto(row.Id, row.Locale, row.Slug, row.Title, row.Status))
+                .ToList();
+
+            ArticleTranslationSourceDto? source = null;
+            if (viewer.CanEdit(article)
+                && article.TranslatedFromId is int sourceId
+                && group.FirstOrDefault(row => row.Id == sourceId) is { } sourceRow
+                && Visible(sourceRow))
+            {
+                var revision = article.TranslatedFromRevision ?? 0;
+                source = new ArticleTranslationSourceDto(
+                    sourceRow.Id, sourceRow.Locale, sourceRow.Slug, sourceRow.Title,
+                    revision, sourceRow.LatestRevision, IsOutdated: sourceRow.LatestRevision > revision);
+            }
+
+            return content with { Translations = translations, TranslatedFrom = source, TranslatedFromRevision = source?.Revision };
+        }
+
+        /// <summary>
+        /// The source a new translation joins (I-06, #110): checks that <paramref name="viewer"/> may
+        /// see it and that its group has no version in <paramref name="locale"/> yet.
+        /// </summary>
+        private async Task<(Guid GroupId, int Revision)> ResolveTranslationSourceAsync(int sourceId, string locale, ArticleViewer? viewer)
+        {
+            var access = await _articleRepo.GetAccessRowAsync(sourceId);
+            var source = access is null ? null : await _articleRepo.GetByIdAsync(sourceId);
+            if (access is null || source is null
+                || (viewer is not null && !viewer.CanSee(access.Status, access.AuthorId, access.CoAuthorIds)))
+            {
+                throw new ValidationException(AppErrors.ArticleTranslationSourceNotFound(sourceId));
+            }
+
+            var group = await _articleRepo.ListTranslationGroupAsync(source.TranslationGroupId);
+            if (group.Any(row => row.Locale == locale))
+            {
+                throw new ValidationException(AppErrors.ArticleTranslationExists(locale));
+            }
+
+            return (source.TranslationGroupId, group.Single(row => row.Id == sourceId).LatestRevision);
         }
 
         /// <summary>
@@ -96,7 +149,8 @@ namespace Mktba.Application.Services
         }
 
         /// <param name="authorId">The creating user, recorded as the article's author.</param>
-        public async Task<ArticleContentDto> CreateArticleWithContentAsync(ArticleContentCreateDto dto, int? authorId)
+        /// <param name="viewer">The creating user as a reader, for <c>translationOfId</c>: the source must be visible to them; null skips the check.</param>
+        public async Task<ArticleContentDto> CreateArticleWithContentAsync(ArticleContentCreateDto dto, int? authorId, ArticleViewer? viewer = null)
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
             {
@@ -142,6 +196,9 @@ namespace Mktba.Application.Services
             var locale = Locales.Normalize(dto.Locale)
                 ?? throw new ValidationException(AppErrors.LocaleUnsupported(dto.Locale!));
             var tagNames = TagRules.NormalizeList(dto.Tags);
+            (Guid GroupId, int Revision)? translation = dto.TranslationOfId is int sourceId
+                ? await ResolveTranslationSourceAsync(sourceId, locale, viewer)
+                : null;
             var slug = await _slugs.ChooseAsync(dto.Slug, dto.Title, locale, articleId: null);
             if (dto.ParentArticleId is int parentId && !await _articleRepo.ExistsAsync(parentId))
             {
@@ -157,6 +214,9 @@ namespace Mktba.Application.Services
                     Title = dto.Title,
                     Slug = slug,
                     Locale = locale,
+                    TranslationGroupId = translation?.GroupId ?? Guid.NewGuid(),
+                    TranslatedFromId = translation is null ? null : dto.TranslationOfId,
+                    TranslatedFromRevision = translation?.Revision,
                     ParentArticleId = dto.ParentArticleId,
                     Order = await _articleRepo.GetNextSiblingOrderAsync(dto.ParentArticleId),
                     InfoboxTitle = normalizedInfobox?.Title,
@@ -306,6 +366,19 @@ namespace Mktba.Application.Services
                 return (false, AppErrors.ArticleNotFound);
             }
 
+            int? matchedRevision = null;
+            if (article.TranslatedFromId is int sourceId
+                && dto.TranslatedFromRevision is int revision
+                && revision != article.TranslatedFromRevision)
+            {
+                if (revision < 0 || revision > await _articleRepo.GetLatestRevisionNumberAsync(sourceId))
+                {
+                    return (false, AppErrors.ArticleTranslationRevisionInvalid);
+                }
+
+                matchedRevision = revision;
+            }
+
             List<string> tagNames;
             string? newSlug = null;
             try
@@ -334,6 +407,11 @@ namespace Mktba.Application.Services
                 if (newSlug is not null)
                 {
                     await _slugs.ChangeAsync(article, newSlug);
+                }
+
+                if (matchedRevision is not null)
+                {
+                    article.TranslatedFromRevision = matchedRevision;
                 }
 
                 await _uow.SaveChangesAsync();
