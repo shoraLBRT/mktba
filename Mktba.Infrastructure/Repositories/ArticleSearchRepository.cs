@@ -27,7 +27,8 @@ namespace Mktba.Infrastructure.Repositories
 
     /// <summary>
     /// PostgreSQL full-text search over articles (R-10, #46). Reads the <c>SearchVector</c> columns and
-    /// the SQL functions the <c>AddArticleSearch</c> migration creates; they are not part of the EF
+    /// the SQL functions the <c>AddArticleSearch</c> and <c>LocalizeArticleSearch</c> migrations create: words are
+    /// stemmed by the configuration <c>mktba_search_config</c> gives the requested locale; they are not part of the EF
     /// model, so this works only on PostgreSQL.
     /// </summary>
     public class ArticleSearchRepository
@@ -37,8 +38,6 @@ namespace Mktba.Infrastructure.Repositories
 
         /// <summary>Marks the end of a matched word.</summary>
         public const char MatchEnd = '';
-
-        private const string TextSearchConfiguration = "russian";
 
         private static readonly string Markers = $"{MatchStart}{MatchEnd}";
 
@@ -83,9 +82,9 @@ namespace Mktba.Infrastructure.Repositories
                         WHERE a."Status" = {published} AND a."DeletedAt" IS NULL
                     ),
                     q AS (
-                        SELECT plainto_tsquery({TextSearchConfiguration}::regconfig, {foldedQuery}) AS all_terms,
-                            replace(plainto_tsquery({TextSearchConfiguration}::regconfig, {foldedQuery})::text, ' & ', ' | ')::tsquery AS any_term,
-                            replace(plainto_tsquery({TextSearchConfiguration}::regconfig, {foldedQuery} || ' ' || {rawQuery})::text, ' & ', ' | ')::tsquery AS marks
+                        SELECT plainto_tsquery(mktba_search_config({locale}), {foldedQuery}) AS all_terms,
+                            replace(plainto_tsquery(mktba_search_config({locale}), {foldedQuery})::text, ' & ', ' | ')::tsquery AS any_term,
+                            replace(plainto_tsquery(mktba_search_config({locale}), {foldedQuery} || ' ' || {rawQuery})::text, ' & ', ' | ')::tsquery AS marks
                     ),
                     candidates AS (
                         SELECT a."Id" FROM "Articles" a CROSS JOIN q
@@ -119,14 +118,14 @@ namespace Mktba.Infrastructure.Repositories
                     SELECT t."Total",
                         pg."Id",
                         pg."Slug",
-                        ts_headline({TextSearchConfiguration}::regconfig,
+                        ts_headline(mktba_search_config({locale}),
                             translate(pg."Title", {Markers}, ''), q.marks, {WholeTextOptions}) AS "Title",
                         CASE WHEN btrim(coalesce(pg."Summary", '')) <> '' THEN
-                            ts_headline({TextSearchConfiguration}::regconfig,
+                            ts_headline(mktba_search_config({locale}),
                                 translate(pg."Summary", {Markers}, ''), q.marks, {WholeTextOptions})
                         END AS "Summary",
                         CASE WHEN best."Content" IS NOT NULL THEN
-                            ts_headline({TextSearchConfiguration}::regconfig,
+                            ts_headline(mktba_search_config({locale}),
                                 mktba_search_plain_text(best."Content"), q.marks, {FragmentOptions})
                         END AS "Snippet",
                         best."ParagraphId"
