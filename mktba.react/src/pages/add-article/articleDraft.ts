@@ -17,8 +17,11 @@ import { buildInfoboxCreateDto, createEmptyInfoboxDraft, hasIncompleteInfoboxFie
 import { buildRelatedLinkCreateDtos, importRelatedLinksFromDto, type RelatedLinkDraft } from './metadataHelpers';
 import type { EditorBlock, InfoboxDraft } from './types';
 
-/** Which article the editor works on: a new one, or an existing one loaded from the API. */
-export type ArticleEditorMode = { kind: 'create' } | { kind: 'edit'; article: ArticleContentDto };
+/** A new translation (I-06, #110): the article it translates and the language it is written in. */
+export type TranslationTarget = { sourceId: number; locale: string };
+
+/** Which article the editor works on: a new one (maybe a translation), or an existing one loaded from the API. */
+export type ArticleEditorMode = { kind: 'create'; translation?: TranslationTarget } | { kind: 'edit'; article: ArticleContentDto };
 
 /** Everything the editor lets the user change before saving, in one value. */
 export type ArticleDraft = {
@@ -37,6 +40,8 @@ export type ArticleDraft = {
   relatedLinks: RelatedLinkDraft[];
   /** The revision comment of a save; only an existing article has revisions to comment on. */
   editComment: string;
+  /** A translation's source revision it matches (I-06, #110); null for an original. Raised when the translator marks it up to date. */
+  translatedFromRevision: number | null;
 };
 
 export const createEmptyArticleDraft = (): ArticleDraft => ({
@@ -50,6 +55,7 @@ export const createEmptyArticleDraft = (): ArticleDraft => ({
   tags: [],
   relatedLinks: [],
   editComment: '',
+  translatedFromRevision: null,
 });
 
 export const articleDraftFromDto = (article: ArticleContentDto): ArticleDraft => {
@@ -64,6 +70,7 @@ export const articleDraftFromDto = (article: ArticleContentDto): ArticleDraft =>
     seo: seoDraftFromDto(article.seo),
     tags: article.tags ?? [],
     relatedLinks: article.relatedLinks ? importRelatedLinksFromDto(article.relatedLinks) : [],
+    translatedFromRevision: article.translatedFromRevision ?? null,
   };
 };
 
@@ -115,7 +122,7 @@ export const findArticleDraftProblem = (
   return null;
 };
 
-export const buildArticleCreateDto = (draft: ArticleDraft): ArticleContentCreateDto => ({
+export const buildArticleCreateDto = (draft: ArticleDraft, translation?: TranslationTarget): ArticleContentCreateDto => ({
   title: draft.title.trim(),
   slug: requestedSlug(draft, 'create'),
   parentArticleId: draft.parentArticleId ?? undefined,
@@ -125,6 +132,7 @@ export const buildArticleCreateDto = (draft: ArticleDraft): ArticleContentCreate
   seo: buildSeoDto(draft.seo),
   tags: draft.tags.length > 0 ? draft.tags : undefined,
   relatedLinks: buildRelatedLinkCreateDtos(draft.relatedLinks),
+  ...(translation ? { locale: translation.locale, translationOfId: translation.sourceId } : {}),
 });
 
 export const buildArticleUpdateDto = (draft: ArticleDraft, articleId: number): ArticleContentDto => {
@@ -138,6 +146,7 @@ export const buildArticleUpdateDto = (draft: ArticleDraft, articleId: number): A
       ? { title: infobox.title, subtitle: infobox.subtitle, fields: infobox.fields.map((field) => ({ ...field, id: 0 })) }
       : undefined,
     editComment: draft.editComment.trim() || undefined,
+    translatedFromRevision: draft.translatedFromRevision ?? undefined,
     summary: draft.summary.trim() || undefined,
     seo: buildSeoDto(draft.seo),
     tags: draft.tags,

@@ -250,3 +250,20 @@ describe('articleDraftSnapshot', () => {
     expect(changed[0].lines).toContainEqual({ kind: 'same', text: 'Источник: аль-Маргинани. Хидая, т. 1' });
   });
 });
+
+describe('translations (I-06, #110)', () => {
+  it('sends the language and the source with a new translation, and neither with a plain new article', () => {
+    expect(buildArticleCreateDto(filledDraft(), { sourceId: 7, locale: 'en' })).toMatchObject({ locale: 'en', translationOfId: 7 });
+    const plain = buildArticleCreateDto(filledDraft());
+    expect(plain).not.toHaveProperty('locale');
+    expect(plain).not.toHaveProperty('translationOfId');
+  });
+
+  it('keeps the matched source revision through the draft, so a save only raises it when marked', () => {
+    const draft = articleDraftFromDto({ ...article, translatedFromRevision: 3 });
+    expect(draft.translatedFromRevision).toBe(3);
+    expect(buildArticleUpdateDto(draft, 7).translatedFromRevision).toBe(3);
+    expect(hasArticleDraftChanged({ ...draft, translatedFromRevision: 4 }, draft)).toBe(true);
+    expect(buildArticleUpdateDto(articleDraftFromDto(article), 7).translatedFromRevision).toBeUndefined();
+  });
+});

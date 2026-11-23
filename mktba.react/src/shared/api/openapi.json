@@ -4935,6 +4935,11 @@
           },
           "seo": {
             "$ref": "#/components/schemas/ArticleSeoDto"
+          },
+          "translationOfId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5033,6 +5038,21 @@
             "items": {
               "$ref": "#/components/schemas/ArticleTagDto"
             },
+            "nullable": true
+          },
+          "translations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleTranslationDto"
+            },
+            "nullable": true
+          },
+          "translatedFrom": {
+            "$ref": "#/components/schemas/ArticleTranslationSourceDto"
+          },
+          "translatedFromRevision": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -5904,6 +5924,74 @@
           },
           "slug": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleTranslationDto": {
+        "required": [
+          "articleId",
+          "locale",
+          "slug",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleTranslationSourceDto": {
+        "required": [
+          "articleId",
+          "isOutdated",
+          "latestRevision",
+          "locale",
+          "revision",
+          "slug",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latestRevision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isOutdated": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
