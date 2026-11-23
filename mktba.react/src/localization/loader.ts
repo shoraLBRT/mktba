@@ -18,15 +18,14 @@ type LazyLocaleModules = Record<string, () => Promise<LocaleNamespaceModule>>;
 // vite.config.ts): `core` is in the first load and the server render, the others load on demand.
 // A file under `locales/<lang>/admin/` is all `admin`; its name is its one top-level key.
 //
-// Only the default language's `core` is eager (the glob names it: `ru` is `DEFAULT_LOCALE`): it is
-// the base every other language merges onto. Another language's `core` is a lazy chunk of its own,
-// which `loadLanguage` loads before a page in that language renders (the client entry before
-// hydration, the provider on a navigation into it, the server entry before rendering), so a Russian
-// page never downloads the English strings (I-05, #109).
-const coreModules = import.meta.glob<LocaleNamespaceModule>('./locales/ru/*.json', {
-  eager: true,
-  query: '?locale-chunk=core',
-});
+// No language is eager: each language's `core` is a lazy chunk of its own, which `loadLanguage` loads
+// before a page in that language renders (the client entry before hydration, the provider on a
+// navigation into it, the server entry before rendering). So a Russian page never downloads the
+// English strings (I-05, #109) and an English page never downloads the Russian ones (I-02, #106).
+// The Russian pages do not wait for theirs: the route modules only they match import
+// `./defaultLanguage.ts`, which adds the Russian `core` with the page's own modules (React Router
+// preloads those in the server HTML and loads them before the client entry runs); `loadLanguage`
+// loads that same module (`./defaultLanguage.ts`) when anything else needs the Russian strings.
 const languageCoreModules: LazyLocaleModules = import.meta.glob<LocaleNamespaceModule>(
   ['./locales/*/*.json', '!./locales/ru/*.json'],
   { query: '?locale-chunk=core' },
@@ -114,14 +113,8 @@ const mergeLanguage = (
     return mergeWithFallback(dictionary, mergeWithFallback(fallbackNamespace, localeNamespace));
   }, {});
 
-const defaultNamespaces = getValidatedDefaultLocaleNamespaces(
-  collectLocaleNamespaces(Object.entries(coreModules))[DEFAULT_LOCALE],
-);
-
-/** The loaded dictionaries: the default language's from the start, any other once `loadLanguage` resolved. */
-export const dictionaries: Record<string, LocaleDictionary> = {
-  [DEFAULT_LOCALE]: mergeLanguage(defaultNamespaces, defaultNamespaces),
-};
+/** The loaded dictionaries: a language is here once its `core` is (`loadLanguage`, `addLanguageCore`). */
+export const dictionaries: Record<string, LocaleDictionary> = {};
 
 const languageOfPath = (path: string): string | undefined => path.match(localePathPattern)?.[1];
 
@@ -131,15 +124,18 @@ export const localeFileLanguages: ReadonlySet<string> = new Set([
   ...Object.keys(languageCoreModules).flatMap((path) => languageOfPath(path) ?? []),
 ]);
 
-/** Whether the language's strings are ready: loaded, or a language without files (it reads the default's). */
-export const isLanguageLoaded = (language: string): boolean =>
-  language in dictionaries || !localeFileLanguages.has(language);
+/** The language whose dictionary a language reads: its own, or the default one's for a language without files. */
+export const dictionaryLanguage = (language: string): string =>
+  localeFileLanguages.has(language) ? language : DEFAULT_LOCALE;
+
+/** Whether the language's strings are ready (for a language without files: the default one's). */
+export const isLanguageLoaded = (language: string): boolean => dictionaryLanguage(language) in dictionaries;
 
 // Every lazy chunk loaded so far, so a language loaded after it gets its keys too.
 const loadedChunkNamespaces: LocaleNamespacesByLanguage[] = [];
 
 const applyChunk = (language: string, chunkNamespaces: LocaleNamespacesByLanguage) => {
-  // In place: every holder of a dictionary (the provider, `locale`) sees the new keys.
+  // In place: every holder of a dictionary (the provider's value, `readerLocale()`) sees the new keys.
   Object.assign(
     dictionaries[language],
     mergeLanguage(chunkNamespaces[language] ?? {}, chunkNamespaces[DEFAULT_LOCALE] ?? {}),
@@ -148,22 +144,47 @@ const applyChunk = (language: string, chunkNamespaces: LocaleNamespacesByLanguag
 
 const loadingLanguages = new Map<string, Promise<void>>();
 
+/**
+ * Adds one language's `core` from its modules (`./locales/<lang>/*.json?locale-chunk=core`). A
+ * language's dictionary holds only its own `core` strings: a translation has every `core` key
+ * (`completeness.test.ts`), so it needs no Russian base; only the lazy chunks (the admin's, Russian
+ * only) fall back to the default language key by key (`applyChunk`). A language already added stays.
+ */
+export const addLanguageCore = (language: string, modules: [path: string, module: LocaleNamespaceModule][]) => {
+  if (language in dictionaries) {
+    return;
+  }
+
+  const namespaces = collectLocaleNamespaces(modules)[language];
+  dictionaries[language] = mergeLanguage(
+    language === DEFAULT_LOCALE ? getValidatedDefaultLocaleNamespaces(namespaces) : (namespaces ?? {}),
+    {},
+  );
+  loadedChunkNamespaces.forEach((chunkNamespaces) => applyChunk(language, chunkNamespaces));
+};
+
 const loadLanguageCore = async (language: string) => {
+  if (language === DEFAULT_LOCALE) {
+    // Adds itself when evaluated (it is also a static import of the Russian route modules).
+    await import('./defaultLanguage');
+    return;
+  }
+
   const modules = await Promise.all(
     Object.entries(languageCoreModules)
       .filter(([path]) => languageOfPath(path) === language)
       .map(async ([path, load]) => [path, await load()] as [string, LocaleNamespaceModule]),
   );
-  dictionaries[language] = mergeLanguage(collectLocaleNamespaces(modules)[language] ?? {}, defaultNamespaces);
-  loadedChunkNamespaces.forEach((chunkNamespaces) => applyChunk(language, chunkNamespaces));
+  addLanguageCore(language, modules);
 };
 
 /**
- * Loads one language's `core` strings into `dictionaries`. Repeated calls share one load; a loaded
- * language, or one without files, resolves at once.
+ * Loads one language's `core` strings into `dictionaries` (for a language without files: the default
+ * one's). Repeated calls share one load; a loaded language resolves at once.
  */
-export const loadLanguage = (language: string): Promise<void> => {
-  if (isLanguageLoaded(language)) {
+export const loadLanguage = (requested: string): Promise<void> => {
+  const language = dictionaryLanguage(requested);
+  if (language in dictionaries) {
     return Promise.resolve();
   }
 

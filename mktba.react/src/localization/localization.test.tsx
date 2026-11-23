@@ -1,7 +1,7 @@
 import { render, renderHook, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { LAZY_LOCALE_KEYS, pickLocaleChunk } from './chunks';
-import { dictionaries, dictionaryFor, formatMessage, hasOwnDictionary, loadLocaleChunk, locale } from './index';
+import { dictionaries, dictionaryFor, formatMessage, hasOwnDictionary, loadLocaleChunk } from './index';
 import ruEditor from './locales/ru/editor.json';
 import ruPages from './locales/ru/pages.json';
 import ruShared from './locales/ru/shared.json';
@@ -25,9 +25,9 @@ describe('formatMessage', () => {
 
 describe('dictionaries', () => {
   it('given the ru locale files, when loaded, then every namespace is merged into one dictionary', () => {
-    expect(locale).toBe(dictionaries.ru);
-    expect(locale.brand.name).toBe('mktba');
-    expect(typeof locale.adminPage.cleanupDone).toBe('string');
+    expect(dictionaryFor('ru')).toBe(dictionaries.ru);
+    expect(dictionaries.ru.brand.name).toBe('mktba');
+    expect(typeof dictionaries.ru.adminPage.cleanupDone).toBe('string');
   });
 });
 
@@ -66,10 +66,10 @@ describe('dictionary chunks (#106)', () => {
 
     expect(loadLocaleChunk('admin')).toBe(first);
     await first;
-    expect(locale.addArticleEditor).toEqual(ruEditor.addArticleEditor);
-    expect(locale.adminPage).toEqual(ruPages.adminPage);
-    expect(locale.siteAnalytics).toEqual(ruSiteAnalytics);
-    expect(locale.inviteStatus).toEqual(ruShared.inviteStatus);
+    expect(dictionaries.ru.addArticleEditor).toEqual(ruEditor.addArticleEditor);
+    expect(dictionaries.ru.adminPage).toEqual(ruPages.adminPage);
+    expect(dictionaries.ru.siteAnalytics).toEqual(ruSiteAnalytics);
+    expect(dictionaries.ru.inviteStatus).toEqual(ruShared.inviteStatus);
   });
 });
 

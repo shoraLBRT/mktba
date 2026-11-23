@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { locale } from '../../localization';
+import { dictionaryFor } from '../../localization';
 import type { SchoolDto } from '../../shared/types/ApiTypes';
 import { buildOpinionCaptions, resolveMissingOpinionNote } from './opinionCaptions';
 
-const t = locale.versionedParagraph;
+const t = dictionaryFor('ru').versionedParagraph;
 
 const system = (id: number, slug: string, name: string): SchoolDto => ({
   id,

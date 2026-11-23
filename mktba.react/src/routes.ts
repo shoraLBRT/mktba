@@ -34,11 +34,12 @@ const readerRoutes = (idPrefix = '', russianOnly: RouteConfigEntry[] = []): Rout
  */
 export default [
   layout('routes/public-layout.tsx', [
-    ...readerRoutes('', [
+    // Pathless: it only brings the Russian strings with the Russian pages (I-02, #106).
+    layout('routes/russian.tsx', readerRoutes('', [
       route('article/new', 'routes/legacy-add-article.tsx'),
       route('article/:slug', 'routes/article.tsx', { id: 'routes/legacy-article' }),
       route('admin/login', 'routes/admin-login.tsx'),
-    ]),
+    ])),
     ...PREFIXED_LANGUAGES.flatMap((language) => prefix(language, readerRoutes(language))),
     route('*', 'routes/not-found.tsx'),
   ]),
