@@ -179,6 +179,15 @@ public static class AppErrors
     public static AppError ArticleParentNotFound(int parentId) =>
         new("article_parent_not_found", $"Parent article with id {parentId} does not exist.", With(("parentId", parentId)));
 
+    public static AppError ArticleTranslationSourceNotFound(int articleId) =>
+        new("article_translation_source_not_found", $"Article with id {articleId} to translate does not exist.", With(("articleId", articleId)));
+
+    public static AppError ArticleTranslationExists(string locale) =>
+        new("article_translation_exists", $"The article already has a version in the language {locale}.", With(("locale", locale)));
+
+    public static AppError ArticleTranslationRevisionInvalid =>
+        new("article_translation_revision_invalid", "The translation can only match an existing revision of the article it was translated from.");
+
     public static AppError ArticleHasChildren =>
         new("article_has_children", "An article with child articles cannot be moved to the trash; move or trash the children first.");
 

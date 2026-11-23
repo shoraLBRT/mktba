@@ -430,6 +430,36 @@ namespace Mktba.Infrastructure.Repositories
                 .ThenBy(article => article.Id)
                 .ToListAsync(cancellationToken);
 
+        /// <summary>
+        /// Every article of the translation group (trashed ones excluded), ordered by locale. The caller
+        /// decides which of them a viewer may see.
+        /// </summary>
+        public async Task<List<ArticleTranslationRow>> ListTranslationGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
+        {
+            var rows = await _dbSet
+                .AsNoTracking()
+                .Where(article => article.TranslationGroupId == groupId)
+                .OrderBy(article => article.Locale)
+                .Select(article => new
+                {
+                    article.Id,
+                    article.Locale,
+                    article.Slug,
+                    article.Title,
+                    article.Status,
+                    article.AuthorId,
+                    CoAuthorIds = article.CoAuthors.Select(coAuthor => coAuthor.UserId).ToList(),
+                    LatestRevision = _context.ArticleRevisions
+                        .Where(revision => revision.ArticleId == article.Id)
+                        .Max(revision => (int?)revision.Number) ?? 0,
+                })
+                .ToListAsync(cancellationToken);
+            return rows
+                .Select(row => new ArticleTranslationRow(
+                    row.Id, row.Locale, row.Slug, row.Title, row.Status, row.AuthorId, row.CoAuthorIds, row.LatestRevision))
+                .ToList();
+        }
+
         /// <summary>The <see cref="Article.Order"/> that places a new child of <paramref name="parentId"/> last.</summary>
         public async Task<int> GetNextSiblingOrderAsync(int? parentId, CancellationToken cancellationToken = default)
             => (await _dbSet

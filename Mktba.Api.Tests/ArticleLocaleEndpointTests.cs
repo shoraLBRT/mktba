@@ -94,6 +94,44 @@ public sealed class ArticleLocaleEndpointTests : IClassFixture<MktbaApiFactory>
         problem.GetProperty("code").GetString().Should().Be("locale_unsupported");
     }
 
+    [Fact]
+    public async Task GivenPublishedTranslation_WhenReadingEitherVersion_ThenEachListsTheOther()
+    {
+        var admin = await CreateAdminClientAsync();
+        var russian = await CreateArticleAsync(admin, NewArticle("Закят", "zakyat"));
+        var english = await CreateArticleAsync(admin, NewArticle("Zakat", "zakat", "en") with { TranslationOfId = russian.Id });
+
+        var client = _factory.CreateClient();
+        var englishRead = await client.GetFromJsonAsync<ArticleContentDto>("/articles/by-slug/zakat/content?locale=en", ApiJson.Options);
+        var russianRead = await client.GetFromJsonAsync<ArticleContentDto>("/articles/by-slug/zakyat/content", ApiJson.Options);
+
+        englishRead!.TranslationGroupId.Should().Be(russian.TranslationGroupId);
+        englishRead.Translations.Should().ContainSingle().Which.Should().Be(
+            new ArticleTranslationDto(russian.Id, "ru", "zakyat", "Закят", Domain.Entities.ArticleStatus.Published));
+        englishRead.TranslatedFrom.Should().BeNull();
+        russianRead!.Translations.Should().ContainSingle().Which.ArticleId.Should().Be(english.Id);
+
+        var editorRead = await admin.GetFromJsonAsync<ArticleContentDto>($"/articles/{english.Id}/content", ApiJson.Options);
+        editorRead!.TranslatedFrom!.ArticleId.Should().Be(russian.Id);
+        editorRead.TranslatedFrom.IsOutdated.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GivenTranslationInLanguage_WhenTranslatingAgainIntoIt_ThenReturns400WithTranslationExistsCode()
+    {
+        var admin = await CreateAdminClientAsync();
+        var russian = await CreateArticleAsync(admin, NewArticle("Хадж", "khadzh-original"));
+        await CreateArticleAsync(admin, NewArticle("Hajj", "hajj-translation", "en") with { TranslationOfId = russian.Id });
+
+        var response = await admin.PostAsJsonAsync(
+            "/articles/content", NewArticle("Hajj again", "hajj-again", "en") with { TranslationOfId = russian.Id });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        problem.GetProperty("code").GetString().Should().Be("article_translation_exists");
+        problem.GetProperty("params").GetProperty("locale").GetString().Should().Be("en");
+    }
+
     private static ArticleContentCreateDto NewArticle(string title, string? slug, string? locale = null) =>
         new(title, null, [new ParagraphCreateDto { Order = 1, Opinions = [new OpinionCreateDto("Текст", true, [])] }],
             null, null, null, null, slug, Locale: locale);

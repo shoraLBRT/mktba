@@ -91,6 +91,12 @@
     /// Language of the new article: a supported code such as "ru" or "en"; null or blank means "ru".
     /// Fixed once the article exists. An unsupported code fails with locale_unsupported.
     /// </param>
+    /// <param name="TranslationOfId">
+    /// Optional (I-06, #110): the article this one translates. The new article joins its translation
+    /// group, in <c>locale</c>, with its own slug and status (Draft), and matches the source's latest
+    /// revision. Fails with article_translation_source_not_found when the caller cannot see that
+    /// article and article_translation_exists when the group already has a version in the language.
+    /// </param>
     public record ArticleContentCreateDto(
         string Title,
         int? ParentArticleId,
@@ -102,7 +108,8 @@
         string? Slug = null,
         string? EditComment = null,
         string? Locale = null,
-        ArticleSeoDto? Seo = null
+        ArticleSeoDto? Seo = null,
+        int? TranslationOfId = null
     );
 
     /// <param name="Tags">
@@ -138,6 +145,20 @@
     /// Read only: <c>tags</c> with the slug of each tag's page (<c>/tags/{slug}</c>), in the same
     /// order. Always set on read. Ignored on update: tags are written as <c>tags</c>.
     /// </param>
+    /// <param name="Translations">
+    /// Read only (I-06, #110): the other language versions of the text the caller may see, by
+    /// locale — for a reader only Published ones. Set by the content reads; null in the answer to a
+    /// save. Ignored on update.
+    /// </param>
+    /// <param name="TranslatedFrom">
+    /// Read only: the article this one was translated from and whether it has changed since, for those
+    /// who may edit the article; null for an original, for a reader, or when the source is gone.
+    /// </param>
+    /// <param name="TranslatedFromRevision">
+    /// The source's revision number the translation matches; read for those who may edit it. On
+    /// update null keeps it, a number records it (a translator brings the translation up to date): it
+    /// must be a revision of the source (article_translation_revision_invalid). Ignored for an original.
+    /// </param>
     public record ArticleContentDto(
         int Id,
         string Title,
@@ -156,8 +177,22 @@
         ArticleMetaDto? Meta = null,
         List<SourceDto>? Sources = null,
         List<ArticleAuthorDto>? Authors = null,
-        List<ArticleTagDto>? TagLinks = null
+        List<ArticleTagDto>? TagLinks = null,
+        List<ArticleTranslationDto>? Translations = null,
+        ArticleTranslationSourceDto? TranslatedFrom = null,
+        int? TranslatedFromRevision = null
     );
+
+    /// <summary>Another language version of an article (I-06, #110).</summary>
+    /// <param name="Slug">Its slug, unique within <paramref name="Locale"/>: the page is that language's <c>/{slug}</c>.</param>
+    public record ArticleTranslationDto(int ArticleId, string Locale, string Slug, string Title, Domain.Entities.ArticleStatus Status);
+
+    /// <summary>The article a translation was made from, as its editors see it (I-06, #110).</summary>
+    /// <param name="Revision">The source's revision the translation matches.</param>
+    /// <param name="LatestRevision">The source's latest revision.</param>
+    /// <param name="IsOutdated">True when the source was saved after <paramref name="Revision"/>: the translation needs a look.</param>
+    public record ArticleTranslationSourceDto(
+        int ArticleId, string Locale, string Slug, string Title, int Revision, int LatestRevision, bool IsOutdated);
 
     /// <summary>A tag of an article as readers see it (M-06, #70).</summary>
     /// <param name="Name">The tag's name.</param>

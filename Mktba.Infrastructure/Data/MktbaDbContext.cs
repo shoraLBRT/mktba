@@ -151,6 +151,13 @@ namespace Mktba.Infrastructure.Data
                 .HasIndex(a => new { a.TranslationGroupId, a.Locale })
                 .IsUnique();
 
+            // A translation outlives its source: once the source is purged it is simply no longer marked outdated (I-06, #110).
+            modelBuilder.Entity<Article>()
+                .HasOne(a => a.TranslatedFrom)
+                .WithMany()
+                .HasForeignKey(a => a.TranslatedFromId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<ArticleSlugRedirect>()
                 .Property(r => r.Slug)
                 .HasMaxLength(ArticleSlugMaxLength)

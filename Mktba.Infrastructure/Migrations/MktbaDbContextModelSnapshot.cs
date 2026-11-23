@@ -397,6 +397,12 @@ namespace Mktba.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("TranslatedFromId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TranslatedFromRevision")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("TranslationGroupId")
                         .HasColumnType("uuid");
 
@@ -412,6 +418,8 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasIndex("DeletedById");
 
                     b.HasIndex("PublishedRevisionId");
+
+                    b.HasIndex("TranslatedFromId");
 
                     b.HasIndex("Locale", "Slug")
                         .IsUnique();
@@ -1343,6 +1351,11 @@ namespace Mktba.Infrastructure.Migrations
                         .HasForeignKey("PublishedRevisionId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Mktba.Domain.Entities.Article", "TranslatedFrom")
+                        .WithMany()
+                        .HasForeignKey("TranslatedFromId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Author");
 
                     b.Navigation("DeletedBy");
@@ -1350,6 +1363,8 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("ParentArticle");
 
                     b.Navigation("PublishedRevision");
+
+                    b.Navigation("TranslatedFrom");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleCoAuthor", b =>

@@ -47,7 +47,7 @@ namespace Mktba.Api.Endpoints
 
             group.MapPost("/content", async (ArticleContentCreateDto dto, ClaimsPrincipal user, ArticleContentService service) =>
             {
-                var article = await service.CreateArticleWithContentAsync(dto, user.GetUserId());
+                var article = await service.CreateArticleWithContentAsync(dto, user.GetUserId(), user.ToArticleViewer());
                 return Results.Created($"/articles/{article.Id}/content", article);
             }).Produces<ArticleContentDto>(StatusCodes.Status201Created).ProducesApiProblem(StatusCodes.Status400BadRequest).RequireAuthorization(Policies.CanEditArticles);
 

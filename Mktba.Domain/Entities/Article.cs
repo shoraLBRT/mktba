@@ -20,6 +20,18 @@
         /// and a group holds at most one article per <see cref="Locale"/>. A new article starts its own group.
         /// </summary>
         public Guid TranslationGroupId { get; set; } = Guid.NewGuid();
+        /// <summary>
+        /// The article this one was translated from (I-06, #110); null for an original, or once the
+        /// source is purged. It belongs to the same <see cref="TranslationGroupId"/>.
+        /// </summary>
+        public int? TranslatedFromId { get; set; }
+        public Article? TranslatedFrom { get; set; }
+        /// <summary>
+        /// The revision number of <see cref="TranslatedFrom"/> this translation matches: set when the
+        /// translation is created and when its translator marks it as brought up to date. A later
+        /// revision of the source makes the translation outdated.
+        /// </summary>
+        public int? TranslatedFromRevision { get; set; }
         /// <summary>Publication status; new articles start as <see cref="ArticleStatus.Draft"/>.</summary>
         public ArticleStatus Status { get; set; } = ArticleStatus.Draft;
         public string? InfoboxTitle { get; set; }
