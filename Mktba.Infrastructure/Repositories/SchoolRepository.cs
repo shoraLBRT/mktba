@@ -8,8 +8,11 @@ public class SchoolRepository : GenericRepository<School>
 {
     public SchoolRepository(MktbaDbContext context) : base(context) { }
 
-    public Task<List<School>> GetSystemSchoolsAsync(CancellationToken cancellationToken = default)
+    /// <summary>The canonical schools with their translation into <paramref name="locale"/> (none for Russian).</summary>
+    public Task<List<School>> GetSystemSchoolsAsync(string locale, CancellationToken cancellationToken = default)
         => _dbSet
+            .AsNoTracking()
+            .Include(s => s.Translations.Where(t => t.Locale == locale))
             .Where(s => s.IsSystem)
             .OrderBy(s => s.Id)
             .ToListAsync(cancellationToken);

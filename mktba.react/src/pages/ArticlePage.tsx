@@ -70,8 +70,8 @@ const ArticlePage: React.FC = () => {
   const { data: navigationTree } = useNavigationTree();
 
   const { data: systemSchools } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS],
-    queryFn: getSystemSchools,
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, language],
+    queryFn: () => getSystemSchools(language),
   });
 
   const { data: articleSchools } = useQuery({

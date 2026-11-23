@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import { METRIKA_GOALS, trackGoal } from '../analytics/metrika';
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import { useLanguage } from '../localization/hooks';
 import { getSystemSchools } from '../services/schoolService';
 import { useHydrated } from '../shared/useHydrated';
 import { MazhabContext, MAZHAB_LINK_PARAM, MAZHAB_STORAGE_KEY } from './mazhabContext';
@@ -29,6 +30,7 @@ const readSavedSchoolId = (): number | null => {
  */
 export const MazhabProvider = ({ children }: { children: ReactNode }) => {
   const hydrated = useHydrated();
+  const language = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedSlug = searchParams.get(MAZHAB_LINK_PARAM);
   const [chosen, setChosen] = useState<{ schoolId: number | null } | null>(null);
@@ -38,8 +40,8 @@ export const MazhabProvider = ({ children }: { children: ReactNode }) => {
   // off the server's data to an effect — the server HTML and the first client render would lose the
   // schools.
   const { data: systemSchools } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, 'mazhab-link'],
-    queryFn: getSystemSchools,
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, language, 'mazhab-link'],
+    queryFn: () => getSystemSchools(language),
     enabled: linkedSlug !== null,
     staleTime: Infinity,
   });

@@ -3423,9 +3423,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * The four canonical schools, named in one language (I-07, #111).
+         * @description locale defaults to ru (an unsupported one answers 400 locale_unsupported). name and shortName are the school's names in that language, or the Russian ones when the school has no translation into it; id and slug are the same in every language.
+         */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    locale?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -3439,6 +3445,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["SchoolDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
             };

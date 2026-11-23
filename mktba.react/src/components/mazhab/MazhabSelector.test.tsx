@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
 import { MazhabProvider } from '../../context/MazhabProvider';
 import { MAZHAB_STORAGE_KEY } from '../../context/mazhabContext';
+import type { Language } from '../../localization/language';
 import { LocalizationProvider } from '../../localization/provider';
 import type { SchoolDto } from '../../shared/types/ApiTypes';
 import { MAZHAB_HINT_STORAGE_KEY, MazhabSelector } from './MazhabSelector';
@@ -19,12 +20,18 @@ const SYSTEM_SCHOOLS = [
 
 const HINT = /Мазхаб — школа исламского права\. Выберите свою/;
 
-const renderSelector = (url = '/salat') => {
+const ENGLISH_SCHOOLS = [
+  school(1, 'hanafi', 'Hanafi madhhab', 'Han'),
+  school(3, 'shafii', "Shafi'i madhhab", 'Shaf'),
+];
+
+const renderSelector = (url = '/salat', language: Language = 'ru') => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS], SYSTEM_SCHOOLS);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, 'ru'], SYSTEM_SCHOOLS);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, 'en'], ENGLISH_SCHOOLS);
   render(
     <QueryClientProvider client={client}>
-      <LocalizationProvider>
+      <LocalizationProvider language={language}>
         <MemoryRouter initialEntries={[url]}>
           <MazhabProvider>
             <MazhabSelector />
@@ -75,6 +82,15 @@ describe('MazhabSelector', () => {
 
     expect(screen.queryByRole('note')).toBeNull();
     expect(screen.getByRole('button', { name: 'Шафиитский мазхаб' })).not.toBeNull();
+  });
+
+  it('given an English reader with a saved mazhab, when rendered, then the button names it in English', () => {
+    localStorage.setItem(MAZHAB_STORAGE_KEY, '3');
+
+    renderSelector('/en/salat', 'en');
+
+    expect(screen.getByRole('button', { name: "Shafi'i madhhab" })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Шафиитский мазхаб' })).toBeNull();
   });
 
   it('given no mazhab chosen, when the picker is opened, then no link is offered', () => {
