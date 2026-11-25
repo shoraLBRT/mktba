@@ -74,7 +74,7 @@ namespace Mktba.Application.Services
 
             var translations = group
                 .Where(row => row.Id != article.Id && Visible(row))
-                .Select(row => new ArticleTranslationDto(row.Id, row.Locale, row.Slug, row.Title, row.Status))
+                .Select(row => new ArticleTranslationDto(row.Id, row.Locale, row.Slug, row.Title, row.Status, row.NoIndex))
                 .ToList();
 
             ArticleTranslationSourceDto? source = null;

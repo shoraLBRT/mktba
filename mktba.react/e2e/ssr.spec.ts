@@ -446,3 +446,28 @@ test('an English article lives under /en/ and its old id link leads there (I-01)
 
   expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).ok()).toBe(true);
 });
+
+test('language versions of an article link each other with hreflang in the page and in the sitemap (O-08)', async ({ request }) => {
+  const paragraphs = [{ order: 1, opinions: [{ content: 'Text', isDefault: true, schoolIds: [] }] }];
+  const russian = await publishArticle(request, `Namaz ${Date.now()}`, paragraphs);
+  const english = await publishArticle(request, `Prayer ${Date.now()}`, paragraphs, { translationOfId: russian.id, locale: 'en' });
+  const hreflang = (html: string) => [...html.matchAll(/<link rel="alternate" hrefLang="([^"]+)" href="([^"]+)"/gi)]
+    .map((match) => `${match[1]} ${new URL(match[2]).pathname}`);
+  const expected = [`ru /${russian.slug}`, `en /en/${english.slug}`, `x-default /${russian.slug}`];
+
+  const russianHtml = await (await request.get(`/${russian.slug}`)).text();
+  expect(hreflang(russianHtml)).toEqual(expected);
+  const englishHtml = await (await request.get(`/en/${english.slug}`)).text();
+  expect(hreflang(englishHtml)).toEqual(expected);
+  // An English article is indexed now; an English list page still is not (#110, #112).
+  expect(metaContent(englishHtml, 'robots')).toBeNull();
+  expect(metaContent(await (await request.get('/en/')).text(), 'robots')).toContain('noindex');
+
+  const sitemap = await (await request.get('/sitemap.xml')).text();
+  expect(sitemap).toContain(`/en/${english.slug}</loc>`);
+  expect(sitemap).toMatch(new RegExp(`hreflang="en" href="[^"]+/en/${english.slug}"`));
+
+  for (const article of [english, russian]) {
+    expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).ok()).toBe(true);
+  }
+});

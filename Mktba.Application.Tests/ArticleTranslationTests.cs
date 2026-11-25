@@ -85,7 +85,7 @@ public class ArticleTranslationTests : IDisposable
 
         read.TranslatedFrom.Should().Be(new ArticleTranslationSourceDto(original.Id, "ru", original.Slug!, "Намаз", 1, 1, IsOutdated: false));
         read.TranslatedFromRevision.Should().Be(1);
-        read.Translations.Should().ContainSingle().Which.Should().Be(new ArticleTranslationDto(original.Id, "ru", original.Slug!, "Намаз", ArticleStatus.Draft));
+        read.Translations.Should().ContainSingle().Which.Should().Be(new ArticleTranslationDto(original.Id, "ru", original.Slug!, "Намаз", ArticleStatus.Draft, NoIndex: false));
         (await ReadAsync(original.Id)).Translations.Should().ContainSingle().Which.ArticleId.Should().Be(translation.Id);
         (await ReadAsync(original.Id)).TranslatedFrom.Should().BeNull();
     }
@@ -186,5 +186,20 @@ public class ArticleTranslationTests : IDisposable
         read.Translations.Should().ContainSingle().Which.Locale.Should().Be("ru");
         read.TranslatedFrom.Should().BeNull();
         read.TranslatedFromRevision.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GivenPublishedTranslationMarkedNoindex_WhenReaderReadsOriginal_ThenItIsListedWithNoIndex()
+    {
+        var (original, translation) = await CreatePairAsync();
+        foreach (var article in _context.Articles.Where(article => article.Id == original.Id || article.Id == translation.Id))
+        {
+            article.Status = ArticleStatus.Published;
+        }
+        _context.Articles.Single(article => article.Id == translation.Id).NoIndex = true;
+        await _context.SaveChangesAsync();
+
+        (await ReadAsync(original.Id, ArticleViewer.Anonymous)).Translations.Should().ContainSingle().Which.NoIndex.Should().BeTrue();
+        (await ReadAsync(translation.Id, ArticleViewer.Anonymous)).Translations.Should().ContainSingle().Which.NoIndex.Should().BeFalse();
     }
 }

@@ -5103,6 +5103,7 @@ export interface components {
             slug: string;
             title: string;
             status: components["schemas"]["ArticleStatus"];
+            noIndex: boolean;
         };
         ArticleTranslationSourceDto: {
             /** Format: int32 */

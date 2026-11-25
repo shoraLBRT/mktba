@@ -1,7 +1,7 @@
 import { useSiteUrl } from '../app/siteUrl';
 import { useLanguage, useLocale } from '../localization/hooks';
 import { localizedPath, OG_LOCALES } from '../localization/language';
-import { SERVED_LOCALES } from '../shared/sitemap';
+import { INDEXED_LIST_LOCALES, SERVED_LOCALES, type SitemapAlternate } from '../shared/sitemap';
 import {
   DEFAULT_SOCIAL_IMAGE_PATH,
   documentTitle,
@@ -27,6 +27,8 @@ export type PageMetaProps = {
   /** ISO dates of an article (`article:published_time` / `article:modified_time`). */
   publishedTime?: string | null;
   modifiedTime?: string | null;
+  /** The page's language versions, absolute (O-08, #104): `<link rel="alternate" hreflang>`, left out while the page is noindex. */
+  alternates?: readonly SitemapAlternate[];
 };
 
 /**
@@ -45,6 +47,7 @@ export const PageMeta = ({
   noFollow = false,
   publishedTime,
   modifiedTime,
+  alternates = [],
 }: PageMetaProps) => {
   const { brand } = useLocale();
   const language = useLanguage();
@@ -55,11 +58,11 @@ export const PageMeta = ({
   const canonical = path === undefined ? null : siteUrlFor(localizedPath(language, path), siteUrl);
   const imagePath = image === undefined ? DEFAULT_SOCIAL_IMAGE_PATH : image;
   const imageUrl = imagePath ? siteUrlFor(imagePath, siteUrl) : null;
-  // A language is indexed only once the site serves it to search engines: the same list as the
-  // sitemap (`SERVED_LOCALES`). `/en/…` has its interface (#109), but its lists still show the
-  // Russian articles and there is no hreflang yet (#110, #112, #104), so it stays out of the index
-  // until #104 adds `en` there.
-  const hidden = noIndex || !SERVED_LOCALES.includes(language);
+  // A language is indexed only once the site serves it to search engines. An article: the sitemap's
+  // list (`SERVED_LOCALES`, with hreflang since #104). Any other page: `INDEXED_LIST_LOCALES`, since
+  // the `/en/…` lists still show the Russian articles (#110, #112).
+  const indexedLocales = type === 'article' ? SERVED_LOCALES : INDEXED_LIST_LOCALES;
+  const hidden = noIndex || !indexedLocales.includes(language);
   const robots = hidden ? (noFollow ? ROBOTS_NOINDEX_NOFOLLOW : ROBOTS_NOINDEX) : null;
 
   return (
@@ -68,6 +71,9 @@ export const PageMeta = ({
       {shownDescription ? <meta name="description" content={shownDescription} /> : null}
       {canonical ? <link rel="canonical" href={canonical} /> : null}
       {robots ? <meta name="robots" content={robots} /> : null}
+      {hidden ? null : alternates.map((alternate) => (
+        <link key={alternate.hreflang} rel="alternate" hrefLang={alternate.hreflang} href={alternate.href} />
+      ))}
       <meta property="og:site_name" content={brand.name} />
       <meta property="og:locale" content={OG_LOCALES[language]} />
       <meta property="og:type" content={type} />

@@ -5,7 +5,7 @@ describe('missingTranslationLocales', () => {
   it('lists the languages with no version yet, never the article own', () => {
     expect(missingTranslationLocales('ru', [])).toEqual(['en']);
     expect(missingTranslationLocales('en', [])).toEqual(['ru']);
-    expect(missingTranslationLocales('ru', [{ articleId: 2, locale: 'en', slug: 'prayer', title: 'Prayer', status: 'Draft' }])).toEqual([]);
+    expect(missingTranslationLocales('ru', [{ articleId: 2, locale: 'en', slug: 'prayer', title: 'Prayer', status: 'Draft', noIndex: false }])).toEqual([]);
   });
 });
 

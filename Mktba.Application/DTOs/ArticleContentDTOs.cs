@@ -185,7 +185,11 @@
 
     /// <summary>Another language version of an article (I-06, #110).</summary>
     /// <param name="Slug">Its slug, unique within <paramref name="Locale"/>: the page is that language's <c>/{slug}</c>.</param>
-    public record ArticleTranslationDto(int ArticleId, string Locale, string Slug, string Title, Domain.Entities.ArticleStatus Status);
+    /// <param name="NoIndex">
+    /// The version asks search engines not to index it (M-10): the page's hreflang links (O-08, #104)
+    /// leave it out, as the sitemap does.
+    /// </param>
+    public record ArticleTranslationDto(int ArticleId, string Locale, string Slug, string Title, Domain.Entities.ArticleStatus Status, bool NoIndex);
 
     /// <summary>The article a translation was made from, as its editors see it (I-06, #110).</summary>
     /// <param name="Revision">The source's revision the translation matches.</param>

@@ -231,7 +231,8 @@ describe('language in the URL (I-01, #105)', () => {
     await waitFor(() => expect(document.documentElement.lang).toBe('en'));
     expect(document.head.querySelector('meta[property="og:locale"]')?.getAttribute('content')).toBe('en_US');
     expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.test/en/');
-    // The English interface (#109), still out of the index: `en` is not in SERVED_LOCALES until #104.
+    // An English list page stays out of the index until per-language lists (#110, #112): only
+    // English articles are served to search engines (#104).
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
     expect(document.title).toBe('mktba: an Islamic wiki');
   });
