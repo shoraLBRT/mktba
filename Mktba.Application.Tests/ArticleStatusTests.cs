@@ -107,7 +107,17 @@ public class ArticleStatusTests : IDisposable
 
         await _articles.ChangeStatusAsync(article.Id, to, TestViewers.Admin);
 
-        _searchEngines.Slugs.Should().Equal("zakyat");
+        _searchEngines.Paths.Should().Equal("/zakyat");
+    }
+
+    [Fact]
+    public async Task ChangeStatusAsync_GivenEnglishArticle_TellsSearchEnginesItsEnglishPath()
+    {
+        var article = await AddAsync("Zakat", "zakat", ArticleStatus.InReview, locale: "en");
+
+        await _articles.ChangeStatusAsync(article.Id, ArticleStatus.Published, TestViewers.Admin);
+
+        _searchEngines.Paths.Should().Equal("/en/zakat");
     }
 
     [Theory]
@@ -120,7 +130,7 @@ public class ArticleStatusTests : IDisposable
 
         await _articles.ChangeStatusAsync(article.Id, to, TestViewers.Admin);
 
-        _searchEngines.Slugs.Should().BeEmpty();
+        _searchEngines.Paths.Should().BeEmpty();
     }
 
     [Fact]
@@ -131,7 +141,7 @@ public class ArticleStatusTests : IDisposable
         var act = () => _articles.ChangeStatusAsync(article.Id, ArticleStatus.Published, TestViewers.Admin);
 
         await act.Should().ThrowAsync<ValidationException>();
-        _searchEngines.Slugs.Should().BeEmpty();
+        _searchEngines.Paths.Should().BeEmpty();
     }
 
     [Fact]
@@ -227,9 +237,9 @@ public class ArticleStatusTests : IDisposable
         forEditor.Should().HaveCount(2);
     }
 
-    private async Task<Article> AddAsync(string title, string slug, ArticleStatus status, int? parentId = null)
+    private async Task<Article> AddAsync(string title, string slug, ArticleStatus status, int? parentId = null, string locale = Locales.Default)
     {
-        var article = new Article { Title = title, Slug = slug, Status = status, ParentArticleId = parentId };
+        var article = new Article { Title = title, Slug = slug, Status = status, ParentArticleId = parentId, Locale = locale };
         _context.Articles.Add(article);
         await _context.SaveChangesAsync();
         return article;

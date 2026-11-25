@@ -214,7 +214,7 @@ namespace Mktba.Application.Services
             await _articleRepository.SaveChangesAsync();
             if (wasPublished || target == ArticleStatus.Published)
             {
-                _searchEngines.ArticleChanged(article.Slug);
+                _searchEngines.ArticleChanged(article.Locale, article.Slug);
             }
 
             return await WithLastStatusChangeAsync(ToReadDto(article, viewer), article, viewer);
@@ -392,7 +392,7 @@ namespace Mktba.Application.Services
             await _articleRepository.SaveChangesAsync();
             if (article.Status == ArticleStatus.Published)
             {
-                _searchEngines.ArticleChanged(article.Slug);
+                _searchEngines.ArticleChanged(article.Locale, article.Slug);
             }
         }
 
@@ -437,7 +437,7 @@ namespace Mktba.Application.Services
             await _articleRepository.SaveChangesAsync();
             if (article.Status == ArticleStatus.Published)
             {
-                _searchEngines.ArticleChanged(article.Slug);
+                _searchEngines.ArticleChanged(article.Locale, article.Slug);
             }
         }
 
