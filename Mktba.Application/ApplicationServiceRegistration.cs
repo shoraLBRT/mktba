@@ -20,6 +20,7 @@ namespace Mktba.Application
             services.AddScoped<NavigationTreeService>();
             services.AddScoped<SitemapService>();
             services.AddScoped<RecentArticlesService>();
+            services.AddScoped<PopularArticlesService>();
             services.AddScoped<AuthorArticlesService>();
             services.AddScoped<ArticleSearchService>();
             services.AddScoped<ISearchResultCounter>(provider => provider.GetRequiredService<ArticleSearchService>());

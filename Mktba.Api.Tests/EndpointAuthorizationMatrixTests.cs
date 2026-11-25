@@ -51,6 +51,7 @@ public abstract class EndpointAuthorizationMatrixTests
         ["GET /articles/"] = Public,
         ["GET /articles/sitemap"] = Public,
         ["GET /articles/recent"] = Public,
+        ["GET /articles/popular"] = Public,
         ["GET /search/"] = Public,
         ["POST /feedback"] = Public,
         ["POST /analytics/events"] = Public,

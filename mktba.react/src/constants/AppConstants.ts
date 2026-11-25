@@ -7,6 +7,7 @@ export const APP_CONSTANTS = {
     NAVIGATION_TREE: 'navigationTree',
     ARTICLE_CONTENT: 'articleContent',
     RECENT_ARTICLES: 'recentArticles',
+    POPULAR_ARTICLES: 'popularArticles',
     SEARCH: 'search',
     AUTH_STATUS: 'authStatus',
     CURRENT_USER: 'currentUser',

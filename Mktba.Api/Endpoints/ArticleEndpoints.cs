@@ -105,6 +105,18 @@ namespace Mktba.Api.Endpoints
             .Produces<RecentArticlesDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest);
 
+            group.MapGet("/popular", async (string? locale, int? limit, PopularArticlesService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.GetAsync(locale, limit ?? PopularArticlesService.DefaultLimit, cancellationToken)))
+            .WithSummary("The most viewed articles of the last 30 days, for the home page.")
+            .WithDescription(
+                "Articles a reader can open (Published, not under a non-Published parent, not empty stubs) "
+                + "with the most views over the last 30 UTC days, today included, counted from the daily "
+                + "analytics summaries; an article with no view is not listed. No view counts and no content; "
+                + "the same list for every caller. locale defaults to ru (an unsupported one answers 400 "
+                + "locale_unsupported); limit is the size of the list, 6 by default, kept within 1 to 20.")
+            .Produces<PopularArticlesDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest);
+
             group.MapGet("/{id:int}", async (int id, ClaimsPrincipal user, ArticleService service) =>
             {
                 var article = await service.GetByIdAsync(id, user.ToArticleViewer());

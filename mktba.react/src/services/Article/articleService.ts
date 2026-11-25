@@ -1,7 +1,7 @@
 import { articleLocaleQuery, type Language } from '../../localization/language';
 import apiClient from '../../shared/api-client/ApiClient';
 import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../../shared/search';
-import type { ArticleContentCreateDto, ArticleContentDto, RecentArticlesDto, SearchResultsDto } from '../../shared/types/ApiTypes';
+import type { ArticleContentCreateDto, ArticleContentDto, PopularArticlesDto, RecentArticlesDto, SearchResultsDto } from '../../shared/types/ApiTypes';
 
 export const getArticleContentById = async (id: number): Promise<ArticleContentDto> => {
   const response = await apiClient.get<ArticleContentDto>(`/articles/${id}/content`);
@@ -22,6 +22,12 @@ export const getArticleContentBySlug = async (slug: string, language: Language):
 /** The newest and the most recently updated published articles, for the home page. */
 export const getRecentArticles = async (): Promise<RecentArticlesDto> => {
   const response = await apiClient.get<RecentArticlesDto>('/articles/recent');
+  return response.data;
+};
+
+/** The most viewed published articles of the last 30 days, for the home page. */
+export const getPopularArticles = async (): Promise<PopularArticlesDto> => {
+  const response = await apiClient.get<PopularArticlesDto>('/articles/popular');
   return response.data;
 };
 

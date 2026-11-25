@@ -1624,6 +1624,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/popular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The most viewed articles of the last 30 days, for the home page.
+         * @description Articles a reader can open (Published, not under a non-Published parent, not empty stubs) with the most views over the last 30 UTC days, today included, counted from the daily analytics summaries; an article with no view is not listed. No view counts and no content; the same list for every caller. locale defaults to ru (an unsupported one answers 400 locale_unsupported); limit is the size of the list, 6 by default, kept within 1 to 20.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    locale?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PopularArticlesDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{id}": {
         parameters: {
             query?: never;
@@ -5358,6 +5409,18 @@ export interface components {
             /** Format: int32 */
             order: number;
             opinions: components["schemas"]["OpinionUpdateDto"][];
+        };
+        PopularArticleDto: {
+            /** Format: int32 */
+            id: number;
+            title: string;
+            slug: string;
+            summary?: string | null;
+        };
+        PopularArticlesDto: {
+            /** Format: int32 */
+            days: number;
+            items: components["schemas"]["PopularArticleDto"][];
         };
         ProfileLinkDto: {
             label: string;

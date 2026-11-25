@@ -14,6 +14,9 @@
     "updatedArticles": {
       "title": "Updated articles"
     },
+    "popularArticles": {
+      "title": "Popular articles"
+    },
     "about": {
       "title": "What is mktba",
       "paragraphs": [

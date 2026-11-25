@@ -4,7 +4,7 @@ import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { LocalizationProvider } from '../localization/provider';
-import type { NavigationArticleDto, RecentArticlesDto } from '../shared/types/ApiTypes';
+import type { NavigationArticleDto, PopularArticlesDto, RecentArticlesDto } from '../shared/types/ApiTypes';
 import HomePage from './HomePage';
 
 const article = (id: number, title: string, slug: string, children: NavigationArticleDto[] = [], hasContent = true): NavigationArticleDto => ({
@@ -32,6 +32,14 @@ const RECENT: RecentArticlesDto = {
   ],
 };
 
+const POPULAR: PopularArticlesDto = {
+  days: 30,
+  items: [
+    { id: 2, title: 'Салат', slug: 'salat', summary: 'Пятикратная молитва' },
+    { id: 3, title: 'Закят', slug: 'zakyat', summary: null },
+  ],
+};
+
 /** Where the router is, for the tests that navigate. */
 const CurrentLocation = () => {
   const { pathname, search } = useLocation();
@@ -39,10 +47,11 @@ const CurrentLocation = () => {
 };
 
 /** The page over a cache that already holds the data, as after the server render. */
-const renderHome = (tree: NavigationArticleDto[] = TREE, recent: RecentArticlesDto = RECENT) => {
+const renderHome = (tree: NavigationArticleDto[] = TREE, recent: RecentArticlesDto = RECENT, popular: PopularArticlesDto = POPULAR) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE], tree);
   client.setQueryData([APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES], recent);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES], popular);
 
   return render(
     <QueryClientProvider client={client}>
@@ -82,12 +91,22 @@ describe('HomePage', () => {
     expect(updated[0].textContent).toMatch(/Обновлено 15 ноября 2026/);
   });
 
-  it('given nothing published yet, when rendered, then says so and leaves the updated list out', () => {
-    renderHome([], { new: [], updated: [] });
+  it('given viewed articles, when rendered, then lists the popular ones in the order of the server', () => {
+    renderHome();
+
+    const popular = within(region('Популярные статьи')).getAllByRole('listitem');
+    expect(popular.map((item) => within(item).getByRole('link').textContent)).toEqual(['Салат', 'Закят']);
+    expect(within(popular[0]).getByRole('link').getAttribute('href')).toBe('/salat');
+    expect(popular[0].textContent).toContain('Пятикратная молитва');
+  });
+
+  it('given nothing published yet, when rendered, then says so and leaves the updated and popular lists out', () => {
+    renderHome([], { new: [], updated: [] }, { days: 30, items: [] });
 
     expect(region('Разделы').textContent).toContain('Разделов пока нет.');
     expect(region('Новые статьи').textContent).toContain('Опубликованных статей пока нет.');
     expect(screen.queryByRole('region', { name: 'Обновлённые статьи' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Популярные статьи' })).toBeNull();
   });
 
   it('given a typed query, when the search form is submitted, then opens the results page for it', () => {
