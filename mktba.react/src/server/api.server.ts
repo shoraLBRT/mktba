@@ -9,6 +9,7 @@ import type {
   IndexNowKeyDto,
   AuthorArticlesDto,
   NavigationArticleDto,
+  PopularArticlesDto,
   PublicProfileDto,
   RecentArticlesDto,
   SchoolDto,
@@ -73,6 +74,7 @@ export const serverApi = {
   getSitemapArticles: () => getJson<SitemapArticleDto[]>('/articles/sitemap'),
   getIndexNowKey: () => getJson<IndexNowKeyDto>('/seo/indexnow-key'),
   getRecentArticles: () => getJson<RecentArticlesDto>('/articles/recent'),
+  getPopularArticles: () => getJson<PopularArticlesDto>('/articles/popular'),
   searchArticles: ({ query, page }: SearchRequest) =>
     getJson<SearchResultsDto>(
       `/search?${new URLSearchParams({ [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: String(page) }).toString()}`,

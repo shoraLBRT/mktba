@@ -5,9 +5,9 @@ import { SearchForm } from '../components/search/SearchForm';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { useFormat, useLocale } from '../localization/hooks';
-import { getRecentArticles } from '../services/Article/articleService';
+import { getPopularArticles, getRecentArticles } from '../services/Article/articleService';
 import { articleHref } from '../shared/slug';
-import type { NavigationArticleDto, RecentArticleDto } from '../shared/types/ApiTypes';
+import type { NavigationArticleDto, PopularArticleDto, RecentArticleDto } from '../shared/types/ApiTypes';
 import { homeSections } from './home/homeTree';
 
 const linkClass = 'text-[var(--color-brand-forest)] underline-offset-2 hover:underline';
@@ -113,13 +113,42 @@ const RecentList = ({ title, articles, dateTemplate, dateOf, emptyText }: Recent
   );
 };
 
+/** The most viewed articles of the last days; left out while nothing was viewed. */
+const PopularList = ({ articles }: { articles: PopularArticleDto[] }) => {
+  const t = useLocale().homePage.popularArticles;
+  const titleId = useId();
+
+  if (articles.length === 0) {
+    return null;
+  }
+
+  return (
+    <section aria-labelledby={titleId}>
+      <h2 id={titleId} className={sectionTitleClass}>
+        {t.title}
+      </h2>
+      <ol className="m-0 mt-4 grid list-none gap-4 p-0 sm:grid-cols-2">
+        {articles.map((article) => (
+          <li key={article.id}>
+            <Link to={articleHref(article.slug)} className={`font-medium ${linkClass}`}>
+              {article.title}
+            </Link>
+            {article.summary && (
+              <p className="mb-0 mt-1 line-clamp-2 text-sm leading-6 text-[var(--color-ink-muted)]">{article.summary}</p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+};
+
 const publishedAtOf = (article: RecentArticleDto) => article.publishedAt;
 const updatedAtOf = (article: RecentArticleDto) => article.updatedAt;
 
 /**
  * The home page (R-05, #41): what mktba is, the search field (it leads to the results page, R-10
- * #46), the top-level sections, and the new and updated articles. Popular articles wait for view
- * statistics.
+ * #46), the top-level sections, the new and updated articles, and the most viewed ones.
  */
 const HomePage = () => {
   const locale = useLocale();
@@ -129,6 +158,10 @@ const HomePage = () => {
   const { data: recent } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES],
     queryFn: getRecentArticles,
+  });
+  const { data: popular } = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES],
+    queryFn: getPopularArticles,
   });
 
   return (
@@ -158,6 +191,8 @@ const HomePage = () => {
           />
         </div>
       )}
+
+      {popular && <PopularList articles={popular.items} />}
 
       <section aria-labelledby={aboutTitleId} className={panelClass}>
         <h2 id={aboutTitleId} className={sectionTitleClass}>

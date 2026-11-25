@@ -10,7 +10,7 @@ import { serverApi } from '../server/api.server';
 
 type HomeRouteData = {
   /**
-   * The new and updated articles from the server; missing after a client-side navigation and when
+   * The new, updated and popular articles from the server; missing after a client-side navigation and when
    * the API could not be reached (the browser retries).
    */
   dehydratedState?: DehydratedState;
@@ -19,15 +19,21 @@ type HomeRouteData = {
 export const handle: RouteHandle = { ownsMeta: true };
 
 /**
- * On the server: the lists of new and updated articles, so they are in the HTML. The sections read
+ * On the server: the lists of new, updated and popular articles, so they are in the HTML. The sections read
  * the navigation tree the public layout's loader already fetched; the search field leads to /search.
  */
 export async function loader(): Promise<HomeRouteData> {
   const queryClient = createServerQueryClient();
-  await queryClient.prefetchQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES],
-    queryFn: serverApi.getRecentArticles,
-  });
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: [APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES],
+      queryFn: serverApi.getRecentArticles,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: [APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES],
+      queryFn: serverApi.getPopularArticles,
+    }),
+  ]);
 
   return { dehydratedState: dehydrate(queryClient) };
 }
