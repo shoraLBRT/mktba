@@ -5980,6 +5980,7 @@
         "required": [
           "articleId",
           "locale",
+          "noIndex",
           "slug",
           "status",
           "title"
@@ -6001,6 +6002,9 @@
           },
           "status": {
             "$ref": "#/components/schemas/ArticleStatus"
+          },
+          "noIndex": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

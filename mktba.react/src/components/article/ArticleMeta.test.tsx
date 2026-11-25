@@ -3,15 +3,16 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { SiteUrlContext } from '../../app/siteUrl';
 import { LocalizationProvider } from '../../localization/provider';
+import type { ArticleTranslationDto } from '../../shared/types/ApiTypes';
 import { ArticleMeta } from './ArticleMeta';
 
 const head = (selector: string) => document.head.querySelector(selector);
 const content = (selector: string) => head(selector)?.getAttribute('content');
 
-const renderOnSite = (node: ReactNode) =>
+const renderOnSite = (node: ReactNode, language: 'ru' | 'en' = 'ru') =>
   render(
     <SiteUrlContext.Provider value="https://mktba.ru">
-      <LocalizationProvider>{node}</LocalizationProvider>
+      <LocalizationProvider language={language}>{node}</LocalizationProvider>
     </SiteUrlContext.Provider>,
   );
 
@@ -65,4 +66,42 @@ describe('ArticleMeta', () => {
 
     expect(content('meta[property="og:image"]')).toBe('https://cdn.example.com/a.png');
   });
+
+  it('given a published English translation, when the Russian article is rendered, then hoists hreflang links to both and x-default', () => {
+    renderOnSite(<ArticleMeta meta={{ title: 'Намаз', noIndex: false }} slug="namaz" locale="ru" translations={[translation()]} />);
+
+    expect(hreflangLinks()).toEqual([
+      ['ru', 'https://mktba.ru/namaz'],
+      ['en', 'https://mktba.ru/en/prayer'],
+      ['x-default', 'https://mktba.ru/namaz'],
+    ]);
+  });
+
+  it('given the English version, when rendered under /en/, then it is indexed and lists the same links', () => {
+    renderOnSite(
+      <ArticleMeta meta={{ title: 'Prayer', noIndex: false }} slug="prayer" locale="en" translations={[translation({ locale: 'ru', slug: 'namaz' })]} />,
+      'en',
+    );
+
+    expect(head('meta[name="robots"]')).toBeNull();
+    expect(head('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.ru/en/prayer');
+    expect(hreflangLinks()).toEqual([
+      ['ru', 'https://mktba.ru/namaz'],
+      ['en', 'https://mktba.ru/en/prayer'],
+      ['x-default', 'https://mktba.ru/namaz'],
+    ]);
+  });
+
+  it('given a noindex article with a translation, when rendered, then has no hreflang links', () => {
+    renderOnSite(<ArticleMeta meta={{ title: 'Намаз', noIndex: true }} slug="namaz" locale="ru" translations={[translation()]} />);
+
+    expect(hreflangLinks()).toEqual([]);
+  });
+});
+
+const hreflangLinks = () => [...document.head.querySelectorAll('link[rel="alternate"][hreflang]')]
+  .map((link) => [link.getAttribute('hreflang'), link.getAttribute('href')]);
+
+const translation = (overrides: Partial<ArticleTranslationDto> = {}): ArticleTranslationDto => ({
+  articleId: 2, locale: 'en', slug: 'prayer', title: 'Prayer', status: 'Published', noIndex: false, ...overrides,
 });

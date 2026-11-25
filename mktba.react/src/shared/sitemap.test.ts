@@ -64,11 +64,18 @@ describe('sitemap entries', () => {
     expect(entries[2].alternates).toEqual(expected);
   });
 
+  it('given the default served locales, when building entries, then English articles are listed (O-08, #104)', () => {
+    const entries = sitemapEntries([article('namaz'), article('prayer', { locale: 'en' })], SITE);
+
+    expect(entries.map((item) => item.loc)).toEqual(['https://mktba.ru/', 'https://mktba.ru/namaz', 'https://mktba.ru/en/prayer']);
+  });
+
   it('given an English article while only Russian pages are served, when building entries, then it and its alternate are left out', () => {
     const group = 'g-1';
     const entries = sitemapEntries(
       [article('namaz', { translationGroupId: group }), article('prayer', { locale: 'en', translationGroupId: group })],
       SITE,
+      ['ru'],
     );
 
     expect(entries.map((item) => item.loc)).toEqual(['https://mktba.ru/', 'https://mktba.ru/namaz']);

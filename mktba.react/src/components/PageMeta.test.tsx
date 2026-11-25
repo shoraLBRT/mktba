@@ -17,6 +17,24 @@ const onSite = (node: ReactNode) => (
 afterEach(cleanup);
 
 describe('PageMeta', () => {
+  it('given English, when an article is rendered, then it is indexed with its hreflang; a list page is not and has none (O-08, #104)', () => {
+    const alternates = [{ hreflang: 'ru', href: 'https://mktba.ru/namaz' }, { hreflang: 'en', href: 'https://mktba.ru/en/prayer' }];
+    const english = (node: ReactNode) => (
+      <SiteUrlContext.Provider value="https://mktba.ru">
+        <LocalizationProvider language="en">{node}</LocalizationProvider>
+      </SiteUrlContext.Provider>
+    );
+
+    const { unmount } = render(english(<PageMeta path="/prayer" type="article" alternates={alternates} />));
+    expect(head('meta[name="robots"]')).toBeNull();
+    expect(document.head.querySelectorAll('link[rel="alternate"][hreflang]')).toHaveLength(2);
+    unmount();
+
+    render(english(<PageMeta path="/" alternates={alternates} />));
+    expect(content('meta[name="robots"]')).toBe('noindex');
+    expect(document.head.querySelectorAll('link[rel="alternate"][hreflang]')).toHaveLength(0);
+  });
+
   it('given no props but a path, when rendered for the home page, then uses the site title, description and default image', () => {
     render(onSite(<PageMeta path="/" />));
 

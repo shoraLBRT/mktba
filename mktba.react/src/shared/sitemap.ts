@@ -14,11 +14,18 @@ export const SITEMAP_MAX_URLS = 50_000;
 export const DEFAULT_LOCALE: string = DEFAULT_LANGUAGE;
 
 /**
- * The locales served to search engines: the sitemap lists them, and `PageMeta` marks every page of
- * any other language `noindex`. `/en/…` has its routes (I-01, #105) and its interface (#109), but
- * not yet its own lists or the hreflang rules (#110, #112, #104): `en` is added here with #104.
+ * The locales whose articles are served to search engines (O-08, #104): the sitemap lists their
+ * articles, an article page in one of them is indexed, and the language versions of an article link
+ * each other with hreflang. An article in any other language is `noindex`.
  */
-export const SERVED_LOCALES: readonly string[] = [DEFAULT_LOCALE];
+export const SERVED_LOCALES: readonly string[] = [DEFAULT_LOCALE, 'en'];
+
+/**
+ * The locales whose other pages (home, search, authors, tags) are indexed. `/en/…` lists still show
+ * the Russian articles until per-language lists and the missing-translation rules (#110, #112), so
+ * an English list page stays `noindex` and has no hreflang; `en` is added here with them.
+ */
+export const INDEXED_LIST_LOCALES: readonly string[] = [DEFAULT_LOCALE];
 
 /**
  * Query parameters that never change a page's content: Yandex folds them with `Clean-param`.
@@ -38,8 +45,28 @@ export const parseSitemapChunkName = (name: string): number | null => {
   return match ? Number(match[1]) : null;
 };
 
-/** A language version of a page: `<xhtml:link rel="alternate" hreflang href>`. */
+/**
+ * A language version of a page: `<xhtml:link rel="alternate" hreflang href>` in the sitemap,
+ * `<link rel="alternate" hreflang href>` in the page's head.
+ */
 export type SitemapAlternate = { hreflang: string; href: string };
+
+/** One language version of a text, by its absolute URL. */
+export type LanguageVersion = { locale: string; url: string };
+
+/**
+ * The hreflang links of a text's language versions (O-08, #104), the same list on every version:
+ * one per version, the page itself included, then `x-default` at the default-locale version when
+ * there is one (a reader whose language has no version gets the Russian original). A text with a
+ * single version has none.
+ */
+export const hreflangAlternates = (versions: readonly LanguageVersion[]): SitemapAlternate[] => {
+  if (versions.length < 2) return [];
+
+  const alternates = versions.map((version) => ({ hreflang: version.locale, href: version.url }));
+  const fallback = versions.find((version) => version.locale === DEFAULT_LOCALE);
+  return fallback ? [...alternates, { hreflang: 'x-default', href: fallback.url }] : alternates;
+};
 
 /** One `<url>` of a sitemap. */
 export type SitemapEntry = { loc: string; lastmod: string | null; alternates: SitemapAlternate[] };
@@ -59,8 +86,7 @@ export const w3cDateTime = (value: string): string | null => {
 
 /**
  * The sitemap's URLs: the home page, then every article in a served locale. An article with a
- * listed translation carries hreflang alternates for each language version, plus `x-default`
- * pointing at the default-locale version when there is one.
+ * listed translation carries the {@link hreflangAlternates} of its group.
  */
 export const sitemapEntries = (
   articles: readonly SitemapArticleDto[],
@@ -75,14 +101,8 @@ export const sitemapEntries = (
     groups.set(article.translationGroupId, [...(groups.get(article.translationGroupId) ?? []), article]);
   }
 
-  const alternatesOf = (article: SitemapArticleDto): SitemapAlternate[] => {
-    const versions = groups.get(article.translationGroupId) ?? [];
-    if (versions.length < 2) return [];
-
-    const alternates = versions.map((version) => ({ hreflang: version.locale, href: urlOf(version) }));
-    const fallback = versions.find((version) => version.locale === DEFAULT_LOCALE);
-    return fallback ? [...alternates, { hreflang: 'x-default', href: urlOf(fallback) }] : alternates;
-  };
+  const alternatesOf = (article: SitemapArticleDto): SitemapAlternate[] =>
+    hreflangAlternates((groups.get(article.translationGroupId) ?? []).map((version) => ({ locale: version.locale, url: urlOf(version) })));
 
   return [
     { loc: siteUrlFor('/', siteUrl), lastmod: null, alternates: [] },

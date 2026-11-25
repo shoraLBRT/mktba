@@ -233,6 +233,8 @@ const ArticlePage: React.FC = () => {
         <ArticleMeta
           meta={articleContent.meta}
           slug={articleContent.slug}
+          locale={articleContent.locale}
+          translations={articleContent.translations}
           publishedAt={articleContent.publishedAt}
           updatedAt={articleContent.updatedAt}
         />

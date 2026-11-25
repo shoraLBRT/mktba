@@ -107,7 +107,7 @@ public sealed class ArticleLocaleEndpointTests : IClassFixture<MktbaApiFactory>
 
         englishRead!.TranslationGroupId.Should().Be(russian.TranslationGroupId);
         englishRead.Translations.Should().ContainSingle().Which.Should().Be(
-            new ArticleTranslationDto(russian.Id, "ru", "zakyat", "Закят", Domain.Entities.ArticleStatus.Published));
+            new ArticleTranslationDto(russian.Id, "ru", "zakyat", "Закят", Domain.Entities.ArticleStatus.Published, NoIndex: false));
         englishRead.TranslatedFrom.Should().BeNull();
         russianRead!.Translations.Should().ContainSingle().Which.ArticleId.Should().Be(english.Id);
 

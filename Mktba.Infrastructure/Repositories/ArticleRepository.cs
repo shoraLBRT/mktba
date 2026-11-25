@@ -452,11 +452,12 @@ namespace Mktba.Infrastructure.Repositories
                     LatestRevision = _context.ArticleRevisions
                         .Where(revision => revision.ArticleId == article.Id)
                         .Max(revision => (int?)revision.Number) ?? 0,
+                    article.NoIndex,
                 })
                 .ToListAsync(cancellationToken);
             return rows
                 .Select(row => new ArticleTranslationRow(
-                    row.Id, row.Locale, row.Slug, row.Title, row.Status, row.AuthorId, row.CoAuthorIds, row.LatestRevision))
+                    row.Id, row.Locale, row.Slug, row.Title, row.Status, row.AuthorId, row.CoAuthorIds, row.LatestRevision, row.NoIndex))
                 .ToList();
         }
 
