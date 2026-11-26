@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { API_URL, adminCredentials, declineAnalytics } from './helpers';
+import { API_URL, adminCredentials, declineAnalytics, logIn } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await declineAnalytics(page);
@@ -68,6 +68,75 @@ test('a reader applies for the scholar status with a private document and can wi
   await expect(page.getByTestId('scholar-application-status')).toHaveText('Отозвана');
   await expect(page.getByRole('form', { name: 'Новая заявка' })).toBeVisible();
   expect((await request.get(documentUrl, { headers: admin })).status()).toBe(404);
+
+  await page.setViewportSize({ width: 375, height: 700 });
+  expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);
+});
+
+// V-02 (#118): the admin refuses an application with a reason the applicant sees, then approves
+// the next one, which makes the applicant a scholar.
+test('an admin refuses one application with a reason and approves the next', async ({ page, request }) => {
+  const stamp = Date.now();
+  const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
+  const admin = { Authorization: `Bearer ${(await login.json() as { accessToken: string }).accessToken}` };
+  const invite = await request.post(`${API_URL}/invites`, { headers: admin, data: { role: 'Reader' } });
+  const { token } = await invite.json() as { token: string };
+  const email = `scholar-review-${stamp}@mktba.local`;
+  const password = 'E2e-reader-password-1';
+  expect((await request.post(`${API_URL}/auth/register`, { data: { email, password, inviteToken: token } })).ok()).toBe(true);
+  const applicantLogin = await request.post(`${API_URL}/auth/login`, { data: { email, password } });
+  const own = { Authorization: `Bearer ${(await applicantLogin.json() as { accessToken: string }).accessToken}` };
+  const apply = async () => {
+    const response = await request.post(`${API_URL}/scholar-application`, {
+      headers: own,
+      multipart: {
+        degree: 'Доктор исламских наук',
+        institution: 'Университет аль-Азхар',
+        specialization: 'Фикх',
+        documents: { name: 'диплом.pdf', mimeType: 'application/pdf', buffer: PDF },
+      },
+    });
+    expect(response.status()).toBe(201);
+    return (await response.json() as { id: number }).id;
+  };
+
+  const first = await apply();
+  await logIn(page);
+  await page.getByRole('navigation', { name: 'Разделы админки' }).first().getByRole('link', { name: 'Заявки учёных' }).click();
+  await expect(page).toHaveURL(/\/admin\/scholar-applications$/);
+  await expect(page.getByTestId(`scholar-review-row-${first}`)).toContainText(email);
+  await page.getByRole('link', { name: `Открыть заявку ${first}` }).click();
+  await expect(page.getByTestId('scholar-review-status')).toHaveText('Ждёт проверки');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Скачать диплом.pdf' }).click();
+  expect((await download).suggestedFilename()).toBe('диплом.pdf');
+
+  await page.getByRole('button', { name: 'Отклонить' }).click();
+  await page.getByLabel('Причина (её увидит автор заявки)').fill('Скан нечитаем, приложите другой.');
+  const { violations } = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(
+    violations
+      .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+      .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`),
+  ).toEqual([]);
+  await page.getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(page.getByTestId('scholar-review-status')).toHaveText('Отклонена');
+
+  const refused = await (await request.get(`${API_URL}/scholar-application`, { headers: own })).json() as {
+    canApply: boolean;
+    application: { status: string; decisionReason: string; documents: unknown[] };
+  };
+  expect(refused.canApply).toBe(true);
+  expect(refused.application).toMatchObject({ status: 'Rejected', decisionReason: 'Скан нечитаем, приложите другой.', documents: [] });
+
+  const second = await apply();
+  await page.goto(`/admin/scholar-applications/${second}`);
+  await page.getByRole('button', { name: 'Одобрить' }).click();
+  await page.getByRole('button', { name: 'Да, одобрить' }).click();
+  await expect(page.getByTestId('scholar-review-status')).toHaveText('Одобрена');
+  await expect(page.getByRole('button', { name: 'Отозвать статус учёного' })).toBeVisible();
+  const me = await (await request.get(`${API_URL}/auth/me`, { headers: own })).json() as { role: string };
+  expect(me.role).toBe('Scholar');
 
   await page.setViewportSize({ width: 375, height: 700 });
   expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);

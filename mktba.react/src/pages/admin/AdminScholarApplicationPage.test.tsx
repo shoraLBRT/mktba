@@ -97,7 +97,7 @@ describe('AdminScholarApplicationPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Да, отозвать' }));
 
     await waitFor(() => expect(screen.getByTestId('scholar-application-status').textContent).toBe('Отозвана'));
-    expect(screen.getByText('Документов нет: они удалены вместе с отзывом заявки.')).toBeTruthy();
+    expect(screen.getByText('Документов нет: они удалены, когда заявку отозвали, отклонили или отозвали статус учёного.')).toBeTruthy();
     expect(screen.getByRole('form', { name: 'Новая заявка' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Отозвать заявку' })).toBeNull();
   });
@@ -118,6 +118,20 @@ describe('AdminScholarApplicationPage', () => {
     expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe('диплом.pdf');
     await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:document'));
     click.mockRestore();
+  });
+
+  it('given a refused application, when the page opens, then the reason is shown and a new application may be sent', async () => {
+    vi.mocked(getMyScholarApplication).mockResolvedValue({
+      canApply: true,
+      application: { ...pending, status: 'Rejected', closedAt: '2026-11-27T10:00:00Z', documents: [], decisionReason: 'Скан нечитаем.' },
+    });
+    renderPage();
+
+    expect((await screen.findByTestId('scholar-application-status')).textContent).toBe('Отклонена');
+    const reason = screen.getByTestId('scholar-application-reason');
+    expect(within(reason).getByText('Причина отказа')).toBeTruthy();
+    expect(within(reason).getByText('Скан нечитаем.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Отправить заявку' })).toBeTruthy();
   });
 
   it('given a scholar without an application, when the page opens, then it explains who applies and shows no form', async () => {

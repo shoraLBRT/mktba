@@ -16,6 +16,9 @@ const AUDIT_ACTIONS: readonly AuditAction[] = [
   'ArticleRestored',
   'ArticlePurged',
   'UserRoleChanged',
+  'ScholarApplicationApproved',
+  'ScholarApplicationRejected',
+  'ScholarStatusRevoked',
 ];
 
 const PAGE_SIZE = 50;
@@ -58,7 +61,7 @@ const AdminAuditLogPage = () => {
   };
 
   const target = (entry: AuditLogEntryDto) => {
-    if (entry.action === 'UserRoleChanged') return userLabel(entry.targetUserId, entry.targetUser);
+    if (entry.targetUserId !== null && entry.targetUserId !== undefined) return userLabel(entry.targetUserId, entry.targetUser);
     if (entry.articleId === null || entry.articleId === undefined) return '';
     const title = entry.articleTitle ?? formatMessage(t.articleFallback, { id: entry.articleId });
     return entry.articleAvailable ? (

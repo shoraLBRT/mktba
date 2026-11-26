@@ -27,6 +27,8 @@ export const APP_CONSTANTS = {
     ADMIN_TRASH: 'adminTrash',
     ADMIN_AUDIT_LOG: 'adminAuditLog',
     MY_SCHOLAR_APPLICATION: 'myScholarApplication',
+    SCHOLAR_APPLICATIONS: 'scholarApplications',
+    SCHOLAR_APPLICATION_REVIEW: 'scholarApplicationReview',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
   },

@@ -13,7 +13,7 @@ namespace Mktba.Api.Endpoints;
 
 /// <summary>
 /// The signed-in user's application for the scholar status (V-01, #117) and its documents. The
-/// admin's review of applications is V-02 (#118).
+/// admin's review of applications is <see cref="ScholarApplicationReviewEndpoints"/> (V-02, #118).
 /// </summary>
 public static class ScholarApplicationEndpoints
 {
@@ -109,9 +109,9 @@ public static class ScholarApplicationEndpoints
                     ? Results.Ok(await service.WithdrawAsync(userId, cancellationToken))
                     : ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized))
             .WithSummary("Withdraws the signed-in user's pending application and deletes its documents.")
-            .WithDescription("Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending.")
+            .WithDescription("Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending; 409 scholar_application_not_pending when an admin decided first.")
             .Produces<MyScholarApplicationDto>()
-            .ProducesApiProblem(StatusCodes.Status401Unauthorized, StatusCodes.Status404NotFound);
+            .ProducesApiProblem(StatusCodes.Status401Unauthorized, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
 
         group.MapGet("/documents/{id:int}", async (int id, ClaimsPrincipal principal, HttpResponse response, ScholarApplicationService service, CancellationToken cancellationToken) =>
             {

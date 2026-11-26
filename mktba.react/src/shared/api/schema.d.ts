@@ -3607,7 +3607,7 @@ export interface paths {
         put?: never;
         /**
          * Withdraws the signed-in user's pending application and deletes its documents.
-         * @description Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending.
+         * @description Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending; 409 scholar_application_not_pending when an admin decided first.
          */
         post: {
             parameters: {
@@ -3638,6 +3638,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };

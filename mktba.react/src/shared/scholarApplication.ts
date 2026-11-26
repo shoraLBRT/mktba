@@ -1,3 +1,4 @@
+import type { ScholarApplicantDto, ScholarApplicationStatus } from './types/ApiTypes';
 import { UPLOAD_MAX_BYTES } from './upload';
 
 /**
@@ -64,3 +65,13 @@ export const buildScholarApplicationForm = (draft: ScholarApplicationDraft): For
   for (const file of draft.documents) form.append('documents', file, file.name);
   return form;
 };
+
+/** The statuses of an application, in the order of the API's enum (V-02, #118: the admin's filter). */
+export const SCHOLAR_APPLICATION_STATUSES: readonly ScholarApplicationStatus[] = ['Pending', 'Approved', 'Rejected', 'Withdrawn', 'Revoked'];
+
+/** Must match `ScholarApplication.ReasonMaxLength` on the server. */
+export const SCHOLAR_DECISION_REASON_MAX_LENGTH = 1000;
+
+/** The applicant as the admin sees them: the name and the email, or the email alone. */
+export const applicantLabel = (applicant: ScholarApplicantDto): string =>
+  applicant.displayName ? `${applicant.displayName} (${applicant.email})` : applicant.email;
