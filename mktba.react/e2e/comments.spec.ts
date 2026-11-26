@@ -51,7 +51,7 @@ test('a reader comments under an article, answers, edits and deletes; the server
   await expect(firstComment).toContainText(name);
   await expect(firstComment.locator('strong')).toHaveText('Спасибо');
   await expect(firstComment.getByRole('link', { name: 'источник' })).toHaveAttribute('rel', 'nofollow ugc noopener noreferrer');
-  expect(await page.evaluate(() => (window as { __commentXss?: number }).__commentXss)).toBeUndefined();
+  expect(await page.evaluate(() => (globalThis as { __commentXss?: number }).__commentXss)).toBeUndefined();
   await expect(comments.getByTestId('comments-sign-in')).toBeVisible();
   expect(await seriousViolations(page)).toEqual([]);
 
