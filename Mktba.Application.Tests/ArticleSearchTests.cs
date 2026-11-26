@@ -203,6 +203,69 @@ public class ArticleSearchTests : IClassFixture<PostgresDatabaseFixture>
     }
 
     [Fact]
+    public async Task GivenArticlesWithAndWithoutCurrentConfirmations_WhenSearchedForVerifiedOnly_ThenOnlyVerifiedOnesAreFoundAndMarked()
+    {
+        var confirmed = await SaveAsync(Published("Фидья с золота", "fidya-zoloto"));
+        var sameText = await SaveAsync(Published("Фидья с серебра", "fidya-serebro"));
+        var stale = await SaveAsync(Published("Фидья с урожая", "fidya-urozhai"));
+        var disputed = await SaveAsync(Published("Фидья со скота", "fidya-skot"));
+        await SaveAsync(Published("Фидья с денег", "fidya-dengi"));
+
+        await using (var context = _database.CreateContext())
+        {
+            var scholar = new User { Email = $"{Guid.NewGuid():N}@mktba.test", Role = UserRole.Scholar };
+            var critic = new User { Email = $"{Guid.NewGuid():N}@mktba.test", Role = UserRole.Scholar };
+            context.Users.AddRange(scholar, critic);
+            await context.SaveChangesAsync();
+            foreach (var user in new[] { scholar, critic })
+            {
+                context.ScholarApplications.Add(new ScholarApplication
+                {
+                    UserId = user.Id, Degree = "Доктор наук", Institution = "Университет", Specialization = "Фикх",
+                    Status = ScholarApplicationStatus.Approved, SubmittedAt = DateTime.UtcNow, ClosedAt = DateTime.UtcNow,
+                    RoleBeforeApproval = UserRole.Reader,
+                });
+            }
+
+            // The reviewed revision is 1; the latest is 2 with the same text (still current) or another (stale).
+            ArticleRevision Revision(Article article, int number, char hash) => new()
+            {
+                ArticleId = article.Id, Number = number, CreatedAt = DateTime.UtcNow, Snapshot = "{}",
+                Fingerprints = [new ArticleRevisionFingerprint { Scope = ArticleRevisionFingerprint.WholeArticle, Hash = new string(hash, 64) }],
+            };
+            ArticleReview Review(Article article, ArticleRevision revision, User user, ArticleReviewVerdict verdict) => new()
+            {
+                ArticleId = article.Id, Revision = revision, ScholarId = user.Id, Verdict = verdict, Comment = "Комментарий",
+                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            };
+
+            var confirmedRevision = Revision(confirmed, 1, 'a');
+            var sameTextRevision = Revision(sameText, 1, 'b');
+            var staleRevision = Revision(stale, 1, 'c');
+            var disputedRevision = Revision(disputed, 1, 'd');
+            context.ArticleRevisions.AddRange(
+                confirmedRevision, sameTextRevision, Revision(sameText, 2, 'b'), staleRevision, Revision(stale, 2, 'e'), disputedRevision);
+            context.ArticleReviews.AddRange(
+                Review(confirmed, confirmedRevision, scholar, ArticleReviewVerdict.Confirmed),
+                Review(sameText, sameTextRevision, scholar, ArticleReviewVerdict.ConfirmedWithRemarks),
+                Review(stale, staleRevision, scholar, ArticleReviewVerdict.Confirmed),
+                Review(disputed, disputedRevision, scholar, ArticleReviewVerdict.Confirmed),
+                Review(disputed, disputedRevision, critic, ArticleReviewVerdict.HasErrors));
+            await context.SaveChangesAsync();
+        }
+
+        var all = await SearchAsync("фидья");
+        await using var searchContext = _database.CreateContext();
+        var verifiedOnly = await new ArticleSearchService(new ArticleSearchRepository(searchContext))
+            .SearchAsync("фидья", null, 1, 10, verifiedOnly: true);
+
+        all.Total.Should().Be(5);
+        all.Items.Where(item => item.IsVerified).Select(item => item.Id).Should().BeEquivalentTo([confirmed.Id, sameText.Id]);
+        verifiedOnly.Total.Should().Be(2);
+        verifiedOnly.Items.Select(item => (item.Id, item.IsVerified)).Should().BeEquivalentTo([(confirmed.Id, true), (sameText.Id, true)]);
+    }
+
+    [Fact]
     public async Task GivenOutOfRangePaging_WhenSearched_ThenPageAndPageSizeAreClamped()
     {
         var results = await SearchAsync("ничегонет", page: -3, pageSize: 1000);

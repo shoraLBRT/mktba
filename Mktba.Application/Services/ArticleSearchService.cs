@@ -36,9 +36,11 @@ namespace Mktba.Application.Services
         /// <param name="requestedLocale">Language of the articles; null or blank means <see cref="Locales.Default"/>.</param>
         /// <param name="page">Page from 1; kept within 1 to <see cref="MaxPage"/>.</param>
         /// <param name="pageSize">Results per page; kept within 1 to <see cref="MaxPageSize"/>.</param>
+        /// <param name="verifiedOnly">Only the articles that count as verified by scholars (V-08, #124).</param>
         /// <exception cref="ValidationException">search_query_too_short, search_query_too_long, locale_unsupported.</exception>
         public async Task<SearchResultsDto> SearchAsync(
-            string? query, string? requestedLocale, int page, int pageSize, CancellationToken cancellationToken = default)
+            string? query, string? requestedLocale, int page, int pageSize, bool verifiedOnly = false,
+            CancellationToken cancellationToken = default)
         {
             var text = NormalizeQuery(query);
             if (text.Length < MinQueryLength)
@@ -55,7 +57,7 @@ namespace Mktba.Application.Services
             var take = Math.Clamp(pageSize, 1, MaxPageSize);
 
             var rows = await _searchRepository.SearchAsync(
-                FoldYo(text), text, locale, (currentPage - 1) * take, take, cancellationToken);
+                FoldYo(text), text, locale, (currentPage - 1) * take, take, verifiedOnly, cancellationToken);
 
             var items = rows
                 .Where(row => row.Id is not null)
@@ -65,7 +67,8 @@ namespace Mktba.Application.Services
                     ParseSegments(row.Title!),
                     row.Summary is null ? null : ParseSegments(row.Summary),
                     row.Snippet is null ? null : ParseSegments(row.Snippet),
-                    row.Snippet is null ? null : row.ParagraphId))
+                    row.Snippet is null ? null : row.ParagraphId,
+                    row.IsVerified))
                 .ToList();
 
             return new SearchResultsDto(text, rows.Count == 0 ? 0 : rows[0].Total, currentPage, take, items);
@@ -77,7 +80,7 @@ namespace Mktba.Application.Services
         /// </summary>
         /// <exception cref="ValidationException">search_query_too_short, search_query_too_long.</exception>
         public async Task<int> CountAsync(string query, CancellationToken cancellationToken = default)
-            => (await SearchAsync(query, null, 1, 1, cancellationToken)).Total;
+            => (await SearchAsync(query, null, 1, 1, cancellationToken: cancellationToken)).Total;
 
         /// <summary>Trims the query, collapses whitespace and drops the characters that mark matches.</summary>
         public static string NormalizeQuery(string? query)

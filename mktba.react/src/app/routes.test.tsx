@@ -238,7 +238,7 @@ describe('language in the URL (I-01, #105)', () => {
 
   it('given /en/, when rendered, then the tree and the home lists are asked in English and link /en/ (I-06, #110)', async () => {
     vi.mocked(getNavigationTree).mockResolvedValue([
-      { id: 3, title: 'Prayer', slug: 'prayer', locale: 'en', status: 'Published', hasContent: true, canEdit: false, children: [] },
+      { id: 3, title: 'Prayer', slug: 'prayer', locale: 'en', status: 'Published', hasContent: true, canEdit: false, isVerified: false, children: [] },
     ]);
     vi.mocked(getRecentArticles).mockResolvedValue({
       new: [{ id: 3, title: 'Prayer', slug: 'prayer', summary: null, publishedAt: '2026-11-01T09:00:00Z', updatedAt: '2026-11-01T09:00:00Z' }],

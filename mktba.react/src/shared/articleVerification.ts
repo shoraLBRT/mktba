@@ -43,3 +43,18 @@ export const groupMarksByMazhab = (
     .map(([mazhab, items]) => ({ mazhab, marks: items }))
     .sort((a, b) => rank(a.mazhab) - rank(b.mazhab));
 };
+
+/** A scholar the page names as its reviewer (V-08, #124). */
+export type ReviewerMark = { name: string; slug: string | null; reviewedAt: string };
+
+/**
+ * The scholars Schema.org's `reviewedBy` names (V-08, #124): the rule of `VerifiedArticles` on the
+ * server — at least one current confirmation (with or without remarks) and no current «есть ошибки»,
+ * else nobody — then, of the current confirmations, those with a public name, in the API's order.
+ */
+export const reviewersOf = (marks: readonly ArticleVerificationMarkDto[]): ReviewerMark[] => {
+  const current = marks.filter((mark) => mark.isCurrent);
+  if (current.some((mark) => mark.verdict === 'HasErrors')) return [];
+  return current.flatMap((mark) =>
+    mark.scholarName ? [{ name: mark.scholarName, slug: mark.scholarSlug ?? null, reviewedAt: mark.reviewedAt }] : []);
+};

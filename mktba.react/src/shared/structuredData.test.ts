@@ -5,6 +5,7 @@ import {
   organizationNode,
   serializeJsonLd,
   structuredDataGraph,
+  webPageNode,
   webSiteNode,
 } from './structuredData';
 
@@ -93,6 +94,31 @@ describe('structured data builders', () => {
     expect(article).not.toHaveProperty('description');
     expect(article).not.toHaveProperty('datePublished');
     expect(article).not.toHaveProperty('dateModified');
+  });
+
+  it('given reviewers, when building WebPage, then it names them in reviewedBy with the latest date and the Article as its main entity (V-08, #124)', () => {
+    const page = webPageNode(site, {
+      path: '/salat',
+      headline: 'Намаз',
+      reviewers: [
+        { name: 'Абдулла', path: '/authors/abdulla', reviewedAt: '2026-11-20T10:00:00Z' },
+        { name: 'Юсуф', path: null, reviewedAt: '2026-11-26T10:00:00Z' },
+      ],
+    });
+
+    expect(page).toEqual({
+      '@id': 'https://mktba.ru/salat#webpage',
+      '@type': 'WebPage',
+      name: 'Намаз',
+      url: 'https://mktba.ru/salat',
+      inLanguage: 'ru',
+      isPartOf: { '@id': 'https://mktba.ru/#website' },
+      mainEntity: { '@id': 'https://mktba.ru/salat#article' },
+      reviewedBy: [{ '@id': 'https://mktba.ru/authors/abdulla#person' }, { '@type': 'Person', name: 'Юсуф' }],
+      lastReviewed: '2026-11-26T10:00:00Z',
+    });
+    expect(webPageNode(site, { path: '/salat', headline: 'Намаз', reviewers: [] })).toBeNull();
+    expect(webPageNode(site, { path: '/salat', headline: 'Намаз' })).toBeNull();
   });
 
   it('given a trail, when building BreadcrumbList, then positions start at 1 and items are absolute', () => {

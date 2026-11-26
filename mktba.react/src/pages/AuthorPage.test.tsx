@@ -29,8 +29,8 @@ const articles = (overrides: Partial<AuthorArticlesDto> = {}): AuthorArticlesDto
   page: 1,
   pageSize: 20,
   items: [
-    { id: 2, title: 'Условия намаза', slug: 'salat', summary: 'Кратко о намазе', publishedAt: '2026-11-02T10:00:00Z', updatedAt: '2026-11-05T10:00:00Z' },
-    { id: 1, title: 'Закят', slug: 'zakyat', summary: null, publishedAt: '2026-10-01T10:00:00Z', updatedAt: '2026-10-01T10:00:00Z' },
+    { id: 2, title: 'Условия намаза', slug: 'salat', summary: 'Кратко о намазе', publishedAt: '2026-11-02T10:00:00Z', updatedAt: '2026-11-05T10:00:00Z', isVerified: false },
+    { id: 1, title: 'Закят', slug: 'zakyat', summary: null, publishedAt: '2026-10-01T10:00:00Z', updatedAt: '2026-10-01T10:00:00Z', isVerified: true },
   ],
   ...overrides,
 });

@@ -10,6 +10,8 @@ import {
   SEARCH_MIN_QUERY_LENGTH,
   SEARCH_PATH,
   SEARCH_QUERY_PARAM,
+  SEARCH_VERIFIED_PARAM,
+  SEARCH_VERIFIED_VALUE,
   searchHref,
 } from '../../shared/search';
 import { Button } from '../../shared/ui/Button';
@@ -20,6 +22,11 @@ type SearchFormProps = {
   initialQuery?: string;
   /** Focus the field when the form appears (the Ctrl+K dialog). */
   autoFocus?: boolean;
+  /**
+   * Show the «только проверенные» checkbox (V-08, #124) with this state: the results page has it,
+   * the dialog and the home page do not. A change submits the form at once.
+   */
+  verifiedFilter?: boolean;
   className?: string;
 };
 
@@ -27,18 +34,20 @@ type SearchFormProps = {
  * The site search field (R-10, #46). A plain GET form to the results page, so it works before the
  * scripts load; with them it navigates without a page load.
  */
-export const SearchForm = ({ initialQuery = '', autoFocus = false, className }: SearchFormProps) => {
+export const SearchForm = ({ initialQuery = '', autoFocus = false, verifiedFilter, className }: SearchFormProps) => {
   const t = useLocale().search.form;
   const localize = useLocalizedPath();
   const navigate = useNavigate();
   const inputId = useId();
+  const verifiedId = useId();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const query = normalizeSearchQuery(new FormData(event.currentTarget).get(SEARCH_QUERY_PARAM)?.toString());
+    const data = new FormData(event.currentTarget);
+    const query = normalizeSearchQuery(data.get(SEARCH_QUERY_PARAM)?.toString());
     trackGoal(METRIKA_GOALS.search);
     trackEvent({ type: 'Search', query });
-    navigate(localize(searchHref(query)));
+    navigate(localize(searchHref(query, 1, data.get(SEARCH_VERIFIED_PARAM) === SEARCH_VERIFIED_VALUE)));
   };
 
   return (
@@ -67,6 +76,20 @@ export const SearchForm = ({ initialQuery = '', autoFocus = false, className }: 
           {t.submit}
         </Button>
       </div>
+      {verifiedFilter !== undefined && (
+        <div className="mt-3 flex items-center gap-2 text-sm text-[var(--color-ink-default)]">
+          <input
+            id={verifiedId}
+            type="checkbox"
+            name={SEARCH_VERIFIED_PARAM}
+            value={SEARCH_VERIFIED_VALUE}
+            defaultChecked={verifiedFilter}
+            onChange={(event) => event.currentTarget.form?.requestSubmit()}
+            className="h-4 w-4 accent-[var(--color-brand-forest)]"
+          />
+          <label htmlFor={verifiedId}>{t.verifiedOnly}</label>
+        </div>
+      )}
     </form>
   );
 };

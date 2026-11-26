@@ -50,6 +50,7 @@ public class TagService
         var tagged = await _tags.GetPublishedArticleIdsAsync(tag.Id, cancellationToken);
         var rows = await _articles.GetRecentRowsAsync(cancellationToken);
         var isReachable = ArticleReachability.Among(rows);
+        var verified = await _articles.GetVerifiedIdsAsync(cancellationToken);
         var listed = rows
             .Where(row => tagged.Contains(row.Id) && row.HasContent && row.PublishedAt is not null && isReachable(row))
             .OrderByDescending(row => row.PublishedAt)
@@ -69,7 +70,7 @@ public class TagService
             listed
                 .Skip((int)Math.Min((long)(currentPage - 1) * size, int.MaxValue))
                 .Take(size)
-                .Select(row => new AuthorArticleDto(row.Id, row.Title, row.Slug, row.Summary, row.PublishedAt!.Value, row.UpdatedAt))
+                .Select(row => new AuthorArticleDto(row.Id, row.Title, row.Slug, row.Summary, row.PublishedAt!.Value, row.UpdatedAt, verified.Contains(row.Id)))
                 .ToList());
     }
 

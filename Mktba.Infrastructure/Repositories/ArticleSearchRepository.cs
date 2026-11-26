@@ -23,6 +23,9 @@ namespace Mktba.Infrastructure.Repositories
 
         /// <summary>The paragraph <see cref="Snippet"/> comes from.</summary>
         public int? ParagraphId { get; init; }
+
+        /// <summary>True when the article counts as verified (<see cref="VerifiedArticles"/>, V-08, #124).</summary>
+        public bool IsVerified { get; init; }
     }
 
     /// <summary>
@@ -63,15 +66,22 @@ namespace Mktba.Infrastructure.Repositories
         /// <param name="locale">A supported locale code.</param>
         /// <param name="skip">Matching articles to skip.</param>
         /// <param name="take">Page size.</param>
-        public Task<List<ArticleSearchRow>> SearchAsync(
-            string foldedQuery, string rawQuery, string locale, int skip, int take, CancellationToken cancellationToken = default)
+        /// <param name="verifiedOnly">Only the articles that count as verified (<see cref="VerifiedArticles"/>, V-08, #124).</param>
+        public async Task<List<ArticleSearchRow>> SearchAsync(
+            string foldedQuery, string rawQuery, string locale, int skip, int take, bool verifiedOnly = false,
+            CancellationToken cancellationToken = default)
         {
             var published = ArticleStatus.Published.ToString();
+
+            // The rule lives in one LINQ query (VerifiedArticles) and the verified set is small next to
+            // the articles: it is read first and passed in as an array rather than written again in SQL,
+            // both for the filter and for each result's mark.
+            var verified = (await VerifiedArticles.LoadIdsAsync(_context, cancellationToken)).ToArray();
 
             // The indexes find the articles holding any of the words in one of their rows (the article
             // or an opinion); the words may be spread over the title and several opinions, so the
             // "every word" test runs on the article's rows put together.
-            return _context.Database
+            return await _context.Database
                 .SqlQuery<ArticleSearchRow>($"""
                     WITH RECURSIVE reachable AS (
                         SELECT a."Id" FROM "Articles" a
@@ -106,6 +116,7 @@ namespace Mktba.Infrastructure.Repositories
                         WHERE a."Locale" = {locale}
                             AND a."Id" IN (SELECT c."Id" FROM candidates c)
                             AND a."Id" IN (SELECT r."Id" FROM reachable r)
+                            AND (NOT {verifiedOnly} OR a."Id" = ANY({verified}))
                     ),
                     matched AS (
                         SELECT d."Id", d."Slug", d."Title", d."Summary", ts_rank(d."Document", q.all_terms) AS "Rank"
@@ -128,7 +139,8 @@ namespace Mktba.Infrastructure.Repositories
                             ts_headline(mktba_search_config({locale}),
                                 mktba_search_plain_text(best."Content"), q.marks, {FragmentOptions})
                         END AS "Snippet",
-                        best."ParagraphId"
+                        best."ParagraphId",
+                        coalesce(pg."Id" = ANY({verified}), false) AS "IsVerified"
                     FROM (SELECT count(*)::int AS "Total" FROM matched) t
                     CROSS JOIN q
                     LEFT JOIN page pg ON true

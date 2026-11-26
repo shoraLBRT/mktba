@@ -6,6 +6,7 @@ import { useLocale, useLocalizedPath } from '../../localization/hooks';
 import { paragraphAnchorId } from '../../shared/articleOutline';
 import type { CitedSource } from '../../shared/articleSources';
 import { articleHref } from '../../shared/slug';
+import { VerifiedMark } from './VerifiedMark';
 
 /** An article the bottom of the page leads to. */
 export type FooterArticle = {
@@ -18,6 +19,8 @@ export type FooterArticle = {
 export type FooterChildArticle = FooterArticle & {
   /** False for a stub: it has no page worth opening, so its title is shown without a link. */
   hasContent: boolean;
+  /** True when it counts as verified by scholars (V-08, #124): marked «Проверено учёными». */
+  isVerified?: boolean;
 };
 
 type ArticleFooterProps = {
@@ -103,7 +106,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
             {childArticles.map((child) => (
               <li key={child.id} className={child.hasContent ? undefined : 'text-[var(--color-ink-muted)] [overflow-wrap:anywhere]'}>
                 {child.hasContent
-                  ? <Link to={localize(articleHref(child.slug))} className={linkClass}>{child.title}</Link>
+                  ? <><Link to={localize(articleHref(child.slug))} className={linkClass}>{child.title}</Link>{child.isVerified && <VerifiedMark />}</>
                   : child.title}
               </li>
             ))}

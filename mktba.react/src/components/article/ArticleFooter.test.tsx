@@ -53,14 +53,15 @@ describe('ArticleFooter', () => {
   it('given child articles, when rendered, then they are listed in order under a second-level heading', () => {
     renderFooter({
       childArticles: [
-        { id: 2, slug: 'usloviya', title: 'Условия намаза', hasContent: true },
+        { id: 2, slug: 'usloviya', title: 'Условия намаза', hasContent: true, isVerified: true },
         { id: 3, slug: 'vremya', title: 'Время намаза', hasContent: true },
       ],
     });
 
     const block = screen.getByRole('navigation', { name: 'В этом разделе' });
     expect(within(block).getByRole('heading', { level: 2, name: 'В этом разделе' }).tagName).toBe('H2');
-    expect(within(block).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Условия намаза', 'Время намаза']);
+    // V-08 (#124): a verified child carries the mark.
+    expect(within(block).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Условия намаза✓Проверено учёными', 'Время намаза']);
     expect(hrefs(block)).toEqual(['/usloviya', '/vremya']);
   });
 

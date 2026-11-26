@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupMarksByMazhab, summarizeMarks } from './articleVerification';
+import { groupMarksByMazhab, reviewersOf, summarizeMarks } from './articleVerification';
 import type { ArticleVerificationMarkDto } from './types/ApiTypes';
 
 const mark = (overrides: Partial<ArticleVerificationMarkDto>): ArticleVerificationMarkDto => ({
@@ -12,6 +12,26 @@ const mark = (overrides: Partial<ArticleVerificationMarkDto>): ArticleVerificati
   isLatestRevision: true,
   isCurrent: true,
   ...overrides,
+});
+
+describe('reviewersOf (V-08, #124)', () => {
+  it('given current confirmations, when read, then the named ones are the reviewers and stale or nameless ones are not', () => {
+    expect(reviewersOf([
+      mark({ scholarName: 'Абдулла', scholarSlug: 'abdulla', reviewedAt: '2026-11-26T10:00:00Z' }),
+      mark({ scholarName: 'Юсуф', verdict: 'ConfirmedWithRemarks', mazhab: 'hanafi', reviewedAt: '2026-11-20T10:00:00Z' }),
+      mark({ scholarName: null }),
+      mark({ scholarName: 'Карим', isCurrent: false, isLatestRevision: false }),
+      mark({ scholarName: 'Хасан', verdict: 'HasErrors', isCurrent: false, isLatestRevision: false }),
+    ])).toEqual([
+      { name: 'Абдулла', slug: 'abdulla', reviewedAt: '2026-11-26T10:00:00Z' },
+      { name: 'Юсуф', slug: null, reviewedAt: '2026-11-20T10:00:00Z' },
+    ]);
+  });
+
+  it('given a current «есть ошибки», when read, then nobody is named, as the article is not verified', () => {
+    expect(reviewersOf([mark({ scholarName: 'Абдулла' }), mark({ verdict: 'HasErrors' })])).toEqual([]);
+    expect(reviewersOf([])).toEqual([]);
+  });
 });
 
 describe('articleVerification', () => {

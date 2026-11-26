@@ -52,6 +52,7 @@ namespace Mktba.Application.Services
 
             var rows = await _articleRepository.GetRecentRowsAsync(cancellationToken);
             var isReachable = ArticleReachability.Among(rows);
+            var verified = await _articleRepository.GetVerifiedIdsAsync(cancellationToken);
 
             var items = rows
                 .Where(row => row.HasContent && row.PublishedAt is not null && row.Locale == locale && isReachable(row))
@@ -61,7 +62,7 @@ namespace Mktba.Application.Services
                 .ThenByDescending(x => x.Row.PublishedAt)
                 .ThenByDescending(x => x.Row.Id)
                 .Take(take)
-                .Select(x => new PopularArticleDto(x.Row.Id, x.Row.Title, x.Row.Slug, x.Row.Summary))
+                .Select(x => new PopularArticleDto(x.Row.Id, x.Row.Title, x.Row.Slug, x.Row.Summary, verified.Contains(x.Row.Id)))
                 .ToList();
 
             return new PopularArticlesDto(Days, items);

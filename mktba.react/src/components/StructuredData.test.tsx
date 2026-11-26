@@ -64,6 +64,33 @@ describe('StructuredData', () => {
     expect(nodes[2]).toMatchObject({ author: [{ '@id': nodes[4]['@id'] }] });
   });
 
+  it('given scholars who confirmed it, when rendered, then a WebPage names them in reviewedBy and a reviewer with a page gets one Person (V-08, #124)', () => {
+    const { container } = renderOnSite(
+      <ArticleStructuredData
+        article={{
+          path: '/salat',
+          headline: 'Салат',
+          authors: [{ name: 'Ахмад Иванов', path: '/authors/ahmad-ivanov' }],
+          reviewers: [
+            { name: 'Ахмад Иванов', path: '/authors/ahmad-ivanov', reviewedAt: '2026-11-20T10:00:00Z' },
+            { name: 'Абдулла', path: '/authors/abdulla', reviewedAt: '2026-11-21T10:00:00Z' },
+            { name: 'Юсуф', path: null, reviewedAt: '2026-11-22T10:00:00Z' },
+          ],
+        }}
+        breadcrumbs={[{ name: 'Салат', path: '/salat' }]}
+      />,
+    );
+
+    const nodes = renderedGraph(container)['@graph'];
+    expect(nodes.map((node) => node['@type'])).toEqual(['Organization', 'WebSite', 'Article', 'WebPage', 'BreadcrumbList', 'Person', 'Person']);
+    expect(nodes[3]).toMatchObject({
+      mainEntity: { '@id': nodes[2]['@id'] },
+      reviewedBy: [{ '@id': nodes[5]['@id'] }, { '@id': nodes[6]['@id'] }, { '@type': 'Person', name: 'Юсуф' }],
+      lastReviewed: '2026-11-22T10:00:00Z',
+    });
+    expect(nodes[6]).toMatchObject({ '@id': 'https://mktba.ru/authors/abdulla#person', name: 'Абдулла' });
+  });
+
   it('given a headline with a closing script tag, when rendered, then the script is not broken and the headline survives', () => {
     const headline = '</script><img src=x onerror=alert(1)>';
     const { container } = renderOnSite(
