@@ -1,4 +1,4 @@
-import { articleLocaleQuery, type Language } from '../../localization/language';
+import { articleLocaleParams, articleLocaleQuery, type Language } from '../../localization/language';
 import apiClient from '../../shared/api-client/ApiClient';
 import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../../shared/search';
 import type { ArticleContentCreateDto, ArticleContentDto, PopularArticlesDto, RecentArticlesDto, SearchResultsDto } from '../../shared/types/ApiTypes';
@@ -19,22 +19,22 @@ export const getArticleContentBySlug = async (slug: string, language: Language):
   return response.data;
 };
 
-/** The newest and the most recently updated published articles, for the home page. */
-export const getRecentArticles = async (): Promise<RecentArticlesDto> => {
-  const response = await apiClient.get<RecentArticlesDto>('/articles/recent');
+/** The newest and the most recently updated published articles of a language, for its home page. */
+export const getRecentArticles = async (language: Language): Promise<RecentArticlesDto> => {
+  const response = await apiClient.get<RecentArticlesDto>('/articles/recent', { params: articleLocaleParams(language) });
   return response.data;
 };
 
-/** The most viewed published articles of the last 30 days, for the home page. */
-export const getPopularArticles = async (): Promise<PopularArticlesDto> => {
-  const response = await apiClient.get<PopularArticlesDto>('/articles/popular');
+/** The most viewed published articles of a language in the last 30 days, for its home page. */
+export const getPopularArticles = async (language: Language): Promise<PopularArticlesDto> => {
+  const response = await apiClient.get<PopularArticlesDto>('/articles/popular', { params: articleLocaleParams(language) });
   return response.data;
 };
 
-/** One page of the full-text search over published articles (R-10, #46). */
-export const searchArticles = async ({ query, page }: SearchRequest): Promise<SearchResultsDto> => {
+/** One page of the full-text search over a language's published articles (R-10, #46; I-10, #114). */
+export const searchArticles = async ({ query, page }: SearchRequest, language: Language): Promise<SearchResultsDto> => {
   const response = await apiClient.get<SearchResultsDto>('/search', {
-    params: { [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: page },
+    params: { [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: page, ...articleLocaleParams(language) },
   });
   return response.data;
 };

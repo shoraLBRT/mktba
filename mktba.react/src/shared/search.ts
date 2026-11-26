@@ -3,6 +3,7 @@
  * (`ArticleSearchService` on the server — keep the numbers the same).
  */
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import type { Language } from '../localization/language';
 import { paragraphAnchorId } from './articleOutline';
 import { articleHref } from './slug';
 import type { SearchResultDto } from './types/ApiTypes';
@@ -47,7 +48,9 @@ export const searchHref = (query: string, page = 1): string => {
   return `${SEARCH_PATH}?${params.toString()}`;
 };
 
-export const searchQueryKey = ({ query, page }: SearchRequest) => [APP_CONSTANTS.QUERY_KEYS.SEARCH, query, page] as const;
+/** The results of a query in a language: the page's, each language searches its own articles (I-10, #114). */
+export const searchQueryKey = ({ query, page }: SearchRequest, language: Language) =>
+  [APP_CONSTANTS.QUERY_KEYS.SEARCH, language, query, page] as const;
 
 /** Where a result leads: the article, at the paragraph the snippet comes from when there is one. */
 export const searchResultHref = (result: Pick<SearchResultDto, 'slug' | 'paragraphId'>): string =>

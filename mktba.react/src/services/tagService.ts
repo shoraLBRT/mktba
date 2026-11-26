@@ -1,11 +1,12 @@
+import { articleLocaleParams, type Language } from '../localization/language';
 import apiClient from '../shared/api-client/ApiClient';
 import { TAG_PAGE_PARAM } from '../shared/tag';
 import type { TagDto, TagMergeDto, TagPageDto, TagRenameDto } from '../shared/types/ApiTypes';
 
 /** A tag and one page of the articles carrying it that a reader can open (M-06, #70); 404 `tag_not_found` otherwise. */
-export const getTagPage = async (slug: string, page: number): Promise<TagPageDto> => {
+export const getTagPage = async (slug: string, page: number, language: Language): Promise<TagPageDto> => {
   const response = await apiClient.get<TagPageDto>(`/tags/${encodeURIComponent(slug)}`, {
-    params: { [TAG_PAGE_PARAM]: page },
+    params: { [TAG_PAGE_PARAM]: page, ...articleLocaleParams(language) },
   });
   return response.data;
 };

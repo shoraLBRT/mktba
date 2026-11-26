@@ -44,7 +44,7 @@ export const ArticleBreadcrumbs = ({ ancestors, currentTitle }: ArticleBreadcrum
             key={ancestor.id}
             className={`flex items-center gap-1 ${ancestor.hasContent ? 'text-[var(--color-brand-forest)]' : 'text-[var(--color-ink-muted)]'}`}
           >
-            {ancestor.hasContent ? <Link to={articleHref(ancestor.slug)}>{ancestor.title}</Link> : ancestor.title}
+            {ancestor.hasContent ? <Link to={localize(articleHref(ancestor.slug))}>{ancestor.title}</Link> : ancestor.title}
             <Separator />
           </li>
         ))}

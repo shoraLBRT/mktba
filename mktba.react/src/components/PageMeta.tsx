@@ -65,8 +65,8 @@ export const PageMeta = ({
   const imagePath = image === undefined ? DEFAULT_SOCIAL_IMAGE_PATH : image;
   const imageUrl = imagePath ? siteUrlFor(imagePath, siteUrl) : null;
   // A language is indexed only once the site serves it to search engines. An article: the sitemap's
-  // list (`SERVED_LOCALES`, with hreflang since #104). Any other page: `INDEXED_LIST_LOCALES`, since
-  // the `/en/…` lists still show the Russian articles (#110).
+  // list (`SERVED_LOCALES`, with hreflang since #104). Any other page: `INDEXED_LIST_LOCALES`, the
+  // languages whose lists show their own articles (#110).
   const indexedLocales = type === 'article' ? SERVED_LOCALES : INDEXED_LIST_LOCALES;
   const hidden = noIndex || !indexedLocales.includes(language);
   const robots = hidden ? (noFollow ? ROBOTS_NOINDEX_NOFOLLOW : ROBOTS_NOINDEX) : null;

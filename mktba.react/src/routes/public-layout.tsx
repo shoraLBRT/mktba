@@ -2,6 +2,7 @@ import { dehydrate, HydrationBoundary, type DehydratedState } from '@tanstack/re
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router';
 import { createServerQueryClient } from '../app/queryClient';
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import { navigationTreeQueryKey } from '../hooks/useNavigationTree';
 import MainLayout from '../layouts/MainLayout';
 import { languageFromRequest } from '../localization/language';
 import { serverApi } from '../server/api.server';
@@ -26,8 +27,8 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<PublicLay
   const queryClient = createServerQueryClient();
   await Promise.all([
     queryClient.prefetchQuery({
-      queryKey: [APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE],
-      queryFn: serverApi.getNavigationTree,
+      queryKey: navigationTreeQueryKey(language),
+      queryFn: () => serverApi.getNavigationTree(language),
     }),
     queryClient.prefetchQuery({
       queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, language],

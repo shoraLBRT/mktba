@@ -2715,7 +2715,16 @@
         "tags": [
           "Navigation"
         ],
-        "description": "Anonymous readers get only Published articles; a Published article under a non-Published parent is hidden with its subtree. Admins get every article with its status.",
+        "description": "Anonymous readers get only Published articles; a Published article under a non-Published parent is hidden with its subtree. Admins get every article with its status. locale, when given, keeps one language: an article hangs under its nearest ancestor of that language, or becomes a root when it has none (an unsupported one answers 400 locale_unsupported); without it every language is in one tree.",
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -2726,6 +2735,16 @@
                   "items": {
                     "$ref": "#/components/schemas/NavigationArticleDto"
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
                 }
               }
             }
@@ -6807,6 +6826,7 @@
           "canEdit",
           "hasContent",
           "id",
+          "locale",
           "slug",
           "status",
           "title"
@@ -6821,6 +6841,9 @@
             "type": "string"
           },
           "slug": {
+            "type": "string"
+          },
+          "locale": {
             "type": "string"
           },
           "parentArticleId": {

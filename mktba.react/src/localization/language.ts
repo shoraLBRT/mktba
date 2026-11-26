@@ -81,3 +81,7 @@ export const OG_LOCALES: Record<Language, string> = { ru: 'ru_RU', en: 'en_US' }
  */
 export const articleLocaleQuery = (language: Language): string =>
   language === DEFAULT_LANGUAGE ? '' : `?locale=${language}`;
+
+/** {@link articleLocaleQuery} as request params (an axios `params` object): empty for the default language. */
+export const articleLocaleParams = (language: Language): { locale?: Language } =>
+  language === DEFAULT_LANGUAGE ? {} : { locale: language };

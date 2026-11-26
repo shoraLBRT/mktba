@@ -35,7 +35,7 @@ const CurrentLocation = () => {
 const renderSearch = (url: string, data?: SearchResultsDto) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   if (data) {
-    client.setQueryData(searchQueryKey({ query: data.query, page: data.page }), data);
+    client.setQueryData(searchQueryKey({ query: data.query, page: data.page }, 'ru'), data);
   }
 
   return render(

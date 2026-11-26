@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import type { Editor } from '@tiptap/core';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { APP_CONSTANTS } from '../constants/AppConstants';
+import { navigationTreeQueryKey } from '../hooks/useNavigationTree';
 import { LocalizationProvider } from '../localization/provider';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
 import { changeArticleStatus, getArticleById } from '../services/adminService';
@@ -59,7 +59,7 @@ const article: ArticleContentDto = {
 
 const renderAt = (url: string, navigationTree: NavigationArticleDto[] = []) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE], navigationTree);
+  client.setQueryData(navigationTreeQueryKey(), navigationTree);
 
   // A data router, as in the app: the unsaved-edits guard needs one.
   const router = createMemoryRouter(
@@ -68,6 +68,7 @@ const renderAt = (url: string, navigationTree: NavigationArticleDto[] = []) => {
       { path: '/admin/articles/:articleId/edit', element: <ArticleEditorPage /> },
       { path: '/admin/articles/:articleId/history', element: <p>history-page</p> },
       { path: '/:slug', element: <p>article-page</p> },
+      { path: '/en/:slug', element: <p>english-article-page</p> },
     ],
     { initialEntries: [url] },
   );
@@ -400,8 +401,21 @@ describe('ArticleEditorPage', () => {
     expect(readLocalDraftCopy(localDraftCopyKey(1, 7))).toBeNull();
   });
 
+  it('given a new translation into English, when it is saved, then the editor opens it under /en/ (I-06, #110)', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(createArticleContent).mockResolvedValue({ ...article, id: 8, slug: 'prayer', locale: 'en' });
+    renderAt('/admin/articles/new?translationOf=7&locale=en');
+    fireEvent.change(titleField(), { target: { value: 'Prayer' } });
+    typeInParagraph('Text.');
+
+    save();
+
+    expect(await screen.findByText('english-article-page')).toBeTruthy();
+    expect(vi.mocked(createArticleContent).mock.calls[0][0]).toMatchObject({ translationOfId: 7, locale: 'en' });
+  });
+
   it('given a picked article, when the link is inserted, then the title becomes a link to it, selected, and is saved as Markdown', async () => {
-    const target: NavigationArticleDto = { id: 9, title: 'Пост', slug: 'post', status: 'Published', hasContent: true, canEdit: true };
+    const target: NavigationArticleDto = { id: 9, title: 'Пост', slug: 'post', locale: 'ru', status: 'Published', hasContent: true, canEdit: true };
     vi.mocked(createArticleContent).mockResolvedValue({ ...article, id: 8, slug: 'novaya' });
     renderAt('/admin/articles/new', [target]);
     fireEvent.change(titleField(), { target: { value: 'Новая' } });

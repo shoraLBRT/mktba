@@ -160,4 +160,83 @@ public class NavigationTreeTests : IDisposable
             .Should().Equal(("With text", true), ("Empty", false));
         tree[0].Children!.Should().AllSatisfy(child => child.Children.Should().BeEmpty());
     }
+
+    private static readonly ArticleViewer Reader = new(UserId: null, EditsAnyArticle: false, ReviewsArticles: false);
+
+    [Fact]
+    public async Task GetTreeAsync_NoLocale_KeepsEveryLanguageAndSaysEachOnesLocale()
+    {
+        _context.Articles.AddRange(
+            new Article { Title = "Намаз", Slug = "namaz" },
+            new Article { Title = "Prayer", Slug = "prayer", Locale = "en" });
+        await _context.SaveChangesAsync();
+
+        var tree = await _service.GetTreeAsync(TestViewers.Admin);
+
+        tree.Select(node => (node.Slug, node.Locale)).Should().BeEquivalentTo(new[] { ("namaz", "ru"), ("prayer", "en") });
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_Locale_KeepsOnlyThatLanguage()
+    {
+        _context.Articles.AddRange(
+            new Article { Title = "Намаз", Slug = "namaz", Status = ArticleStatus.Published },
+            new Article { Title = "Prayer", Slug = "prayer", Locale = "en", Status = ArticleStatus.Published });
+        await _context.SaveChangesAsync();
+
+        (await _service.GetTreeAsync(Reader, "en")).Select(node => node.Slug).Should().Equal("prayer");
+        (await _service.GetTreeAsync(Reader, "RU")).Select(node => node.Slug).Should().Equal("namaz");
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_Locale_HangsAnArticleUnderItsNearestAncestorOfThatLanguage()
+    {
+        var enRoot = new Article { Title = "Fiqh", Slug = "fiqh", Locale = "en", Status = ArticleStatus.Published };
+        _context.Articles.Add(enRoot);
+        await _context.SaveChangesAsync();
+        var ruMiddle = new Article { Title = "Раздел", Slug = "razdel", ParentArticleId = enRoot.Id, Status = ArticleStatus.Published };
+        _context.Articles.Add(ruMiddle);
+        await _context.SaveChangesAsync();
+        _context.Articles.Add(new Article { Title = "Prayer", Slug = "prayer", Locale = "en", ParentArticleId = ruMiddle.Id, Status = ArticleStatus.Published });
+        await _context.SaveChangesAsync();
+
+        var tree = await _service.GetTreeAsync(Reader, "en");
+
+        tree.Should().ContainSingle().Which.Slug.Should().Be("fiqh");
+        tree[0].Children!.Select(child => child.Slug).Should().Equal("prayer");
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_Locale_MakesATranslationUnderAnotherLanguagesParentARoot()
+    {
+        var ruParent = new Article { Title = "Фикх", Slug = "fikh", Status = ArticleStatus.Published };
+        _context.Articles.Add(ruParent);
+        await _context.SaveChangesAsync();
+        _context.Articles.Add(new Article { Title = "Prayer", Slug = "prayer", Locale = "en", ParentArticleId = ruParent.Id, Status = ArticleStatus.Published });
+        await _context.SaveChangesAsync();
+
+        var tree = await _service.GetTreeAsync(Reader, "en");
+
+        tree.Should().ContainSingle().Which.Slug.Should().Be("prayer");
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_Locale_StillHidesAnArticleUnderAHiddenAncestorOfAnotherLanguage()
+    {
+        var hiddenRu = new Article { Title = "Черновик", Slug = "chernovik", Status = ArticleStatus.Draft };
+        _context.Articles.Add(hiddenRu);
+        await _context.SaveChangesAsync();
+        _context.Articles.Add(new Article { Title = "Prayer", Slug = "prayer", Locale = "en", ParentArticleId = hiddenRu.Id, Status = ArticleStatus.Published });
+        await _context.SaveChangesAsync();
+
+        (await _service.GetTreeAsync(Reader, "en")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_UnsupportedLocale_FailsWithLocaleUnsupported()
+    {
+        var act = () => _service.GetTreeAsync(Reader, "xx");
+
+        (await act.Should().ThrowAsync<Exceptions.ValidationException>()).Which.Error.Code.Should().Be("locale_unsupported");
+    }
 }

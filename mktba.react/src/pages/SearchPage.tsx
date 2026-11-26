@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
 import { PageLinks } from '../components/PageLinks';
 import { SearchForm } from '../components/search/SearchForm';
-import { useFormat, useLocale, useLocalizedPath } from '../localization/hooks';
+import { useFormat, useLanguage, useLocale, useLocalizedPath } from '../localization/hooks';
 import { searchArticles } from '../services/Article/articleService';
 import {
   isSearchableQuery,
@@ -37,25 +37,28 @@ const Highlighted = ({ segments }: { segments: SearchTextSegmentDto[] }) => (
   </>
 );
 
-const ResultItem = ({ result }: { result: SearchResultDto }) => (
-  <li className={panelClass}>
-    <h2 className="m-0 text-lg font-semibold">
-      <Link to={searchResultHref(result)} className={linkClass}>
-        <Highlighted segments={result.title} />
-      </Link>
-    </h2>
-    {result.summary && (
-      <p className="mb-0 mt-2 text-sm leading-6 text-[var(--color-ink-muted)]">
-        <Highlighted segments={result.summary} />
-      </p>
-    )}
-    {result.snippet && (
-      <p className="mb-0 mt-2 text-sm leading-6 text-[var(--color-ink-default)]">
-        <Highlighted segments={result.snippet} />
-      </p>
-    )}
-  </li>
-);
+const ResultItem = ({ result }: { result: SearchResultDto }) => {
+  const localize = useLocalizedPath();
+  return (
+    <li className={panelClass}>
+      <h2 className="m-0 text-lg font-semibold">
+        <Link to={localize(searchResultHref(result))} className={linkClass}>
+          <Highlighted segments={result.title} />
+        </Link>
+      </h2>
+      {result.summary && (
+        <p className="mb-0 mt-2 text-sm leading-6 text-[var(--color-ink-muted)]">
+          <Highlighted segments={result.summary} />
+        </p>
+      )}
+      {result.snippet && (
+        <p className="mb-0 mt-2 text-sm leading-6 text-[var(--color-ink-default)]">
+          <Highlighted segments={result.snippet} />
+        </p>
+      )}
+    </li>
+  );
+};
 
 /** Nothing matched: say so plainly and suggest what to try. */
 const NothingFound = ({ query }: { query: string }) => {
@@ -94,13 +97,14 @@ const SearchPage = () => {
   const t = useLocale().search;
   const format = useFormat();
   const localize = useLocalizedPath();
+  const language = useLanguage();
   const statusId = useId();
   const [searchParams] = useSearchParams();
   const request = readSearchRequest(searchParams);
   const searchable = isSearchableQuery(request.query);
   const { data: results, isError, isPending, refetch } = useQuery({
-    queryKey: searchQueryKey(request),
-    queryFn: () => searchArticles(request),
+    queryKey: searchQueryKey(request, language),
+    queryFn: () => searchArticles(request, language),
     enabled: searchable,
   });
 

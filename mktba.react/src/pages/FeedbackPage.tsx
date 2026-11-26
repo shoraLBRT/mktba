@@ -62,7 +62,7 @@ const FeedbackPage = () => {
   });
   const school = systemSchools.find((candidate) => candidate.id === selectedSchoolId) ?? null;
 
-  const { data: navigationTree } = useNavigationTree();
+  const { data: navigationTree } = useNavigationTree(language);
   const articleTitle = request.articleId === null
     ? null
     : findArticlePath(navigationTree, request.articleId).at(-1)?.title ?? null;

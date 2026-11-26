@@ -1,4 +1,5 @@
 ﻿using Mktba.Application.DTOs;
+using Mktba.Application.Exceptions;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Repositories;
 
@@ -20,15 +21,29 @@ namespace Mktba.Application.Services
         /// becomes a root, as does an article whose parent no longer exists. Each node says whether
         /// the viewer may edit it.
         /// </summary>
-        public async Task<List<NavigationArticleDto>> GetTreeAsync(ArticleViewer viewer)
+        /// <param name="requestedLocale">
+        /// Null or blank: every language in one tree (the admin's). A language (I-06, #110): only its
+        /// articles; an article hangs under its nearest ancestor of that language, and becomes a root
+        /// when it has none (a translation whose parent was picked in another language). An ancestor
+        /// of another language still hides it when the viewer may not see that ancestor's own chain.
+        /// An unsupported language fails with <c>locale_unsupported</c>.
+        /// </param>
+        public async Task<List<NavigationArticleDto>> GetTreeAsync(ArticleViewer viewer, string? requestedLocale = null)
         {
+            var locale = string.IsNullOrWhiteSpace(requestedLocale)
+                ? null
+                : Locales.Normalize(requestedLocale) ?? throw new ValidationException(AppErrors.LocaleUnsupported(requestedLocale));
+
             var rows = await _articleRepository.GetNavigationRowsAsync(viewer);
+            var rowsById = rows.ToDictionary(row => row.Id);
             var lookup = rows
+                .Where(row => locale is null || row.Locale == locale)
                 .Select(row => new NavigationArticleDto
                 {
                     Id = row.Id,
                     Title = row.Title,
                     Slug = row.Slug,
+                    Locale = row.Locale,
                     ParentArticleId = row.ParentArticleId,
                     Status = row.Status,
                     HasContent = row.HasContent,
@@ -41,24 +56,45 @@ namespace Mktba.Application.Services
 
             foreach (var article in lookup.Values)
             {
-                if (article.ParentArticleId is null)
+                switch (FindPlace(article.ParentArticleId, rowsById, lookup))
                 {
-                    roots.Add(article);
-                    continue;
-                }
-
-                if (lookup.TryGetValue(article.ParentArticleId.Value, out var parent))
-                {
-                    parent.Children ??= new List<NavigationArticleDto>();
-                    parent.Children.Add(article);
-                }
-                else if (article.CanEdit)
-                {
-                    roots.Add(article);
+                    case { Parent: { } parent }:
+                        parent.Children ??= new List<NavigationArticleDto>();
+                        parent.Children.Add(article);
+                        break;
+                    case { IsRoot: true }:
+                        roots.Add(article);
+                        break;
+                    default:
+                        if (article.CanEdit) roots.Add(article);
+                        break;
                 }
             }
 
             return roots;
+        }
+
+        private readonly record struct Place(NavigationArticleDto? Parent, bool IsRoot);
+
+        /// <summary>
+        /// Where an article with this parent goes: under the nearest ancestor in <paramref name="lookup"/>
+        /// (the tree's language; skipping ancestors of other languages), at the root when the chain ends
+        /// without one, or nowhere (neither) when an ancestor is missing — hidden from the viewer or gone.
+        /// </summary>
+        private static Place FindPlace(
+            int? parentId,
+            IReadOnlyDictionary<int, ArticleNavigationRow> rowsById,
+            IReadOnlyDictionary<int, NavigationArticleDto> lookup)
+        {
+            var seen = new HashSet<int>();
+            while (parentId is { } id)
+            {
+                if (lookup.TryGetValue(id, out var parent)) return new Place(parent, false);
+                if (!rowsById.TryGetValue(id, out var row) || !seen.Add(id)) return new Place(null, false);
+                parentId = row.ParentArticleId;
+            }
+
+            return new Place(null, true);
         }
     }
 }

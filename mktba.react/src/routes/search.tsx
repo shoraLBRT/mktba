@@ -4,6 +4,7 @@ import { createServerQueryClient } from '../app/queryClient';
 import type { RouteHandle } from '../app/routeHandle';
 import { PageMeta } from '../components/PageMeta';
 import { useLocale } from '../localization/hooks';
+import { languageFromRequest } from '../localization/language';
 import SearchPage from '../pages/SearchPage';
 import { serverApi } from '../server/api.server';
 import { isSearchableQuery, readSearchRequest, searchQueryKey } from '../shared/search';
@@ -25,10 +26,11 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<SearchRou
     return {};
   }
 
+  const language = languageFromRequest(request);
   const queryClient = createServerQueryClient();
   await queryClient.prefetchQuery({
-    queryKey: searchQueryKey(searchRequest),
-    queryFn: () => serverApi.searchArticles(searchRequest),
+    queryKey: searchQueryKey(searchRequest, language),
+    queryFn: () => serverApi.searchArticles(searchRequest, language),
   });
 
   return { dehydratedState: dehydrate(queryClient) };

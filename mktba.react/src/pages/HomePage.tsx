@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { SearchForm } from '../components/search/SearchForm';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useNavigationTree } from '../hooks/useNavigationTree';
-import { useFormat, useLocale } from '../localization/hooks';
+import { useFormat, useLanguage, useLocale, useLocalizedPath } from '../localization/hooks';
 import { getPopularArticles, getRecentArticles } from '../services/Article/articleService';
 import { articleHref } from '../shared/slug';
 import type { NavigationArticleDto, PopularArticleDto, RecentArticleDto } from '../shared/types/ApiTypes';
@@ -15,14 +15,16 @@ const sectionTitleClass = 'm-0 text-lg font-semibold text-[var(--color-ink-stron
 const panelClass = 'rounded-2xl border border-[var(--color-border-soft)] bg-white p-5';
 
 /** An article of the tree as a link, or as plain text for a stub with no page to open. */
-const TreeArticleLink = ({ article }: { article: NavigationArticleDto }) =>
-  article.hasContent ? (
-    <Link to={articleHref(article.slug)} className={linkClass}>
+const TreeArticleLink = ({ article }: { article: NavigationArticleDto }) => {
+  const localize = useLocalizedPath();
+  return article.hasContent ? (
+    <Link to={localize(articleHref(article.slug))} className={linkClass}>
       {article.title}
     </Link>
   ) : (
     <span className="text-[var(--color-ink-muted)]">{article.title}</span>
   );
+};
 
 /** The top level of the tree: each section with its first nested articles. */
 const Sections = ({ tree }: { tree: NavigationArticleDto[] | undefined }) => {
@@ -77,6 +79,7 @@ type RecentListProps = {
 const RecentList = ({ title, articles, dateTemplate, dateOf, emptyText }: RecentListProps) => {
   const titleId = useId();
   const format = useFormat();
+  const localize = useLocalizedPath();
   const [beforeDate, afterDate = ''] = dateTemplate.split('{date}');
 
   if (articles.length === 0 && !emptyText) {
@@ -94,7 +97,7 @@ const RecentList = ({ title, articles, dateTemplate, dateOf, emptyText }: Recent
         <ul className="m-0 mt-4 list-none space-y-4 p-0">
           {articles.map((article) => (
             <li key={article.id}>
-              <Link to={articleHref(article.slug)} className={`font-medium ${linkClass}`}>
+              <Link to={localize(articleHref(article.slug))} className={`font-medium ${linkClass}`}>
                 {article.title}
               </Link>
               {article.summary && (
@@ -117,6 +120,7 @@ const RecentList = ({ title, articles, dateTemplate, dateOf, emptyText }: Recent
 const PopularList = ({ articles }: { articles: PopularArticleDto[] }) => {
   const t = useLocale().homePage.popularArticles;
   const titleId = useId();
+  const localize = useLocalizedPath();
 
   if (articles.length === 0) {
     return null;
@@ -130,7 +134,7 @@ const PopularList = ({ articles }: { articles: PopularArticleDto[] }) => {
       <ol className="m-0 mt-4 grid list-none gap-4 p-0 sm:grid-cols-2">
         {articles.map((article) => (
           <li key={article.id}>
-            <Link to={articleHref(article.slug)} className={`font-medium ${linkClass}`}>
+            <Link to={localize(articleHref(article.slug))} className={`font-medium ${linkClass}`}>
               {article.title}
             </Link>
             {article.summary && (
@@ -154,14 +158,15 @@ const HomePage = () => {
   const locale = useLocale();
   const t = locale.homePage;
   const aboutTitleId = useId();
-  const { data: tree } = useNavigationTree();
+  const language = useLanguage();
+  const { data: tree } = useNavigationTree(language);
   const { data: recent } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES],
-    queryFn: getRecentArticles,
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES, language],
+    queryFn: () => getRecentArticles(language),
   });
   const { data: popular } = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES],
-    queryFn: getPopularArticles,
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES, language],
+    queryFn: () => getPopularArticles(language),
   });
 
   return (

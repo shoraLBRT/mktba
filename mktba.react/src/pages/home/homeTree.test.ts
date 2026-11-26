@@ -7,6 +7,7 @@ const node = (title: string, children: NavigationArticleDto[] = [], hasContent =
   id: nextId++,
   title,
   slug: title.toLowerCase(),
+  locale: 'ru',
   status: 'Published',
   hasContent,
   canEdit: false,

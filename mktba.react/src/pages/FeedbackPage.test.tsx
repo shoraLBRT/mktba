@@ -23,7 +23,7 @@ const tree = [
 const renderPage = (url = '/feedback', selectedSchoolId: number | null = null) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData([APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, 'ru'], schools);
-  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE], tree);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE, 'ru'], tree);
 
   return render(
     <QueryClientProvider client={client}>

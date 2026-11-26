@@ -55,7 +55,8 @@ namespace Mktba.Infrastructure.Repositories
                         || !string.IsNullOrWhiteSpace(article.InfoboxSubtitle),
                     editsAny
                         || (userId != null && article.AuthorId == userId)
-                        || (userId != null && article.CoAuthors.Any(coAuthor => coAuthor.UserId == userId))))
+                        || (userId != null && article.CoAuthors.Any(coAuthor => coAuthor.UserId == userId)),
+                    article.Locale))
                 .ToListAsync(cancellationToken);
         }
 

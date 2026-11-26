@@ -21,12 +21,11 @@ export const DEFAULT_LOCALE: string = DEFAULT_LANGUAGE;
 export const SERVED_LOCALES: readonly string[] = [DEFAULT_LOCALE, 'en'];
 
 /**
- * The locales whose other pages (home, search, authors, tags) are indexed. `/en/…` lists still show
- * the Russian articles until per-language lists (#110; the missing-translation rule of #112 is
- * for article pages only), so an English list page stays `noindex` and has no hreflang; `en` is
- * added here with them.
+ * The locales whose other pages (home, search, authors, tags) are indexed. Since I-06 (#110) every
+ * list and the navigation tree under `/en/…` show that language's own articles, so they are the
+ * served locales; a language whose lists ever lag behind its articles is left out here.
  */
-export const INDEXED_LIST_LOCALES: readonly string[] = [DEFAULT_LOCALE];
+export const INDEXED_LIST_LOCALES: readonly string[] = SERVED_LOCALES;
 
 /**
  * Query parameters that never change a page's content: Yandex folds them with `Clean-param`.

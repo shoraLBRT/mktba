@@ -5,6 +5,7 @@ import type { RouteHandle } from '../app/routeHandle';
 import { NotFoundMeta } from '../components/PageMeta';
 import NotFoundPage from '../pages/NotFoundPage';
 import TagPage from '../pages/TagPage';
+import { languageFromRequest } from '../localization/language';
 import { serverApi } from '../server/api.server';
 import { ApiError } from '../shared/api-client/apiError';
 import { readTagPage, tagPageQueryKey } from '../shared/tag';
@@ -26,10 +27,11 @@ export const handle: RouteHandle = { ownsMeta: true };
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const slug = params.slug ?? '';
   const page = readTagPage(new URL(request.url).searchParams);
+  const language = languageFromRequest(request);
 
   let tagPage;
   try {
-    tagPage = await serverApi.getTagPage(slug, page);
+    tagPage = await serverApi.getTagPage(slug, page, language);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return data<TagRouteData>({ missing: true }, { status: 404 });
@@ -39,7 +41,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   }
 
   const queryClient = createServerQueryClient();
-  queryClient.setQueryData(tagPageQueryKey(slug, page), tagPage);
+  queryClient.setQueryData(tagPageQueryKey(slug, page, language), tagPage);
   return data<TagRouteData>({ missing: false, dehydratedState: dehydrate(queryClient) });
 }
 

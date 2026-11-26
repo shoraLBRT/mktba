@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { useFormat, useLocale } from '../localization/hooks';
+import { useFormat, useLocale, useLocalizedPath } from '../localization/hooks';
 import { articleHref } from '../shared/slug';
 import type { AuthorArticleDto } from '../shared/types/ApiTypes';
 
@@ -12,6 +12,7 @@ const linkClass = 'text-[var(--color-brand-forest)] underline-offset-2 hover:und
 export const ArticleListEntry = ({ article }: { article: AuthorArticleDto }) => {
   const t = useLocale().articlePage;
   const format = useFormat();
+  const localize = useLocalizedPath();
   // A save on the day of publication is not news: the second date is shown from the next day on.
   const edited = format.date(article.updatedAt) !== format.date(article.publishedAt) && article.updatedAt > article.publishedAt;
   const date = (template: string, iso: string) => {
@@ -27,7 +28,7 @@ export const ArticleListEntry = ({ article }: { article: AuthorArticleDto }) => 
 
   return (
     <li>
-      <Link to={articleHref(article.slug)} className={`font-medium [overflow-wrap:anywhere] ${linkClass}`}>
+      <Link to={localize(articleHref(article.slug))} className={`font-medium [overflow-wrap:anywhere] ${linkClass}`}>
         {article.title}
       </Link>
       {article.summary && (

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { useFormat, useLocale } from '../../localization/hooks';
+import { useFormat, useLocale, useLocalizedPath } from '../../localization/hooks';
 import { authorHref } from '../../shared/slug';
 import type { ArticleAuthorDto } from '../../shared/types/ApiTypes';
 
@@ -38,6 +38,7 @@ const DateLineView = ({ template, iso, text }: DateLine) => {
 export const ArticleDates = ({ publishedAt, updatedAt, readingMinutes = null, authors }: ArticleDatesProps) => {
   const t = useLocale().articlePage;
   const format = useFormat();
+  const localize = useLocalizedPath();
   const published = publishedAt ? format.date(publishedAt) : null;
   const updated = updatedAt ? format.date(updatedAt) : null;
   const lines = [
@@ -62,7 +63,7 @@ export const ArticleDates = ({ publishedAt, updatedAt, readingMinutes = null, au
             <span key={slug ?? displayName}>
               {index > 0 ? ', ' : ' '}
               {slug ? (
-                <Link to={authorHref(slug)} rel="author" className="text-[var(--color-brand-forest)] underline">
+                <Link to={localize(authorHref(slug))} rel="author" className="text-[var(--color-brand-forest)] underline">
                   {displayName}
                 </Link>
               ) : displayName}

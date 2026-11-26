@@ -1,10 +1,11 @@
 import { dehydrate, HydrationBoundary, type DehydratedState } from '@tanstack/react-query';
-import { useLoaderData } from 'react-router';
+import { useLoaderData, type LoaderFunctionArgs } from 'react-router';
 import { createServerQueryClient } from '../app/queryClient';
 import type { RouteHandle } from '../app/routeHandle';
 import { PageMeta } from '../components/PageMeta';
 import { SiteStructuredData } from '../components/StructuredData';
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import { languageFromRequest } from '../localization/language';
 import HomePage from '../pages/HomePage';
 import { serverApi } from '../server/api.server';
 
@@ -22,16 +23,17 @@ export const handle: RouteHandle = { ownsMeta: true };
  * On the server: the lists of new, updated and popular articles, so they are in the HTML. The sections read
  * the navigation tree the public layout's loader already fetched; the search field leads to /search.
  */
-export async function loader(): Promise<HomeRouteData> {
+export async function loader({ request }: LoaderFunctionArgs): Promise<HomeRouteData> {
+  const language = languageFromRequest(request);
   const queryClient = createServerQueryClient();
   await Promise.all([
     queryClient.prefetchQuery({
-      queryKey: [APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES],
-      queryFn: serverApi.getRecentArticles,
+      queryKey: [APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES, language],
+      queryFn: () => serverApi.getRecentArticles(language),
     }),
     queryClient.prefetchQuery({
-      queryKey: [APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES],
-      queryFn: serverApi.getPopularArticles,
+      queryKey: [APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES, language],
+      queryFn: () => serverApi.getPopularArticles(language),
     }),
   ]);
 

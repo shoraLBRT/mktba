@@ -3,6 +3,7 @@ import { data, useLoaderData, type LoaderFunctionArgs } from 'react-router';
 import { createServerQueryClient } from '../app/queryClient';
 import type { RouteHandle } from '../app/routeHandle';
 import { NotFoundMeta } from '../components/PageMeta';
+import { languageFromRequest } from '../localization/language';
 import AuthorPage from '../pages/AuthorPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import { serverApi } from '../server/api.server';
@@ -26,6 +27,7 @@ export const handle: RouteHandle = { ownsMeta: true };
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const slug = params.slug ?? '';
   const page = readAuthorPage(new URL(request.url).searchParams);
+  const language = languageFromRequest(request);
 
   let profile;
   try {
@@ -41,8 +43,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const queryClient = createServerQueryClient();
   queryClient.setQueryData(authorQueryKey(slug), profile);
   await queryClient.prefetchQuery({
-    queryKey: authorArticlesQueryKey(slug, page),
-    queryFn: () => serverApi.getAuthorArticles(slug, page),
+    queryKey: authorArticlesQueryKey(slug, page, language),
+    queryFn: () => serverApi.getAuthorArticles(slug, page, language),
   });
 
   return data<AuthorRouteData>({ missing: false, dehydratedState: dehydrate(queryClient) });
