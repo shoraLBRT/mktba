@@ -18,7 +18,7 @@ import {
   reviewNeedsComment,
   scopeSnapshot,
 } from '../../shared/articleReview';
-import { SCHOLAR_MAZHABS, type ScholarMazhab } from '../../shared/scholarApplication';
+import { isScholarMazhab } from '../../shared/scholarApplication';
 import { localizedArticleHref } from '../../shared/slug';
 import type {
   ArticleRemarkListDto,
@@ -32,9 +32,6 @@ import { Card } from '../../shared/ui/Card';
 import { Textarea } from '../../shared/ui/Textarea';
 import { snapshotSections } from '../article-history/revisionDiff';
 import { useSnapshotLabels } from '../article-history/snapshotLabels';
-
-const isMazhab = (value: string | null | undefined): value is ScholarMazhab =>
-  (SCHOLAR_MAZHABS as readonly string[]).includes(value ?? '');
 
 /**
  * `/admin/article-reviews/:articleId` (V-03, #119): a scholar reads the latest revision of a
@@ -90,7 +87,7 @@ const AdminArticleReviewPage = () => {
         {formatMessage(t.revisionCaption, { number: context.revision.number, date: format.date(context.revision.createdAt, 'longDateTime') })}
       </p>
       <p className="m-0 text-sm text-[var(--color-ink-default)]">
-        {isMazhab(mazhab) ? formatMessage(t.scopeMazhab, { mazhab: locale.scholarApplication.mazhabs[mazhab] }) : t.scopeWhole}
+        {isScholarMazhab(mazhab) ? formatMessage(t.scopeMazhab, { mazhab: locale.scholarApplication.mazhabs[mazhab] }) : t.scopeWhole}
       </p>
       <RevisionCard context={context} />
       <RemarksCard articleId={context.articleId} />

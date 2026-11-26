@@ -1421,6 +1421,62 @@
         }
       }
     },
+    "/article-remarks/mine": {
+      "get": {
+        "tags": [
+          "ArticleRemarks"
+        ],
+        "summary": "The caller's own remarks across articles, the latest changed first (the scholar's cabinet).",
+        "description": "open=true keeps the open remarks, open=false the closed ones; page from 1, pageSize 1 to 100 (20 by default). A trashed article's remarks are left out.",
+        "parameters": [
+          {
+            "name": "open",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScholarRemarkHistoryPageDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/article-remarks/{id}/messages": {
       "post": {
         "tags": [
@@ -1724,14 +1780,21 @@
         "tags": [
           "ArticleReviews"
         ],
-        "summary": "Published articles a scholar may review, the latest edited first, with the caller's latest review of each.",
-        "description": "q filters by title (case-insensitive). page from 1, pageSize 1 to 100 (20 by default).",
+        "summary": "The scholar's queue: published articles needing a re-review, then those not reviewed by the caller (matching their specialization and madhab first), then the reviewed ones.",
+        "description": "q filters by title (case-insensitive); queue=true leaves out the articles the caller reviewed and whose mark is current. page from 1, pageSize 1 to 100 (20 by default).",
         "parameters": [
           {
             "name": "q",
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "queue",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -1758,6 +1821,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ArticleReviewArticlePageDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/article-reviews/history": {
+      "get": {
+        "tags": [
+          "ArticleReviews"
+        ],
+        "summary": "The caller's reviews across articles, the latest given first, with whether each is still current (the scholar's cabinet).",
+        "description": "page from 1, pageSize 1 to 100 (20 by default). A trashed article's reviews are left out; isAvailable is false for an unpublished article.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScholarReviewHistoryPageDto"
                 }
               }
             }
@@ -7060,6 +7172,8 @@
           "articleId",
           "latestRevisionNumber",
           "locale",
+          "matchesMazhab",
+          "matchesSpecialization",
           "slug",
           "title",
           "updatedAt"
@@ -7089,6 +7203,12 @@
           },
           "myLatestReview": {
             "$ref": "#/components/schemas/ArticleReviewMarkDto"
+          },
+          "matchesSpecialization": {
+            "type": "boolean"
+          },
+          "matchesMazhab": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -7099,6 +7219,7 @@
           "needsReReviewTotal",
           "page",
           "pageSize",
+          "specializationKeywords",
           "total"
         ],
         "type": "object",
@@ -7124,6 +7245,16 @@
           "needsReReviewTotal": {
             "type": "integer",
             "format": "int32"
+          },
+          "mazhab": {
+            "type": "string",
+            "nullable": true
+          },
+          "specializationKeywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additionalProperties": false
@@ -9440,6 +9571,190 @@
           "sizeBytes": {
             "type": "integer",
             "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarRemarkHistoryItemDto": {
+        "required": [
+          "articleId",
+          "articleTitle",
+          "createdAt",
+          "excerpt",
+          "isAvailable",
+          "messageCount",
+          "onOpinion",
+          "remarkId",
+          "revisionNumber",
+          "status",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "remarkId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleTitle": {
+            "type": "string"
+          },
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "onOpinion": {
+            "type": "boolean"
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleRemarkStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "messageCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarRemarkHistoryPageDto": {
+        "required": [
+          "items",
+          "openTotal",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScholarRemarkHistoryItemDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openTotal": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarReviewHistoryItemDto": {
+        "required": [
+          "articleId",
+          "isAvailable",
+          "isCurrent",
+          "isLatestRevision",
+          "latestRevisionNumber",
+          "reviewId",
+          "revisionNumber",
+          "title",
+          "updatedAt",
+          "verdict"
+        ],
+        "type": "object",
+        "properties": {
+          "reviewId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latestRevisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/ArticleReviewVerdict"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "mazhab": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isLatestRevision": {
+            "type": "boolean"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarReviewHistoryPageDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScholarReviewHistoryItemDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
