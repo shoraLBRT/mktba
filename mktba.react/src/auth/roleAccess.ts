@@ -17,6 +17,8 @@ const POLICY_ROLES = {
   canEditAnyArticle: ['Admin'],
   /** Make any status move, publication included (authors only submit and take back their own). */
   canReviewArticles: ['Admin'],
+  /** Review published articles as a scholar (V-03); the verdict needs an approved scholar application. */
+  canVerify: ['Scholar', 'Admin'],
   /** List users and invite new ones. */
   canManageUsers: ['Admin'],
   /** AI provider settings and maintenance. */

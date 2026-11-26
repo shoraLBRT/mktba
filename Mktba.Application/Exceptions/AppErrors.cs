@@ -395,6 +395,25 @@ public static class AppErrors
     public static AppError ScholarDecisionReasonTooLong(int maxLength) =>
         new("scholar_decision_reason_too_long", $"The reason must be at most {maxLength} characters.", With(("maxLength", maxLength)));
 
+    // Scholar review of an article (V-03)
+    public static AppError ArticleReviewNotVerifiedScholar =>
+        new("article_review_not_verified_scholar", "Only a scholar whose application was approved reviews articles.");
+
+    public static AppError ArticleReviewRevisionOutdated(int latest) =>
+        new("article_review_revision_outdated", $"The article has changed since: revision {latest} is the latest.", With(("latest", latest)));
+
+    public static AppError ArticleReviewVerdictInvalid =>
+        new("article_review_verdict_invalid", "Choose one of the three verdicts.");
+
+    public static AppError ArticleReviewCommentRequired =>
+        new("article_review_comment_required", "Describe the remarks or the errors in the comment.");
+
+    public static AppError ArticleReviewCommentTooLong(int maxLength) =>
+        new("article_review_comment_too_long", $"The comment must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ArticleReviewConflict =>
+        new("article_review_conflict", "Your review of this revision was saved at the same time from elsewhere; reload and try again.");
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }

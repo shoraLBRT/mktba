@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { API_URL, adminCredentials, declineAnalytics, logIn } from './helpers';
+import { API_URL, adminCredentials, declineAnalytics, logIn, publishArticle } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await declineAnalytics(page);
@@ -137,6 +137,84 @@ test('an admin refuses one application with a reason and approves the next', asy
   await expect(page.getByRole('button', { name: 'Отозвать статус учёного' })).toBeVisible();
   const me = await (await request.get(`${API_URL}/auth/me`, { headers: own })).json() as { role: string };
   expect(me.role).toBe('Scholar');
+
+  await page.setViewportSize({ width: 375, height: 700 });
+  expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);
+});
+
+// V-03 (#119): an approved scholar of a madhab reviews the latest revision of a published article:
+// they see what readers of their madhab see, give «есть ошибки» with a comment, and the mark is
+// tied to that revision and logged.
+test('an approved scholar reviews the latest revision of a published article within their madhab', async ({ page, request }) => {
+  const stamp = Date.now();
+  const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
+  const admin = { Authorization: `Bearer ${(await login.json() as { accessToken: string }).accessToken}` };
+  const invite = await request.post(`${API_URL}/invites`, { headers: admin, data: { role: 'Reader' } });
+  const { token } = await invite.json() as { token: string };
+  const email = `scholar-verdict-${stamp}@mktba.local`;
+  const password = 'E2e-reader-password-1';
+  expect((await request.post(`${API_URL}/auth/register`, { data: { email, password, inviteToken: token } })).ok()).toBe(true);
+  const scholarLogin = await request.post(`${API_URL}/auth/login`, { data: { email, password } });
+  const own = { Authorization: `Bearer ${(await scholarLogin.json() as { accessToken: string }).accessToken}` };
+  const applied = await request.post(`${API_URL}/scholar-application`, {
+    headers: own,
+    multipart: {
+      degree: 'Доктор исламских наук',
+      institution: 'Университет аль-Азхар',
+      specialization: 'Фикх',
+      mazhab: 'hanafi',
+      documents: { name: 'диплом.pdf', mimeType: 'application/pdf', buffer: PDF },
+    },
+  });
+  expect(applied.status()).toBe(201);
+  const applicationId = (await applied.json() as { id: number }).id;
+  expect((await request.post(`${API_URL}/scholar-applications/${applicationId}/approve`, { headers: admin })).ok()).toBe(true);
+  const schools = await (await request.get(`${API_URL}/schools/system`)).json() as { id: number; slug: string }[];
+  const hanafi = schools.find((school) => school.slug === 'hanafi')!.id;
+  const maliki = schools.find((school) => school.slug === 'maliki')!.id;
+  const title = `E2E ревью учёного ${stamp}`;
+  const article = await publishArticle(request, title, [
+    { order: 1, opinions: [{ content: 'Общий для всех абзац.', isDefault: true, schoolIds: [] }] },
+    {
+      order: 2,
+      opinions: [
+        { content: 'Мнение ханафитов.', isDefault: false, schoolIds: [hanafi] },
+        { content: 'Мнение маликитов.', isDefault: true, schoolIds: [maliki] },
+      ],
+    },
+  ]);
+
+  await page.goto('/admin/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Пароль', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  // A scholar lands on their first section, the review of articles.
+  await expect(page).toHaveURL(/\/admin\/article-reviews$/);
+  await page.getByLabel('Поиск по названию').fill(title);
+  await expect(page.getByTestId(`article-review-row-${article.id}`)).toContainText('Нет');
+  await page.getByRole('link', { name: `Ревью статьи «${title}»` }).click();
+
+  await expect(page.getByText('читатели мазхаба «Ханафитский»', { exact: false })).toBeVisible();
+  await expect(page.getByText('Мнение ханафитов.')).toBeVisible();
+  await expect(page.getByText('Мнение маликитов.')).toHaveCount(0);
+  await page.getByRole('radio', { name: 'Есть ошибки' }).check();
+  await expect(page.getByRole('button', { name: 'Отправить отметку' })).toBeDisabled();
+  await page.getByLabel('Комментарий').fill('Во втором абзаце нужна ссылка на источник.');
+  const { violations } = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(
+    violations
+      .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+      .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`),
+  ).toEqual([]);
+  await page.getByRole('button', { name: 'Отправить отметку' }).click();
+
+  await expect(page.getByText('Отметка для ревизии 1 сохранена.')).toBeVisible();
+  await expect(page.getByTestId('my-review-1')).toContainText('Есть ошибки · текущая версия');
+  await expect(page.getByTestId('my-review-1')).toContainText('Во втором абзаце нужна ссылка на источник.');
+  const log = await (await request.get(`${API_URL}/audit-log?action=ArticleReviewed&articleId=${article.id}`, { headers: admin })).json() as {
+    items: { toValue: string }[];
+  };
+  expect(log.items.map((entry) => entry.toValue)).toEqual(['HasErrors']);
 
   await page.setViewportSize({ width: 375, height: 700 });
   expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);

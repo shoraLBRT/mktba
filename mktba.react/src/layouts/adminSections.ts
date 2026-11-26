@@ -1,7 +1,7 @@
-import { ArchiveRestore, BadgeCheck, Bot, ClipboardCheck, ClipboardList, FolderTree, GraduationCap, KeyRound, LayoutDashboard, MonitorSmartphone, NotebookPen, Tags, Trash2, UserRound, type LucideIcon } from 'lucide-react';
+import { ArchiveRestore, BadgeCheck, Bot, ClipboardCheck, ClipboardList, FolderTree, GraduationCap, KeyRound, LayoutDashboard, MonitorSmartphone, NotebookPen, ScrollText, Tags, Trash2, UserRound, type LucideIcon } from 'lucide-react';
 import type { RolePolicy } from '../auth/roleAccess';
 
-export type AdminSectionId = 'dashboard' | 'articles' | 'mine' | 'tags' | 'review' | 'users' | 'scholarReview' | 'sessions' | 'profile' | 'scholar' | 'ai' | 'trash' | 'audit' | 'maintenance';
+export type AdminSectionId = 'dashboard' | 'articles' | 'mine' | 'tags' | 'review' | 'users' | 'scholarReview' | 'articleReviews' | 'sessions' | 'profile' | 'scholar' | 'ai' | 'trash' | 'audit' | 'maintenance';
 
 export type AdminSection = {
   id: AdminSectionId;
@@ -22,6 +22,8 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   { id: 'users', path: '/admin/users', policy: 'canManageUsers', icon: KeyRound },
   // V-02 (#118): the admin's review of scholar applications.
   { id: 'scholarReview', path: '/admin/scholar-applications', policy: 'canManageUsers', icon: BadgeCheck },
+  // V-03 (#119): a scholar reviews published articles; an admin sees the pages but gives no verdict.
+  { id: 'articleReviews', path: '/admin/article-reviews', policy: 'canVerify', icon: ScrollText },
   { id: 'sessions', path: '/admin/sessions', policy: 'authenticated', icon: MonitorSmartphone },
   { id: 'profile', path: '/admin/profile', policy: 'authenticated', icon: UserRound },
   // V-01 (#117): any signed-in role sees its application; only readers and authors may apply (the page says so).

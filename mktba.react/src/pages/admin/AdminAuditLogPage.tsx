@@ -5,7 +5,7 @@ import { formatMessage } from '../../localization';
 import { useFormat, useLocale } from '../../localization/hooks';
 import { auditLogQueryKey, getAuditLog, type AuditLogFilter } from '../../services/auditLog/auditLogService';
 import { extractApiErrorMessage } from '../../shared/api-client/apiError';
-import type { ArticleStatus, AuditAction, AuditLogEntryDto, UserRole } from '../../shared/types/ApiTypes';
+import type { ArticleReviewVerdict, ArticleStatus, AuditAction, AuditLogEntryDto, UserRole } from '../../shared/types/ApiTypes';
 import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
 
@@ -19,6 +19,7 @@ const AUDIT_ACTIONS: readonly AuditAction[] = [
   'ScholarApplicationApproved',
   'ScholarApplicationRejected',
   'ScholarStatusRevoked',
+  'ArticleReviewed',
 ];
 
 const PAGE_SIZE = 50;
@@ -57,6 +58,7 @@ const AdminAuditLogPage = () => {
   const valueLabel = (entry: AuditLogEntryDto, value: string | null | undefined) => {
     if (!value) return '';
     if (entry.action === 'UserRoleChanged') return locale.userRole[value as UserRole] ?? value;
+    if (entry.action === 'ArticleReviewed') return locale.articleReview.verdicts[value as ArticleReviewVerdict] ?? value;
     return locale.articleStatus[value as ArticleStatus] ?? value;
   };
 
@@ -125,7 +127,7 @@ const AdminAuditLogPage = () => {
                     <td className="px-3 py-2 whitespace-nowrap text-[var(--color-ink-muted)]">
                       {entry.fromValue && entry.toValue
                         ? formatMessage(t.change, { from: valueLabel(entry, entry.fromValue), to: valueLabel(entry, entry.toValue) })
-                        : ''}
+                        : valueLabel(entry, entry.toValue)}
                     </td>
                   </tr>
                 ))}

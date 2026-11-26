@@ -46,6 +46,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<StoredFile> StoredFiles { get; set; } = null!;
         public DbSet<ScholarApplication> ScholarApplications { get; set; } = null!;
         public DbSet<ScholarApplicationDocument> ScholarApplicationDocuments { get; set; } = null!;
+        public DbSet<ArticleReview> ArticleReviews { get; set; } = null!;
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; } = null!;
         public DbSet<AnalyticsDay> AnalyticsDays { get; set; } = null!;
         public DbSet<AnalyticsArticleDay> AnalyticsArticleDays { get; set; } = null!;
@@ -760,6 +761,30 @@ namespace Mktba.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(d => d.StoredFileId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Scholar reviews (V-03, #119): one per scholar and revision; they go with the article
+            // (and its revisions) and with the scholar.
+            modelBuilder.Entity<ArticleReview>(review =>
+            {
+                review.HasIndex(r => new { r.RevisionId, r.ScholarId }).IsUnique();
+                review.HasIndex(r => new { r.ArticleId, r.ScholarId });
+                review.HasIndex(r => new { r.ScholarId, r.UpdatedAt });
+                review.Property(r => r.Verdict).HasConversion<string>().HasMaxLength(32).IsRequired();
+                review.Property(r => r.Comment).HasMaxLength(ArticleReview.CommentMaxLength);
+                review.Property(r => r.Mazhab).HasMaxLength(ScholarApplication.MazhabMaxLength);
+                review.HasOne(r => r.Article)
+                    .WithMany()
+                    .HasForeignKey(r => r.ArticleId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                review.HasOne(r => r.Revision)
+                    .WithMany()
+                    .HasForeignKey(r => r.RevisionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                review.HasOne(r => r.Scholar)
+                    .WithMany()
+                    .HasForeignKey(r => r.ScholarId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             base.OnModelCreating(modelBuilder);

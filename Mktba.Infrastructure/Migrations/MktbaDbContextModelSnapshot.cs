@@ -546,6 +546,54 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("ArticleRelatedLinks");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Mazhab")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("RevisionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ScholarId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Verdict")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId", "ScholarId");
+
+                    b.HasIndex("RevisionId", "ScholarId")
+                        .IsUnique();
+
+                    b.HasIndex("ScholarId", "UpdatedAt");
+
+                    b.ToTable("ArticleReviews");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevision", b =>
                 {
                     b.Property<int>("Id")
@@ -1547,6 +1595,33 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Article");
 
                     b.Navigation("RelatedArticle");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleReview", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.ArticleRevision", "Revision")
+                        .WithMany()
+                        .HasForeignKey("RevisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "Scholar")
+                        .WithMany()
+                        .HasForeignKey("ScholarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Revision");
+
+                    b.Navigation("Scholar");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevision", b =>

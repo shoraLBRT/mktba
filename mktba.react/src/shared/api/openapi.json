@@ -1289,6 +1289,194 @@
         }
       }
     },
+    "/article-reviews": {
+      "get": {
+        "tags": [
+          "ArticleReviews"
+        ],
+        "summary": "Published articles a scholar may review, the latest edited first, with the caller's latest review of each.",
+        "description": "q filters by title (case-insensitive). page from 1, pageSize 1 to 100 (20 by default).",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleReviewArticlePageDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/article-reviews/{articleId}": {
+      "get": {
+        "tags": [
+          "ArticleReviews"
+        ],
+        "summary": "The latest revision of a published article, what the caller's review covers, and their reviews of it.",
+        "description": "canReview is true only for a scholar with an approved application. 404 article_not_found (not published, in the trash, or without a revision).",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleReviewContextDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ArticleReviews"
+        ],
+        "summary": "Gives the caller's verdict on the article's latest revision; a second verdict on the same revision replaces the first.",
+        "description": "Logged as ArticleReviewed (to: the verdict; from: the verdict it replaced). 400 article_review_verdict_invalid, article_review_comment_required (remarks and errors need a comment) or article_review_comment_too_long (params.maxLength); 404 article_not_found; 409 article_review_not_verified_scholar, article_review_revision_outdated (params.latest: the article changed since it was opened) or article_review_conflict.",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleReviewCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleReviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles": {
       "get": {
         "tags": [
@@ -6203,6 +6391,255 @@
         },
         "additionalProperties": false
       },
+      "ArticleReviewArticleDto": {
+        "required": [
+          "articleId",
+          "latestRevisionNumber",
+          "locale",
+          "slug",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "latestRevisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "myLatestReview": {
+            "$ref": "#/components/schemas/ArticleReviewMarkDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleReviewArticlePageDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleReviewArticleDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleReviewContextDto": {
+        "required": [
+          "articleId",
+          "canReview",
+          "locale",
+          "myReviews",
+          "revision",
+          "scope",
+          "slug",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/ArticleReviewRevisionDto"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ArticleReviewScopeDto"
+          },
+          "canReview": {
+            "type": "boolean"
+          },
+          "myReviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleReviewDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleReviewCreateDto": {
+        "required": [
+          "revisionNumber",
+          "verdict"
+        ],
+        "type": "object",
+        "properties": {
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/ArticleReviewVerdict"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleReviewDto": {
+        "required": [
+          "articleId",
+          "createdAt",
+          "id",
+          "isLatestRevision",
+          "revisionNumber",
+          "updatedAt",
+          "verdict"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/ArticleReviewVerdict"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "mazhab": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isLatestRevision": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleReviewMarkDto": {
+        "required": [
+          "revisionNumber",
+          "updatedAt",
+          "verdict"
+        ],
+        "type": "object",
+        "properties": {
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/ArticleReviewVerdict"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleReviewRevisionDto": {
+        "required": [
+          "createdAt",
+          "number",
+          "snapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ArticleSnapshotDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleReviewScopeDto": {
+        "type": "object",
+        "properties": {
+          "mazhab": {
+            "type": "string",
+            "nullable": true
+          },
+          "schoolId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleReviewVerdict": {
+        "enum": [
+          "Confirmed",
+          "ConfirmedWithRemarks",
+          "HasErrors"
+        ],
+        "type": "string"
+      },
       "ArticleRevisionComparisonDto": {
         "required": [
           "from",
@@ -6801,7 +7238,8 @@
           "UserRoleChanged",
           "ScholarApplicationApproved",
           "ScholarApplicationRejected",
-          "ScholarStatusRevoked"
+          "ScholarStatusRevoked",
+          "ArticleReviewed"
         ],
         "type": "string"
       },

@@ -32,6 +32,12 @@ public enum AuditAction
     /// <see cref="UserRoleChanged"/> entry.
     /// </summary>
     ScholarStatusRevoked = 8,
+
+    /// <summary>
+    /// A scholar reviewed a revision of an article (V-03, #119): <see cref="AuditLogEntry.ToValue"/> is the
+    /// verdict, <see cref="AuditLogEntry.FromValue"/> the verdict it replaced on the same revision (null for a first review).
+    /// </summary>
+    ArticleReviewed = 9,
 }
 
 /// <summary>

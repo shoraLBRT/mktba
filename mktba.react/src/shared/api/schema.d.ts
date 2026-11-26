@@ -1325,6 +1325,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/article-reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Published articles a scholar may review, the latest edited first, with the caller's latest review of each.
+         * @description q filters by title (case-insensitive). page from 1, pageSize 1 to 100 (20 by default).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleReviewArticlePageDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/article-reviews/{articleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The latest revision of a published article, what the caller's review covers, and their reviews of it.
+         * @description canReview is true only for a scholar with an approved application. 404 article_not_found (not published, in the trash, or without a revision).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    articleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleReviewContextDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Gives the caller's verdict on the article's latest revision; a second verdict on the same revision replaces the first.
+         * @description Logged as ArticleReviewed (to: the verdict; from: the verdict it replaced). 400 article_review_verdict_invalid, article_review_comment_required (remarks and errors need a comment) or article_review_comment_too_long (params.maxLength); 404 article_not_found; 409 article_review_not_verified_scholar, article_review_revision_outdated (params.latest: the article changed since it was opened) or article_review_conflict.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    articleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleReviewCreateDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleReviewDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles": {
         parameters: {
             query?: never;
@@ -5666,6 +5842,81 @@ export interface components {
             order: number;
             relatedArticleSlug: string;
         };
+        ArticleReviewArticleDto: {
+            /** Format: int32 */
+            articleId: number;
+            title: string;
+            slug: string;
+            locale: string;
+            /** Format: int32 */
+            latestRevisionNumber: number;
+            /** Format: date-time */
+            updatedAt: string;
+            myLatestReview?: components["schemas"]["ArticleReviewMarkDto"];
+        };
+        ArticleReviewArticlePageDto: {
+            items: components["schemas"]["ArticleReviewArticleDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        ArticleReviewContextDto: {
+            /** Format: int32 */
+            articleId: number;
+            title: string;
+            slug: string;
+            locale: string;
+            revision: components["schemas"]["ArticleReviewRevisionDto"];
+            scope: components["schemas"]["ArticleReviewScopeDto"];
+            canReview: boolean;
+            myReviews: components["schemas"]["ArticleReviewDto"][];
+        };
+        ArticleReviewCreateDto: {
+            /** Format: int32 */
+            revisionNumber: number;
+            verdict: components["schemas"]["ArticleReviewVerdict"];
+            comment?: string | null;
+        };
+        ArticleReviewDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            articleId: number;
+            /** Format: int32 */
+            revisionNumber: number;
+            verdict: components["schemas"]["ArticleReviewVerdict"];
+            comment?: string | null;
+            mazhab?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            isLatestRevision: boolean;
+        };
+        ArticleReviewMarkDto: {
+            /** Format: int32 */
+            revisionNumber: number;
+            verdict: components["schemas"]["ArticleReviewVerdict"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ArticleReviewRevisionDto: {
+            /** Format: int32 */
+            number: number;
+            /** Format: date-time */
+            createdAt: string;
+            snapshot: components["schemas"]["ArticleSnapshotDto"];
+        };
+        ArticleReviewScopeDto: {
+            mazhab?: string | null;
+            /** Format: int32 */
+            schoolId?: number | null;
+        };
+        /** @enum {string} */
+        ArticleReviewVerdict: "Confirmed" | "ConfirmedWithRemarks" | "HasErrors";
         ArticleRevisionComparisonDto: {
             from: components["schemas"]["ArticleRevisionDto"];
             to: components["schemas"]["ArticleRevisionDto"];
@@ -5829,7 +6080,7 @@ export interface components {
             parentArticleId?: number | null;
         };
         /** @enum {string} */
-        AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged" | "ScholarApplicationApproved" | "ScholarApplicationRejected" | "ScholarStatusRevoked";
+        AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged" | "ScholarApplicationApproved" | "ScholarApplicationRejected" | "ScholarStatusRevoked" | "ArticleReviewed";
         AuditLogEntryDto: {
             /** Format: int64 */
             id: number;

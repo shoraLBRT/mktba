@@ -29,6 +29,8 @@ export const APP_CONSTANTS = {
     MY_SCHOLAR_APPLICATION: 'myScholarApplication',
     SCHOLAR_APPLICATIONS: 'scholarApplications',
     SCHOLAR_APPLICATION_REVIEW: 'scholarApplicationReview',
+    ARTICLE_REVIEWS: 'articleReviews',
+    ARTICLE_REVIEW: 'articleReview',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
   },
