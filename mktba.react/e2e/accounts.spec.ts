@@ -55,6 +55,13 @@ test('a reader signs up, signs in before confirming and is offered the confirmat
   await notice.getByRole('button', { name: 'Отправить письмо ещё раз' }).click();
   await expect(notice.getByRole('status')).toHaveText('Письмо отправлено. Проверьте почту.');
   expect(await seriousViolations(page)).toEqual([]);
+
+  // #322: a reader cannot write articles, so the public header does not offer to; the role comes from /auth/me.
+  const me = page.waitForResponse((response) => response.url().endsWith('/auth/me') && response.ok());
+  await page.goto('/');
+  await me;
+  await expect(page.getByRole('button', { name: 'Выйти' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Добавить статью' })).toHaveCount(0);
 });
 
 test('a password reset answers the same for any address, and a broken link says so', async ({ page }) => {

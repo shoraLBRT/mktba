@@ -14,6 +14,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import Sidebar from '../components/Sidebar';
 import { useSidebar } from '../hooks/useSidebar';
 import { useLocale, useLocalizedPath } from '../localization/hooks';
+import { useCurrentUser } from '../auth/useCurrentUser';
 import { logOut, useSession } from '../services/session';
 import { FEEDBACK_PATH, feedbackHref } from '../shared/feedback';
 import { Button } from '../shared/ui/Button';
@@ -30,7 +31,10 @@ const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { collapsed, toggleCollapsed } = useSidebar();
-  const isAdmin = useSession().accessToken !== null;
+  const isSignedIn = useSession().accessToken !== null;
+  // Only roles that may write articles get the button (#322); while the role loads it stays hidden,
+  // so a reader never sees it flash.
+  const canAddArticle = useCurrentUser().can('canEditArticles');
   const currentPath = location.pathname;
   // On the form itself the link keeps what the form was opened with; elsewhere it carries this page.
   const feedbackLink = currentPath === localize(FEEDBACK_PATH)
@@ -136,7 +140,7 @@ const MainLayout: React.FC = () => {
               <MazhabSelector />
             </div>
 
-            {isAdmin ? (
+            {canAddArticle ? (
               <Button
                 variant={isCreateRoute ? 'primary' : 'secondary'}
                 className="hidden min-h-8 rounded-lg px-3 py-1.5 text-xs sm:inline-flex"
@@ -147,7 +151,7 @@ const MainLayout: React.FC = () => {
               </Button>
             ) : null}
 
-            {isAdmin ? (
+            {isSignedIn ? (
               <Button
                 variant="ghost"
                 className="min-h-8 rounded-lg px-2 py-1.5 text-xs"
@@ -199,7 +203,7 @@ const MainLayout: React.FC = () => {
             <span>{locale.brand.sidebarCaption}</span>
             <span className="flex flex-wrap gap-x-6 gap-y-2">
               {/* Readers' sign-in (U-05, #126): Russian only, like the admin. */}
-              {isAdmin ? null : (
+              {isSignedIn ? null : (
                 <Link to="/login" className="text-[var(--color-brand-forest)] hover:underline">
                   {locale.layout.footer.signIn}
                 </Link>
