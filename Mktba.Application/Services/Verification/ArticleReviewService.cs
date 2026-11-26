@@ -184,6 +184,69 @@ public sealed class ArticleReviewService
         return ToDto(review, revision.Number, revision.Number);
     }
 
+    /// <summary>
+    /// The marks readers see on an article (V-04, #120): the latest mark of each scholar who is still
+    /// verified, the newest revision first. An article readers are not served (not Published, in the
+    /// trash, unknown) or one without a revision has no marks, so the answer tells nothing of drafts.
+    /// </summary>
+    /// <remarks>
+    /// Defaults chosen by the agent, open for the owner in #120: a scholar whose status was revoked
+    /// (or whose role changed) no longer counts and their marks are not shown; the comment stays
+    /// between the scholar and the editors (the review form addresses it to them), readers see the
+    /// verdict, the scope, the revision and the date. The name is the profile's (U-07), never an email.
+    /// </remarks>
+    public async Task<ArticleVerificationDto> GetVerificationAsync(int articleId, CancellationToken cancellationToken)
+    {
+        var empty = new ArticleVerificationDto(null, []);
+        if (!await Reviewable().AnyAsync(article => article.Id == articleId, cancellationToken))
+        {
+            return empty;
+        }
+
+        var latest = await _db.ArticleRevisions.AsNoTracking()
+            .Where(revision => revision.ArticleId == articleId)
+            .MaxAsync(revision => (int?)revision.Number, cancellationToken);
+        if (latest is not int latestNumber)
+        {
+            return empty;
+        }
+
+        var rows = await _db.ArticleReviews.AsNoTracking()
+            .Where(review => review.ArticleId == articleId
+                && review.Scholar.Role == UserRole.Scholar
+                && _db.ScholarApplications.Any(application =>
+                    application.UserId == review.ScholarId && application.Status == ScholarApplicationStatus.Approved))
+            .Select(review => new
+            {
+                review.ScholarId,
+                review.Scholar.DisplayName,
+                review.Scholar.Slug,
+                // The author page answers only for someone credited on a Published article (P-06, #94).
+                HasPublicPage = _db.Articles.Any(article => article.Status == ArticleStatus.Published
+                    && (article.AuthorId == review.ScholarId || article.CoAuthors.Any(coAuthor => coAuthor.UserId == review.ScholarId))),
+                review.Verdict,
+                review.Mazhab,
+                review.Revision.Number,
+                review.UpdatedAt,
+            })
+            .ToListAsync(cancellationToken);
+
+        var marks = rows
+            .GroupBy(row => row.ScholarId)
+            .Select(group => group.OrderByDescending(row => row.Number).First())
+            .OrderByDescending(row => row.Number).ThenByDescending(row => row.UpdatedAt)
+            .Select(row => new ArticleVerificationMarkDto(
+                row.DisplayName,
+                row.DisplayName is not null && row.HasPublicPage ? row.Slug : null,
+                row.Verdict,
+                row.Mazhab,
+                row.Number,
+                row.UpdatedAt,
+                row.Number == latestNumber))
+            .ToList();
+        return new ArticleVerificationDto(latestNumber, marks);
+    }
+
     /// <summary>Published articles outside the trash: what readers are served, so what a scholar reviews.</summary>
     private IQueryable<Article> Reviewable() =>
         _db.Articles.AsNoTracking().Where(article => article.Status == ArticleStatus.Published && article.DeletedAt == null);

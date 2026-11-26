@@ -115,7 +115,24 @@
     "backToTop": "Back to top",
     "reportError": "Report an error",
     "reportErrorPrompt": "Found an error or an inaccuracy in the article?",
-    "print": "Print"
+    "print": "Print",
+    "verification": {
+      "title": "Checked by scholars",
+      "confirmed": { "one": "confirmed by {count} scholar", "other": "confirmed by {count} scholars" },
+      "errors": { "one": "errors found by {count} scholar", "other": "errors found by {count} scholars" },
+      "previous": { "one": "{count} mark for a previous version", "other": "{count} marks for a previous version" },
+      "partsDivider": " · ",
+      "wholeArticle": "Whole article",
+      "mazhab": "Madhab: {mazhab}",
+      "scholar": "Scholar",
+      "verdicts": {
+        "Confirmed": "confirmed",
+        "ConfirmedWithRemarks": "confirmed with remarks",
+        "HasErrors": "has errors"
+      },
+      "revision": "revision {number}",
+      "previousVersion": "for a previous version"
+    }
   },
   "articleRightSidebar": {
     "onThisPage": "On this page",

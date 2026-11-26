@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
+import { getArticleContentById, getArticleContentBySlug, getArticleVerification } from '../services/Article/articleService';
 import { articleContentQueryKey, parseLegacyArticleId } from '../services/Article/articleQueries';
 import { ArticleInfoboxPanel } from '../components/article/ArticleInfoboxPanel';
 import { ArticleBreadcrumbs } from '../components/article/ArticleBreadcrumbs';
 import { ArticleDates } from '../components/article/ArticleDates';
+import { ArticleVerification } from '../components/article/ArticleVerification';
 import { ArticleFooter } from '../components/article/ArticleFooter';
 import { collectCitedSources } from '../shared/articleSources';
 import { ArticleMeta } from '../components/article/ArticleMeta';
@@ -89,6 +90,12 @@ const ArticlePage: React.FC = () => {
   const { data: articleSchools } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, articleId],
     queryFn: () => getSchoolsByArticleId(articleId),
+    enabled: articleId > 0,
+  });
+
+  const { data: verification } = useQuery({
+    queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_VERIFICATION, articleId],
+    queryFn: () => getArticleVerification(articleId),
     enabled: articleId > 0,
   });
 
@@ -344,6 +351,7 @@ const ArticlePage: React.FC = () => {
             readingMinutes={readingMinutes}
             authors={articleContent.authors}
           />
+          <ArticleVerification marks={verification?.marks} schools={systemSchools} />
           <ArticleMobileOverview
             tocItems={tocItems}
             summary={articleContent.summary ?? undefined}

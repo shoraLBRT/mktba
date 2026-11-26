@@ -66,11 +66,18 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
   const queryClient = createServerQueryClient();
   queryClient.setQueryData(articleContentQueryKey(requestedSlug, language), content);
-  // The canonical schools come from the public layout's loader.
-  await queryClient.prefetchQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, content.id],
-    queryFn: () => serverApi.getSchoolsByArticleId(content.id),
-  });
+  // The canonical schools come from the public layout's loader. The scholars' marks (V-04, #120)
+  // are in the HTML too; a failed read leaves the widget to the browser.
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, content.id],
+      queryFn: () => serverApi.getSchoolsByArticleId(content.id),
+    }),
+    queryClient.prefetchQuery({
+      queryKey: [APP_CONSTANTS.QUERY_KEYS.ARTICLE_VERIFICATION, content.id],
+      queryFn: () => serverApi.getArticleVerification(content.id),
+    }),
+  ]);
 
   return data<ArticleRouteData>({ missing: null, dehydratedState: dehydrate(queryClient) });
 }

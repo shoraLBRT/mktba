@@ -6,6 +6,7 @@ import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../sh
 import { TAG_PAGE_PARAM } from '../shared/tag';
 import type {
   ArticleContentDto,
+  ArticleVerificationDto,
   IndexNowKeyDto,
   AuthorArticlesDto,
   NavigationArticleDto,
@@ -70,6 +71,7 @@ export const serverApi = {
   /** The reader's tree: only the language's articles (I-06, #110). */
   getNavigationTree: (language: Language) => getJson<NavigationArticleDto[]>(`/navigationTree/tree?locale=${language}`),
   getArticleContentById: (id: number) => getJson<ArticleContentDto>(`/articles/${id}/content`),
+  getArticleVerification: (id: number) => getJson<ArticleVerificationDto>(`/articles/${id}/verification`),
   getArticleContentBySlug: (slug: string, language: Language) =>
     getJson<ArticleContentDto>(`/articles/by-slug/${encodeURIComponent(slug)}/content${articleLocaleQuery(language)}`),
   getSitemapArticles: () => getJson<SitemapArticleDto[]>('/articles/sitemap'),

@@ -1,7 +1,14 @@
 import { articleLocaleParams, articleLocaleQuery, type Language } from '../../localization/language';
 import apiClient from '../../shared/api-client/ApiClient';
 import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../../shared/search';
-import type { ArticleContentCreateDto, ArticleContentDto, PopularArticlesDto, RecentArticlesDto, SearchResultsDto } from '../../shared/types/ApiTypes';
+import type {
+  ArticleContentCreateDto,
+  ArticleContentDto,
+  ArticleVerificationDto,
+  PopularArticlesDto,
+  RecentArticlesDto,
+  SearchResultsDto,
+} from '../../shared/types/ApiTypes';
 
 export const getArticleContentById = async (id: number): Promise<ArticleContentDto> => {
   const response = await apiClient.get<ArticleContentDto>(`/articles/${id}/content`);
@@ -55,4 +62,10 @@ export const articleService = {
   searchArticles,
   createArticleContent,
   updateArticleContent,
+};
+
+/** The scholars' marks on a published article as readers see them (V-04, #120). */
+export const getArticleVerification = async (articleId: number): Promise<ArticleVerificationDto> => {
+  const response = await apiClient.get<ArticleVerificationDto>(`/articles/${articleId}/verification`);
+  return response.data;
 };

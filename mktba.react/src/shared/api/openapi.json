@@ -1289,6 +1289,38 @@
         }
       }
     },
+    "/articles/{articleId}/verification": {
+      "get": {
+        "tags": [
+          "ArticleReviews"
+        ],
+        "summary": "The scholars' marks on a published article as readers see them: the latest mark of each verified scholar, the newest revision first.",
+        "description": "No comments, ids or emails. An article readers are not served, or one without a revision, answers with no marks.",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleVerificationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/article-reviews": {
       "get": {
         "tags": [
@@ -7225,6 +7257,64 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleVerificationDto": {
+        "required": [
+          "marks"
+        ],
+        "type": "object",
+        "properties": {
+          "latestRevisionNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "marks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleVerificationMarkDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleVerificationMarkDto": {
+        "required": [
+          "isLatestRevision",
+          "reviewedAt",
+          "revisionNumber",
+          "verdict"
+        ],
+        "type": "object",
+        "properties": {
+          "scholarName": {
+            "type": "string",
+            "nullable": true
+          },
+          "scholarSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/ArticleReviewVerdict"
+          },
+          "mazhab": {
+            "type": "string",
+            "nullable": true
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isLatestRevision": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

@@ -112,7 +112,24 @@
     "backToTop": "Наверх",
     "reportError": "Сообщить об ошибке",
     "reportErrorPrompt": "Нашли ошибку или неточность в статье?",
-    "print": "Распечатать"
+    "print": "Распечатать",
+    "verification": {
+      "title": "Проверка учёными",
+      "confirmed": { "one": "подтвердил {count} учёный", "few": "подтвердили {count} учёных", "many": "подтвердили {count} учёных", "other": "подтвердили {count} учёного" },
+      "errors": { "one": "ошибки нашёл {count} учёный", "few": "ошибки нашли {count} учёных", "many": "ошибки нашли {count} учёных", "other": "ошибки нашли {count} учёного" },
+      "previous": { "one": "{count} отметка — для предыдущей версии", "few": "{count} отметки — для предыдущей версии", "many": "{count} отметок — для предыдущей версии", "other": "{count} отметки — для предыдущей версии" },
+      "partsDivider": " · ",
+      "wholeArticle": "Вся статья",
+      "mazhab": "Мазхаб: {mazhab}",
+      "scholar": "Учёный",
+      "verdicts": {
+        "Confirmed": "подтверждено",
+        "ConfirmedWithRemarks": "подтверждено с замечаниями",
+        "HasErrors": "есть ошибки"
+      },
+      "revision": "ревизия {number}",
+      "previousVersion": "для предыдущей версии"
+    }
   },
   "articleRightSidebar": {
     "onThisPage": "На этой странице",

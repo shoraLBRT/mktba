@@ -198,7 +198,70 @@ public sealed class ArticleReviewTests : IDisposable
         (clamped.Page, clamped.PageSize).Should().Be((1, ArticleReviewService.MaxPageSize));
     }
 
+    [Fact]
+    public async Task GivenMarksOfSeveralScholars_WhenReadersAskForThem_ThenEachVerifiedScholarsLatestMarkIsShownNewestRevisionFirst()
+    {
+        var articleId = await ArticleAsync("Пост", revisions: 1);
+        var named = await ScholarAsync(mazhab: null);
+        await NameAsync(named, "Абдулла Ибрагимов", "abdulla");
+        var authorOf = await ArticleAsync("Его статья", revisions: 1);
+        (await _db.Articles.SingleAsync(article => article.Id == authorOf)).AuthorId = named;
+        var nameless = await ScholarAsync(mazhab: "hanafi");
+        var earlier = await ScholarAsync(mazhab: null);
+        await NameAsync(earlier, "Юсуф Карими", "yusuf");
+        var revoked = await ScholarAsync(mazhab: null);
+        await _db.SaveChangesAsync();
+
+        await Service().ReviewAsync(articleId, named, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await Service().ReviewAsync(articleId, earlier, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await Service().ReviewAsync(articleId, revoked, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await AddRevisionAsync(articleId, 2);
+        _clock.Advance(TimeSpan.FromHours(1));
+        await Service().ReviewAsync(articleId, nameless, new ArticleReviewCreateDto(2, ArticleReviewVerdict.HasErrors, "Абзац 3."), default);
+        _clock.Advance(TimeSpan.FromHours(1));
+        await Service().ReviewAsync(articleId, named, new ArticleReviewCreateDto(2, ArticleReviewVerdict.ConfirmedWithRemarks, "Источник."), default);
+        (await _db.Users.SingleAsync(user => user.Id == revoked)).Role = UserRole.Reader;
+        (await _db.ScholarApplications.SingleAsync(application => application.UserId == revoked)).Status = ScholarApplicationStatus.Revoked;
+        await _db.SaveChangesAsync();
+
+        var verification = await Service().GetVerificationAsync(articleId, default);
+
+        verification.LatestRevisionNumber.Should().Be(2);
+        verification.Marks.Select(mark => (mark.ScholarName, mark.ScholarSlug, mark.Verdict, mark.Mazhab, mark.RevisionNumber, mark.ReviewedAt, mark.IsLatestRevision))
+            .Should().Equal(
+                ("Абдулла Ибрагимов", "abdulla", ArticleReviewVerdict.ConfirmedWithRemarks, (string?)null, 2, Now.AddHours(2), true),
+                ((string?)null, (string?)null, ArticleReviewVerdict.HasErrors, "hanafi", 2, Now.AddHours(1), true),
+                ("Юсуф Карими", (string?)null, ArticleReviewVerdict.Confirmed, (string?)null, 1, Now, false));
+    }
+
+    [Theory]
+    [InlineData(ArticleStatus.Draft, false)]
+    [InlineData(ArticleStatus.Published, true)]
+    public async Task GivenAnArticleThatReadersDoNotSee_WhenReadersAskForItsMarks_ThenThereAreNone(ArticleStatus status, bool trashed)
+    {
+        var scholarId = await ScholarAsync(mazhab: null);
+        var articleId = await ArticleAsync("Ид", revisions: 1);
+        await Service().ReviewAsync(articleId, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        var article = await _db.Articles.SingleAsync(a => a.Id == articleId);
+        article.Status = status;
+        article.DeletedAt = trashed ? Now : null;
+        await _db.SaveChangesAsync();
+
+        var hidden = await Service().GetVerificationAsync(articleId, default);
+        var unknown = await Service().GetVerificationAsync(articleId + 100, default);
+
+        (hidden.LatestRevisionNumber, hidden.Marks.Count).Should().Be(((int?)null, 0));
+        (unknown.LatestRevisionNumber, unknown.Marks.Count).Should().Be(((int?)null, 0));
+    }
+
     private ArticleReviewService Service() => new(_db, _clock, new AuditLogRepository(_db));
+
+    private async Task NameAsync(int userId, string displayName, string slug)
+    {
+        var user = await _db.Users.SingleAsync(u => u.Id == userId);
+        (user.DisplayName, user.Slug) = (displayName, slug);
+        await _db.SaveChangesAsync();
+    }
 
     private async Task<int> UserAsync(UserRole role)
     {

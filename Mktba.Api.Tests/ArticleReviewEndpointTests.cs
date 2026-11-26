@@ -99,6 +99,39 @@ public abstract class ArticleReviewEndpointTests
         (await ApiJson.ReadCodeAsync(onDraft)).Should().Be("article_not_found");
     }
 
+    [Fact]
+    public async Task GivenAReview_WhenAnonymousReadersAskForTheMarks_ThenTheyGetTheVerdictWithoutTheCommentAndAnEditMakesItPrevious()
+    {
+        var (admin, _) = await RoleClients.CreateAsync(_factory, UserRole.Admin);
+        var (scholar, _) = await ScholarAsync("shafii");
+        var article = await PublishedArticleAsync(admin, $"Виджет {Guid.NewGuid():N}");
+        var anonymous = _factory.CreateClient();
+        var before = await anonymous.GetFromJsonAsync<ArticleVerificationDto>($"/articles/{article.Id}/verification", ApiJson.Options);
+        (before!.LatestRevisionNumber, before.Marks.Count).Should().Be(((int?)1, 0));
+        (await scholar.PostAsJsonAsync(
+            $"/article-reviews/{article.Id}", new ArticleReviewCreateDto(1, ArticleReviewVerdict.HasErrors, "Секретное замечание."), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var response = await anonymous.GetAsync($"/articles/{article.Id}/verification");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = await response.Content.ReadAsStringAsync();
+        json.Should().NotContain("Секретное замечание").And.NotContain("@");
+        var marks = System.Text.Json.JsonSerializer.Deserialize<ArticleVerificationDto>(json, ApiJson.Options)!;
+        marks.Marks.Should().ContainSingle().Which.Should().Match<ArticleVerificationMarkDto>(mark =>
+            mark.Verdict == ArticleReviewVerdict.HasErrors && mark.Mazhab == "shafii" && mark.RevisionNumber == 1
+            && mark.IsLatestRevision && mark.ScholarName == null && mark.ScholarSlug == null);
+
+        var edit = article with
+        {
+            Paragraphs = [new ParagraphDto { Id = article.Paragraphs[0].Id, Order = 1, Opinions = [new OpinionDto { Content = "Исправлено", IsDefault = true }] }],
+        };
+        (await admin.PutAsJsonAsync($"/articles/{article.Id}/content", edit)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var after = await anonymous.GetFromJsonAsync<ArticleVerificationDto>($"/articles/{article.Id}/verification", ApiJson.Options);
+        (after!.LatestRevisionNumber, after.Marks.Single().RevisionNumber, after.Marks.Single().IsLatestRevision)
+            .Should().Be(((int?)2, 1, false));
+    }
+
     /// <summary>A Scholar with an approved application (the V-02 approval, written straight to the database).</summary>
     private async Task<(HttpClient Client, int UserId)> ScholarAsync(string? mazhab)
     {
