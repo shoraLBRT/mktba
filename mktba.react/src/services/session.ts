@@ -1,6 +1,6 @@
-import axios from 'axios';
 import { useSyncExternalStore } from 'react';
-import { API_BASE_URL } from '../config';
+import { isAxiosError } from '../shared/api-client/axiosError';
+import { lazyHttpClient } from '../shared/api-client/lazyHttpClient';
 import type { AdminAuthResponseDto } from '../shared/types/ApiTypes';
 
 /**
@@ -26,15 +26,10 @@ const LEGACY_TOKEN_KEYS = ['mktba.admin.token', 'wikiweaver.admin.token'];
 const REFRESH_LOCK = 'mktba-session-refresh';
 
 /**
- * Calls that carry the refresh cookie. They bypass the API client's interceptors (a failed refresh
- * must not trigger another refresh) and send the header the API requires as a CSRF guard.
+ * Calls that carry the refresh cookie (`sessionHttp.ts`), loaded on the first such call (#321): an
+ * anonymous reader never makes one.
  */
-export const sessionHttp = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  withCredentials: true,
-  headers: { 'X-Requested-With': 'mktba' },
-});
+export const sessionHttp = lazyHttpClient(() => import('./sessionHttp').then((module) => module.default));
 
 const readHint = (): boolean => {
   try {
@@ -125,7 +120,7 @@ export const refreshSession = (): Promise<boolean> => {
       setSignedIn(response.data);
       return true;
     } catch (error) {
-      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      const status = isAxiosError(error) ? error.response?.status : undefined;
       if (status === 401 || status === 403) {
         clearSession();
       } else {

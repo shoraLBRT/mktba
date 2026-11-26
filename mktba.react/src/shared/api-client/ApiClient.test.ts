@@ -4,11 +4,12 @@ import {
   ADMIN_SESSION_EXPIRED_EVENT,
   clearSession,
   getSessionState,
-  sessionHttp,
   setSignedIn,
   startSession,
 } from '../../services/session';
+import sessionAxios from '../../services/sessionHttp';
 import apiClient from './ApiClient';
+import axiosClient from './axiosClient';
 import { ApiError } from './apiError';
 
 const reply = (config: InternalAxiosRequestConfig, status: number, data: unknown): Promise<AxiosResponse> => {
@@ -32,8 +33,8 @@ const fakeApi = (options: { validToken: string; refreshStatus: number; newToken?
     options.refreshStatus === 0
       ? Promise.reject(new AxiosError('Network Error', AxiosError.ERR_NETWORK, config))
       : reply(config, options.refreshStatus, { accessToken: options.newToken, email: 'admin@mktba.test' }));
-  apiClient.defaults.adapter = api;
-  sessionHttp.defaults.adapter = refresh;
+  axiosClient.defaults.adapter = api;
+  sessionAxios.defaults.adapter = refresh;
   return { seenTokens, refresh };
 };
 
@@ -44,8 +45,8 @@ describe('ApiClient session refresh', () => {
   });
 
   afterEach(() => {
-    apiClient.defaults.adapter = undefined;
-    sessionHttp.defaults.adapter = undefined;
+    axiosClient.defaults.adapter = undefined;
+    sessionAxios.defaults.adapter = undefined;
   });
 
   it('given an expired access token, when a request gets 401, then it refreshes once and repeats the request with the new token', async () => {
@@ -107,7 +108,7 @@ describe('startSession', () => {
   });
 
   afterEach(() => {
-    sessionHttp.defaults.adapter = undefined;
+    sessionAxios.defaults.adapter = undefined;
   });
 
   it('given tokens left in storage by an older version, when the app starts, then they are removed', async () => {

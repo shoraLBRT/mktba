@@ -6,6 +6,8 @@
 // BUDGET_GZIP_BYTES. Two pages are measured: the Russian article at /:slug (the main audience; the
 // table is printed for it) and the English one at /en/:slug.
 //
+// axios is not in the first load: it comes with the first API request (#321).
+//
 // Each language's strings come only with its own pages (I-02, #106): the English page must not load
 // a chunk that only the Russian pages' route (`routes/russian`) brings, the Russian strings.
 //
@@ -22,6 +24,9 @@ const PAGES = [
   { name: '/en/:slug', chain: ['root', 'routes/public-layout', 'en/routes/article'] },
 ];
 const RUSSIAN_ONLY_ROUTE = 'routes/russian';
+// axios (about 15 KB gzip) loads with the first API request from the browser (`lazyHttpClient`, #321);
+// an error code only axios has marks its chunk.
+const AXIOS_MARKER = 'ERR_BAD_OPTION_VALUE';
 
 const clientDir = fileURLToPath(new URL('../build/client', import.meta.url));
 const assetsDir = path.join(clientDir, 'assets');
@@ -59,8 +64,11 @@ let failed = false;
 for (const [index, page] of PAGES.entries()) {
   const modules = modulesOf(page.chain);
   let total = 0;
+  const withAxios = [];
   const rows = [...modules].map((url) => {
-    const bytes = gzipSync(readFileSync(path.join(clientDir, url)), { level: 9 }).length;
+    const code = readFileSync(path.join(clientDir, url));
+    if (code.includes(AXIOS_MARKER)) withAxios.push(url);
+    const bytes = gzipSync(code, { level: 9 }).length;
     total += bytes;
     return { url, bytes };
   });
@@ -74,6 +82,11 @@ for (const [index, page] of PAGES.entries()) {
 
   if (total > BUDGET_GZIP_BYTES) {
     console.error(`${page.name} is over budget by ${kb(total - BUDGET_GZIP_BYTES)}. Shrink the page or raise the budget (see the header of this script).`);
+    failed = true;
+  }
+
+  if (withAxios.length > 0) {
+    console.error(`${page.name} loads axios (${withAxios.join(', ')}): import the API client (src/shared/api-client/ApiClient.ts), not axios.`);
     failed = true;
   }
 

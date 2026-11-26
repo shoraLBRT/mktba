@@ -9,7 +9,10 @@
  *   route's `clientLoader` loads them (`loadLocaleChunk('admin')`) before the admin renders.
  *   Besides the keys listed below, every file under `locales/<lang>/admin/` is in it whole, under
  *   its file name as the key (`admin/siteAnalytics.json` -> `siteAnalytics`); that is the easy place
- *   for a new admin feature's strings (no list to edit, no shared file to conflict on).
+ *   for a new admin feature's strings (no list to edit, no shared file to conflict on). The API error
+ *   codes only the admin's calls return are one such file, `admin/adminApiErrors.json` (#321): a code
+ *   a reader can meet (sign-in, register, invites, feedback, reading) stays in `shared.apiErrors`;
+ *   `translateApiError` looks in both.
  *
  * A new key is `core` unless it is listed here: listing it moves it out of the public first load.
  * Only list a key that nothing outside the admin reads.
