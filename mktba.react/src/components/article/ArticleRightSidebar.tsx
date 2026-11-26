@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import { METRIKA_GOALS, trackGoal } from '../../analytics/metrika';
-import { useLocale } from '../../localization/hooks';
+import { useLocale, useLocalizedPath } from '../../localization/hooks';
 import { articleHref } from '../../shared/slug';
 import type { ArticleRelatedLinkDto, ArticleTagDto } from '../../shared/types/ApiTypes';
 import { ArticleTagList } from './ArticleTagList';
@@ -27,6 +27,7 @@ type ArticleRightSidebarProps = {
 
 export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: ArticleRightSidebarProps) => {
   const locale = useLocale();
+  const localize = useLocalizedPath();
   const t = locale.articleRightSidebar;
   const tocIds = useMemo(() => tocItems.map((item) => item.id), [tocItems]);
   const { activeId, select } = useActiveSection(tocIds);
@@ -115,7 +116,7 @@ export const ArticleRightSidebar = ({ tocItems, summary, tags, relatedLinks }: A
               {relatedLinks!.map((link) => (
                 <Link
                   key={link.id}
-                  to={articleHref(link.relatedArticleSlug)}
+                  to={localize(articleHref(link.relatedArticleSlug))}
                   className="block rounded px-2 py-1 text-[12.5px] text-[var(--color-brand-forest)] transition-colors hover:bg-[var(--color-brand-forest-soft)]"
                 >
                   {link.relatedArticleTitle}

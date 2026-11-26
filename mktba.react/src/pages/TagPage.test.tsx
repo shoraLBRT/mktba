@@ -3,6 +3,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SiteUrlContext } from '../app/siteUrl';
+import { languageFromPath } from '../localization/language';
 import { LocalizationProvider } from '../localization/provider';
 import { getTagPage } from '../services/tagService';
 import { ApiError } from '../shared/api-client/apiError';
@@ -28,13 +29,17 @@ const tagPage = (overrides: Partial<TagPageDto> = {}): TagPageDto => ({
 /** The page at `url` over a cache that already holds the tag page, as after the server render. */
 const renderTag = (url: string, data?: TagPageDto) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  if (data) client.setQueryData(tagPageQueryKey(data.slug, data.page), data);
-  const Stub = createRoutesStub([{ path: '/tags/:slug', Component: TagPage }]);
+  const language = languageFromPath(new URL(url, 'http://x').pathname);
+  if (data) client.setQueryData(tagPageQueryKey(data.slug, data.page, language), data);
+  const Stub = createRoutesStub([
+    { path: '/tags/:slug', Component: TagPage },
+    { path: '/en/tags/:slug', Component: TagPage },
+  ]);
 
   return render(
     <QueryClientProvider client={client}>
       <SiteUrlContext.Provider value="https://mktba.ru">
-        <LocalizationProvider>
+        <LocalizationProvider language={language}>
           <Stub initialEntries={[url]} />
         </LocalizationProvider>
       </SiteUrlContext.Provider>
@@ -88,5 +93,18 @@ describe('TagPage', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('Не удалось загрузить страницу тега.');
     expect(screen.getByRole('button', { name: 'Попробовать ещё раз' })).toBeTruthy();
+  });
+});
+
+describe('TagPage in English (I-06, #110)', () => {
+  it('given /en/tags/{slug}, when opened, then asks for the English tag and links its articles under /en/', async () => {
+    vi.mocked(getTagPage).mockResolvedValue(tagPage({ name: 'Fiqh', slug: 'fiqh', items: [tagPage().items[0]] }));
+
+    renderTag('/en/tags/fiqh');
+
+    const list = await screen.findByRole('list', { name: 'Articles with this tag' });
+    expect(getTagPage).toHaveBeenCalledWith('fiqh', 1, 'en');
+    expect(within(list).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/en/salat']);
+    expect(document.querySelector('meta[name="robots"]')).toBeNull();
   });
 });

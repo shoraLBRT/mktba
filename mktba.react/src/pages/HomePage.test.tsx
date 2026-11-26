@@ -11,6 +11,7 @@ const article = (id: number, title: string, slug: string, children: NavigationAr
   id,
   title,
   slug,
+  locale: 'ru',
   status: 'Published',
   hasContent,
   canEdit: false,
@@ -49,9 +50,9 @@ const CurrentLocation = () => {
 /** The page over a cache that already holds the data, as after the server render. */
 const renderHome = (tree: NavigationArticleDto[] = TREE, recent: RecentArticlesDto = RECENT, popular: PopularArticlesDto = POPULAR) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE], tree);
-  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES], recent);
-  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES], popular);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.NAVIGATION_TREE, 'ru'], tree);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.RECENT_ARTICLES, 'ru'], recent);
+  client.setQueryData([APP_CONSTANTS.QUERY_KEYS.POPULAR_ARTICLES, 'ru'], popular);
 
   return render(
     <QueryClientProvider client={client}>

@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { ArrowLeft, ArrowRight, Flag, Printer } from 'lucide-react';
 import { Link } from 'react-router';
 import { formatMessage } from '../../localization';
-import { useLocale } from '../../localization/hooks';
+import { useLocale, useLocalizedPath } from '../../localization/hooks';
 import { paragraphAnchorId } from '../../shared/articleOutline';
 import type { CitedSource } from '../../shared/articleSources';
 import { articleHref } from '../../shared/slug';
@@ -55,6 +55,7 @@ const adjacentTitleClass = 'text-[14px] font-medium text-[var(--color-brand-fore
  */
 export const ArticleFooter = ({ sources, childArticles, relatedArticles, previous, next, errorReportHref }: ArticleFooterProps) => {
   const t = useLocale().articlePage;
+  const localize = useLocalizedPath();
   const hasSources = sources.length > 0;
   const hasChildren = childArticles.length > 0;
   const hasRelated = relatedArticles.length > 0;
@@ -102,7 +103,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
             {childArticles.map((child) => (
               <li key={child.id} className={child.hasContent ? undefined : 'text-[var(--color-ink-muted)] [overflow-wrap:anywhere]'}>
                 {child.hasContent
-                  ? <Link to={articleHref(child.slug)} className={linkClass}>{child.title}</Link>
+                  ? <Link to={localize(articleHref(child.slug))} className={linkClass}>{child.title}</Link>
                   : child.title}
               </li>
             ))}
@@ -116,7 +117,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
           <ul className={listClass}>
             {relatedArticles.map((related) => (
               <li key={related.id}>
-                <Link to={articleHref(related.slug)} className={linkClass}>{related.title}</Link>
+                <Link to={localize(articleHref(related.slug))} className={linkClass}>{related.title}</Link>
               </li>
             ))}
           </ul>
@@ -126,7 +127,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
       {hasAdjacent && (
         <nav aria-label={t.adjacentArticles} className="grid gap-3 sm:grid-cols-2 print:hidden" data-testid="article-adjacent">
           {previous && (
-            <Link to={articleHref(previous.slug)} rel="prev" className={adjacentClass}>
+            <Link to={localize(articleHref(previous.slug))} rel="prev" className={adjacentClass}>
               <span className={adjacentCaptionClass}>
                 <ArrowLeft size={12} aria-hidden="true" className="rtl:-scale-x-100" />
                 {t.previousArticle}
@@ -137,7 +138,7 @@ export const ArticleFooter = ({ sources, childArticles, relatedArticles, previou
           )}
           {next && (
             <Link
-              to={articleHref(next.slug)}
+              to={localize(articleHref(next.slug))}
               rel="next"
               className={`${adjacentClass} sm:col-start-2 sm:items-end sm:text-end`}
             >

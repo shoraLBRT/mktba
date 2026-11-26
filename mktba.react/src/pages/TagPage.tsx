@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router';
 import { ArticleListEntry } from '../components/ArticleListEntry';
 import { PageLinks } from '../components/PageLinks';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
-import { useFormat, useLocale, useLocalizedPath } from '../localization/hooks';
+import { useFormat, useLanguage, useLocale, useLocalizedPath } from '../localization/hooks';
 import { getTagPage } from '../services/tagService';
 import { ApiError } from '../shared/api-client/apiError';
 import { readTagPage, tagHref, tagPageCount, tagPageHref, tagPageQueryKey } from '../shared/tag';
@@ -25,9 +25,10 @@ const TagPage = () => {
   const { slug = '' } = useParams();
   const [searchParams] = useSearchParams();
   const page = readTagPage(searchParams);
+  const language = useLanguage();
   const query = useQuery({
-    queryKey: tagPageQueryKey(slug, page),
-    queryFn: () => getTagPage(slug, page),
+    queryKey: tagPageQueryKey(slug, page, language),
+    queryFn: () => getTagPage(slug, page, language),
     placeholderData: keepPreviousData,
   });
   const tag = query.data;

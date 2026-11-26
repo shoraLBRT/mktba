@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { useLocale } from '../../localization/hooks';
 import { ArticleStatusBadge } from '../article/ArticleStatusBadge';
 import { setSectionCollapsed } from '../../shared/navigationTreeState';
-import { articleHref } from '../../shared/slug';
+import { localizedArticleHref } from '../../shared/slug';
 import type { NavigationArticleDto } from '../../shared/types/ApiTypes';
 import { opensEditorOf } from './windowing';
 
@@ -168,7 +168,7 @@ export const NavigationRow: React.FC<NavigationRowProps> = React.memo(
 
         {isClickable ? (
           <Link
-            to={opensEditor ? `/admin/articles/${article.id}/edit` : articleHref(article.slug)}
+            to={opensEditor ? `/admin/articles/${article.id}/edit` : localizedArticleHref(article.locale, article.slug)}
             aria-current={isActive ? 'page' : undefined}
             data-tree-focus=""
             className={[

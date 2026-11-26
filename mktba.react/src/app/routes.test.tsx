@@ -225,16 +225,33 @@ describe('AppRoutes', () => {
 });
 
 describe('language in the URL (I-01, #105)', () => {
-  it('given /en/, when rendered, then the page is English: lang, og:locale, its own canonical, not indexed', async () => {
+  it('given /en/, when rendered, then the page is English: lang, og:locale, its own canonical, indexed', async () => {
     renderAt('/en/');
 
     await waitFor(() => expect(document.documentElement.lang).toBe('en'));
     expect(document.head.querySelector('meta[property="og:locale"]')?.getAttribute('content')).toBe('en_US');
     expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.test/en/');
-    // An English list page stays out of the index until per-language lists (#110): only
-    // English articles are served to search engines (#104).
-    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
+    // The English lists show English articles (#110), so the English home is indexed.
+    expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
     expect(document.title).toBe('mktba: an Islamic wiki');
+  });
+
+  it('given /en/, when rendered, then the tree and the home lists are asked in English and link /en/ (I-06, #110)', async () => {
+    vi.mocked(getNavigationTree).mockResolvedValue([
+      { id: 3, title: 'Prayer', slug: 'prayer', locale: 'en', status: 'Published', hasContent: true, canEdit: false, children: [] },
+    ]);
+    vi.mocked(getRecentArticles).mockResolvedValue({
+      new: [{ id: 3, title: 'Prayer', slug: 'prayer', summary: null, publishedAt: '2026-11-01T09:00:00Z', updatedAt: '2026-11-01T09:00:00Z' }],
+      updated: [],
+    } as unknown as Awaited<ReturnType<typeof getRecentArticles>>);
+
+    renderAt('/en/');
+
+    await waitFor(() => expect(getNavigationTree).toHaveBeenCalledWith('en'));
+    expect(getRecentArticles).toHaveBeenCalledWith('en');
+    expect(getPopularArticles).toHaveBeenCalledWith('en');
+    const links = await screen.findAllByRole('link', { name: 'Prayer' });
+    links.forEach((link) => expect(link.getAttribute('href')).toBe('/en/prayer'));
   });
 
   it('given /, when rendered, then the page is Russian', async () => {

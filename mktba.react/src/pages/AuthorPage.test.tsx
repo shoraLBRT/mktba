@@ -39,7 +39,7 @@ const articles = (overrides: Partial<AuthorArticlesDto> = {}): AuthorArticlesDto
 const renderAuthor = (url: string, author?: PublicProfileDto, list?: AuthorArticlesDto) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   if (author) client.setQueryData(authorQueryKey(author.slug), author);
-  if (author && list) client.setQueryData(authorArticlesQueryKey(author.slug, list.page), list);
+  if (author && list) client.setQueryData(authorArticlesQueryKey(author.slug, list.page, 'ru'), list);
   const Stub = createRoutesStub([{ path: '/authors/:slug', Component: AuthorPage }]);
 
   return render(

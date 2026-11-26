@@ -3,6 +3,7 @@
  * few rules the page and its route share.
  */
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import type { Language } from '../localization/language';
 import { SEO_DESCRIPTION_MAX_LENGTH } from './seo';
 import { authorHref } from './slug';
 
@@ -27,8 +28,9 @@ export const authorPageCount = (total: number, pageSize: number): number =>
 
 export const authorQueryKey = (slug: string) => [APP_CONSTANTS.QUERY_KEYS.AUTHOR, slug] as const;
 
-export const authorArticlesQueryKey = (slug: string, page: number) =>
-  [APP_CONSTANTS.QUERY_KEYS.AUTHOR_ARTICLES, slug, page] as const;
+/** One page of the author's articles in a language: the page's (I-06, #110); the profile has none. */
+export const authorArticlesQueryKey = (slug: string, page: number, language: Language) =>
+  [APP_CONSTANTS.QUERY_KEYS.AUTHOR_ARTICLES, language, slug, page] as const;
 
 /** The letter shown in place of a missing or broken avatar. */
 export const authorInitial = (displayName: string): string =>

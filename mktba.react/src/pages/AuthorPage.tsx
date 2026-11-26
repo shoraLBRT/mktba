@@ -5,7 +5,7 @@ import { ArticleListEntry } from '../components/ArticleListEntry';
 import { PageLinks } from '../components/PageLinks';
 import { NotFoundMeta, PageMeta } from '../components/PageMeta';
 import { AuthorStructuredData } from '../components/StructuredData';
-import { useFormat, useLocale, useLocalizedPath } from '../localization/hooks';
+import { useFormat, useLanguage, useLocale, useLocalizedPath } from '../localization/hooks';
 import { getAuthor, getAuthorArticles } from '../services/authorService';
 import { ApiError } from '../shared/api-client/apiError';
 import {
@@ -165,10 +165,11 @@ const AuthorPage = () => {
   const { slug = '' } = useParams();
   const [searchParams] = useSearchParams();
   const page = readAuthorPage(searchParams);
+  const language = useLanguage();
   const profileQuery = useQuery({ queryKey: authorQueryKey(slug), queryFn: () => getAuthor(slug) });
   const articlesQuery = useQuery({
-    queryKey: authorArticlesQueryKey(slug, page),
-    queryFn: () => getAuthorArticles(slug, page),
+    queryKey: authorArticlesQueryKey(slug, page, language),
+    queryFn: () => getAuthorArticles(slug, page, language),
     placeholderData: keepPreviousData,
   });
   const profile = profileQuery.data;

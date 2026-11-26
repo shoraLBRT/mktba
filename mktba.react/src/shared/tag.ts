@@ -3,6 +3,7 @@
  * the page and its route share.
  */
 import { APP_CONSTANTS } from '../constants/AppConstants';
+import type { Language } from '../localization/language';
 import { tagHref } from './slug';
 
 export { tagHref };
@@ -24,4 +25,6 @@ export const readTagPage = (params: URLSearchParams): number => {
 export const tagPageCount = (total: number, pageSize: number): number =>
   Math.max(Math.ceil(total / Math.max(pageSize, 1)), 1);
 
-export const tagPageQueryKey = (slug: string, page: number) => [APP_CONSTANTS.QUERY_KEYS.TAG_PAGE, slug, page] as const;
+/** A tag's page in a language: a tag belongs to one language (M-06), so its slug is looked up in the page's. */
+export const tagPageQueryKey = (slug: string, page: number, language: Language) =>
+  [APP_CONSTANTS.QUERY_KEYS.TAG_PAGE, language, slug, page] as const;

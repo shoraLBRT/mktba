@@ -4,6 +4,7 @@
  * Mktba.Application (and the backfill in migration `AddArticleSlugs`); the server validates
  * and de-duplicates whatever the editor sends.
  */
+import { DEFAULT_LANGUAGE, localizedPath } from '../localization/language';
 
 /** Longest slug the API accepts (`ArticleSlugRules.MaxLength`). */
 export const SLUG_MAX_LENGTH = 80;
@@ -75,6 +76,13 @@ export const articleSlugFromTitle = (title: string): string => {
 
 /** The reader's URL of an article: directly under the site root. */
 export const articleHref = (slug: string): string => `/${encodeURIComponent(slug)}`;
+
+/**
+ * The reader's URL of an article in its language (`locale` from the API): `/{slug}` in Russian,
+ * `/en/{slug}` in English (I-06, #110).
+ */
+export const localizedArticleHref = (locale: string | null | undefined, slug: string): string =>
+  localizedPath(locale ?? DEFAULT_LANGUAGE, articleHref(slug));
 
 /**
  * The public page of the author whose profile slug is `slug`. It lives here, beside `articleHref`,

@@ -31,7 +31,7 @@ import { trackEvent } from '../analytics/events';
 import { useInternalLinkClicks, useOpinionImpressions, useScrollDepth } from '../analytics/articleEvents';
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
-import { articleHref, authorHref } from '../shared/slug';
+import { articleHref, authorHref, localizedArticleHref } from '../shared/slug';
 import { feedbackHref } from '../shared/feedback';
 import { findAdjacentArticles, findArticlePath } from '../shared/articleTree';
 import { estimateReadingMinutes } from '../shared/readingTime';
@@ -79,7 +79,7 @@ const ArticlePage: React.FC = () => {
     }
   }, [targetPath, pathname, locationSearch, navigate]);
 
-  const { data: navigationTree } = useNavigationTree();
+  const { data: navigationTree } = useNavigationTree(language);
 
   const { data: systemSchools } = useQuery({
     queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, language],
@@ -233,8 +233,8 @@ const ArticlePage: React.FC = () => {
     () =>
       breadcrumbItems
         .filter((item, index) => item.hasContent || index === breadcrumbItems.length - 1)
-        .map((item) => ({ name: item.title, path: articleHref(item.slug) })),
-    [breadcrumbItems],
+        .map((item) => ({ name: item.title, path: localizedPath(language, articleHref(item.slug)) })),
+    [breadcrumbItems, language],
   );
 
   // The page always renders its own metadata (the route's `ownsMeta` handle): the article's, or a
@@ -254,14 +254,14 @@ const ArticlePage: React.FC = () => {
         {articleContent.meta.noIndex || shownOriginal ? null : (
           <ArticleStructuredData
             article={{
-              path: articleHref(articleContent.slug),
+              path: localizedArticleHref(articleContent.locale, articleContent.slug),
               headline: articleContent.title,
               description: articleContent.meta.description,
               image: articleContent.meta.socialImageUrl,
               publishedAt: articleContent.publishedAt,
               updatedAt: articleContent.updatedAt,
               authors: (articleContent.authors ?? []).flatMap((author) =>
-                author.slug ? [{ name: author.displayName, path: authorHref(author.slug) }] : []),
+                author.slug ? [{ name: author.displayName, path: localizedPath(language, authorHref(author.slug)) }] : []),
             }}
             breadcrumbs={breadcrumbSteps}
           />

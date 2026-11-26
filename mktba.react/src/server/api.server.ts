@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config';
-import { articleLocaleQuery, type Language } from '../localization/language';
+import { articleLocaleParams, articleLocaleQuery, type Language } from '../localization/language';
 import { ApiError } from '../shared/api-client/apiError';
 import { AUTHOR_PAGE_PARAM } from '../shared/author';
 import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../shared/search';
@@ -67,23 +67,28 @@ const getJson = async <T>(path: string): Promise<T> => {
 
 /** The API calls the server loaders make; anonymous, so they see published content only. */
 export const serverApi = {
-  getNavigationTree: () => getJson<NavigationArticleDto[]>('/navigationTree/tree'),
+  /** The reader's tree: only the language's articles (I-06, #110). */
+  getNavigationTree: (language: Language) => getJson<NavigationArticleDto[]>(`/navigationTree/tree?locale=${language}`),
   getArticleContentById: (id: number) => getJson<ArticleContentDto>(`/articles/${id}/content`),
   getArticleContentBySlug: (slug: string, language: Language) =>
     getJson<ArticleContentDto>(`/articles/by-slug/${encodeURIComponent(slug)}/content${articleLocaleQuery(language)}`),
   getSitemapArticles: () => getJson<SitemapArticleDto[]>('/articles/sitemap'),
   getIndexNowKey: () => getJson<IndexNowKeyDto>('/seo/indexnow-key'),
-  getRecentArticles: () => getJson<RecentArticlesDto>('/articles/recent'),
-  getPopularArticles: () => getJson<PopularArticlesDto>('/articles/popular'),
-  searchArticles: ({ query, page }: SearchRequest) =>
+  getRecentArticles: (language: Language) => getJson<RecentArticlesDto>(`/articles/recent${articleLocaleQuery(language)}`),
+  getPopularArticles: (language: Language) => getJson<PopularArticlesDto>(`/articles/popular${articleLocaleQuery(language)}`),
+  searchArticles: ({ query, page }: SearchRequest, language: Language) =>
     getJson<SearchResultsDto>(
-      `/search?${new URLSearchParams({ [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: String(page) }).toString()}`,
+      `/search?${new URLSearchParams({ [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: String(page), ...articleLocaleParams(language) }).toString()}`,
     ),
   getAuthor: (slug: string) => getJson<PublicProfileDto>(`/authors/${encodeURIComponent(slug)}`),
-  getAuthorArticles: (slug: string, page: number) =>
-    getJson<AuthorArticlesDto>(`/authors/${encodeURIComponent(slug)}/articles?${AUTHOR_PAGE_PARAM}=${page}`),
-  getTagPage: (slug: string, page: number) =>
-    getJson<TagPageDto>(`/tags/${encodeURIComponent(slug)}?${TAG_PAGE_PARAM}=${page}`),
+  getAuthorArticles: (slug: string, page: number, language: Language) =>
+    getJson<AuthorArticlesDto>(
+      `/authors/${encodeURIComponent(slug)}/articles?${new URLSearchParams({ [AUTHOR_PAGE_PARAM]: String(page), ...articleLocaleParams(language) }).toString()}`,
+    ),
+  getTagPage: (slug: string, page: number, language: Language) =>
+    getJson<TagPageDto>(
+      `/tags/${encodeURIComponent(slug)}?${new URLSearchParams({ [TAG_PAGE_PARAM]: String(page), ...articleLocaleParams(language) }).toString()}`,
+    ),
   getSystemSchools: (language: Language) => getJson<SchoolDto[]>(`/schools/system${articleLocaleQuery(language)}`),
   getSchoolsByArticleId: (articleId: number) => getJson<SchoolDto[]>(`/schools/article/${articleId}`),
 };

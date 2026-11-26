@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Link } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
-import { useLocale, useLocalizedPath } from '../localization/hooks';
+import { useLanguage, useLocale, useLocalizedPath } from '../localization/hooks';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { Input } from '../shared/ui/Input';
 import { isSearchableQuery, normalizeSearchQuery, searchHref } from '../shared/search';
@@ -54,9 +54,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const locale = useLocale();
   const localize = useLocalizedPath();
+  const language = useLanguage();
   const [searchValue, setSearchValue] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { data: navigationTree, isLoading, error } = useNavigationTree();
+  const { data: navigationTree, isLoading, error } = useNavigationTree(language);
   const filterQuery = normalizeSearchQuery(searchValue);
 
   const filteredNavigationTree = useMemo(() => {
