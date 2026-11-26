@@ -22,7 +22,7 @@ Machine-specific settings go in the gitignored `Mktba.Api/appsettings.local.json
 
 ### Frontend (run from `mktba.react/`)
 ```bash
-npm install
+npm ci            # install exactly the lock file; `npm install` only to add or change a dependency
 npm run dev       # react-router dev (Vite + SSR) on :5173
 npm run build     # tsc -b && react-router build → build/client, build/server
 npm run size      # after build: JS budget of the /:slug and /en/:slug article page first load (scripts/check-bundle-size.mjs)
@@ -33,6 +33,8 @@ npm test          # Vitest, once (as in CI)
 npm run test:e2e  # Playwright against a throwaway DB, see README
 npm run gen:api   # regenerate the OpenAPI contract after endpoint/DTO changes
 ```
+
+Never commit `mktba.react/package-lock.json` unless you changed a dependency in `package.json`: a lock file rewritten by another npm drops optional packages, and CI's `npm ci` then refuses it. Before committing, `git status` must not list it otherwise; restore it with `git checkout origin/main -- mktba.react/package-lock.json`.
 
 ## Architecture
 

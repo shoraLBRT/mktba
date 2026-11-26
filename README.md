@@ -376,9 +376,14 @@ CDN за `PublicBaseUrl` публичный, закройте префикс `pr
 
 ```bash
 cd mktba.react
-npm install
+npm ci
 npm run dev
 ```
+
+`npm ci` ставит ровно то, что записано в `package-lock.json`; `npm install` — только чтобы добавить
+или обновить зависимость (тогда lock-файл коммитится вместе с `package.json`). Без изменения
+`package.json` lock-файл не коммитится: перезаписанный другой версией npm, он теряет необязательные
+пакеты, и `npm ci` в CI его отвергает.
 
 Dev-сервер (`react-router dev`, Vite с серверным рендером) слушает `:5173`, API — `:5172`.
 
