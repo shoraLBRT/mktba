@@ -166,6 +166,31 @@ public class ArticleRevisionTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenAnEditThatKeptTheBlock_WhenAnEarlierRevisionIsRestored_ThenTheParagraphAndItsOpinionKeepTheirIds()
+    {
+        var created = await CreateAsync(authorId: null);
+        _context.ChangeTracker.Clear();
+        var current = await _content.GetContentByArticleIdAsync(created.Id, TestViewers.Admin);
+        var paragraph = current.Paragraphs.Single();
+        var opinion = paragraph.Opinions.Single();
+        var (success, error) = await _content.UpdateContentAsync(created.Id, current with
+        {
+            Paragraphs = [new ParagraphDto { Id = paragraph.Id, Order = 1, Opinions = [new OpinionDto { Id = opinion.Id, Content = "Второй текст", IsDefault = true }] }],
+        }, authorId: null);
+        success.Should().BeTrue(error?.Code);
+        _context.ChangeTracker.Clear();
+
+        await _revisions.RestoreAsync(created.Id, 1, comment: null, authorId: null, TestViewers.Admin);
+
+        _context.ChangeTracker.Clear();
+        var restored = (await _content.GetContentByArticleIdAsync(created.Id, TestViewers.Admin)).Paragraphs.Single();
+        (restored.Id, restored.Opinions.Single().Id, restored.Opinions.Single().Content).Should().Be((paragraph.Id, opinion.Id, "Первый текст"));
+        var snapshot = (await _revisions.GetAsync(created.Id, 3, TestViewers.Admin)).Snapshot;
+        (snapshot.SchemaVersion, snapshot.Paragraphs.Single().Id, snapshot.Paragraphs.Single().Opinions.Single().Id)
+            .Should().Be((ArticleSnapshotDto.CurrentSchemaVersion, (int?)paragraph.Id, (int?)opinion.Id));
+    }
+
+    [Fact]
     public async Task Restore_CopiesOldSnapshotIntoWorkingCopyAsNewRevision()
     {
         var created = await CreateAsync(authorId: null);
@@ -184,7 +209,10 @@ public class ArticleRevisionTests : IDisposable
         content.Title.Should().Be("Намаз");
         content.Paragraphs.Single().Opinions.Single().Content.Should().Be("Первый текст");
         var third = await _revisions.GetAsync(created.Id, 3, TestViewers.Admin);
-        third.Snapshot.Should().BeEquivalentTo((await _revisions.GetAsync(created.Id, 1, TestViewers.Admin)).Snapshot);
+        // The edit replaced the paragraph, so the restored one is new: only the ids differ.
+        third.Snapshot.Should().BeEquivalentTo((await _revisions.GetAsync(created.Id, 1, TestViewers.Admin)).Snapshot, options => options
+            .Excluding(member => member.Name == nameof(ArticleSnapshotOpinionDto.Id) && member.DeclaringType == typeof(ArticleSnapshotOpinionDto))
+            .Excluding(member => member.Name == nameof(ArticleSnapshotParagraphDto.Id) && member.DeclaringType == typeof(ArticleSnapshotParagraphDto)));
         (await _context.ArticleRevisions.AsNoTracking().SingleAsync(r => r.Number == 2)).Should().BeEquivalentTo(second);
     }
 

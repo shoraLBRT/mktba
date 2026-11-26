@@ -38,6 +38,23 @@ public enum AuditAction
     /// verdict, <see cref="AuditLogEntry.FromValue"/> the verdict it replaced on the same revision (null for a first review).
     /// </summary>
     ArticleReviewed = 9,
+
+    /// <summary>
+    /// A scholar made a remark on a block of an article (V-06, #122); the actor is the scholar. Replies are not logged.
+    /// </summary>
+    ArticleRemarkCreated = 10,
+
+    /// <summary>
+    /// The authors or an editor closed a scholar's remark (V-06, #122): <see cref="AuditLogEntry.ToValue"/> is
+    /// how (<c>Resolved</c> or <c>Closed</c>).
+    /// </summary>
+    ArticleRemarkClosed = 11,
+
+    /// <summary>
+    /// A closed remark was reopened (V-06, #122): <see cref="AuditLogEntry.FromValue"/> is how it had been
+    /// closed.
+    /// </summary>
+    ArticleRemarkReopened = 12,
 }
 
 /// <summary>

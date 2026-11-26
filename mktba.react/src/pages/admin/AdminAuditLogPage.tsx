@@ -5,7 +5,14 @@ import { formatMessage } from '../../localization';
 import { useFormat, useLocale } from '../../localization/hooks';
 import { auditLogQueryKey, getAuditLog, type AuditLogFilter } from '../../services/auditLog/auditLogService';
 import { extractApiErrorMessage } from '../../shared/api-client/apiError';
-import type { ArticleReviewVerdict, ArticleStatus, AuditAction, AuditLogEntryDto, UserRole } from '../../shared/types/ApiTypes';
+import type {
+  ArticleRemarkStatus,
+  ArticleReviewVerdict,
+  ArticleStatus,
+  AuditAction,
+  AuditLogEntryDto,
+  UserRole,
+} from '../../shared/types/ApiTypes';
 import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
 
@@ -20,6 +27,9 @@ const AUDIT_ACTIONS: readonly AuditAction[] = [
   'ScholarApplicationRejected',
   'ScholarStatusRevoked',
   'ArticleReviewed',
+  'ArticleRemarkCreated',
+  'ArticleRemarkClosed',
+  'ArticleRemarkReopened',
 ];
 
 const PAGE_SIZE = 50;
@@ -59,6 +69,9 @@ const AdminAuditLogPage = () => {
     if (!value) return '';
     if (entry.action === 'UserRoleChanged') return locale.userRole[value as UserRole] ?? value;
     if (entry.action === 'ArticleReviewed') return locale.articleReview.verdicts[value as ArticleReviewVerdict] ?? value;
+    if (entry.action === 'ArticleRemarkClosed' || entry.action === 'ArticleRemarkReopened') {
+      return locale.articleRemarks.status[value as ArticleRemarkStatus] ?? value;
+    }
     return locale.articleStatus[value as ArticleStatus] ?? value;
   };
 

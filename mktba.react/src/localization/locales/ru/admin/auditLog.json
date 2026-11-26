@@ -22,7 +22,10 @@
     "ScholarApplicationApproved": "Заявка учёного одобрена",
     "ScholarApplicationRejected": "Заявка учёного отклонена",
     "ScholarStatusRevoked": "Статус учёного отозван",
-    "ArticleReviewed": "Ревью учёного"
+    "ArticleReviewed": "Ревью учёного",
+    "ArticleRemarkCreated": "Замечание учёного",
+    "ArticleRemarkClosed": "Замечание закрыто",
+    "ArticleRemarkReopened": "Замечание открыто снова"
   },
   "noActor": "Система",
   "deletedUser": "Пользователь #{id} (удалён)",

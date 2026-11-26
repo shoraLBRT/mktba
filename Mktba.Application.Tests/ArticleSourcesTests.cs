@@ -97,7 +97,7 @@ public class ArticleSourcesTests : IClassFixture<PostgresDatabaseFixture>
         var revision = await WithRevisionsAsync(service => service.GetAsync(created.Id, 1, TestViewers.Admin));
         await WithRevisionsAsync(service => service.RestoreAsync(created.Id, 1, null, null, TestViewers.Admin));
 
-        revision.Snapshot.SchemaVersion.Should().Be(3);
+        revision.Snapshot.SchemaVersion.Should().Be(ArticleSnapshotDto.CurrentSchemaVersion);
         revision.Snapshot.Paragraphs[0].Opinions[0].Sources.Should().Equal(
             new ArticleSnapshotSourceDto(source.Id, "с. 5", SourceKind.Book, "Старое название (ревизия)", "Автор", null, null));
         var restored = await ReadAsync(created.Id);

@@ -32,6 +32,7 @@ export const APP_CONSTANTS = {
     SCHOLAR_APPLICATION_REVIEW: 'scholarApplicationReview',
     ARTICLE_REVIEWS: 'articleReviews',
     ARTICLE_REVIEW: 'articleReview',
+    ARTICLE_REMARKS: 'articleRemarks',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
   },

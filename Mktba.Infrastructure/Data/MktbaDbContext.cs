@@ -47,6 +47,8 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ScholarApplication> ScholarApplications { get; set; } = null!;
         public DbSet<ScholarApplicationDocument> ScholarApplicationDocuments { get; set; } = null!;
         public DbSet<ArticleReview> ArticleReviews { get; set; } = null!;
+        public DbSet<ArticleRemark> ArticleRemarks { get; set; } = null!;
+        public DbSet<ArticleRemarkMessage> ArticleRemarkMessages { get; set; } = null!;
         public DbSet<ArticleRevisionFingerprint> ArticleRevisionFingerprints { get; set; } = null!;
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; } = null!;
         public DbSet<AnalyticsDay> AnalyticsDays { get; set; } = null!;
@@ -786,6 +788,54 @@ namespace Mktba.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(r => r.ScholarId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Scholars' remarks on a block (V-06, #122): they go with the article, its revisions and the
+            // scholar; a deleted block leaves the remark without its ids («блок удалён»).
+            modelBuilder.Entity<ArticleRemark>(remark =>
+            {
+                remark.HasIndex(r => new { r.ArticleId, r.Status });
+                remark.HasIndex(r => new { r.ScholarId, r.UpdatedAt });
+                remark.Property(r => r.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+                remark.Property(r => r.Excerpt).HasMaxLength(ArticleRemark.ExcerptMaxLength).IsRequired();
+                remark.HasOne(r => r.Article)
+                    .WithMany()
+                    .HasForeignKey(r => r.ArticleId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                remark.HasOne(r => r.Revision)
+                    .WithMany()
+                    .HasForeignKey(r => r.RevisionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                remark.HasOne(r => r.Scholar)
+                    .WithMany()
+                    .HasForeignKey(r => r.ScholarId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                remark.HasOne(r => r.ClosedBy)
+                    .WithMany()
+                    .HasForeignKey(r => r.ClosedById)
+                    .OnDelete(DeleteBehavior.SetNull);
+                remark.HasOne<Paragraph>()
+                    .WithMany()
+                    .HasForeignKey(r => r.ParagraphId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                remark.HasOne<Opinion>()
+                    .WithMany()
+                    .HasForeignKey(r => r.OpinionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ArticleRemarkMessage>(message =>
+            {
+                message.HasIndex(m => new { m.RemarkId, m.CreatedAt });
+                message.Property(m => m.Body).HasMaxLength(ArticleRemark.MessageMaxLength).IsRequired();
+                message.HasOne(m => m.Remark)
+                    .WithMany(r => r.Messages)
+                    .HasForeignKey(m => m.RemarkId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                message.HasOne(m => m.Author)
+                    .WithMany()
+                    .HasForeignKey(m => m.AuthorId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // What a review covers, per revision and scope (V-05, #121); goes with the revision.

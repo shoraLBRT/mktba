@@ -81,6 +81,11 @@ public abstract class EndpointAuthorizationMatrixTests
         ["GET /articles/{id:int}/content"] = Public,
         ["GET /articles/by-slug/{slug}/content"] = Public,
         ["GET /articles/{articleId:int}/verification"] = Public,
+        ["GET /articles/{articleId:int}/remarks"] = Policies.Authenticated,
+        ["POST /articles/{articleId:int}/remarks"] = Policies.CanVerify,
+        ["POST /article-remarks/{id:int}/messages"] = Policies.Authenticated,
+        ["POST /article-remarks/{id:int}/close"] = Policies.CanEditArticles,
+        ["POST /article-remarks/{id:int}/reopen"] = Policies.CanVerify,
         ["GET /schools/system"] = Public,
         ["GET /schools/article/{articleId:int}"] = Public,
 

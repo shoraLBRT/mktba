@@ -485,6 +485,14 @@ namespace Mktba.Infrastructure.Repositories
         public Task<bool> ExistsAsync(int articleId, CancellationToken cancellationToken = default)
             => _dbSet.AnyAsync(article => article.Id == articleId, cancellationToken);
 
+        /// <summary>The ids of the article's paragraphs in the working copy.</summary>
+        public async Task<HashSet<int>> GetParagraphIdsAsync(int articleId, CancellationToken cancellationToken = default)
+            => (await _context.Paragraphs.AsNoTracking()
+                .Where(paragraph => paragraph.ArticleId == articleId)
+                .Select(paragraph => paragraph.Id)
+                .ToListAsync(cancellationToken))
+                .ToHashSet();
+
         /// <summary>Whether the article has children that are not in the trash.</summary>
         public Task<bool> HasChildrenAsync(int articleId, CancellationToken cancellationToken = default)
             => _dbSet.AnyAsync(article => article.ParentArticleId == articleId, cancellationToken);

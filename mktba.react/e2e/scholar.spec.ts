@@ -235,3 +235,99 @@ test('an approved scholar reviews the latest revision of a published article wit
   await page.setViewportSize({ width: 375, height: 700 });
   expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);
 });
+
+// V-06 (#122): an approved scholar leaves a remark on one opinion of a block from the review page;
+// the article's editor sees the block marked and the thread in the rail and resolves it; readers never see it.
+test('a scholar remarks on an opinion and the editor resolves the remark next to the block', async ({ page, request, browser }) => {
+  const stamp = Date.now();
+  const login = await request.post(`${API_URL}/auth/login`, { data: adminCredentials() });
+  const admin = { Authorization: `Bearer ${(await login.json() as { accessToken: string }).accessToken}` };
+  const invite = await request.post(`${API_URL}/invites`, { headers: admin, data: { role: 'Reader' } });
+  const { token } = await invite.json() as { token: string };
+  const email = `scholar-remark-${stamp}@mktba.local`;
+  const password = 'E2e-reader-password-1';
+  expect((await request.post(`${API_URL}/auth/register`, { data: { email, password, inviteToken: token } })).ok()).toBe(true);
+  const scholarLogin = await request.post(`${API_URL}/auth/login`, { data: { email, password } });
+  const own = { Authorization: `Bearer ${(await scholarLogin.json() as { accessToken: string }).accessToken}` };
+  const applied = await request.post(`${API_URL}/scholar-application`, {
+    headers: own,
+    multipart: {
+      degree: 'Доктор исламских наук',
+      institution: 'Университет аль-Азхар',
+      specialization: 'Фикх',
+      mazhab: 'hanafi',
+      documents: { name: 'диплом.pdf', mimeType: 'application/pdf', buffer: PDF },
+    },
+  });
+  expect(applied.status()).toBe(201);
+  const applicationId = (await applied.json() as { id: number }).id;
+  expect((await request.post(`${API_URL}/scholar-applications/${applicationId}/approve`, { headers: admin })).ok()).toBe(true);
+  const schools = await (await request.get(`${API_URL}/schools/system`)).json() as { id: number; slug: string }[];
+  const hanafi = schools.find((school) => school.slug === 'hanafi')!.id;
+  const maliki = schools.find((school) => school.slug === 'maliki')!.id;
+  const article = await publishArticle(request, `E2E замечание учёного ${stamp}`, [
+    { order: 1, opinions: [{ content: 'Общий для всех абзац.', isDefault: true, schoolIds: [] }] },
+    {
+      order: 2,
+      opinions: [
+        { content: 'Мнение ханафитов.', isDefault: false, schoolIds: [hanafi] },
+        { content: 'Мнение маликитов.', isDefault: true, schoolIds: [maliki] },
+      ],
+    },
+  ]);
+  const remarkText = `Укажите источник мнения ханафитов ${stamp}.`;
+
+  await page.goto('/admin/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Пароль', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/article-reviews$/);
+  await page.goto(`/admin/article-reviews/${article.id}`);
+  await page.getByRole('button', { name: 'Оставить замечание: Абзац 2' }).click();
+  const form = page.getByRole('form', { name: 'Оставить замечание: Абзац 2' });
+  await form.getByLabel('К чему относится').selectOption({ index: 1 });
+  await form.getByLabel('Текст замечания').fill(remarkText);
+  const { violations } = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(
+    violations
+      .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+      .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`),
+  ).toEqual([]);
+  await form.getByRole('button', { name: 'Отправить замечание' }).click();
+
+  await expect(page.getByText('Замечание отправлено авторам статьи.')).toBeVisible();
+  const mine = page.getByRole('article', { name: 'Абзац 2, одно мнение: Открыто' });
+  await expect(mine).toContainText(remarkText);
+  await expect(mine).toContainText('Мнение ханафитов.');
+  await page.setViewportSize({ width: 375, height: 700 });
+  expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);
+
+  const editorContext = await browser.newContext();
+  const editor = await editorContext.newPage();
+  await declineAnalytics(editor);
+  await logIn(editor);
+  await editor.goto(`/admin/articles/${article.id}/edit`);
+  await editor.getByRole('button', { name: /^Замечания: 1/ }).click();
+  const panel = editor.getByTestId('editor-remarks-panel');
+  const thread = panel.getByRole('article', { name: 'Абзац 2, одно мнение: Открыто' });
+  await expect(thread).toBeFocused();
+  await expect(thread).toContainText(remarkText);
+  const inEditor = await new AxeBuilder({ page: editor }).include('[data-testid="editor-remarks-panel"]').disableRules(['color-contrast']).analyze();
+  expect(inEditor.violations.map((violation) => violation.id)).toEqual([]);
+  await thread.getByLabel('Ответ или комментарий').fill('Добавили ссылку на «Хидаю».');
+  await thread.getByRole('button', { name: 'Исправлено' }).click();
+
+  await expect(panel).toContainText('Открытых замечаний: 0');
+  await expect(editor.getByRole('button', { name: /^Замечания: / })).toHaveCount(0);
+  const log = await (await request.get(`${API_URL}/audit-log?articleId=${article.id}`, { headers: admin })).json() as {
+    items: { action: string; toValue: string | null }[];
+  };
+  expect(log.items.filter((entry) => entry.action.startsWith('ArticleRemark')).map((entry) => [entry.action, entry.toValue]))
+    .toEqual([['ArticleRemarkClosed', 'Resolved'], ['ArticleRemarkCreated', null]]);
+  await editorContext.close();
+
+  // Readers never see a remark.
+  const html = await (await request.get(`/${article.slug}`)).text();
+  expect(html).not.toContain(remarkText);
+  expect((await request.get(`${API_URL}/articles/${article.id}/remarks`)).status()).toBe(401);
+});

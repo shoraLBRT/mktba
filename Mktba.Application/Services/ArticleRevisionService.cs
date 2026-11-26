@@ -69,7 +69,10 @@ namespace Mktba.Application.Services
             var snapshot = ArticleSnapshots.Deserialize(revision.Snapshot);
             var editComment = string.IsNullOrWhiteSpace(comment) ? $"Откат к ревизии {number}" : comment;
             var (success, error) = await _content.UpdateContentAsync(
-                articleId, ArticleSnapshots.ToUpdate(articleId, snapshot, editComment), authorId, dropMissingSources: true);
+                articleId,
+                ArticleSnapshots.ToUpdate(articleId, snapshot, editComment, await _articleRepo.GetParagraphIdsAsync(articleId)),
+                authorId,
+                dropMissingSources: true);
             if (!success)
             {
                 throw new ValidationException(error!);

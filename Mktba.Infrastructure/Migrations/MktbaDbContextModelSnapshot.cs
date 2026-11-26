@@ -546,6 +546,105 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("ArticleRelatedLinks");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRemark", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ClosedById")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Excerpt")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("OnOpinion")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("OpinionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ParagraphId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ParagraphOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RevisionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ScholarId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosedById");
+
+                    b.HasIndex("OpinionId");
+
+                    b.HasIndex("ParagraphId");
+
+                    b.HasIndex("RevisionId");
+
+                    b.HasIndex("ArticleId", "Status");
+
+                    b.HasIndex("ScholarId", "UpdatedAt");
+
+                    b.ToTable("ArticleRemarks");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRemarkMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AuthorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RemarkId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("RemarkId", "CreatedAt");
+
+                    b.ToTable("ArticleRemarkMessages");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleReview", b =>
                 {
                     b.Property<int>("Id")
@@ -1617,6 +1716,68 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("RelatedArticle");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRemark", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "ClosedBy")
+                        .WithMany()
+                        .HasForeignKey("ClosedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.Opinion", null)
+                        .WithMany()
+                        .HasForeignKey("OpinionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.Paragraph", null)
+                        .WithMany()
+                        .HasForeignKey("ParagraphId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.ArticleRevision", "Revision")
+                        .WithMany()
+                        .HasForeignKey("RevisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "Scholar")
+                        .WithMany()
+                        .HasForeignKey("ScholarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("ClosedBy");
+
+                    b.Navigation("Revision");
+
+                    b.Navigation("Scholar");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRemarkMessage", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.ArticleRemark", "Remark")
+                        .WithMany("Messages")
+                        .HasForeignKey("RemarkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Remark");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleReview", b =>
                 {
                     b.HasOne("Mktba.Domain.Entities.Article", "Article")
@@ -1923,6 +2084,11 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("SlugRedirects");
 
                     b.Navigation("TagLinks");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRemark", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevision", b =>
