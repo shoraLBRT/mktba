@@ -5,7 +5,8 @@ namespace Mktba.Application.DTOs
     /// <param name="Title">Article title.</param>
     /// <param name="Slug">URL segment of the article: the reader's link is <c>/{slug}</c>.</param>
     /// <param name="Summary">The article's short summary, or null when it has none.</param>
-    public record PopularArticleDto(int Id, string Title, string Slug, string? Summary);
+    /// <param name="IsVerified">True when the article counts as verified by scholars (V-08, #124: <c>VerifiedArticles</c>).</param>
+    public record PopularArticleDto(int Id, string Title, string Slug, string? Summary, bool IsVerified);
 
     /// <summary>
     /// The articles a reader can open that were viewed most over the last <see cref="Days"/> UTC days,

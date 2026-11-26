@@ -35,6 +35,7 @@ namespace Mktba.Application.Services
                 : Locales.Normalize(requestedLocale) ?? throw new ValidationException(AppErrors.LocaleUnsupported(requestedLocale));
 
             var rows = await _articleRepository.GetNavigationRowsAsync(viewer);
+            var verified = await _articleRepository.GetVerifiedIdsAsync();
             var rowsById = rows.ToDictionary(row => row.Id);
             var lookup = rows
                 .Where(row => locale is null || row.Locale == locale)
@@ -48,6 +49,7 @@ namespace Mktba.Application.Services
                     Status = row.Status,
                     HasContent = row.HasContent,
                     CanEdit = row.CanEdit,
+                    IsVerified = verified.Contains(row.Id),
                     Children = new List<NavigationArticleDto>()
                 })
                 .ToDictionary(article => article.Id);

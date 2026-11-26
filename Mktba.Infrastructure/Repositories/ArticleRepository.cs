@@ -132,6 +132,10 @@ namespace Mktba.Infrastructure.Repositories
                     article.UpdatedAt))
                 .ToListAsync(cancellationToken);
 
+        /// <summary>The ids of the articles that count as verified (<see cref="VerifiedArticles"/>, V-08, #124).</summary>
+        public Task<HashSet<int>> GetVerifiedIdsAsync(CancellationToken cancellationToken = default)
+            => VerifiedArticles.LoadIdsAsync(_context, cancellationToken);
+
         /// <summary>
         /// Ids of the Published articles user <paramref name="userId"/> wrote or co-authored.
         /// </summary>

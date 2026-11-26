@@ -425,6 +425,57 @@ public sealed class ArticleReviewTests : IDisposable
         (await ReviewFingerprintBackfill.RunAsync(_db)).Should().Be(0);
     }
 
+    [Fact]
+    public async Task GivenCurrentMarks_WhenTheVerifiedArticlesAreRead_ThenAConfirmationWithoutCurrentErrorsCounts()
+    {
+        var hanafi = await SchoolAsync("hanafi");
+        var shafii = await SchoolAsync("shafii");
+        var whole = await ScholarAsync(mazhab: null);
+        var hanafiScholar = await ScholarAsync(mazhab: "hanafi");
+        var critic = await ScholarAsync(mazhab: null);
+
+        var confirmed = await ArticleAsync("Подтверждена", revisions: 1);
+        await Service().ReviewAsync(confirmed, whole, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+
+        var withRemarks = await ArticleAsync("С замечаниями", revisions: 0);
+        await AddRevisionAsync(withRemarks, 1, Opinions(hanafi, "Ханафиты: так", shafii, "Шафииты: так"));
+        await Service().ReviewAsync(withRemarks, hanafiScholar, new ArticleReviewCreateDto(1, ArticleReviewVerdict.ConfirmedWithRemarks, "Ссылка."), default);
+        // An edit of another school's opinion leaves the madhab's mark current.
+        await AddRevisionAsync(withRemarks, 2, Opinions(hanafi, "Ханафиты: так", shafii, "Шафииты: иначе"));
+
+        var disputed = await ArticleAsync("Спорная", revisions: 1);
+        await Service().ReviewAsync(disputed, whole, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await Service().ReviewAsync(disputed, critic, new ArticleReviewCreateDto(1, ArticleReviewVerdict.HasErrors, "Абзац 1."), default);
+
+        var stale = await ArticleAsync("Устарела", revisions: 1);
+        await Service().ReviewAsync(stale, whole, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await AddRevisionAsync(stale, 2);
+
+        var staleErrors = await ArticleAsync("Ошибки исправлены", revisions: 1);
+        await Service().ReviewAsync(staleErrors, critic, new ArticleReviewCreateDto(1, ArticleReviewVerdict.HasErrors, "Абзац 1."), default);
+        await AddRevisionAsync(staleErrors, 2);
+        await Service().ReviewAsync(staleErrors, whole, new ArticleReviewCreateDto(2, ArticleReviewVerdict.Confirmed, null), default);
+
+        var changedMind = await ArticleAsync("Передумал", revisions: 1);
+        await Service().ReviewAsync(changedMind, whole, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await AddRevisionAsync(changedMind, 2, Snapshot("Текст 1", tags: ["пост"]));
+        await Service().ReviewAsync(changedMind, whole, new ArticleReviewCreateDto(2, ArticleReviewVerdict.HasErrors, "Абзац 1."), default);
+
+        var revokedOnly = await ArticleAsync("Отозван", revisions: 1);
+        var revoked = await ScholarAsync(mazhab: null);
+        await Service().ReviewAsync(revokedOnly, revoked, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        (await _db.Users.SingleAsync(user => user.Id == revoked)).Role = UserRole.Reader;
+        (await _db.ScholarApplications.SingleAsync(application => application.UserId == revoked)).Status = ScholarApplicationStatus.Revoked;
+        await _db.SaveChangesAsync();
+
+        await ArticleAsync("Без отметок", revisions: 1);
+
+        var verified = await VerifiedArticles.Ids(_db).ToListAsync();
+
+        verified.Should().BeEquivalentTo([confirmed, withRemarks, staleErrors]);
+        (await new ArticleRepository(_db).GetVerifiedIdsAsync()).Should().BeEquivalentTo(verified);
+    }
+
     private ArticleReviewService Service() => new(_db, _clock, new AuditLogRepository(_db));
 
     private async Task NameAsync(int userId, string displayName, string slug)

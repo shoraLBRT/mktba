@@ -43,6 +43,22 @@ public class NavigationTreeTests : IDisposable
     }
 
     [Fact]
+    public async Task GetTreeAsync_ChildConfirmedByAScholar_IsMarkedVerified()
+    {
+        var parent = new Article { Title = "Намаз", Status = ArticleStatus.Published };
+        var confirmed = new Article { Title = "Вуду", Status = ArticleStatus.Published, ParentArticle = parent };
+        _context.Articles.AddRange(parent, confirmed, new Article { Title = "Азан", Status = ArticleStatus.Published, ParentArticle = parent });
+        await _context.SaveChangesAsync();
+        await TestDbHelper.ConfirmByScholarAsync(_context, confirmed.Id);
+
+        var tree = await _service.GetTreeAsync(ArticleViewer.Anonymous);
+
+        tree.Single().IsVerified.Should().BeFalse();
+        tree.Single().Children!.Select(child => (child.Title, child.IsVerified))
+            .Should().BeEquivalentTo([("Вуду", true), ("Азан", false)]);
+    }
+
+    [Fact]
     public async Task GetTreeAsync_ArticleWithSlug_ExposesSlugForLinks()
     {
         _context.Articles.Add(new Article { Title = "Намаз", Slug = "namaz" });

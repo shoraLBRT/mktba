@@ -15,13 +15,15 @@ namespace Mktba.Application.DTOs
     /// separated by « … »; null when the match is only in the title, summary or tags.
     /// </param>
     /// <param name="ParagraphId">The paragraph <paramref name="Snippet"/> is taken from; null without a snippet.</param>
+    /// <param name="IsVerified">True when the article counts as verified by scholars (V-08, #124: <c>VerifiedArticles</c>).</param>
     public record SearchResultDto(
         int Id,
         string Slug,
         List<SearchTextSegmentDto> Title,
         List<SearchTextSegmentDto>? Summary,
         List<SearchTextSegmentDto>? Snippet,
-        int? ParagraphId);
+        int? ParagraphId,
+        bool IsVerified);
 
     /// <summary>One page of search results (R-10, #46), best match first.</summary>
     /// <param name="Query">The query as searched: trimmed, with whitespace collapsed.</param>

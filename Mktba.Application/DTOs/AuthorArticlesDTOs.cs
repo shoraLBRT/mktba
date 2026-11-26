@@ -7,7 +7,8 @@ namespace Mktba.Application.DTOs
     /// <param name="Summary">The article's short summary, or null when it has none.</param>
     /// <param name="PublishedAt">When the article first became Published (UTC).</param>
     /// <param name="UpdatedAt">When its content or metadata was last saved (UTC).</param>
-    public record AuthorArticleDto(int Id, string Title, string Slug, string? Summary, DateTime PublishedAt, DateTime UpdatedAt);
+    /// <param name="IsVerified">True when the article counts as verified by scholars (V-08, #124: <c>VerifiedArticles</c>).</param>
+    public record AuthorArticleDto(int Id, string Title, string Slug, string? Summary, DateTime PublishedAt, DateTime UpdatedAt, bool IsVerified);
 
     /// <summary>
     /// One page of the articles a user wrote or co-authored, as a reader may see them (P-01, #89),

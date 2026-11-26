@@ -55,6 +55,20 @@ public class RecentArticlesTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenAnArticleConfirmedByAScholar_WhenListing_ThenOnlyItIsMarkedVerified()
+    {
+        var confirmed = Published("confirmed", 2, updatedDay: 4);
+        _context.Articles.AddRange(confirmed, Published("plain", 1, updatedDay: 3));
+        await _context.SaveChangesAsync();
+        await TestDbHelper.ConfirmByScholarAsync(_context, confirmed.Id);
+
+        var recent = await _service.GetAsync(null, RecentArticlesService.DefaultLimit);
+
+        recent.New.Select(article => (article.Slug, article.IsVerified)).Should().Equal(("confirmed", true), ("plain", false));
+        recent.Updated.Select(article => (article.Slug, article.IsVerified)).Should().Equal(("confirmed", true), ("plain", false));
+    }
+
+    [Fact]
     public async Task GivenArticlesSavedAfterPublication_WhenListing_ThenUpdatedHoldsOnlyThemLatestSaveFirst()
     {
         _context.Articles.AddRange(

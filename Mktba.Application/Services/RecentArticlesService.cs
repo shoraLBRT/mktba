@@ -34,10 +34,11 @@ namespace Mktba.Application.Services
 
             var rows = await _articleRepository.GetRecentRowsAsync(cancellationToken);
             var isReachable = ArticleReachability.Among(rows);
+            var verified = await _articleRepository.GetVerifiedIdsAsync(cancellationToken);
 
             var listed = rows
                 .Where(row => row.HasContent && row.PublishedAt is not null && row.Locale == locale && isReachable(row))
-                .Select(row => new RecentArticleDto(row.Id, row.Title, row.Slug, row.Summary, row.PublishedAt!.Value, row.UpdatedAt))
+                .Select(row => new RecentArticleDto(row.Id, row.Title, row.Slug, row.Summary, row.PublishedAt!.Value, row.UpdatedAt, verified.Contains(row.Id)))
                 .ToList();
 
             return new RecentArticlesDto(

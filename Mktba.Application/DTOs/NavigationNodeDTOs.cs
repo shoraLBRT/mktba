@@ -16,6 +16,8 @@ namespace Mktba.Application.DTOs
         public bool HasContent { get; set; }
         /// <summary>Whether the caller may edit the article: an admin any, an author their own (U-02); false for anonymous readers.</summary>
         public bool CanEdit { get; set; }
+        /// <summary>True when the article counts as verified by scholars (V-08, #124: <c>VerifiedArticles</c>); the footer marks such a child.</summary>
+        public bool IsVerified { get; set; }
         public List<NavigationArticleDto>? Children { get; set; }
     }
 }

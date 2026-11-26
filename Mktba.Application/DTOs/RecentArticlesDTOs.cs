@@ -7,7 +7,8 @@ namespace Mktba.Application.DTOs
     /// <param name="Summary">The article's short summary, or null when it has none.</param>
     /// <param name="PublishedAt">When the article first became Published (UTC).</param>
     /// <param name="UpdatedAt">When its content or metadata was last saved (UTC).</param>
-    public record RecentArticleDto(int Id, string Title, string Slug, string? Summary, DateTime PublishedAt, DateTime UpdatedAt);
+    /// <param name="IsVerified">True when the article counts as verified by scholars (V-08, #124: <c>VerifiedArticles</c>).</param>
+    public record RecentArticleDto(int Id, string Title, string Slug, string? Summary, DateTime PublishedAt, DateTime UpdatedAt, bool IsVerified);
 
     /// <summary>
     /// The newest and the most recently updated articles a reader can open (R-05, #41). An article

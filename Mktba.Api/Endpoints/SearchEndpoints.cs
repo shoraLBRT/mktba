@@ -11,9 +11,10 @@ namespace Mktba.Api.Endpoints
             var group = builder.MapGroup("/search").WithTags("Search");
 
             group.MapGet("/", async (
-                string? q, string? locale, int? page, int? pageSize, ArticleSearchService service, CancellationToken cancellationToken) =>
+                string? q, string? locale, int? page, int? pageSize, bool? verified, ArticleSearchService service,
+                CancellationToken cancellationToken) =>
                 Results.Ok(await service.SearchAsync(
-                    q, locale, page ?? 1, pageSize ?? ArticleSearchService.DefaultPageSize, cancellationToken)))
+                    q, locale, page ?? 1, pageSize ?? ArticleSearchService.DefaultPageSize, verified ?? false, cancellationToken)))
             .WithSummary("Full-text search over articles.")
             .WithDescription(
                 "Searches the title, summary, tags and opinion texts with Russian morphology; an article "
@@ -23,7 +24,8 @@ namespace Mktba.Api.Endpoints
                 + "q is trimmed and must be 2 to 200 characters (400 search_query_too_short / "
                 + "search_query_too_long); locale defaults to ru (an unsupported one answers 400 "
                 + "locale_unsupported); page starts at 1 and is kept within 1 to 100; pageSize is 10 by "
-                + "default, kept within 1 to 50.")
+                + "default, kept within 1 to 50. verified=true keeps only the articles verified by scholars (V-08); "
+                + "each result says whether it is (isVerified).")
             .Produces<SearchResultsDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest);
 
