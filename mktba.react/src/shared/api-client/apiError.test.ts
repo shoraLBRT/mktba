@@ -1,6 +1,9 @@
 import { AxiosError, AxiosHeaders, type AxiosResponse } from 'axios';
 import { afterEach, describe, expect, it } from 'vitest';
 import { dictionaryFor } from '../../localization';
+import adminApiErrors from '../../localization/locales/ru/admin/adminApiErrors.json';
+import enShared from '../../localization/locales/en/shared.json';
+import ruShared from '../../localization/locales/ru/shared.json';
 import { toApiError, translateApiError } from './apiError';
 
 const ru = dictionaryFor('ru');
@@ -92,5 +95,36 @@ describe('the reader language', () => {
 
     window.history.replaceState(null, '', '/zakyat');
     expect(translateApiError('article_not_found')).toBe('Статья не найдена.');
+  });
+});
+
+// #321: the public first load carries only the codes a reader can meet; the admin's are in the lazy
+// `admin` chunk (locales/ru/admin/adminApiErrors.json).
+describe('API error dictionaries', () => {
+  const publicCodes = (language: 'ru' | 'en') =>
+    Object.keys((language === 'ru' ? ruShared : enShared).apiErrors);
+
+  it.each(['ru', 'en'] as const)('given the %s public dictionary, when compared with the admin codes, then none of them is in it', (language) => {
+    const leaked = Object.keys(adminApiErrors).filter((code) => publicCodes(language).includes(code));
+    expect(leaked).toEqual([]);
+  });
+
+  it('given the codes of the reader pages (sign-in, register, reset, invites, feedback, article, search), when looked up, then they are public', () => {
+    const readerCodes = [
+      'fallback', 'network', 'too_many_requests', 'invalid_credentials', 'email_invalid', 'reader_sign_up_closed',
+      'password_too_short', 'password_too_long', 'password_too_simple', 'account_token_invalid', 'account_token_expired',
+      'email_not_confirmed', 'invite_not_found', 'invite_expired', 'invite_used', 'invite_revoked', 'admin_already_exists',
+      'profile_display_name_required', 'profile_display_name_invalid', 'feedback_type_invalid', 'feedback_text_required',
+      'feedback_text_too_long', 'feedback_contact_too_long', 'feedback_limit_reached', 'article_not_found', 'article_gone',
+      'tag_not_found', 'author_not_found', 'search_query_too_short', 'search_query_too_long',
+    ];
+    for (const language of ['ru', 'en'] as const) {
+      expect(readerCodes.filter((code) => !publicCodes(language).includes(code))).toEqual([]);
+    }
+  });
+
+  it('given an admin code, when the admin chunk is loaded, then it is translated', () => {
+    expect(translateApiError('scholar_application_not_found')).toBe(adminApiErrors.scholar_application_not_found);
+    expect(translateApiError('scholar_application_not_found')).not.toBe(ru.apiErrors.fallback);
   });
 });

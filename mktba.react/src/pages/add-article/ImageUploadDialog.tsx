@@ -42,8 +42,8 @@ export const ImageUploadDialog = ({ file, onInsert, onClose }: ImageUploadDialog
           kind: 'failed',
           message:
             problem === 'tooLarge'
-              ? formatMessage(locale.apiErrors.upload_too_large, { maxMegabytes: UPLOAD_MAX_BYTES / (1024 * 1024) })
-              : locale.apiErrors.upload_type_unsupported,
+              ? formatMessage(locale.adminApiErrors.upload_too_large, { maxMegabytes: UPLOAD_MAX_BYTES / (1024 * 1024) })
+              : locale.adminApiErrors.upload_type_unsupported,
         }
       : { kind: 'uploading', share: 0 },
   );

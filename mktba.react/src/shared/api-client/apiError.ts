@@ -1,5 +1,5 @@
-import axios from 'axios';
 import { formatMessage, readerLocale } from '../../localization';
+import { isAxiosError } from './axiosError';
 
 type ProblemPayload = {
   code?: unknown;
@@ -45,15 +45,20 @@ const extractParams = (value: unknown): MessageParams | undefined => {
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 };
 
+const messageOf = (messages: Record<string, string> | undefined, code: string | undefined): string | undefined =>
+  code && messages && Object.hasOwn(messages, code) ? messages[code] : undefined;
+
 /**
  * The message for an API error code in the reader's language (`apiErrors` in
  * locales/<lang>/shared.json; `readerLocale()`). Unknown or missing codes get a generic message:
- * server text is never shown to users.
+ * server text is never shown to users. The codes only the admin's calls return are in the lazy
+ * `admin` chunk (`adminApiErrors`, locales/ru/admin/adminApiErrors.json, #321), which the admin
+ * loads before it renders, so the public first load carries only the codes a reader can meet.
  */
 export const translateApiError = (code: string | undefined, params?: MessageParams): string => {
-  const apiErrorMessages: Record<string, string> = readerLocale().apiErrors;
-  const template =
-    code && Object.hasOwn(apiErrorMessages, code) ? apiErrorMessages[code] : apiErrorMessages.fallback;
+  const locale = readerLocale();
+  const adminMessages: Record<string, string> | undefined = locale.adminApiErrors;
+  const template = messageOf(locale.apiErrors, code) ?? messageOf(adminMessages, code) ?? locale.apiErrors.fallback;
   return params ? formatMessage(template, params) : template;
 };
 
@@ -62,7 +67,7 @@ export const toApiError = (error: unknown): ApiError => {
     return error;
   }
 
-  if (axios.isAxiosError(error)) {
+  if (isAxiosError(error)) {
     if (!error.response) {
       return new ApiError(readerLocale().apiErrors.network);
     }
