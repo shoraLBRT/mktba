@@ -3,6 +3,7 @@ using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
 using Mktba.Api.Infrastructure;
 using Mktba.Application.Services;
+using Mktba.Application.Services.Accounts;
 
 namespace Mktba.Api.Endpoints;
 
@@ -12,9 +13,10 @@ public static class AuthEndpoints
     {
         var group = builder.MapGroup("/auth").WithTags("Auth");
 
-        group.MapGet("/status", async (AdminAuthService service, CancellationToken cancellationToken) =>
+        group.MapGet("/status", async (AdminAuthService service, ReaderAccountService readerAccounts, CancellationToken cancellationToken) =>
         {
             var status = await service.GetAuthStatusAsync(cancellationToken);
+            status.ReaderSignUpEnabled = await readerAccounts.IsSignUpOpenAsync(cancellationToken);
             return Results.Ok(status);
         }).Produces<AdminAuthStatusDto>();
 
@@ -48,6 +50,8 @@ public static class AuthEndpoints
         .WithDescription("Sets the refresh-token cookie as well.")
         .Produces<AdminAuthResponseDto>().ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
         .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
+
+        MapReaderAccountEndpoints(group);
 
         group.MapPost("/refresh", async (HttpContext context, SessionService sessions, CancellationToken cancellationToken) =>
         {
@@ -149,6 +153,81 @@ public static class AuthEndpoints
         .RequireAuthorization(Policies.Authenticated);
 
         return builder;
+    }
+
+    /// <summary>Readers' own accounts (U-05, #126): sign-up, address confirmation, password reset.</summary>
+    private static void MapReaderAccountEndpoints(RouteGroupBuilder group)
+    {
+        group.MapPost("/sign-up", async (ReaderSignUpRequestDto request, ReaderAccountService service, CancellationToken cancellationToken) =>
+        {
+            await service.SignUpAsync(request, cancellationToken);
+            return Results.Accepted();
+        })
+        .WithSummary("Opens a reader account and emails a confirmation link. Never creates an author or an admin.")
+        .WithDescription(
+            "Answers 202 for a new address and for one that already has an account alike, so it does not tell which addresses "
+            + "are registered; the owner of a known address gets a note instead of a second account. Does not sign in: the "
+            + "reader signs in with POST /auth/login, also before confirming. 403 reader_sign_up_closed while sign-up is "
+            + "off (Auth:ReaderSignUpEnabled) or before the first admin exists. 400 email_and_password_required, "
+            + "email_invalid, password_too_short, password_too_long, password_too_simple, profile_display_name_invalid. "
+            + "The website field is a trap for bots and must stay empty.")
+        .Produces(StatusCodes.Status202Accepted)
+        .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status403Forbidden, StatusCodes.Status429TooManyRequests)
+        .RequireRateLimiting(RateLimitingSetup.AccountEmailPolicy);
+
+        group.MapPost("/confirm-email", async (ConfirmEmailRequestDto request, ReaderAccountService service, CancellationToken cancellationToken) =>
+        {
+            await service.ConfirmEmailAsync(request, cancellationToken);
+            return Results.NoContent();
+        })
+        .WithSummary("Confirms an address with the token from the confirmation email.")
+        .WithDescription("The token works once: 400 account_token_invalid (unknown or used) or account_token_expired.")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
+        .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
+
+        group.MapPost("/confirm-email/resend", async (ClaimsPrincipal principal, ReaderAccountService service, CancellationToken cancellationToken) =>
+        {
+            if (principal.GetUserId() is not int userId)
+            {
+                return ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized);
+            }
+
+            await service.ResendConfirmationAsync(userId, cancellationToken);
+            return Results.Accepted();
+        })
+        .WithSummary("Emails the signed-in user another confirmation link; nothing when the address is confirmed.")
+        .WithDescription("429 account_email_limit_reached after Auth:AccountEmailsPerHour emails in the last hour.")
+        .Produces(StatusCodes.Status202Accepted)
+        .ProducesApiProblem(StatusCodes.Status401Unauthorized, StatusCodes.Status429TooManyRequests)
+        .RequireAuthorization(Policies.Authenticated)
+        .RequireRateLimiting(RateLimitingSetup.AccountEmailPolicy);
+
+        group.MapPost("/password-reset", async (PasswordResetRequestDto request, ReaderAccountService service, CancellationToken cancellationToken) =>
+        {
+            await service.RequestPasswordResetAsync(request, cancellationToken);
+            return Results.Accepted();
+        })
+        .WithSummary("Emails a password reset link to the address, if it has an account.")
+        .WithDescription(
+            "Answers 202 whether the address has an account or not. 400 email_and_password_required or email_invalid "
+            + "for a missing or malformed address. The website field is a trap for bots and must stay empty.")
+        .Produces(StatusCodes.Status202Accepted)
+        .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
+        .RequireRateLimiting(RateLimitingSetup.AccountEmailPolicy);
+
+        group.MapPost("/password-reset/confirm", async (PasswordResetConfirmDto request, ReaderAccountService service, CancellationToken cancellationToken) =>
+        {
+            await service.ResetPasswordAsync(request, cancellationToken);
+            return Results.NoContent();
+        })
+        .WithSummary("Sets a new password with the token from the reset email, and ends every session of the account.")
+        .WithDescription(
+            "The token works once: 400 account_token_invalid or account_token_expired. The password follows the "
+            + "registration rules (password_too_short, password_too_long, password_too_simple). Does not sign in.")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status429TooManyRequests)
+        .RequireRateLimiting(RateLimitingSetup.AuthPolicy);
     }
 
     /// <summary>The access token in the body and the refresh token in the cookie, or the error with <paramref name="failureStatus"/>.</summary>

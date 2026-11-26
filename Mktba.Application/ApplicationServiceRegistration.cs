@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mktba.Application.Configuration;
 using Mktba.Application.Services;
+using Mktba.Application.Services.Accounts;
 using Mktba.Application.Services.Analytics;
 using Mktba.Application.Services.Email;
 using Mktba.Application.Services.Feedback;
@@ -58,6 +59,8 @@ namespace Mktba.Application
             services.AddScoped<Mktba.Application.Services.Verification.ArticleRemarkService>();
             services.AddScoped<NotificationService>();
             services.AddScoped<NotificationEmailService>();
+            services.AddScoped<ReaderAccountService>();
+            services.AddScoped<AccountEmailService>();
             // V-09 (#125): the mail server when Email:Smtp and Email:SiteUrl are set, else the log.
             services.AddSingleton<IEmailSender>(provider => provider.GetRequiredService<IOptions<EmailOptions>>().Value.SendsThroughSmtp
                 ? new SmtpEmailSender(provider.GetRequiredService<IOptions<EmailOptions>>())

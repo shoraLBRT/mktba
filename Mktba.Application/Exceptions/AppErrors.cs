@@ -25,6 +25,15 @@ public static class AppErrors
 
     public static AppError PasswordTooSimple => new("password_too_simple", "The password is too simple: it repeats the email or one character.");
 
+    public static AppError EmailInvalid => new("email_invalid", "The email address is not valid.");
+    public static AppError ReaderSignUpClosed => new("reader_sign_up_closed", "Sign-up is closed.");
+    public static AppError AccountTokenInvalid => new("account_token_invalid", "The link is not valid or has already been used.");
+    public static AppError AccountTokenExpired => new("account_token_expired", "The link has expired. Ask for a new one.");
+    public static AppError AccountEmailLimitReached =>
+        new("account_email_limit_reached", "Too many emails were sent to this account. Try again later.");
+
+    public static AppError EmailNotConfirmed => new("email_not_confirmed", "Confirm your email address first.");
+
     public static AppError InviteNotFound => new("invite_not_found", "Invite not found. Check the code you were given.");
     public static AppError InviteExpired => new("invite_expired", "The invite has expired.");
     public static AppError InviteUsed => new("invite_used", "The invite has already been used.");

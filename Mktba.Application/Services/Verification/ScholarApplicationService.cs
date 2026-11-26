@@ -60,13 +60,13 @@ public sealed class ScholarApplicationService
 
     public async Task<MyScholarApplicationDto> GetMineAsync(int userId, CancellationToken cancellationToken)
     {
-        var role = await RoleOfAsync(userId, cancellationToken);
+        var (role, emailConfirmed) = await RoleOfAsync(userId, cancellationToken);
         var latest = await _db.ScholarApplications.AsNoTracking()
             .Include(application => application.Documents).ThenInclude(document => document.StoredFile)
             .Where(application => application.UserId == userId)
             .OrderByDescending(application => application.SubmittedAt).ThenByDescending(application => application.Id)
             .FirstOrDefaultAsync(cancellationToken);
-        var canApply = RoleMayApply(role) && latest?.Status != ScholarApplicationStatus.Pending;
+        var canApply = RoleMayApply(role) && emailConfirmed && latest?.Status != ScholarApplicationStatus.Pending;
         return new MyScholarApplicationDto(canApply, latest is null ? null : ToDto(latest));
     }
 
@@ -204,7 +204,7 @@ public sealed class ScholarApplicationService
             })
             .FirstOrDefaultAsync(cancellationToken);
         if (document is null || document.DeletedAt is not null
-            || (document.UserId != callerId && await RoleOfAsync(callerId, cancellationToken) != UserRole.Admin))
+            || (document.UserId != callerId && (await RoleOfAsync(callerId, cancellationToken)).Role != UserRole.Admin))
         {
             throw new NotFoundException(AppErrors.ScholarDocumentNotFound);
         }
@@ -271,9 +271,16 @@ public sealed class ScholarApplicationService
 
     private async Task EnsureMayApplyAsync(int userId, CancellationToken cancellationToken)
     {
-        if (!RoleMayApply(await RoleOfAsync(userId, cancellationToken)))
+        var (role, emailConfirmed) = await RoleOfAsync(userId, cancellationToken);
+        if (!RoleMayApply(role))
         {
             throw new ConflictException(AppErrors.ScholarApplicationRoleNotAllowed);
+        }
+
+        // U-05 (#126): a reader who signed up applies once the address is confirmed.
+        if (!emailConfirmed)
+        {
+            throw new ConflictException(AppErrors.EmailNotConfirmed);
         }
 
         if (await _db.ScholarApplications.AnyAsync(
@@ -283,10 +290,14 @@ public sealed class ScholarApplicationService
         }
     }
 
-    private async Task<UserRole> RoleOfAsync(int userId, CancellationToken cancellationToken) =>
-        await _db.Users.AsNoTracking().Where(user => user.Id == userId).Select(user => (UserRole?)user.Role)
-            .FirstOrDefaultAsync(cancellationToken)
-        ?? throw new NotFoundException(AppErrors.UserNotFound(userId));
+    private async Task<(UserRole Role, bool EmailConfirmed)> RoleOfAsync(int userId, CancellationToken cancellationToken)
+    {
+        var user = await _db.Users.AsNoTracking().Where(user => user.Id == userId)
+                .Select(user => new { user.Role, Confirmed = user.EmailConfirmedAtUtc != null })
+                .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new NotFoundException(AppErrors.UserNotFound(userId));
+        return (user.Role, user.Confirmed);
+    }
 
     /// <summary>A system school's slug in lower case, or null for a blank value.</summary>
     private async Task<string?> MazhabAsync(string? value, CancellationToken cancellationToken)

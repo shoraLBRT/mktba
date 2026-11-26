@@ -17,6 +17,7 @@ public sealed class RateLimitingTests
     private const int AiLimit = 2;
     private const int UploadLimit = 2;
     private const int AnalyticsLimit = 2;
+    private const int AccountEmailLimit = 2;
 
     private static readonly object WrongCredentials = new { Email = "nobody@mktba.test", Password = "Wrong-password-1" };
 
@@ -49,6 +50,24 @@ public sealed class RateLimitingTests
         response.Headers.RetryAfter.Should().NotBeNull();
         response.Headers.RetryAfter!.Delta.Should().BePositive();
         (await response.Content.ReadAsStringAsync()).Should().Contain("too_many_requests");
+    }
+
+    [Fact]
+    public async Task GivenAccountEmailLimitReachedByResetRequests_WhenSigningUpFromSameIp_ThenItIsLimitedButLoginIsNot()
+    {
+        await using var factory = CreateFactory();
+        var client = CreateClientFromIp(factory, "10.0.0.1");
+        for (var i = 0; i < AccountEmailLimit; i++)
+        {
+            (await client.PostAsJsonAsync("/auth/password-reset", new { Email = "nobody@mktba.test" })).StatusCode
+                .Should().Be(HttpStatusCode.Accepted);
+        }
+
+        var signUp = await client.PostAsJsonAsync("/auth/sign-up", new { Email = "reader@mktba.test", Password = "a long reader passphrase" });
+        var login = await client.PostAsJsonAsync("/auth/login", WrongCredentials);
+
+        signUp.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        login.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -169,6 +188,8 @@ public sealed class RateLimitingTests
         ["RateLimiting:Ai:WindowSeconds"] = "3600",
         ["RateLimiting:Uploads:PermitLimit"] = UploadLimit.ToString(),
         ["RateLimiting:Uploads:WindowSeconds"] = "3600",
+        ["RateLimiting:AccountEmail:PermitLimit"] = AccountEmailLimit.ToString(),
+        ["RateLimiting:AccountEmail:WindowSeconds"] = "3600",
     });
 
     private static HttpClient CreateClientFromIp(MktbaApiFactory factory, string ip)

@@ -31,7 +31,7 @@ internal static class RoleClients
         var email = $"{role.ToString().ToLowerInvariant()}-{Guid.NewGuid():N}@mktba.test";
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MktbaDbContext>();
-        var user = new User { Email = email, Role = role };
+        var user = new User { Email = email, Role = role, EmailConfirmedAtUtc = DateTime.UtcNow };
         user.PasswordHash = new PasswordHasher<User>().HashPassword(user, Password);
         db.Users.Add(user);
         await db.SaveChangesAsync();

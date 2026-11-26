@@ -68,6 +68,9 @@ describe('isReservedArticleSlug', () => {
     ['search', true],
     ['article', true],
     ['en', true],
+    ['register', true],
+    ['confirm-email', true],
+    ['reset-password', true],
     ['search-2', false],
     ['namaz', false],
   ])('given %j, then returns %s', (slug, expected) => {

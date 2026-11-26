@@ -1,13 +1,14 @@
 using Microsoft.Extensions.Options;
 using Mktba.Api.Observability;
 using Mktba.Application.Configuration;
+using Mktba.Application.Services.Accounts;
 using Mktba.Application.Services.Notifications;
 
 namespace Mktba.Api.Infrastructure;
 
 /// <summary>
 /// Looks at the notification email outbox every <see cref="EmailDeliveryOptions.PollIntervalSeconds"/>
-/// and sends what is due (V-09, #125). While the mail server is unavailable the pause doubles with
+/// and sends what is due (V-09, #125), account emails (confirmation, password reset; U-05 #126) first. While the mail server is unavailable the pause doubles with
 /// every failed look, up to <see cref="EmailDeliveryOptions.RetryMaxSeconds"/>. Without a configured
 /// server it still runs: the emails go to the log (<c>LogEmailSender</c>) and leave the outbox.
 /// </summary>
@@ -51,7 +52,14 @@ public sealed class NotificationEmailWorker : BackgroundService
             try
             {
                 using var scope = _scopeFactory.CreateScope();
-                var run = await scope.ServiceProvider.GetRequiredService<NotificationEmailService>().SendDueAsync(stoppingToken);
+                // Account emails first (U-05, #126): someone is waiting for the link. A server that is
+                // away for them is away for the notifications too.
+                var run = await scope.ServiceProvider.GetRequiredService<AccountEmailService>().SendDueAsync(stoppingToken);
+                if (!run.ServerUnavailable)
+                {
+                    run = await scope.ServiceProvider.GetRequiredService<NotificationEmailService>().SendDueAsync(stoppingToken);
+                }
+
                 failedRuns = run.ServerUnavailable ? failedRuns + 1 : 0;
                 if (run.ServerUnavailable)
                 {

@@ -52,6 +52,10 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleRevisionFingerprint> ArticleRevisionFingerprints { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<NotificationEmail> NotificationEmails { get; set; } = null!;
+
+        public DbSet<AccountEmail> AccountEmails { get; set; } = null!;
+
+        public DbSet<AccountToken> AccountTokens { get; set; } = null!;
         public DbSet<UserNotificationSettings> UserNotificationSettings { get; set; } = null!;
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; } = null!;
         public DbSet<AnalyticsDay> AnalyticsDays { get; set; } = null!;
@@ -893,6 +897,33 @@ namespace Mktba.Infrastructure.Data
                 email.HasOne(e => e.Notification)
                     .WithOne(n => n.Email)
                     .HasForeignKey<NotificationEmail>(e => e.NotificationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Account emails (U-05, #126): the outbox of confirmation and reset emails, and their tokens.
+            modelBuilder.Entity<AccountEmail>(email =>
+            {
+                email.HasIndex(e => new { e.State, e.NextAttemptAt });
+                email.HasIndex(e => new { e.UserId, e.Purpose, e.CreatedAtUtc });
+                email.Property(e => e.Purpose).HasConversion<string>().HasMaxLength(32).IsRequired();
+                email.Property(e => e.State).HasConversion<string>().HasMaxLength(16).IsRequired();
+                email.Property(e => e.Attempts).IsConcurrencyToken();
+                email.Property(e => e.LastError).HasMaxLength(AccountEmail.LastErrorMaxLength);
+                email.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AccountToken>(token =>
+            {
+                token.HasIndex(t => t.TokenHash).IsUnique();
+                token.HasIndex(t => new { t.UserId, t.Purpose });
+                token.Property(t => t.TokenHash).HasMaxLength(128).IsRequired();
+                token.Property(t => t.Purpose).HasConversion<string>().HasMaxLength(32).IsRequired();
+                token.HasOne(t => t.User)
+                    .WithMany()
+                    .HasForeignKey(t => t.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
