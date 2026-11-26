@@ -18,13 +18,22 @@ public static class ArticleReviewEndpoints
             .WithTags("ArticleReviews")
             .RequireAuthorization(Policies.CanVerify);
 
-        group.MapGet("/", async (string? q, int? page, int? pageSize, ClaimsPrincipal principal, ArticleReviewService service, CancellationToken cancellationToken) =>
+        group.MapGet("/", async (string? q, bool? queue, int? page, int? pageSize, ClaimsPrincipal principal, ArticleReviewService service, CancellationToken cancellationToken) =>
                 principal.GetUserId() is int userId
-                    ? Results.Ok(await service.ListAsync(userId, q, page ?? 1, pageSize ?? ArticleReviewService.DefaultPageSize, cancellationToken))
+                    ? Results.Ok(await service.ListAsync(userId, q, queue ?? false, page ?? 1, pageSize ?? ArticleReviewService.DefaultPageSize, cancellationToken))
                     : ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized))
-            .WithSummary("Published articles a scholar may review, the latest edited first, with the caller's latest review of each.")
-            .WithDescription("q filters by title (case-insensitive). page from 1, pageSize 1 to 100 (20 by default).")
+            .WithSummary("The scholar's queue: published articles needing a re-review, then those not reviewed by the caller (matching their specialization and madhab first), then the reviewed ones.")
+            .WithDescription("q filters by title (case-insensitive); queue=true leaves out the articles the caller reviewed and whose mark is current. page from 1, pageSize 1 to 100 (20 by default).")
             .Produces<ArticleReviewArticlePageDto>()
+            .ProducesApiProblem(StatusCodes.Status401Unauthorized);
+
+        group.MapGet("/history", async (int? page, int? pageSize, ClaimsPrincipal principal, ArticleReviewService service, CancellationToken cancellationToken) =>
+                principal.GetUserId() is int userId
+                    ? Results.Ok(await service.ListHistoryAsync(userId, page ?? 1, pageSize ?? ArticleReviewService.DefaultPageSize, cancellationToken))
+                    : ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized))
+            .WithSummary("The caller's reviews across articles, the latest given first, with whether each is still current (the scholar's cabinet).")
+            .WithDescription("page from 1, pageSize 1 to 100 (20 by default). A trashed article's reviews are left out; isAvailable is false for an unpublished article.")
+            .Produces<ScholarReviewHistoryPageDto>()
             .ProducesApiProblem(StatusCodes.Status401Unauthorized);
 
         group.MapGet("/{articleId:int}", async (int articleId, ClaimsPrincipal principal, ArticleReviewService service, CancellationToken cancellationToken) =>

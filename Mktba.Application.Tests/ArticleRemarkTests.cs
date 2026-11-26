@@ -232,6 +232,42 @@ public sealed class ArticleRemarkTests : IDisposable
         (excerpt.Length, excerpt[^1]).Should().Be((ArticleRemark.ExcerptMaxLength, '…'));
     }
 
+    [Fact]
+    public async Task GivenRemarksOnSeveralArticles_WhenTheScholarOpensTheirHistory_ThenTheirOwnAreListedLatestFirstWithoutTheTrashedOnes()
+    {
+        var scholarId = await ScholarAsync();
+        var otherId = await ScholarAsync();
+        var authorId = await UserAsync(UserRole.Author);
+        var first = await ArticleAsync(authorId);
+        var second = await ArticleAsync(authorId);
+        var trashed = await ArticleAsync(authorId);
+        var older = await Service().CreateAsync(first.Id, scholarId, new ArticleRemarkCreateDto(1, first.PlainId, null, "Первое."), default);
+        _clock.Advance(TimeSpan.FromHours(1));
+        var newer = await Service().CreateAsync(second.Id, scholarId, new ArticleRemarkCreateDto(1, second.BlockId, second.HanafiOpinionId, "Второе."), default);
+        await Service().CreateAsync(trashed.Id, scholarId, new ArticleRemarkCreateDto(1, trashed.PlainId, null, "В корзине."), default);
+        await Service().CreateAsync(first.Id, otherId, new ArticleRemarkCreateDto(1, first.PlainId, null, "Чужое."), default);
+        _clock.Advance(TimeSpan.FromHours(1));
+        await Service().ReplyAsync(older.Id, authorId, new ArticleRemarkReplyDto("Поправлю."), default);
+        await Service().CloseAsync(older.Id, authorId, new ArticleRemarkCloseDto(ArticleRemarkStatus.Resolved, null), default);
+        var stored = await _db.Articles.SingleAsync(article => article.Id == trashed.Id);
+        stored.DeletedAt = Now;
+        (await _db.Articles.SingleAsync(article => article.Id == second.Id)).Status = ArticleStatus.Archived;
+        await _db.SaveChangesAsync();
+
+        var all = await Service().ListMineAsync(scholarId, null, 1, 20, default);
+
+        (all.Total, all.OpenTotal).Should().Be((2, 1));
+        all.Items.Select(item => (item.RemarkId, item.ArticleId, item.IsAvailable, item.Status, item.MessageCount, item.OnOpinion))
+            .Should().Equal(
+                (older.Id, first.Id, true, ArticleRemarkStatus.Resolved, 2, false),
+                (newer.Id, second.Id, false, ArticleRemarkStatus.Open, 1, true));
+        (all.Items[0].ArticleTitle, all.Items[0].RevisionNumber, all.Items[0].Excerpt).Should().Be(("Намаз путника", 1, older.Excerpt));
+        (await Service().ListMineAsync(scholarId, true, 1, 20, default)).Items.Select(item => item.RemarkId).Should().Equal(newer.Id);
+        (await Service().ListMineAsync(scholarId, false, 1, 20, default)).Items.Select(item => item.RemarkId).Should().Equal(older.Id);
+        var clamped = await Service().ListMineAsync(scholarId, null, 0, 1000, default);
+        (clamped.Page, clamped.PageSize).Should().Be((1, ArticleRemarkService.MaxPageSize));
+    }
+
     private ArticleRemarkService Service() => new(_db, _clock, new AuditLogRepository(_db));
 
     private sealed record SeededArticle(int Id, int PlainId, int PlainOpinionId, int BlockId, int HanafiOpinionId, int ShafiiOpinionId, int Hanafi, int Shafii);

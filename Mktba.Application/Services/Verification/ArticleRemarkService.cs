@@ -72,6 +72,51 @@ public sealed class ArticleRemarkService
             .ToList());
     }
 
+    /// <summary>The page size of the scholar's history when the request gives none (V-07, #123).</summary>
+    public const int DefaultPageSize = 20;
+
+    /// <summary>The largest page of the scholar's history.</summary>
+    public const int MaxPageSize = 100;
+
+    /// <summary>
+    /// The caller's own remarks across articles, for their cabinet (V-07, #123), the latest changed
+    /// first; <paramref name="open"/> true keeps the open ones, false the closed ones (fixed or not),
+    /// null all. A trashed article's remarks are left out: only the editors see them.
+    /// </summary>
+    public async Task<ScholarRemarkHistoryPageDto> ListMineAsync(
+        int userId, bool? open, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var mine = _db.ArticleRemarks.AsNoTracking()
+            .Where(remark => remark.ScholarId == userId && remark.Article.DeletedAt == null);
+        var openTotal = await mine.CountAsync(remark => remark.Status == ArticleRemarkStatus.Open, cancellationToken);
+        var filtered = open switch
+        {
+            true => mine.Where(remark => remark.Status == ArticleRemarkStatus.Open),
+            false => mine.Where(remark => remark.Status != ArticleRemarkStatus.Open),
+            null => mine,
+        };
+        var total = await filtered.CountAsync(cancellationToken);
+        var items = await filtered
+            .OrderByDescending(remark => remark.UpdatedAt).ThenByDescending(remark => remark.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(remark => new ScholarRemarkHistoryItemDto(
+                remark.Id,
+                remark.ArticleId,
+                remark.Article.Title,
+                remark.Article.Status == ArticleStatus.Published,
+                remark.Revision.Number,
+                remark.OnOpinion,
+                remark.Excerpt,
+                remark.Status,
+                remark.CreatedAt,
+                remark.UpdatedAt,
+                remark.Messages.Count))
+            .ToListAsync(cancellationToken);
+        return new ScholarRemarkHistoryPageDto(items, total, page, pageSize, openTotal);
+    }
+
     /// <summary>A verified scholar's remark on a block of the article's latest revision.</summary>
     /// <exception cref="ValidationException">No text or too long, or the block is not in that revision or no longer in the article.</exception>
     /// <exception cref="NotFoundException">No such published article, or it has no revision.</exception>
