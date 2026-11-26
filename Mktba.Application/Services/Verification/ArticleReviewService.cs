@@ -28,7 +28,8 @@ namespace Mktba.Application.Services.Verification;
 /// <para>
 /// Hooks left for the next issues: the widget (V-04, #120) reads <see cref="MktbaDbContext.ArticleReviews"/>
 /// per article; staleness after a substantial edit (V-05, #121) compares the fingerprints of the
-/// review's revision and the latest one for the review's scope (<see cref="ReviewFingerprints"/>); remarks on a paragraph (V-06, #122) can refer to a review; the scholar's cabinet (V-07, #123)
+/// review's revision and the latest one for the review's scope (<see cref="ReviewFingerprints"/>); remarks on a block (V-06, #122)
+/// are <see cref="ArticleRemarkService"/>, made from this page on the same revision; the scholar's cabinet (V-07, #123)
 /// replaces <see cref="ListAsync"/>; notifications are V-09 (#125), which can tell a scholar of the
 /// articles <see cref="ListNeedingReReviewAsync"/> returns (the re-review request of D5).
 /// </para>
@@ -159,7 +160,13 @@ public sealed class ArticleReviewService
             article.Title,
             article.Slug,
             article.Locale,
-            new ArticleReviewRevisionDto(revision.Number, revision.CreatedAt, ArticleSnapshots.Deserialize(revision.Snapshot)),
+            new ArticleReviewRevisionDto(
+                revision.Number,
+                revision.CreatedAt,
+                // The blocks' ids, which remarks refer to (V-06, #122), also for a snapshot older than version 4.
+                RemarkAnchors.WithIds(
+                    ArticleSnapshots.Deserialize(revision.Snapshot),
+                    await RemarkAnchors.LiveParagraphsAsync(_db, articleId, cancellationToken))),
             await ScopeAsync(scholar, cancellationToken),
             scholar.Verified,
             mine.Select(row => ToDto(row.Review, row.Number, revision.Number,

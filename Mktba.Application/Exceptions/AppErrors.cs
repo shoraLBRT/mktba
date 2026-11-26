@@ -414,6 +414,28 @@ public static class AppErrors
     public static AppError ArticleReviewConflict =>
         new("article_review_conflict", "Your review of this revision was saved at the same time from elsewhere; reload and try again.");
 
+    // Remarks on a block (V-06)
+    public static AppError ArticleRemarkNotFound =>
+        new("article_remark_not_found", "Remark not found.");
+
+    public static AppError ArticleRemarkBodyRequired =>
+        new("article_remark_body_required", "Write the remark or the reply.");
+
+    public static AppError ArticleRemarkBodyTooLong(int maxLength) =>
+        new("article_remark_body_too_long", $"The message must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ArticleRemarkBlockInvalid =>
+        new("article_remark_block_invalid", "The block is not in the revision you read, or it has been deleted since; reload the page.");
+
+    public static AppError ArticleRemarkOutcomeInvalid =>
+        new("article_remark_outcome_invalid", "Close the remark as fixed or as closed without a change.");
+
+    public static AppError ArticleRemarkClosed =>
+        new("article_remark_closed", "The remark is closed; reopen it first.");
+
+    public static AppError ArticleRemarkAlreadyOpen =>
+        new("article_remark_open", "The remark is already open.");
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }

@@ -8,7 +8,8 @@
     /// <param name="SchemaVersion">
     /// Shape of this snapshot; <see cref="CurrentSchemaVersion"/> for new ones. Readers must handle
     /// every older version. 1: no SEO fields. 2: adds <paramref name="Seo"/>. 3: opinions carry
-    /// the sources they cite (<see cref="ArticleSnapshotOpinionDto.Sources"/>).
+    /// the sources they cite (<see cref="ArticleSnapshotOpinionDto.Sources"/>). 4: paragraphs and opinions
+    /// carry the working copy's ids (<see cref="ArticleSnapshotParagraphDto.Id"/>), which remarks on a block refer to (V-06, #122).
     /// </param>
     /// <param name="Seo">SEO overrides at save time; null in version 1 snapshots, which predate them (restoring one clears the overrides).</param>
     public record ArticleSnapshotDto(
@@ -23,7 +24,7 @@
         ArticleSeoDto? Seo = null)
     {
         /// <summary>The schema version new snapshots are written with.</summary>
-        public const int CurrentSchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
     }
 
     public record ArticleSnapshotInfoboxDto(
@@ -34,18 +35,24 @@
     public record ArticleSnapshotInfoboxFieldDto(int Order, string Key, string Label, string Value);
 
     /// <param name="Order">1-based position of the paragraph in the article.</param>
-    public record ArticleSnapshotParagraphDto(int Order, List<ArticleSnapshotOpinionDto> Opinions);
+    /// <param name="Id">
+    /// The paragraph's id in the working copy when the revision was saved; null before version 4. Not
+    /// part of what the revision says: a restore and the fingerprints ignore it.
+    /// </param>
+    public record ArticleSnapshotParagraphDto(int Order, List<ArticleSnapshotOpinionDto> Opinions, int? Id = null);
 
     /// <param name="SchoolIds">Schools the opinion is linked to; empty for a paragraph common to all schools.</param>
     /// <param name="Sources">
     /// The citations of the opinion in order; null in version 1 and 2 snapshots, which predate
     /// sources (restoring one leaves the opinions without citations).
     /// </param>
+    /// <param name="Id">The opinion's id in the working copy when the revision was saved; null before version 4.</param>
     public record ArticleSnapshotOpinionDto(
         string Content,
         bool IsDefault,
         List<int> SchoolIds,
-        List<ArticleSnapshotSourceDto>? Sources = null);
+        List<ArticleSnapshotSourceDto>? Sources = null,
+        int? Id = null);
 
     /// <summary>
     /// One citation with the directory entry as it was when the revision was saved, so the revision

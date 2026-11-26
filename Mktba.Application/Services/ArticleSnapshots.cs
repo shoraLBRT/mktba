@@ -45,8 +45,10 @@ namespace Mktba.Application.Services
                                     .ThenBy(c => c.Id)
                                     .Select(c => new ArticleSnapshotSourceDto(
                                         c.SourceId, c.Locator, c.Source.Kind, c.Source.Title, c.Source.Author, c.Source.Details, c.Source.Url))
-                                    .ToList()))
-                            .ToList()))
+                                    .ToList(),
+                                o.Id))
+                            .ToList(),
+                        p.Id))
                     .ToList(),
                 article.RelatedLinks
                     .OrderBy(l => l.Order)
@@ -62,20 +64,26 @@ namespace Mktba.Application.Services
                ?? throw new InvalidOperationException("Revision snapshot is empty.");
 
         /// <summary>
-        /// The snapshot as a full-replace update of the working copy: every paragraph and opinion is
-        /// new (id 0), so the save drops the current ones and recreates the snapshot's.
+        /// The snapshot as a full-replace update of the working copy. A paragraph the snapshot names by
+        /// an id the working copy still has (<paramref name="existingParagraphIds"/>, version 4 on) is
+        /// updated in place, and so are its opinions that are still there, so the remarks on them keep
+        /// their block (V-06, #122); every other paragraph and opinion is new, and the current ones the
+        /// snapshot does not name are dropped.
         /// </summary>
-        public static ArticleContentDto ToUpdate(int articleId, ArticleSnapshotDto snapshot, string? editComment)
+        public static ArticleContentDto ToUpdate(
+            int articleId, ArticleSnapshotDto snapshot, string? editComment, IReadOnlySet<int>? existingParagraphIds = null)
             => new(
                 articleId,
                 snapshot.Title,
                 snapshot.Paragraphs
                     .Select(p => new ParagraphDto
                     {
+                        Id = p.Id is int id && existingParagraphIds?.Contains(id) == true ? id : 0,
                         Order = p.Order,
                         Opinions = p.Opinions
                             .Select(o => new OpinionDto
                             {
+                                Id = p.Id is int kept && existingParagraphIds?.Contains(kept) == true ? o.Id ?? 0 : 0,
                                 Content = o.Content,
                                 IsDefault = o.IsDefault,
                                 SchoolIds = o.SchoolIds.ToList(),
