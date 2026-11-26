@@ -34,12 +34,7 @@ npm run test:e2e  # Playwright against a throwaway DB, see README
 npm run gen:api   # regenerate the OpenAPI contract after endpoint/DTO changes
 ```
 
-### Before every push (run from repo root)
-```bash
-bash scripts/pre-push.sh              # CI's backend, frontend and api-contract checks, cheapest first
-bash scripts/pre-push.sh --no-dotnet  # a front-end-only change: no .NET build, tests or contract
-```
-Push only when it passes. It fails on what most often turned a pushed branch red: a `package-lock.json` changed without a change of `package.json` (a lock file rewritten by another npm drops optional packages, and CI's `npm ci` refuses it — never commit the lock file unless you changed a dependency), a stale API contract (`npm run gen:api`), the error catalog (`AppErrorCatalogTests`) and the authorization matrix (`EndpointAuthorizationMatrixTests`). e2e and the docker job stay in CI: when the change touches a page an e2e spec covers, run `npm run test:e2e` too.
+Never commit `mktba.react/package-lock.json` unless you changed a dependency in `package.json`: a lock file rewritten by another npm drops optional packages, and CI's `npm ci` then refuses it. Before committing, `git status` must not list it otherwise; restore it with `git checkout origin/main -- mktba.react/package-lock.json`.
 
 ## Architecture
 

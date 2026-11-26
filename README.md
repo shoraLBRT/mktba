@@ -381,7 +381,9 @@ npm run dev
 ```
 
 `npm ci` ставит ровно то, что записано в `package-lock.json`; `npm install` — только чтобы добавить
-или обновить зависимость (тогда lock-файл коммитится вместе с `package.json`).
+или обновить зависимость (тогда lock-файл коммитится вместе с `package.json`). Без изменения
+`package.json` lock-файл не коммитится: перезаписанный другой версией npm, он теряет необязательные
+пакеты, и `npm ci` в CI его отвергает.
 
 Dev-сервер (`react-router dev`, Vite с серверным рендером) слушает `:5173`, API — `:5172`.
 
@@ -418,18 +420,6 @@ cd mktba.react
 npm test             # однократный прогон, как в CI
 npm run test:watch   # режим наблюдения
 ```
-
-### Проверка перед пушем
-
-```bash
-bash scripts/pre-push.sh              # проверки CI-джобов backend, frontend и api-contract
-bash scripts/pre-push.sh --no-dotnet  # изменение только фронтенда: без .NET и контракта
-```
-
-Скрипт идёт от дешёвых проверок к дорогим и останавливается на первой ошибке: lock-файл
-(изменён без изменения `package.json` или не принимается `npm ci`), контракт API, lint, Vitest,
-сборка и бюджет бандла, `dotnet build` и `dotnet test` (нужен `postgres` из compose). E2E и
-docker-джоб остаются в CI.
 
 ### Контракт FE↔BE
 
