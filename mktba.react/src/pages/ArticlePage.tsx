@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getArticleContentById, getArticleContentBySlug } from '../services/Article/articleService';
 import { articleContentQueryKey, parseLegacyArticleId } from '../services/Article/articleQueries';
@@ -18,7 +18,9 @@ import { ArticleParagraphList } from '../components/article/ArticleParagraphs';
 import { useArticleOutline, useRenderedParagraphs, useTocItems } from '../components/article/useArticleParagraphs';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLanguage, useLocale } from '../localization/hooks';
-import { localizedPath } from '../localization/language';
+import { languageName, localizedPath } from '../localization/language';
+import { formatMessage } from '../localization';
+import { articleUrlTarget, fetchArticleForUrl, isShownOriginal, useMissingTranslation } from '../shared/missingTranslation';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { useMazhab } from '../context/mazhabContext';
@@ -47,25 +49,35 @@ const ArticlePage: React.FC = () => {
   // `/article/{id}` links from before slugs still open the article and are replaced by its `/{slug}` URL.
   const legacyArticleId = parseLegacyArticleId(requestedSlug);
   const { selectedSchoolId } = useMazhab();
+  const missingTranslation = useMissingTranslation();
   const { data: articleContent, isLoading, error } = useQuery({
     queryKey: articleContentQueryKey(requestedSlug, language),
     queryFn: () => (legacyArticleId !== null
       ? getArticleContentById(legacyArticleId)
-      : getArticleContentBySlug(requestedSlug, language)),
+      : fetchArticleForUrl(requestedSlug, language, getArticleContentBySlug)),
     enabled: requestedSlug.length > 0,
   });
   const articleId = articleContent?.id ?? 0;
   const canonicalSlug = articleContent?.slug;
   // The article's own URL: in its language, which a legacy id link does not say (I-01, #105).
   const canonicalPath = canonicalSlug ? localizedPath(articleContent?.locale ?? language, articleHref(canonicalSlug)) : null;
+  // Another language's article at this URL (I-08, #112): its original, shown with a note.
+  const shownOriginal = articleContent !== undefined && isShownOriginal(articleContent, language, legacyArticleId !== null);
+  const urlTarget = articleContent
+    ? articleUrlTarget(articleContent, { language, pathname, legacyLink: legacyArticleId !== null, mode: missingTranslation })
+    : null;
+  const targetPath = urlTarget?.path ?? null;
+  // The text of a shown original is in its own language, the page around it in the reader's.
+  const contentLanguage = shownOriginal ? (articleContent?.locale ?? undefined) : undefined;
 
   // An old `/article/…` URL, an id link or an old slug lands on the article's current `/{slug}`
-  // without a history entry, keeping the query (`?mazhab=`) as the server's 301 does.
+  // without a history entry, keeping the query (`?mazhab=`) as the server's redirect does; so does
+  // another language's article: on its translation, or (hidden) on the language's home (I-08).
   useEffect(() => {
-    if (canonicalPath && canonicalPath !== pathname) {
-      navigate(`${canonicalPath}${locationSearch}`, { replace: true });
+    if (targetPath && targetPath !== pathname) {
+      navigate(`${targetPath}${locationSearch}`, { replace: true });
     }
-  }, [canonicalPath, pathname, locationSearch, navigate]);
+  }, [targetPath, pathname, locationSearch, navigate]);
 
   const { data: navigationTree } = useNavigationTree();
 
@@ -235,10 +247,11 @@ const ArticlePage: React.FC = () => {
           slug={articleContent.slug}
           locale={articleContent.locale}
           translations={articleContent.translations}
+          shownOriginal={shownOriginal}
           publishedAt={articleContent.publishedAt}
           updatedAt={articleContent.updatedAt}
         />
-        {articleContent.meta.noIndex ? null : (
+        {articleContent.meta.noIndex || shownOriginal ? null : (
           <ArticleStructuredData
             article={{
               path: articleHref(articleContent.slug),
@@ -308,7 +321,21 @@ const ArticlePage: React.FC = () => {
         <div className="mx-auto max-w-[760px] px-4 py-6 pb-24 sm:px-6 lg:px-8 xl:px-10 print:max-w-none print:p-0!">
           <ArticleBreadcrumbs ancestors={breadcrumbItems.slice(0, -1)} currentTitle={articleContent.title} />
 
-          <h1 className="mb-4 text-[28px] font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">
+          {shownOriginal && canonicalPath ? (
+            <p
+              role="note"
+              data-testid="original-shown"
+              className="mb-4 rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-page-panel)] px-4 py-3 text-sm text-[var(--color-ink-muted)]"
+            >
+              {formatMessage(locale.articlePage.originalShown, { language: languageName(language, articleContent.locale ?? '') })}
+              {' '}
+              <Link to={canonicalPath} hrefLang={articleContent.locale ?? undefined} className="font-semibold text-[var(--color-ink-strong)] underline">
+                {locale.articlePage.openOriginal}
+              </Link>
+            </p>
+          ) : null}
+
+          <h1 lang={contentLanguage} className="mb-4 text-[28px] font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">
             {articleContent.title}
           </h1>
           <ArticleDates
@@ -325,7 +352,7 @@ const ArticlePage: React.FC = () => {
 
           {/* The infobox floats by this column's width, not the viewport's (the sidebars take their share);
               `flow-root` keeps the float inside the column. */}
-          <div ref={textRef} className="@container flow-root">
+          <div ref={textRef} lang={contentLanguage} className="@container flow-root">
           <div id={ARTICLE_OVERVIEW_ANCHOR} className="scroll-mt-24">
             <ArticleInfoboxPanel infobox={articleContent.infobox} />
           </div>

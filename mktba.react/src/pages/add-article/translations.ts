@@ -12,14 +12,7 @@ export const missingTranslationLocales = (articleLocale: string, translations: r
 export const newTranslationPath = (sourceId: number, locale: string): string =>
   `/admin/articles/new?${new URLSearchParams({ translationOf: String(sourceId), locale })}`;
 
-/** A language's own name in the interface language, e.g. «английский» for `en` in Russian. */
-export const languageName = (uiLanguage: string, code: string): string => {
-  try {
-    return new Intl.DisplayNames([uiLanguage], { type: 'language' }).of(code) ?? code;
-  } catch {
-    return code;
-  }
-};
+export { languageName } from '../../localization/language';
 
 /** The article a translation is made from, as the editor loads it (shared with the edit page's cache). */
 export const useTranslationSource = (sourceId: number | null) =>

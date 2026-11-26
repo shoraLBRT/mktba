@@ -427,8 +427,51 @@ test('the language is in the URL: / is Russian, /en/ is English and stays out of
   expect(metaContent(html, 'robots')).toContain('noindex');
   expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^/"]+\/en\/"/);
 
-  // A slug is unique within a language: the Russian article is not at /en/{its slug}.
-  expect((await request.get('/en/salat')).status()).toBe(404);
+  // A slug is unique within a language: /en/{a Russian slug} is the Russian original shown in English
+  // (I-08, #112), noindex with the canonical at the original; a slug no language has is a 404.
+  expect((await request.get('/en/no-such-article')).status()).toBe(404);
+});
+
+test('the language switcher leads to the translation, else to the original shown with a note (I-08)', async ({ page, request }) => {
+  const paragraphs = [{ order: 1, opinions: [{ content: 'Text', isDefault: true, schoolIds: [] }] }];
+  const russian = await publishArticle(request, `Namaz ${Date.now()}`, paragraphs);
+  const englishTitle = `Prayer ${Date.now()}`;
+  const english = await publishArticle(request, englishTitle, paragraphs, { translationOfId: russian.id, locale: 'en' });
+
+  // With a published translation, /en/{the Russian slug} redirects (temporarily) to it, and back.
+  const toTranslation = await request.get(`/en/${russian.slug}`, { maxRedirects: 0 });
+  expect(toTranslation.status()).toBe(302);
+  expect(toTranslation.headers()['location']).toBe(`/en/${english.slug}`);
+  const back = await request.get(`/${english.slug}`, { maxRedirects: 0 });
+  expect(back.status()).toBe(302);
+  expect(back.headers()['location']).toBe(`/${russian.slug}`);
+
+  // Without one (the default setting): the original in the English interface, indexed once.
+  const shown = await request.get('/en/salat', { maxRedirects: 0 });
+  expect(shown.status()).toBe(200);
+  const html = await shown.text();
+  expect(html).toMatch(/<html lang="en"/);
+  expect(html).toContain('data-testid="original-shown"');
+  expect(metaContent(html, 'robots')).toContain('noindex');
+  expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^/"]+\/salat"/);
+  expect(html).not.toMatch(/<link rel="alternate" hrefLang/i);
+
+  // In the browser: the header's switcher on the Russian article.
+  await page.goto(`/${russian.slug}`);
+  await page.getByTestId('language-switcher').getByRole('link', { name: 'English' }).click();
+  await expect(page).toHaveURL(new RegExp(`/en/${english.slug}$`));
+  await expect(page.locator('h1')).toHaveText(englishTitle);
+  await page.getByTestId('language-switcher').getByRole('link', { name: 'Русский' }).click();
+  await expect(page).toHaveURL(new RegExp(`/${russian.slug}$`));
+
+  await page.goto('/salat');
+  await page.getByTestId('language-switcher').getByRole('link', { name: 'English' }).click();
+  await expect(page).toHaveURL(/\/en\/salat$/);
+  await expect(page.getByTestId('original-shown')).toBeVisible();
+
+  for (const article of [english, russian]) {
+    expect((await request.delete(`${API_URL}/articles/${article.id}`, { headers: article.headers })).ok()).toBe(true);
+  }
 });
 
 test('an English article lives under /en/ and its old id link leads there (I-01)', async ({ request }) => {
@@ -459,7 +502,7 @@ test('language versions of an article link each other with hreflang in the page 
   expect(hreflang(russianHtml)).toEqual(expected);
   const englishHtml = await (await request.get(`/en/${english.slug}`)).text();
   expect(hreflang(englishHtml)).toEqual(expected);
-  // An English article is indexed now; an English list page still is not (#110, #112).
+  // An English article is indexed now; an English list page still is not (#110).
   expect(metaContent(englishHtml, 'robots')).toBeNull();
   expect(metaContent(await (await request.get('/en/')).text(), 'robots')).toContain('noindex');
 

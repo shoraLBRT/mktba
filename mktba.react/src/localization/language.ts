@@ -41,6 +41,31 @@ export const localizedPath = (language: string, path: string): string => {
 };
 
 /**
+ * The same site path without its language prefix: `/en/search` -> `/search`, `/en/` and `/en` -> `/`;
+ * a Russian path is returned as it is. With {@link localizedPath}, the same page in another language.
+ */
+export const pathWithoutLanguage = (pathname: string): string => {
+  const language = languageFromPath(pathname);
+  if (language === DEFAULT_LANGUAGE) return pathname;
+  return pathname.slice(language.length + 1) || '/';
+};
+
+/** A language's name in the interface language, e.g. «английский» for `en` in Russian (`Intl.DisplayNames`). */
+export const languageName = (uiLanguage: string, code: string): string => {
+  try {
+    return new Intl.DisplayNames([uiLanguage], { type: 'language' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+};
+
+/** A language's name in itself, capitalized («Русский», «English»), for the reader's language switcher (I-08, #112). */
+export const languageSelfName = (code: string): string => {
+  const name = languageName(code, code);
+  return name.charAt(0).toLocaleUpperCase(code) + name.slice(1);
+};
+
+/**
  * The writing direction of a language, set as `<html dir>` (I-09, #113). The layout uses logical
  * CSS (`ms-*`, `inset-s-*`, `text-start`) and mirrors direction-bearing icons under `rtl:`, so a
  * right-to-left language (Arabic) only needs its entry here: `ar: 'rtl'`.

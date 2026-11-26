@@ -12,6 +12,11 @@ type ArticleMetaProps = {
   locale?: string | null;
   /** Its other language versions the reader may see (I-06, #110): the hreflang links (O-08, #104). */
   translations?: readonly ArticleTranslationDto[] | null;
+  /**
+   * The article is another language's original shown at a URL in the reader's language (I-08, #112):
+   * its canonical is the original's URL and the page is noindex, so the text is indexed once.
+   */
+  shownOriginal?: boolean;
   publishedAt?: string | null;
   updatedAt?: string | null;
 };
@@ -21,7 +26,7 @@ type ArticleMetaProps = {
  * description, the canonical article URL, the social image (the site's default when the article has
  * none), robots noindex, the publication dates and the hreflang links to its translations (O-08).
  */
-export const ArticleMeta = ({ meta, slug, locale, translations, publishedAt, updatedAt }: ArticleMetaProps) => {
+export const ArticleMeta = ({ meta, slug, locale, translations, shownOriginal = false, publishedAt, updatedAt }: ArticleMetaProps) => {
   const siteUrl = useSiteUrl();
   const alternates = articleAlternates(
     { locale: locale ?? DEFAULT_LANGUAGE, slug, noIndex: meta.noIndex, translations: translations ?? [] },
@@ -33,9 +38,10 @@ export const ArticleMeta = ({ meta, slug, locale, translations, publishedAt, upd
       title={meta.title}
       description={meta.description || undefined}
       path={articleHref(slug)}
+      pathLanguage={shownOriginal ? (locale ?? DEFAULT_LANGUAGE) : undefined}
       image={meta.socialImageUrl || undefined}
       type="article"
-      noIndex={meta.noIndex}
+      noIndex={meta.noIndex || shownOriginal}
       publishedTime={publishedAt}
       modifiedTime={updatedAt}
       alternates={alternates}

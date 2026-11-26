@@ -400,6 +400,7 @@ npm start          # react-router-serve, порт из PORT (по умолчан
 | `PUBLIC_SITE_URL` | при запуске сервера | публичный адрес сайта (например, `https://mktba.ru`, без пути) для canonical, `og:url` и `og:image`; задавайте за прокси. По умолчанию — origin входящего запроса (подходит для локальной разработки) |
 | `YANDEX_VERIFICATION` | при запуске сервера | токен мета-тега `yandex-verification` (Яндекс Вебмастер); не задан — тега нет |
 | `GOOGLE_SITE_VERIFICATION` | при запуске сервера | токен мета-тега `google-site-verification` (Google Search Console); не задан — тега нет |
+| `MISSING_TRANSLATION` | при запуске сервера | что видит читатель на `/en/{slug}` статьи без перевода на этот язык (I-08, #112): `original` (по умолчанию) — оригинал с пометкой, canonical на оригинал и noindex; `hide` — переход (302) на главную этого языка. Статья с опубликованным переводом всегда ведёт на перевод |
 | `PORT` | при запуске сервера | порт `react-router-serve` |
 | `VITE_METRIKA_ID` | при сборке | номер счётчика Яндекс Метрики; не задан — Метрика не загружается. Счётчик стартует только после согласия посетителя, считает переходы внутри SPA и цели `article_view`, `article_time_5min`, `article_read_end`, `opinion_switch`, `mazhab_change`, `search`, `toc_click` (их нужно завести в счётчике как JavaScript-события с этими идентификаторами; список — `METRIKA_GOALS` в `src/analytics/metrika.ts`) |
 

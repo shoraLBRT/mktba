@@ -130,6 +130,8 @@ services:
       # Webmaster verification meta tags (O-12, #61); empty = no tag.
       YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
       GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+      # An article with no translation in the URL's language (I-08, #112): original (default) or hide.
+      MISSING_TRANSLATION: ${MISSING_TRANSLATION:-original}
     # The SSR server answers (robots.txt is rendered by it without calling the API).
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/robots.txt').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]

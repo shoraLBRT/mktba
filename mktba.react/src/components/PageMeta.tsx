@@ -17,6 +17,11 @@ export type PageMetaProps = {
   description?: string | null;
   /** Site path of the canonical URL (and og:url); omitted for a page that has none (404, admin). */
   path?: string;
+  /**
+   * The language of the canonical URL; omitted: the reader's. Another one only for an original shown
+   * at a URL in the reader's language (I-08, #112), whose canonical is the original's own URL.
+   */
+  pathLanguage?: string;
   /** Social image, absolute or site-relative. Omitted: the site's default image; `null`: none. */
   image?: string | null;
   type?: 'website' | 'article';
@@ -41,6 +46,7 @@ export const PageMeta = ({
   title,
   description,
   path,
+  pathLanguage,
   image,
   type = 'website',
   noIndex = false,
@@ -55,12 +61,12 @@ export const PageMeta = ({
   const shownTitle = title ?? brand.documentTitle;
   const shownDescription = description === undefined ? brand.description : description;
   // The canonical URL is the page's own, in the reader's language (I-01, #105).
-  const canonical = path === undefined ? null : siteUrlFor(localizedPath(language, path), siteUrl);
+  const canonical = path === undefined ? null : siteUrlFor(localizedPath(pathLanguage ?? language, path), siteUrl);
   const imagePath = image === undefined ? DEFAULT_SOCIAL_IMAGE_PATH : image;
   const imageUrl = imagePath ? siteUrlFor(imagePath, siteUrl) : null;
   // A language is indexed only once the site serves it to search engines. An article: the sitemap's
   // list (`SERVED_LOCALES`, with hreflang since #104). Any other page: `INDEXED_LIST_LOCALES`, since
-  // the `/en/…` lists still show the Russian articles (#110, #112).
+  // the `/en/…` lists still show the Russian articles (#110).
   const indexedLocales = type === 'article' ? SERVED_LOCALES : INDEXED_LIST_LOCALES;
   const hidden = noIndex || !indexedLocales.includes(language);
   const robots = hidden ? (noFollow ? ROBOTS_NOINDEX_NOFOLLOW : ROBOTS_NOINDEX) : null;

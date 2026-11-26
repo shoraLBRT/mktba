@@ -121,6 +121,54 @@ describe('article route loader', () => {
     expect(result.data).toEqual({ missing: 410 });
   });
 
+  describe('given /en/{slug} of a Russian article (I-08)', () => {
+    /** The English lookup answers 404, the Russian one `russian`. */
+    const mockLanguages = (russian: ArticleContentDto) =>
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = String(input);
+        if (!url.includes('/content')) return json([]);
+        return url.includes('locale=en') ? json({ code: 'article_not_found' }, 404) : json(russian);
+      });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('with a published English translation, when loaded, then redirects temporarily to it', async () => {
+      mockLanguages({ ...article('namaz'), locale: 'ru', translations: [
+        { articleId: 8, locale: 'en', slug: 'prayer', title: 'Prayer', status: 'Published', noIndex: false },
+      ] } as ArticleContentDto);
+
+      const redirect = (await load('namaz', { english: true, search: '?mazhab=hanafi' }).catch((thrown: unknown) => thrown)) as Response;
+
+      expect(redirect.status).toBe(302);
+      expect(redirect.headers.get('Location')).toBe('/en/prayer?mazhab=hanafi');
+    });
+
+    it('without a translation, when loaded with the default setting, then shows the Russian original at the English URL', async () => {
+      mockLanguages({ ...article('namaz'), locale: 'ru' });
+
+      const result = await load('namaz', { english: true });
+
+      expect(result.init?.status).toBeUndefined();
+      const contentQuery = result.data.dehydratedState?.queries.find(
+        (query) => query.queryKey[0] === APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT,
+      );
+      expect(contentQuery?.queryKey).toEqual([APP_CONSTANTS.QUERY_KEYS.ARTICLE_CONTENT, 'slug', 'en', 'namaz']);
+      expect(contentQuery?.state.data).toMatchObject({ slug: 'namaz', locale: 'ru' });
+    });
+
+    it('without a translation, when loaded with MISSING_TRANSLATION=hide, then redirects temporarily to the English home', async () => {
+      vi.stubEnv('MISSING_TRANSLATION', 'hide');
+      mockLanguages({ ...article('namaz'), locale: 'ru' });
+
+      const redirect = (await load('namaz', { english: true }).catch((thrown: unknown) => thrown)) as Response;
+
+      expect(redirect.status).toBe(302);
+      expect(redirect.headers.get('Location')).toBe('/en/');
+    });
+  });
+
   it('given an API that fails, when an article is loaded, then the error boundary answers 503 with Retry-After', async () => {
     mockApi(json({}, 500));
 

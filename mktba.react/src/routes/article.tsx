@@ -9,9 +9,10 @@ import NotFoundPage from '../pages/NotFoundPage';
 import { serverApi } from '../server/api.server';
 import { useSession } from '../services/session';
 import { articleContentQueryKey, parseLegacyArticleId } from '../services/Article/articleQueries';
-import { languageFromRequest, localizedPath } from '../localization/language';
+import { languageFromRequest } from '../localization/language';
+import { resolveMissingTranslation } from '../server/missingTranslation.server';
 import { ApiError } from '../shared/api-client/apiError';
-import { articleHref } from '../shared/slug';
+import { articleUrlTarget, fetchArticleForUrl } from '../shared/missingTranslation';
 
 type ArticleRouteData = {
   /**
@@ -29,7 +30,9 @@ export const handle: RouteHandle = { ownsMeta: true };
  * On the server: the article with its schools, so the HTML carries the title and every paragraph.
  * An old `/article/{slug-or-id}` URL, an id or an old slug is redirected (301, the query kept) to the
  * current `/{slug}` (`/en/{slug}` for an English article); an unknown one answers 404 and a removed one 410. An API that fails answers
- * 503 (see `serverApi`).
+ * 503 (see `serverApi`). A slug of another language's article (the language switcher, I-08 #112)
+ * redirects (302) to its published translation, else shows the original or, with
+ * `MISSING_TRANSLATION=hide`, redirects (302) to the language's home ({@link articleUrlTarget}).
  */
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const requestedSlug = params.slug ?? '';
@@ -41,7 +44,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   try {
     content = legacyArticleId !== null
       ? await serverApi.getArticleContentById(legacyArticleId)
-      : await serverApi.getArticleContentBySlug(requestedSlug, language);
+      : await fetchArticleForUrl(requestedSlug, language, serverApi.getArticleContentBySlug);
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.status === 410)) {
       return data<ArticleRouteData>({ missing: error.status }, { status: error.status });
@@ -51,9 +54,14 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   }
 
   const url = new URL(request.url);
-  const canonicalPath = content.slug ? localizedPath(content.locale ?? language, articleHref(content.slug)) : null;
-  if (canonicalPath && canonicalPath !== url.pathname) {
-    throw redirect(`${canonicalPath}${url.search}`, 301);
+  const target = articleUrlTarget(content, {
+    language,
+    pathname: url.pathname,
+    legacyLink: legacyArticleId !== null,
+    mode: resolveMissingTranslation(),
+  });
+  if (target) {
+    throw redirect(`${target.path}${url.search}`, target.permanent ? 301 : 302);
   }
 
   const queryClient = createServerQueryClient();

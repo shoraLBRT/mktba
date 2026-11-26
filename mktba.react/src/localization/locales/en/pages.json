@@ -85,6 +85,8 @@
   },
   "articlePage": {
     "noContent": "The text of this article has not been written yet.",
+    "originalShown": "This article has not been translated into English yet. The original ({language}) is shown.",
+    "openOriginal": "Open the original",
     "loadError": "Could not load the article",
     "uiModeUpdated": "Paragraph display mode updated",
     "overview": "Overview",

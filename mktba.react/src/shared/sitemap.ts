@@ -22,8 +22,9 @@ export const SERVED_LOCALES: readonly string[] = [DEFAULT_LOCALE, 'en'];
 
 /**
  * The locales whose other pages (home, search, authors, tags) are indexed. `/en/…` lists still show
- * the Russian articles until per-language lists and the missing-translation rules (#110, #112), so
- * an English list page stays `noindex` and has no hreflang; `en` is added here with them.
+ * the Russian articles until per-language lists (#110; the missing-translation rule of #112 is
+ * for article pages only), so an English list page stays `noindex` and has no hreflang; `en` is
+ * added here with them.
  */
 export const INDEXED_LIST_LOCALES: readonly string[] = [DEFAULT_LOCALE];
 
