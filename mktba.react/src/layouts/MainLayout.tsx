@@ -18,6 +18,7 @@ import { logOut, useSession } from '../services/session';
 import { FEEDBACK_PATH, feedbackHref } from '../shared/feedback';
 import { Button } from '../shared/ui/Button';
 import { MazhabSelector } from '../components/mazhab/MazhabSelector';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { SearchDialog } from '../components/search/SearchDialog';
 import { useSearchShortcut } from '../components/search/searchShortcut';
 
@@ -106,6 +107,8 @@ const MainLayout: React.FC = () => {
           </div>
 
           <div className="ms-auto flex items-center gap-1 px-2 sm:gap-1.5 sm:px-4">
+            <LanguageSwitcher />
+
             <button
               type="button"
               onClick={openSearchDialog}

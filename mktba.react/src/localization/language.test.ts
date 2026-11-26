@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { articleLocaleQuery, DIRECTIONS, LANGUAGES, languageFromPath, languageFromRequest, localizedPath } from './language';
+import {
+  articleLocaleQuery,
+  DIRECTIONS,
+  LANGUAGES,
+  languageFromPath,
+  languageFromRequest,
+  languageSelfName,
+  localizedPath,
+  pathWithoutLanguage,
+} from './language';
 
 describe('languageFromPath', () => {
   it.each([
@@ -53,5 +62,27 @@ describe('articleLocaleQuery', () => {
 describe('DIRECTIONS', () => {
   it('given every language of the site, when reading its direction, then Russian and English are left to right', () => {
     expect(LANGUAGES.map((language) => DIRECTIONS[language])).toEqual(['ltr', 'ltr']);
+  });
+});
+
+describe('pathWithoutLanguage', () => {
+  it.each([
+    ['/salat', '/salat'],
+    ['/', '/'],
+    ['/en/prayer', '/prayer'],
+    ['/en/', '/'],
+    ['/en', '/'],
+    ['/en/tags/fiqh', '/tags/fiqh'],
+    ['/english', '/english'],
+  ])('given %s, when the language is taken off, then the path is %s (I-08)', (path, expected) => {
+    expect(pathWithoutLanguage(path)).toBe(expected);
+  });
+});
+
+describe('languageSelfName', () => {
+  it('given a language, when named, then it is named in itself and capitalized (I-08)', () => {
+    expect(languageSelfName('en')).toBe('English');
+    expect(languageSelfName('ru')).toMatch(/^\p{Lu}/u);
+    expect(languageSelfName('ru')).not.toBe('ru');
   });
 });

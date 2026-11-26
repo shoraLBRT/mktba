@@ -97,6 +97,18 @@ describe('ArticleMeta', () => {
 
     expect(hreflangLinks()).toEqual([]);
   });
+
+  it('given a Russian original shown under /en/, when rendered, then its canonical is the original and it is noindex (I-08)', () => {
+    renderOnSite(
+      <ArticleMeta meta={{ title: 'Намаз', noIndex: false }} slug="namaz" locale="ru" translations={[]} shownOriginal />,
+      'en',
+    );
+
+    expect(head('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.ru/namaz');
+    expect(content('meta[property="og:url"]')).toBe('https://mktba.ru/namaz');
+    expect(content('meta[name="robots"]')).toContain('noindex');
+    expect(hreflangLinks()).toEqual([]);
+  });
 });
 
 const hreflangLinks = () => [...document.head.querySelectorAll('link[rel="alternate"][hreflang]')]

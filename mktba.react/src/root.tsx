@@ -33,6 +33,8 @@ import type { RouteHandle } from './app/routeHandle';
 import { SiteUrlContext } from './app/siteUrl';
 import { resolveSiteUrl } from './server/siteUrl.server';
 import { resolveSiteVerification, type SiteVerificationMeta } from './server/siteVerification.server';
+import { resolveMissingTranslation } from './server/missingTranslation.server';
+import { MissingTranslationContext, type MissingTranslationMode } from './shared/missingTranslation';
 import {
   APPLE_TOUCH_ICON_PATH,
   FAVICON_ICO_PATH,
@@ -46,12 +48,15 @@ type RootData = {
   siteUrl: string;
   /** Yandex Webmaster / Google Search Console verification tags (O-12, #61); empty when not configured. */
   siteVerification: SiteVerificationMeta[];
+  /** What an article without a version in the URL's language shows (I-08, #112; `MISSING_TRANSLATION`). */
+  missingTranslation: MissingTranslationMode;
 };
 
 /** On the server, once per document: the address absolute page URLs are built on, and the verification tags. */
 export const loader = ({ request }: LoaderFunctionArgs): RootData => ({
   siteUrl: resolveSiteUrl(request),
   siteVerification: resolveSiteVerification(),
+  missingTranslation: resolveMissingTranslation(),
 });
 
 /**
@@ -146,23 +151,25 @@ const FallbackPageMeta = () => {
 export default function App() {
   // One client per server render and one for the browser's lifetime.
   const [queryClient] = useState(createQueryClient);
-  const { siteUrl } = useLoaderData<typeof loader>();
+  const { siteUrl, missingTranslation } = useLoaderData<typeof loader>();
   const language = languageFromPath(useLocation().pathname);
 
   return (
     <SiteUrlContext.Provider value={siteUrl}>
-      <LocalizationProvider language={language}>
-        <QueryClientProvider client={queryClient}>
-          <MazhabProvider>
-            <FallbackPageMeta />
-            <AdminSessionExpirationHandler />
-            <SessionQueryRefresh />
-            <CookieConsent />
-            <PageViewTracker />
-            <Outlet />
-          </MazhabProvider>
-        </QueryClientProvider>
-      </LocalizationProvider>
+      <MissingTranslationContext.Provider value={missingTranslation}>
+        <LocalizationProvider language={language}>
+          <QueryClientProvider client={queryClient}>
+            <MazhabProvider>
+              <FallbackPageMeta />
+              <AdminSessionExpirationHandler />
+              <SessionQueryRefresh />
+              <CookieConsent />
+              <PageViewTracker />
+              <Outlet />
+            </MazhabProvider>
+          </QueryClientProvider>
+        </LocalizationProvider>
+      </MissingTranslationContext.Provider>
     </SiteUrlContext.Provider>
   );
 }
