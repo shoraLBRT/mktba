@@ -188,8 +188,7 @@ test('an approved scholar reviews the latest revision of a published article wit
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Пароль', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(page).toHaveURL(/\/admin\/sessions$/);
-  await page.getByRole('navigation', { name: 'Разделы админки' }).first().getByRole('link', { name: 'Ревью статей' }).click();
+  // A scholar lands on their first section, the review of articles.
   await expect(page).toHaveURL(/\/admin\/article-reviews$/);
   await page.getByLabel('Поиск по названию').fill(title);
   await expect(page.getByTestId(`article-review-row-${article.id}`)).toContainText('Нет');
