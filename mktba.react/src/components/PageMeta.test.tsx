@@ -17,7 +17,7 @@ const onSite = (node: ReactNode) => (
 afterEach(cleanup);
 
 describe('PageMeta', () => {
-  it('given English, when an article is rendered, then it is indexed with its hreflang; a list page is not and has none (O-08, #104)', () => {
+  it('given English, when an article is rendered, then it is indexed with its hreflang, and so is a list page since the lists are per language (O-08, #104; I-06, #110)', () => {
     const alternates = [{ hreflang: 'ru', href: 'https://mktba.ru/namaz' }, { hreflang: 'en', href: 'https://mktba.ru/en/prayer' }];
     const english = (node: ReactNode) => (
       <SiteUrlContext.Provider value="https://mktba.ru">
@@ -30,8 +30,8 @@ describe('PageMeta', () => {
     expect(document.head.querySelectorAll('link[rel="alternate"][hreflang]')).toHaveLength(2);
     unmount();
 
-    render(english(<PageMeta path="/" alternates={alternates} />));
-    expect(content('meta[name="robots"]')).toBe('noindex');
+    render(english(<PageMeta path="/" />));
+    expect(head('meta[name="robots"]')).toBeNull();
     expect(document.head.querySelectorAll('link[rel="alternate"][hreflang]')).toHaveLength(0);
   });
 
