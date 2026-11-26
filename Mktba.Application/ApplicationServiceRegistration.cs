@@ -49,6 +49,7 @@ namespace Mktba.Application
             services.AddScoped<UploadCleanupService>();
             services.AddScoped<Mktba.Application.Services.Verification.ScholarApplicationService>();
             services.AddScoped<Mktba.Application.Services.Verification.ScholarApplicationReviewService>();
+            services.AddScoped<Mktba.Application.Services.Verification.ArticleReviewService>();
             services.AddScoped<FeedbackDeliveryService>();
             services.AddSingleton<IFeedbackIssueTracker, GitHubIssueClient>();
             services.AddSingleton<IndexNowQueue>();

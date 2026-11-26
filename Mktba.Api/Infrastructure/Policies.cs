@@ -34,7 +34,10 @@ public static class Policies
     /// </summary>
     public const string CanReviewArticles = nameof(CanReviewArticles);
 
-    /// <summary>Mark a revision as verified by a scholar (D5, #115): Scholar, Admin. No endpoint uses it yet.</summary>
+    /// <summary>
+    /// Review articles as a scholar (V-03, #119; D5, #115: the mark belongs to a revision): Scholar,
+    /// Admin. The verdict itself needs an approved scholar application, which an admin never has.
+    /// </summary>
     public const string CanVerify = nameof(CanVerify);
 
     /// <summary>List users and invite new ones: Admin.</summary>
