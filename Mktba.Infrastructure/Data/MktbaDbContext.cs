@@ -50,6 +50,9 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleRemark> ArticleRemarks { get; set; } = null!;
         public DbSet<ArticleRemarkMessage> ArticleRemarkMessages { get; set; } = null!;
         public DbSet<ArticleRevisionFingerprint> ArticleRevisionFingerprints { get; set; } = null!;
+        public DbSet<Notification> Notifications { get; set; } = null!;
+        public DbSet<NotificationEmail> NotificationEmails { get; set; } = null!;
+        public DbSet<UserNotificationSettings> UserNotificationSettings { get; set; } = null!;
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; } = null!;
         public DbSet<AnalyticsDay> AnalyticsDays { get; set; } = null!;
         public DbSet<AnalyticsArticleDay> AnalyticsArticleDays { get; set; } = null!;
@@ -847,6 +850,58 @@ namespace Mktba.Infrastructure.Data
                 fingerprint.HasOne(f => f.Revision)
                     .WithMany(r => r.Fingerprints)
                     .HasForeignKey(f => f.RevisionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Notifications (V-09, #125): they go with their recipient; the actor, the article and the
+            // remark only leave a gap. The email row is the outbox; Attempts guards it against two workers.
+            modelBuilder.Entity<Notification>(notification =>
+            {
+                notification.HasIndex(n => new { n.UserId, n.CreatedAt });
+                notification.HasIndex(n => new { n.UserId, n.ReadAt });
+                notification.Property(n => n.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
+                notification.Property(n => n.Verdict).HasConversion<string>().HasMaxLength(32);
+                notification.Property(n => n.RemarkStatus).HasConversion<string>().HasMaxLength(32);
+                notification.Property(n => n.ArticleTitle).HasMaxLength(Notification.ArticleTitleMaxLength);
+                notification.Property(n => n.Excerpt).HasMaxLength(Notification.ExcerptMaxLength);
+                notification.Property(n => n.Link).HasMaxLength(Notification.LinkMaxLength).IsRequired();
+                notification.HasOne(n => n.User)
+                    .WithMany()
+                    .HasForeignKey(n => n.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                notification.HasOne(n => n.Actor)
+                    .WithMany()
+                    .HasForeignKey(n => n.ActorId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                notification.HasOne<Article>()
+                    .WithMany()
+                    .HasForeignKey(n => n.ArticleId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                notification.HasOne(n => n.Remark)
+                    .WithMany()
+                    .HasForeignKey(n => n.RemarkId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<NotificationEmail>(email =>
+            {
+                email.HasIndex(e => e.NotificationId).IsUnique();
+                email.HasIndex(e => new { e.State, e.NextAttemptAt });
+                email.Property(e => e.State).HasConversion<string>().HasMaxLength(16).IsRequired();
+                email.Property(e => e.Attempts).IsConcurrencyToken();
+                email.Property(e => e.LastError).HasMaxLength(NotificationEmail.LastErrorMaxLength);
+                email.HasOne(e => e.Notification)
+                    .WithOne(n => n.Email)
+                    .HasForeignKey<NotificationEmail>(e => e.NotificationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<UserNotificationSettings>(settings =>
+            {
+                settings.HasKey(s => s.UserId);
+                settings.HasOne(s => s.User)
+                    .WithOne()
+                    .HasForeignKey<UserNotificationSettings>(s => s.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

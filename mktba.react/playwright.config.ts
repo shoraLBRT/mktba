@@ -48,6 +48,8 @@ export default defineConfig({
         Feedback__GitHub__Enabled: 'false',
         // Nor does it ping IndexNow, whatever the local settings hold.
         IndexNow__Enabled: 'false',
+        // Nor does it send email: notifications (V-09, #125) go to the log.
+        Email__Smtp__Enabled: 'false',
       },
       // Never reuse an API that is already running: it may point at a database with real data.
       reuseExistingServer: false,

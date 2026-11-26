@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
+using Mktba.Application.Services.Notifications;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Data;
 using Mktba.Infrastructure.Repositories;
@@ -30,8 +31,8 @@ namespace Mktba.Application.Services.Verification;
 /// per article; staleness after a substantial edit (V-05, #121) compares the fingerprints of the
 /// review's revision and the latest one for the review's scope (<see cref="ReviewFingerprints"/>); remarks on a block (V-06, #122)
 /// are <see cref="ArticleRemarkService"/>, made from this page on the same revision; the scholar's cabinet (V-07, #123)
-/// is <see cref="ListAsync"/> (the queue) and <see cref="ListHistoryAsync"/>; notifications are V-09 (#125), which can tell a scholar of the
-/// articles <see cref="ListNeedingReReviewAsync"/> returns (the re-review request of D5).
+/// is <see cref="ListAsync"/> (the queue) and <see cref="ListHistoryAsync"/>. Notifications (V-09, #125): a verdict tells the
+/// article's authors; the re-review request of D5 is sent by the content save (<see cref="NotificationService.NotifyStaleReviewsAsync"/>).
 /// </para>
 /// </remarks>
 public sealed class ArticleReviewService
@@ -45,9 +46,11 @@ public sealed class ArticleReviewService
     private readonly MktbaDbContext _db;
     private readonly TimeProvider _clock;
     private readonly AuditLogRepository _auditLog;
+    private readonly NotificationService _notifications;
 
-    public ArticleReviewService(MktbaDbContext db, TimeProvider clock, AuditLogRepository auditLog)
+    public ArticleReviewService(MktbaDbContext db, TimeProvider clock, AuditLogRepository auditLog, NotificationService notifications)
     {
+        _notifications = notifications;
         _db = db;
         _clock = clock;
         _auditLog = auditLog;
@@ -341,6 +344,11 @@ public sealed class ArticleReviewService
             FromValue = previous?.ToString(),
             ToValue = dto.Verdict.ToString(),
         });
+        await _notifications.NotifyAsync(
+            new NotificationDraft(NotificationType.ArticleReviewed, userId, articleId, article.Title, Verdict: dto.Verdict),
+            await _notifications.AuthorsOfAsync(articleId, cancellationToken),
+            NotificationService.EditorLink(articleId),
+            cancellationToken);
 
         try
         {
@@ -459,7 +467,7 @@ public sealed class ArticleReviewService
     /// revision <paramref name="latestId"/>: the same revision, or the same text for that scope. A
     /// missing fingerprint (not filled yet) counts as a change, so a mark is never shown current unchecked.
     /// </summary>
-    private static bool SameText(
+    internal static bool SameText(
         Dictionary<(int RevisionId, string Scope), string> hashes, int reviewedId, int latestId, string? mazhab)
     {
         if (reviewedId == latestId)

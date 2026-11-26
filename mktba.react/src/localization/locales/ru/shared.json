@@ -274,6 +274,7 @@
     "article_remark_outcome_invalid": "Закройте замечание как исправленное или как закрытое без исправлений.",
     "article_remark_closed": "Замечание закрыто. Чтобы продолжить обсуждение, его нужно открыть снова.",
     "article_remark_open": "Замечание уже открыто.",
+    "notification_not_found": "Уведомление не найдено.",
     "profile_bio_too_long":"Текст о себе не должен быть длиннее {maxLength} знаков.",
     "profile_degree_too_long": "Учёная степень не должна быть длиннее {maxLength} знаков.",
     "profile_institution_too_long": "Название учреждения не должно быть длиннее {maxLength} знаков.",

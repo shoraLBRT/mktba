@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
+using Mktba.Application.Services.Notifications;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Data;
 using Mktba.Infrastructure.Repositories;
@@ -32,9 +33,11 @@ namespace Mktba.Application.Services.Verification;
 /// «блок удалён» with the excerpt it was made on.
 /// </para>
 /// <para>
-/// Hook for notifications (V-09, #125): every change goes through <see cref="CreateAsync"/>,
-/// <see cref="ReplyAsync"/>, <see cref="CloseAsync"/> and <see cref="ReopenAsync"/>, each saving once —
-/// tell the authors of a new remark or a scholar's reply, and the scholar of a reply or closing, there.
+/// Notifications (V-09, #125; defaults chosen by the agent, open for the owner in #125): each of
+/// <see cref="CreateAsync"/>, <see cref="ReplyAsync"/>, <see cref="CloseAsync"/> and <see cref="ReopenAsync"/>
+/// tells the thread's other participants — the scholar and the article's authors and co-authors, but
+/// not the one who acted — in the same save; an editor who is not an author is not told. Nothing is
+/// sent to a scholar who no longer has the role (they no longer see the remark).
 /// </para>
 /// </remarks>
 public sealed class ArticleRemarkService
@@ -42,9 +45,11 @@ public sealed class ArticleRemarkService
     private readonly MktbaDbContext _db;
     private readonly TimeProvider _clock;
     private readonly AuditLogRepository _auditLog;
+    private readonly NotificationService _notifications;
 
-    public ArticleRemarkService(MktbaDbContext db, TimeProvider clock, AuditLogRepository auditLog)
+    public ArticleRemarkService(MktbaDbContext db, TimeProvider clock, AuditLogRepository auditLog, NotificationService notifications)
     {
+        _notifications = notifications;
         _db = db;
         _clock = clock;
         _auditLog = auditLog;
@@ -183,6 +188,7 @@ public sealed class ArticleRemarkService
         };
         _db.ArticleRemarks.Add(remark);
         Audit(AuditAction.ArticleRemarkCreated, userId, article, from: null, to: null, now);
+        await NotifyThreadAsync(NotificationType.RemarkCreated, remark, article, userId, body, null, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
         return await OneAsync(remark, article, caller, cancellationToken);
     }
@@ -207,6 +213,7 @@ public sealed class ArticleRemarkService
         var now = _clock.GetUtcNow().UtcDateTime;
         remark.Messages.Add(new ArticleRemarkMessage { AuthorId = userId, Body = body, CreatedAt = now });
         remark.UpdatedAt = now;
+        await NotifyThreadAsync(NotificationType.RemarkReplied, remark, article, userId, body, null, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
         return await OneAsync(remark, article, caller, cancellationToken);
     }
@@ -242,6 +249,7 @@ public sealed class ArticleRemarkService
         remark.ClosedById = userId;
         remark.UpdatedAt = now;
         Audit(AuditAction.ArticleRemarkClosed, userId, article, from: null, to: dto.Outcome.ToString(), now);
+        await NotifyThreadAsync(NotificationType.RemarkClosed, remark, article, userId, message, dto.Outcome, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
         return await OneAsync(remark, article, caller, cancellationToken);
     }
@@ -279,6 +287,7 @@ public sealed class ArticleRemarkService
         remark.ClosedById = null;
         remark.UpdatedAt = now;
         Audit(AuditAction.ArticleRemarkReopened, userId, article, from: previous.ToString(), to: null, now);
+        await NotifyThreadAsync(NotificationType.RemarkReopened, remark, article, userId, message, null, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
         return await OneAsync(remark, article, caller, cancellationToken);
     }
@@ -434,6 +443,26 @@ public sealed class ArticleRemarkService
             FromValue = from,
             ToValue = to,
         });
+
+    /// <summary>
+    /// Tells the thread's participants but the actor: the authors with a link to the editor, the
+    /// scholar with a link to the review page. Does not save.
+    /// </summary>
+    private async Task NotifyThreadAsync(
+        NotificationType type, ArticleRemark remark, ArticleRow article, int actorId, string? message, ArticleRemarkStatus? outcome,
+        CancellationToken cancellationToken)
+    {
+        var draft = new NotificationDraft(type, actorId, article.Id, article.Title, remark, RemarkStatus: outcome, Message: message);
+        List<int?> authors = [article.AuthorId, .. article.CoAuthorIds.Select(id => (int?)id)];
+        await _notifications.NotifyAsync(draft, authors, NotificationService.EditorLink(article.Id), cancellationToken);
+
+        var scholarHasRole = !article.IsAuthor(remark.ScholarId) && await _db.Users.AsNoTracking()
+            .AnyAsync(user => user.Id == remark.ScholarId && user.Role == UserRole.Scholar, cancellationToken);
+        if (scholarHasRole)
+        {
+            await _notifications.NotifyAsync(draft, [remark.ScholarId], NotificationService.ReviewLink(article.Id), cancellationToken);
+        }
+    }
 
     private static void AddOptional(ArticleRemark remark, int userId, string? message, DateTime now)
     {
