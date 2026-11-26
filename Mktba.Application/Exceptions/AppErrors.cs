@@ -2,7 +2,8 @@
 
 /// <summary>
 /// The catalog of API error codes. Every code here has a Russian translation in
-/// mktba.react/src/localization/locales/ru/shared.json (section "apiErrors").
+/// mktba.react/src/localization/locales/ru/shared.json (section "apiErrors"), or, for a code only the
+/// admin's calls return, in locales/ru/admin/adminApiErrors.json (the admin's lazy dictionary, #321).
 /// </summary>
 public static class AppErrors
 {
