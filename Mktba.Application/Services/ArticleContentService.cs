@@ -753,24 +753,57 @@ namespace Mktba.Application.Services
             {
                 var entity = existingMap[incoming.Id];
                 entity.Order = incoming.Order;
+                ReconcileOpinions(entity, incoming.Opinions);
+            }
+        }
 
-                // Reconcile opinions: replace all (simple full-replace strategy)
-                entity.Opinions.Clear();
-                foreach (var opinionDto in incoming.Opinions)
+        /// <summary>
+        /// Brings the paragraph's opinions to <paramref name="incoming"/> in place (#313): an opinion
+        /// whose id is one of this paragraph's is updated and keeps its id, the paragraph's opinions not
+        /// sent are deleted, and every other opinion — id 0, or an id this paragraph does not have — is
+        /// added as new. An opinion is never removed and re-added under its own key: only the
+        /// relational provider turns that into an update, the InMemory one fails the save.
+        /// </summary>
+        private static void ReconcileOpinions(Paragraph paragraph, List<OpinionDto> incoming)
+        {
+            var kept = paragraph.Opinions.ToDictionary(o => o.Id);
+            var sent = incoming.Where(o => o.Id > 0 && kept.ContainsKey(o.Id)).Select(o => o.Id).ToHashSet();
+            foreach (var removed in paragraph.Opinions.Where(o => !sent.Contains(o.Id)).ToList())
+            {
+                paragraph.Opinions.Remove(removed);
+            }
+
+            foreach (var opinionDto in incoming)
+            {
+                if (opinionDto.Id > 0 && kept.TryGetValue(opinionDto.Id, out var opinion) && sent.Remove(opinionDto.Id))
                 {
-                    var opinion = new Opinion
+                    opinion.Content = opinionDto.Content;
+                    opinion.IsDefault = opinionDto.IsDefault;
+                    var schoolIds = opinionDto.SchoolIds.ToHashSet();
+                    foreach (var link in opinion.OpinionSchools.Where(s => !schoolIds.Contains(s.SchoolId)).ToList())
                     {
-                        Id = opinionDto.Id > 0 ? opinionDto.Id : 0,
-                        Content = opinionDto.Content,
-                        IsDefault = opinionDto.IsDefault,
-                    };
-                    foreach (var schoolId in opinionDto.SchoolIds)
+                        opinion.OpinionSchools.Remove(link);
+                    }
+                    foreach (var schoolId in schoolIds.Except(opinion.OpinionSchools.Select(s => s.SchoolId)).ToList())
                     {
                         opinion.OpinionSchools.Add(new OpinionSchool { SchoolId = schoolId });
                     }
+                    opinion.Sources.Clear();
                     OpinionCitations.AddTo(opinion, opinionDto.Sources);
-                    entity.Opinions.Add(opinion);
+                    continue;
                 }
+
+                var added = new Opinion
+                {
+                    Content = opinionDto.Content,
+                    IsDefault = opinionDto.IsDefault,
+                };
+                foreach (var schoolId in opinionDto.SchoolIds)
+                {
+                    added.OpinionSchools.Add(new OpinionSchool { SchoolId = schoolId });
+                }
+                OpinionCitations.AddTo(added, opinionDto.Sources);
+                paragraph.Opinions.Add(added);
             }
         }
 

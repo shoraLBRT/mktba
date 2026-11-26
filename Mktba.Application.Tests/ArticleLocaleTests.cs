@@ -39,15 +39,10 @@ public class ArticleLocaleTests : IDisposable
             slug,
             Locale: locale), authorId: null);
 
-    /// <summary>Saves a new slug as the editor would; opinions go as new (id 0) for the InMemory provider.</summary>
+    /// <summary>Saves a new slug as the editor would.</summary>
     private async Task RenameSlugAsync(ArticleContentDto article, string slug)
     {
         _context.ChangeTracker.Clear();
-        foreach (var opinion in article.Paragraphs.SelectMany(paragraph => paragraph.Opinions))
-        {
-            opinion.Id = 0;
-        }
-
         var (success, error) = await _service.UpdateContentAsync(article.Id, article with { Slug = slug }, authorId: null);
         success.Should().BeTrue(error?.Code);
     }

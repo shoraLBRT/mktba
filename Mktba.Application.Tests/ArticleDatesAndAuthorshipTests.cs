@@ -108,11 +108,6 @@ public class ArticleDatesAndAuthorshipTests : IDisposable
         var created = await CreateWithContentAsync(authorId: null);
         _clock.Advance(TimeSpan.FromDays(1));
         _context.ChangeTracker.Clear();
-        foreach (var opinion in created.Paragraphs.SelectMany(paragraph => paragraph.Opinions))
-        {
-            opinion.Id = 0;
-        }
-
         var (success, error) = await _content.UpdateContentAsync(created.Id, created with { Title = "Новое" }, authorId: null);
 
         success.Should().BeTrue(error?.Code);

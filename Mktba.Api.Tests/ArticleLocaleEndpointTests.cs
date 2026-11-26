@@ -41,11 +41,6 @@ public sealed class ArticleLocaleEndpointTests : IClassFixture<MktbaApiFactory>
     {
         var admin = await CreateAdminClientAsync();
         var created = await CreateArticleAsync(admin, NewArticle("Charity", "sadaqa-old", "en"));
-        foreach (var opinion in created.Paragraphs.SelectMany(paragraph => paragraph.Opinions))
-        {
-            opinion.Id = 0;
-        }
-
         var update = await admin.PutAsJsonAsync($"/articles/{created.Id}/content", created with { Slug = "sadaqa" });
         update.StatusCode.Should().Be(HttpStatusCode.NoContent);
 

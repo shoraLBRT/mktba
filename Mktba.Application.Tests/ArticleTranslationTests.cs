@@ -46,15 +46,10 @@ public class ArticleTranslationTests : IDisposable
         return await _service.GetContentByArticleIdAsync(id, viewer ?? Admin);
     }
 
-    /// <summary>Saves the article as the editor would; opinions go as new (id 0) for the InMemory provider.</summary>
+    /// <summary>Saves the article as the editor would.</summary>
     private async Task<(bool Success, AppError? Error)> SaveAsync(ArticleContentDto article)
     {
         _context.ChangeTracker.Clear();
-        foreach (var opinion in article.Paragraphs.SelectMany(paragraph => paragraph.Opinions))
-        {
-            opinion.Id = 0;
-        }
-
         return await _service.UpdateContentAsync(article.Id, article, authorId: null);
     }
 

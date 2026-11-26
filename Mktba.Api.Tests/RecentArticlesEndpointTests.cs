@@ -46,7 +46,6 @@ public sealed class RecentArticlesEndpointTests : IClassFixture<MktbaApiFactory>
         (await ApiJson.ReadCodeAsync(response)).Should().Be("locale_unsupported");
     }
 
-    /// <summary>InMemory provider: opinions are sent as new (id 0) so the full-replace update does not collide with tracked ones.</summary>
     private static ArticleContentDto Edited(ArticleContentDto created, string title) => created with
     {
         Title = title,
