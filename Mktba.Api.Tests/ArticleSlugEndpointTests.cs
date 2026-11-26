@@ -37,7 +37,7 @@ public sealed class ArticleSlugEndpointTests : IClassFixture<MktbaApiFactory>
     {
         var admin = await CreateAdminClientAsync();
         var created = await CreateArticleAsync(admin, "Старый адрес");
-        var update = await admin.PutAsJsonAsync($"/articles/{created.Id}/content", AsNewOpinions(created) with { Slug = "novyy-adres" });
+        var update = await admin.PutAsJsonAsync($"/articles/{created.Id}/content", created with { Slug = "novyy-adres" });
         update.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         var noRedirects = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -144,20 +144,6 @@ public sealed class ArticleSlugEndpointTests : IClassFixture<MktbaApiFactory>
         byId.StatusCode.Should().Be(HttpStatusCode.Gone);
         (await ApiJson.ReadCodeAsync(byId)).Should().Be("article_gone");
         (await admin.GetAsync($"/articles/{created.Id}/content")).StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    /// <summary>
-    /// Sends the opinions as new (id 0): the InMemory provider cannot re-attach a replaced opinion
-    /// under its old id, and these tests are about slugs.
-    /// </summary>
-    private static ArticleContentDto AsNewOpinions(ArticleContentDto article)
-    {
-        foreach (var opinion in article.Paragraphs.SelectMany(paragraph => paragraph.Opinions))
-        {
-            opinion.Id = 0;
-        }
-
-        return article;
     }
 
     private static ArticleContentCreateDto NewArticle(string title, string? slug = null) =>

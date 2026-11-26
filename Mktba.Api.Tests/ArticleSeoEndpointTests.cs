@@ -50,7 +50,7 @@ public sealed class ArticleSeoEndpointTests : IClassFixture<MktbaApiFactory>
         var created = await CreateArticleAsync(admin, "Плохая картинка", seo: null);
 
         var response = await admin.PutAsJsonAsync($"/articles/{created.Id}/content",
-            AsNewOpinions(created) with { Seo = new ArticleSeoDto(null, null, "javascript:alert(1)", false) });
+            created with { Seo = new ArticleSeoDto(null, null, "javascript:alert(1)", false) });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -77,23 +77,12 @@ public sealed class ArticleSeoEndpointTests : IClassFixture<MktbaApiFactory>
         var created = await CreateArticleAsync(admin, "Правка SEO", seo: null);
 
         var response = await admin.PutAsJsonAsync($"/articles/{created.Id}/content",
-            AsNewOpinions(created) with { Seo = new ArticleSeoDto("Новый", null, "/img/a.png", false) });
+            created with { Seo = new ArticleSeoDto("Новый", null, "/img/a.png", false) });
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         var content = await admin.GetFromJsonAsync<ArticleContentDto>($"/articles/{created.Id}/content");
         content!.Seo.Should().Be(new ArticleSeoDto("Новый", null, "/img/a.png", false));
         content.Meta!.Title.Should().Be("Новый");
-    }
-
-    /// <summary>Sends the opinions as new (id 0): the InMemory provider cannot re-attach a replaced opinion under its old id.</summary>
-    private static ArticleContentDto AsNewOpinions(ArticleContentDto article)
-    {
-        foreach (var opinion in article.Paragraphs.SelectMany(paragraph => paragraph.Opinions))
-        {
-            opinion.Id = 0;
-        }
-
-        return article;
     }
 
     private static ArticleContentCreateDto NewArticle(string title, ArticleSeoDto? seo) =>

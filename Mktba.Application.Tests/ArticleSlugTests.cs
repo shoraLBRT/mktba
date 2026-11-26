@@ -37,17 +37,11 @@ public class ArticleSlugTests : IDisposable
 
     /// <summary>
     /// Saves the article as the editor would. Each API request gets its own DbContext; tests share
-    /// one, so tracked entities are forgotten first. Opinions are sent as new (id 0): the InMemory
-    /// provider cannot re-attach a replaced opinion under its old id, and these tests are about slugs.
+    /// one, so tracked entities are forgotten first.
     /// </summary>
     private Task<(bool Success, AppError? Error)> UpdateAsync(ArticleContentDto article)
     {
         _context.ChangeTracker.Clear();
-        foreach (var opinion in article.Paragraphs.SelectMany(paragraph => paragraph.Opinions))
-        {
-            opinion.Id = 0;
-        }
-
         return _service.UpdateContentAsync(article.Id, article, authorId: null);
     }
 
