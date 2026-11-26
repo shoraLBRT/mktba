@@ -1325,6 +1325,391 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/{articleId}/remarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The remarks on an article the caller may see: all for its authors and the editors, their own for a scholar; open first.
+         * @description 404 article_not_found also when the caller has no part in the article's remarks.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    articleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRemarkListDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * A verified scholar's remark on a paragraph, or on one opinion of a block, of the article's latest revision.
+         * @description Logged as ArticleRemarkCreated. 400 article_remark_body_required, article_remark_body_too_long (params.maxLength) or article_remark_block_invalid; 404 article_not_found (not published, in the trash, or without a revision); 409 article_review_not_verified_scholar or article_review_revision_outdated (params.latest).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    articleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleRemarkCreateDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRemarkDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/article-remarks/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A reply in an open remark's thread: its scholar, the article's authors or an editor.
+         * @description 400 article_remark_body_required or article_remark_body_too_long; 404 article_remark_not_found (also when the caller has no part in it); 409 article_remark_closed or article_review_not_verified_scholar.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleRemarkReplyDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRemarkDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/article-remarks/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The article's authors or an editor close an open remark: Resolved (fixed) or Closed (no change), with an optional last message.
+         * @description Logged as ArticleRemarkClosed (to: the outcome). 400 article_remark_outcome_invalid or article_remark_body_too_long; 403 forbidden; 404 article_remark_not_found; 409 article_remark_closed.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleRemarkCloseDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRemarkDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/article-remarks/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The remark's scholar or an editor reopen a closed remark, with an optional message.
+         * @description Logged as ArticleRemarkReopened (from: how it had been closed). 400 article_remark_body_too_long; 403 forbidden; 404 article_remark_not_found; 409 article_remark_open or article_review_not_verified_scholar.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleRemarkReopenDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleRemarkDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{articleId}/verification": {
         parameters: {
             query?: never;
@@ -5883,6 +6268,75 @@ export interface components {
             order: number;
             relatedArticleSlug: string;
         };
+        ArticleRemarkCloseDto: {
+            outcome: components["schemas"]["ArticleRemarkStatus"];
+            message?: string | null;
+        };
+        ArticleRemarkCreateDto: {
+            /** Format: int32 */
+            revisionNumber: number;
+            /** Format: int32 */
+            paragraphId: number;
+            /** Format: int32 */
+            opinionId?: number | null;
+            body?: string | null;
+        };
+        ArticleRemarkDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            articleId: number;
+            /** Format: int32 */
+            revisionNumber: number;
+            /** Format: int32 */
+            paragraphId?: number | null;
+            /** Format: int32 */
+            opinionId?: number | null;
+            onOpinion: boolean;
+            /** Format: int32 */
+            paragraphOrder: number;
+            /** Format: int32 */
+            currentParagraphOrder?: number | null;
+            excerpt: string;
+            blockRemoved: boolean;
+            status: components["schemas"]["ArticleRemarkStatus"];
+            scholarName?: string | null;
+            isMine: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            closedAt?: string | null;
+            canReply: boolean;
+            canClose: boolean;
+            canReopen: boolean;
+            messages: components["schemas"]["ArticleRemarkMessageDto"][];
+        };
+        ArticleRemarkListDto: {
+            canCreate: boolean;
+            items: components["schemas"]["ArticleRemarkDto"][];
+        };
+        ArticleRemarkMessageDto: {
+            /** Format: int32 */
+            id: number;
+            authorName?: string | null;
+            participant: components["schemas"]["ArticleRemarkParticipant"];
+            isMine: boolean;
+            body: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @enum {string} */
+        ArticleRemarkParticipant: "Scholar" | "Author" | "Editor" | "Former";
+        ArticleRemarkReopenDto: {
+            message?: string | null;
+        };
+        ArticleRemarkReplyDto: {
+            body?: string | null;
+        };
+        /** @enum {string} */
+        ArticleRemarkStatus: "Open" | "Resolved" | "Closed";
         ArticleReviewArticleDto: {
             /** Format: int32 */
             articleId: number;
@@ -6022,11 +6476,15 @@ export interface components {
             isDefault: boolean;
             schoolIds: number[];
             sources?: components["schemas"]["ArticleSnapshotSourceDto"][] | null;
+            /** Format: int32 */
+            id?: number | null;
         };
         ArticleSnapshotParagraphDto: {
             /** Format: int32 */
             order: number;
             opinions: components["schemas"]["ArticleSnapshotOpinionDto"][];
+            /** Format: int32 */
+            id?: number | null;
         };
         ArticleSnapshotRelatedLinkDto: {
             /** Format: int32 */
@@ -6142,7 +6600,7 @@ export interface components {
             isCurrent: boolean;
         };
         /** @enum {string} */
-        AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged" | "ScholarApplicationApproved" | "ScholarApplicationRejected" | "ScholarStatusRevoked" | "ArticleReviewed";
+        AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged" | "ScholarApplicationApproved" | "ScholarApplicationRejected" | "ScholarStatusRevoked" | "ArticleReviewed" | "ArticleRemarkCreated" | "ArticleRemarkClosed" | "ArticleRemarkReopened";
         AuditLogEntryDto: {
             /** Format: int64 */
             id: number;

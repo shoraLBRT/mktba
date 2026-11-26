@@ -15,6 +15,7 @@ import { localDraftCopyKey, readLocalDraftCopy, writeLocalDraftCopy } from './ad
 import { articleDraftFromDto } from './add-article/articleDraft';
 import { fromServerSnapshot, toServerSnapshot } from './add-article/useServerDraft';
 import ArticleEditorPage from './ArticleEditorPage';
+import { getArticleRemarks } from '../services/articleRemarkService';
 
 vi.mock('../services/Article/articleService', () => ({
   createArticleContent: vi.fn(),
@@ -38,6 +39,11 @@ vi.mock('../services/Article/draftService', () => ({
   getArticleDraft: vi.fn(),
   saveArticleDraft: vi.fn(),
 }));
+vi.mock('../services/articleRemarkService', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../services/articleRemarkService')>()),
+  getArticleRemarks: vi.fn(async () => ({ canCreate: false, items: [] })),
+}));
+
 vi.mock('../auth/useCurrentUser', () => ({
   useCurrentUser: () => ({ user: { id: 1, email: 'author@example.com', role: 'Author' }, role: undefined, can: () => false }),
 }));
@@ -175,6 +181,33 @@ describe('ArticleEditorPage', () => {
       slug: 'namaz',
       editComment: 'Заголовок',
     }));
+  });
+
+  it("given a scholar's open remark on a paragraph, when the article opens, then the block is marked and the rail shows the thread the marker leads to", async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(getArticleRemarks).mockResolvedValueOnce({
+      canCreate: false,
+      items: [{
+        id: 5, articleId: 7, revisionNumber: 2, paragraphId: 11, opinionId: null, onOpinion: false, paragraphOrder: 1,
+        currentParagraphOrder: 1, excerpt: 'Текст статьи', blockRemoved: false, status: 'Open', scholarName: 'Шейх Ахмад', isMine: false,
+        createdAt: '2026-11-26T11:00:00Z', updatedAt: '2026-11-26T11:00:00Z', closedAt: null, canReply: true, canClose: true, canReopen: false,
+        messages: [{ id: 1, authorName: 'Шейх Ахмад', participant: 'Scholar', isMine: false, body: 'Нужен источник.', createdAt: '2026-11-26T11:00:00Z' }],
+      }],
+    });
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    renderAt('/admin/articles/7/edit');
+
+    const marker = await screen.findByRole('button', { name: /^Замечания: 1/ });
+    const panel = screen.getByTestId('editor-remarks-panel');
+    expect(within(panel).getByRole('heading', { name: 'Замечания учёных' })).toBeTruthy();
+    const thread = within(panel).getByRole('article', { name: 'Абзац 1: Открыто' });
+    expect(within(thread).getByText('Нужен источник.')).toBeTruthy();
+    expect(within(thread).getByRole('button', { name: 'Исправлено' })).toBeTruthy();
+
+    fireEvent.click(marker);
+    expect(document.activeElement).toBe(thread);
+    expect(getArticleRemarks).toHaveBeenCalledWith(7);
   });
 
   it('given an untouched article, when the history link is followed, then it opens without asking', async () => {

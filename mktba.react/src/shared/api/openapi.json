@@ -1289,6 +1289,404 @@
         }
       }
     },
+    "/articles/{articleId}/remarks": {
+      "get": {
+        "tags": [
+          "ArticleRemarks"
+        ],
+        "summary": "The remarks on an article the caller may see: all for its authors and the editors, their own for a scholar; open first.",
+        "description": "404 article_not_found also when the caller has no part in the article's remarks.",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRemarkListDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ArticleRemarks"
+        ],
+        "summary": "A verified scholar's remark on a paragraph, or on one opinion of a block, of the article's latest revision.",
+        "description": "Logged as ArticleRemarkCreated. 400 article_remark_body_required, article_remark_body_too_long (params.maxLength) or article_remark_block_invalid; 404 article_not_found (not published, in the trash, or without a revision); 409 article_review_not_verified_scholar or article_review_revision_outdated (params.latest).",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleRemarkCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRemarkDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/article-remarks/{id}/messages": {
+      "post": {
+        "tags": [
+          "ArticleRemarks"
+        ],
+        "summary": "A reply in an open remark's thread: its scholar, the article's authors or an editor.",
+        "description": "400 article_remark_body_required or article_remark_body_too_long; 404 article_remark_not_found (also when the caller has no part in it); 409 article_remark_closed or article_review_not_verified_scholar.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleRemarkReplyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRemarkDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/article-remarks/{id}/close": {
+      "post": {
+        "tags": [
+          "ArticleRemarks"
+        ],
+        "summary": "The article's authors or an editor close an open remark: Resolved (fixed) or Closed (no change), with an optional last message.",
+        "description": "Logged as ArticleRemarkClosed (to: the outcome). 400 article_remark_outcome_invalid or article_remark_body_too_long; 403 forbidden; 404 article_remark_not_found; 409 article_remark_closed.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleRemarkCloseDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRemarkDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/article-remarks/{id}/reopen": {
+      "post": {
+        "tags": [
+          "ArticleRemarks"
+        ],
+        "summary": "The remark's scholar or an editor reopen a closed remark, with an optional message.",
+        "description": "Logged as ArticleRemarkReopened (from: how it had been closed). 400 article_remark_body_too_long; 403 forbidden; 404 article_remark_not_found; 409 article_remark_open or article_review_not_verified_scholar.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleRemarkReopenDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRemarkDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/{articleId}/verification": {
       "get": {
         "tags": [
@@ -6423,6 +6821,240 @@
         },
         "additionalProperties": false
       },
+      "ArticleRemarkCloseDto": {
+        "required": [
+          "outcome"
+        ],
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "$ref": "#/components/schemas/ArticleRemarkStatus"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRemarkCreateDto": {
+        "required": [
+          "paragraphId",
+          "revisionNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paragraphId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opinionId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRemarkDto": {
+        "required": [
+          "articleId",
+          "blockRemoved",
+          "canClose",
+          "canReopen",
+          "canReply",
+          "createdAt",
+          "excerpt",
+          "id",
+          "isMine",
+          "messages",
+          "onOpinion",
+          "paragraphOrder",
+          "revisionNumber",
+          "status",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paragraphId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "opinionId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "onOpinion": {
+            "type": "boolean"
+          },
+          "paragraphOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentParagraphOrder": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "blockRemoved": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleRemarkStatus"
+          },
+          "scholarName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMine": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "canReply": {
+            "type": "boolean"
+          },
+          "canClose": {
+            "type": "boolean"
+          },
+          "canReopen": {
+            "type": "boolean"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleRemarkMessageDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRemarkListDto": {
+        "required": [
+          "canCreate",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "canCreate": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleRemarkDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRemarkMessageDto": {
+        "required": [
+          "body",
+          "createdAt",
+          "id",
+          "isMine",
+          "participant"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "authorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "participant": {
+            "$ref": "#/components/schemas/ArticleRemarkParticipant"
+          },
+          "isMine": {
+            "type": "boolean"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRemarkParticipant": {
+        "enum": [
+          "Scholar",
+          "Author",
+          "Editor",
+          "Former"
+        ],
+        "type": "string"
+      },
+      "ArticleRemarkReopenDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRemarkReplyDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleRemarkStatus": {
+        "enum": [
+          "Open",
+          "Resolved",
+          "Closed"
+        ],
+        "type": "string"
+      },
       "ArticleReviewArticleDto": {
         "required": [
           "articleId",
@@ -6922,6 +7554,11 @@
               "$ref": "#/components/schemas/ArticleSnapshotSourceDto"
             },
             "nullable": true
+          },
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6942,6 +7579,11 @@
             "items": {
               "$ref": "#/components/schemas/ArticleSnapshotOpinionDto"
             }
+          },
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -7346,7 +7988,10 @@
           "ScholarApplicationApproved",
           "ScholarApplicationRejected",
           "ScholarStatusRevoked",
-          "ArticleReviewed"
+          "ArticleReviewed",
+          "ArticleRemarkCreated",
+          "ArticleRemarkClosed",
+          "ArticleRemarkReopened"
         ],
         "type": "string"
       },

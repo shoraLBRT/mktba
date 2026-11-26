@@ -45,8 +45,8 @@ public sealed class ArticleRemarkTests : IDisposable
         remark.Messages.Should().ContainSingle().Which.Should().Match<ArticleRemarkMessageDto>(message =>
             message.Body == "Нужен источник.\nСм. «Хидаю»." && message.Participant == ArticleRemarkParticipant.Scholar && message.IsMine);
         var entry = await _db.AuditLogEntries.AsNoTracking().SingleAsync();
-        (entry.Action, entry.ActorId, entry.ArticleId, entry.TargetUserId)
-            .Should().Be((AuditAction.ArticleRemarkCreated, (int?)scholarId, (int?)article.Id, (int?)scholarId));
+        (entry.Action, entry.ActorId, entry.ArticleId, entry.ArticleTitle, entry.TargetUserId)
+            .Should().Be((AuditAction.ArticleRemarkCreated, (int?)scholarId, (int?)article.Id, "Намаз путника", (int?)null));
 
         var forAuthor = await Service().ListAsync(article.Id, authorId, default);
         forAuthor.CanCreate.Should().BeFalse();

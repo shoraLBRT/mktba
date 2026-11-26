@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { LocalizationProvider } from '../../localization/provider';
 import { getArticleReviewContext, getArticlesForReview, submitArticleReview } from '../../services/articleReviewService';
+import { createArticleRemark, getArticleRemarks } from '../../services/articleRemarkService';
 import { getSchoolsByArticleId, getSystemSchools } from '../../services/schoolService';
-import type { ArticleReviewContextDto } from '../../shared/types/ApiTypes';
+import type { ArticleRemarkDto, ArticleReviewContextDto } from '../../shared/types/ApiTypes';
 import AdminArticleReviewPage from './AdminArticleReviewPage';
 import AdminArticleReviewsPage from './AdminArticleReviewsPage';
 
@@ -17,6 +18,36 @@ vi.mock('../../services/articleReviewService', async (importOriginal) => ({
 }));
 
 vi.mock('../../services/schoolService', () => ({ getSystemSchools: vi.fn(), getSchoolsByArticleId: vi.fn() }));
+
+vi.mock('../../services/articleRemarkService', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/articleRemarkService')>()),
+  getArticleRemarks: vi.fn(),
+  createArticleRemark: vi.fn(),
+}));
+
+const remark = (patch: Partial<ArticleRemarkDto> = {}): ArticleRemarkDto => ({
+  id: 7,
+  articleId: 12,
+  revisionNumber: 3,
+  paragraphId: 21,
+  opinionId: 202,
+  onOpinion: true,
+  paragraphOrder: 2,
+  currentParagraphOrder: 2,
+  excerpt: 'Мнение по умолчанию',
+  blockRemoved: false,
+  status: 'Open',
+  scholarName: null,
+  isMine: true,
+  createdAt: '2026-11-26T11:00:00Z',
+  updatedAt: '2026-11-26T11:00:00Z',
+  closedAt: null,
+  canReply: true,
+  canClose: false,
+  canReopen: false,
+  messages: [{ id: 1, authorName: null, participant: 'Scholar', isMine: true, body: 'Нужен источник.', createdAt: '2026-11-26T11:00:00Z' }],
+  ...patch,
+});
 
 const context = (patch: Partial<ArticleReviewContextDto> = {}): ArticleReviewContextDto => ({
   articleId: 12,
@@ -33,12 +64,13 @@ const context = (patch: Partial<ArticleReviewContextDto> = {}): ArticleReviewCon
       tags: [],
       relatedLinks: [],
       paragraphs: [
-        { order: 1, opinions: [{ content: 'Общий абзац', isDefault: true, schoolIds: [] }] },
+        { id: 11, order: 1, opinions: [{ id: 101, content: 'Общий абзац', isDefault: true, schoolIds: [] }] },
         {
+          id: 21,
           order: 2,
           opinions: [
-            { content: 'Мнение ханафитов', isDefault: false, schoolIds: [1] },
-            { content: 'Мнение по умолчанию', isDefault: true, schoolIds: [2] },
+            { id: 201, content: 'Мнение ханафитов', isDefault: false, schoolIds: [1] },
+            { id: 202, content: 'Мнение по умолчанию', isDefault: true, schoolIds: [2] },
           ],
         },
       ],
@@ -70,6 +102,7 @@ beforeEach(() => {
     { id: 2, name: 'Маликитский мазхаб', shortName: 'Мал', slug: 'maliki', isSystem: true } as never,
   ]);
   vi.mocked(getSchoolsByArticleId).mockResolvedValue([]);
+  vi.mocked(getArticleRemarks).mockResolvedValue({ canCreate: false, items: [] });
 });
 
 afterEach(() => {
@@ -77,6 +110,7 @@ afterEach(() => {
   vi.mocked(getArticlesForReview).mockReset();
   vi.mocked(getArticleReviewContext).mockReset();
   vi.mocked(submitArticleReview).mockReset();
+  vi.mocked(createArticleRemark).mockReset();
 });
 
 describe('AdminArticleReviewsPage', () => {
@@ -157,6 +191,32 @@ describe('AdminArticleReviewPage', () => {
     expect(within(screen.getByTestId('my-review-3')).getByText('Подтверждаю · текущая версия')).toBeTruthy();
   });
 
+  it('given a verified scholar, when they leave a remark on one opinion of a block, then it names the revision, the paragraph and the opinion and joins their remarks', async () => {
+    vi.mocked(getArticleReviewContext).mockResolvedValue(context());
+    vi.mocked(getArticleRemarks).mockResolvedValue({ canCreate: true, items: [] });
+    vi.mocked(createArticleRemark).mockResolvedValue(remark());
+
+    renderAt('/admin/article-reviews/12');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Оставить замечание: Абзац 2' }));
+    const form = screen.getByRole('form', { name: 'Оставить замечание: Абзац 2' });
+    fireEvent.change(within(form).getByLabelText('К чему относится'), { target: { value: '202' } });
+    fireEvent.change(within(form).getByLabelText('Текст замечания'), { target: { value: '  Нужен источник. ' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'Отправить замечание' }));
+
+    await waitFor(() =>
+      expect(createArticleRemark).toHaveBeenCalledWith(12, { revisionNumber: 3, paragraphId: 21, opinionId: 202, body: 'Нужен источник.' }),
+    );
+    expect(await screen.findByText('Замечание отправлено авторам статьи.')).toBeTruthy();
+    const thread = screen.getByRole('article', { name: 'Абзац 2, одно мнение: Открыто' });
+    expect(within(thread).getByText('Нужен источник.')).toBeTruthy();
+    expect(within(thread).getByRole('button', { name: 'Ответить' })).toBeTruthy();
+    expect(within(thread).queryByRole('button', { name: 'Исправлено' })).toBeNull();
+    // A plain paragraph offers no choice of opinion.
+    fireEvent.click(screen.getByRole('button', { name: 'Оставить замечание: Абзац 1' }));
+    expect(within(screen.getByRole('form', { name: 'Оставить замечание: Абзац 1' })).queryByLabelText('К чему относится')).toBeNull();
+  });
+
   it('given an admin, when the page opens, then the text is shown without the form', async () => {
     vi.mocked(getArticleReviewContext).mockResolvedValue(context({ canReview: false }));
 
@@ -164,5 +224,6 @@ describe('AdminArticleReviewPage', () => {
 
     expect((await screen.findByRole('note')).textContent).toContain('только учёные с одобренной заявкой');
     expect(screen.queryByRole('button', { name: 'Отправить отметку' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Оставить замечание/ })).toBeNull();
   });
 });

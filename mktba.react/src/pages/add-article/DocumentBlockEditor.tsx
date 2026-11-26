@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState, type DragEvent, type TextareaHTMLAttributes } from 'react';
-import { ArrowDown, ArrowUp, Copy, GitBranch, GripVertical, Pilcrow, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, GitBranch, GripVertical, MessageSquare, Pilcrow, Trash2 } from 'lucide-react';
 import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
 import { cn } from '../../shared/lib/cn';
 import { Textarea } from '../../shared/ui/Textarea';
-import type { SchoolDto } from '../../shared/types/ApiTypes';
+import type { ArticleRemarkDto, SchoolDto } from '../../shared/types/ApiTypes';
 import type { BlockDropPosition } from './draftHelpers';
 import { OpinionBlockEditor } from './OpinionBlockEditor';
 import { OpinionSourcesEditor } from './OpinionSourcesEditor';
@@ -64,6 +64,10 @@ type DocumentBlockEditorProps = {
   isDragged: boolean;
   /** Where the dragged block would land next to this one, or null. */
   dropIndicator: BlockDropPosition | null;
+  /** The scholars' open remarks on this block (V-06, #122); the block shows a marker that leads to them. */
+  remarks?: readonly ArticleRemarkDto[];
+  /** Shows a remark's thread in the rail. */
+  onShowRemark?: (remarkId: number) => void;
 };
 
 const iconButtonClasses = 'rounded-lg p-1.5 text-[var(--color-ink-muted)] hover:bg-white disabled:opacity-30';
@@ -179,6 +183,8 @@ export const DocumentBlockEditor = ({
   dropZoneProps,
   isDragged,
   dropIndicator,
+  remarks,
+  onShowRemark,
 }: DocumentBlockEditorProps) => {
   const locale = useLocale();
   const t = locale.addArticleEditor;
@@ -223,6 +229,18 @@ export const DocumentBlockEditor = ({
             dropIndicator === 'before' ? '-top-px' : '-bottom-px',
           )}
         />
+      ) : null}
+      {remarks && remarks.length > 0 ? (
+        <button
+          type="button"
+          data-testid={`block-remarks-${block.id}`}
+          onClick={() => onShowRemark?.(remarks[0].id)}
+          className="mb-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900 hover:bg-amber-200 focus:outline-none focus:ring-4 focus:ring-[var(--color-focus-ring)]"
+        >
+          <MessageSquare size={12} aria-hidden="true" />
+          {formatMessage(locale.articleRemarks.blockBadge, { count: remarks.length })}
+          <span className="sr-only">{` — ${locale.articleRemarks.blockBadgeHint}`}</span>
+        </button>
       ) : null}
       <div className="mb-0.5 flex min-h-0 items-start justify-between gap-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         <div className="flex min-h-0 items-center gap-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-subtle)]">

@@ -137,7 +137,7 @@ public sealed class ArticleRemarkService
             Messages = [new ArticleRemarkMessage { AuthorId = userId, Body = body, CreatedAt = now }],
         };
         _db.ArticleRemarks.Add(remark);
-        Audit(AuditAction.ArticleRemarkCreated, userId, article, remark, from: null, to: null, now);
+        Audit(AuditAction.ArticleRemarkCreated, userId, article, from: null, to: null, now);
         await _db.SaveChangesAsync(cancellationToken);
         return await OneAsync(remark, article, caller, cancellationToken);
     }
@@ -196,7 +196,7 @@ public sealed class ArticleRemarkService
         remark.ClosedAt = now;
         remark.ClosedById = userId;
         remark.UpdatedAt = now;
-        Audit(AuditAction.ArticleRemarkClosed, userId, article, remark, from: null, to: dto.Outcome.ToString(), now);
+        Audit(AuditAction.ArticleRemarkClosed, userId, article, from: null, to: dto.Outcome.ToString(), now);
         await _db.SaveChangesAsync(cancellationToken);
         return await OneAsync(remark, article, caller, cancellationToken);
     }
@@ -233,7 +233,7 @@ public sealed class ArticleRemarkService
         remark.ClosedAt = null;
         remark.ClosedById = null;
         remark.UpdatedAt = now;
-        Audit(AuditAction.ArticleRemarkReopened, userId, article, remark, from: previous.ToString(), to: null, now);
+        Audit(AuditAction.ArticleRemarkReopened, userId, article, from: previous.ToString(), to: null, now);
         await _db.SaveChangesAsync(cancellationToken);
         return await OneAsync(remark, article, caller, cancellationToken);
     }
@@ -378,7 +378,7 @@ public sealed class ArticleRemarkService
         _ => ArticleRemarkParticipant.Former,
     };
 
-    private void Audit(AuditAction action, int actorId, ArticleRow article, ArticleRemark remark, string? from, string? to, DateTime now) =>
+    private void Audit(AuditAction action, int actorId, ArticleRow article, string? from, string? to, DateTime now) =>
         _auditLog.Add(new AuditLogEntry
         {
             OccurredAt = now,
@@ -386,7 +386,6 @@ public sealed class ArticleRemarkService
             Action = action,
             ArticleId = article.Id,
             ArticleTitle = article.Title,
-            TargetUserId = remark.ScholarId,
             FromValue = from,
             ToValue = to,
         });

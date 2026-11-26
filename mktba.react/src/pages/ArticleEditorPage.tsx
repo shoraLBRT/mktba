@@ -100,6 +100,9 @@ import { useSiteUrl } from '../app/siteUrl';
 import { useBlockDragAndDrop } from './add-article/useBlockDragAndDrop';
 import type { SlashMenuKind } from './add-article/slashMenuKinds';
 import { formatMessage } from '../localization';
+import { articleRemarksQueryKey, getArticleRemarks } from '../services/articleRemarkService';
+import { openRemarksByParagraph, remarkElementId } from '../shared/articleRemarks';
+import { EditorRemarksPanel } from './add-article/EditorRemarksPanel';
 import { SLUG_MAX_LENGTH, articleHref, articleSlugFromTitle, localizedArticleHref } from '../shared/slug';
 
 type EditorTarget = {
@@ -222,6 +225,24 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   /** The rich-text editors of paragraphs and opinions, by target key. */
   const richTextRefs = useRef<Record<string, RichTextHandle | null>>({});
   const blockRefs = useRef<Record<string, HTMLElement | null>>({});
+  // Scholars' remarks on the blocks of a saved article (V-06, #122): the rail lists them, the text marks the blocks.
+  const remarksQuery = useQuery({
+    queryKey: articleRemarksQueryKey(articleId ?? 0),
+    queryFn: () => getArticleRemarks(articleId!),
+    enabled: articleId !== null,
+    retry: false,
+  });
+  const remarks = useMemo(() => remarksQuery.data?.items ?? [], [remarksQuery.data]);
+  const openRemarks = useMemo(() => openRemarksByParagraph(remarks), [remarks]);
+  const jumpToParagraph = (paragraphId: number) => {
+    const block = blocks.find((candidate) => candidate.paragraphId === paragraphId);
+    if (block) blockRefs.current[block.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  const showRemark = (remarkId: number) => {
+    const node = document.getElementById(remarkElementId(remarkId));
+    node?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    node?.focus({ preventScroll: true });
+  };
   /** The block of opinions waiting for the user to confirm it becomes a plain paragraph. */
   const [convertToParagraph, setConvertToParagraph] = useState<{ blockId: string; lostOpinions: number } | null>(null);
   /**
@@ -290,6 +311,8 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     },
     onSuccess: async (slug, { saved, stay }) => {
       clearDraftCopies();
+      // A deleted block turns its remarks into «блок удалён» (V-06, #122).
+      if (articleId !== null) void queryClient.invalidateQueries({ queryKey: articleRemarksQueryKey(articleId) });
       if (stay) {
         // The comment described the revision just written; the next save starts without one.
         const next = { ...saved, editComment: '' };
@@ -846,6 +869,8 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                           dropZoneProps={blockDragAndDrop.dropZoneProps(block.id)}
                           isDragged={blockDragAndDrop.draggedBlockId === block.id}
                           dropIndicator={blockDragAndDrop.dropTarget?.blockId === block.id ? blockDragAndDrop.dropTarget.position : null}
+                          remarks={block.paragraphId !== undefined ? openRemarks.get(block.paragraphId) : undefined}
+                          onShowRemark={showRemark}
                         />
                       ))}
                     </div>
@@ -944,6 +969,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
             ) : (
               <TranslationsPanel {...CREATE_PANEL} translation={mode.translation} />
             )}
+            {mode.kind === 'edit' ? <EditorRemarksPanel remarks={remarks} onJump={jumpToParagraph} /> : null}
             </>
           )}
           isLocked={isLocked}
