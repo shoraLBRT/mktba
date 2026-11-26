@@ -1325,6 +1325,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/{articleId}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The scholars' marks on a published article as readers see them: the latest mark of each verified scholar, the newest revision first.
+         * @description No comments, ids or emails. An article readers are not served, or one without a revision, answers with no marks.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    articleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArticleVerificationDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/article-reviews": {
         parameters: {
             query?: never;
@@ -6078,6 +6119,22 @@ export interface components {
             title: string;
             /** Format: int32 */
             parentArticleId?: number | null;
+        };
+        ArticleVerificationDto: {
+            /** Format: int32 */
+            latestRevisionNumber?: number | null;
+            marks: components["schemas"]["ArticleVerificationMarkDto"][];
+        };
+        ArticleVerificationMarkDto: {
+            scholarName?: string | null;
+            scholarSlug?: string | null;
+            verdict: components["schemas"]["ArticleReviewVerdict"];
+            mazhab?: string | null;
+            /** Format: int32 */
+            revisionNumber: number;
+            /** Format: date-time */
+            reviewedAt: string;
+            isLatestRevision: boolean;
         };
         /** @enum {string} */
         AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged" | "ScholarApplicationApproved" | "ScholarApplicationRejected" | "ScholarStatusRevoked" | "ArticleReviewed";

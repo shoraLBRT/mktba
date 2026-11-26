@@ -218,4 +218,20 @@ test('an approved scholar reviews the latest revision of a published article wit
 
   await page.setViewportSize({ width: 375, height: 700 });
   expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);
+
+  // V-04 (#120): readers see the mark on the article page, in the server's HTML, without the comment.
+  const html = await (await request.get(`/${article.slug}`)).text();
+  expect(html).toContain('Проверка учёными');
+  expect(html).not.toContain('Во втором абзаце нужна ссылка на источник.');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`/${article.slug}`);
+  const widget = page.getByTestId('article-verification');
+  await expect(widget).toContainText('Проверка учёными: ошибки нашёл 1 учёный');
+  await widget.locator('summary').click();
+  await expect(widget.getByTestId('article-verification-group')).toContainText('Мазхаб: Ханафитский');
+  await expect(widget.getByRole('listitem')).toContainText('Учёный — есть ошибки, ревизия 1');
+  const onArticle = await new AxeBuilder({ page }).include('[data-testid="article-verification"]').disableRules(['color-contrast']).analyze();
+  expect(onArticle.violations.map((violation) => violation.id)).toEqual([]);
+  await page.setViewportSize({ width: 375, height: 700 });
+  expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);
 });
