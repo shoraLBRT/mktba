@@ -22,7 +22,7 @@ Machine-specific settings go in the gitignored `Mktba.Api/appsettings.local.json
 
 ### Frontend (run from `mktba.react/`)
 ```bash
-npm install
+npm ci            # install exactly the lock file; `npm install` only to add or change a dependency
 npm run dev       # react-router dev (Vite + SSR) on :5173
 npm run build     # tsc -b && react-router build → build/client, build/server
 npm run size      # after build: JS budget of the /:slug and /en/:slug article page first load (scripts/check-bundle-size.mjs)
@@ -33,6 +33,13 @@ npm test          # Vitest, once (as in CI)
 npm run test:e2e  # Playwright against a throwaway DB, see README
 npm run gen:api   # regenerate the OpenAPI contract after endpoint/DTO changes
 ```
+
+### Before every push (run from repo root)
+```bash
+bash scripts/pre-push.sh              # CI's backend, frontend and api-contract checks, cheapest first
+bash scripts/pre-push.sh --no-dotnet  # a front-end-only change: no .NET build, tests or contract
+```
+Push only when it passes. It fails on what most often turned a pushed branch red: a `package-lock.json` changed without a change of `package.json` (a lock file rewritten by another npm drops optional packages, and CI's `npm ci` refuses it — never commit the lock file unless you changed a dependency), a stale API contract (`npm run gen:api`), the error catalog (`AppErrorCatalogTests`) and the authorization matrix (`EndpointAuthorizationMatrixTests`). e2e and the docker job stay in CI: when the change touches a page an e2e spec covers, run `npm run test:e2e` too.
 
 ## Architecture
 
