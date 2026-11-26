@@ -318,6 +318,29 @@ IndexNow: когда статья публикуется или снимаетс
 выкладки проверить, что `https://mktba.ru/indexnow-key.txt` отдаёт ключ, и добавить
 `https://mktba.ru/sitemap.xml` в обоих сервисах.
 
+#### Уведомления и почта (V-09, #125)
+
+Уведомления видны в админке всегда (колокольчик в шапке, раздел «Уведомления»); письма уходят через
+очередь в таблице `NotificationEmails` (фоновый `NotificationEmailWorker`, повторы с удвоением паузы,
+не больше `Email:Delivery:MaxAttempts`). Пока почтовый сервер не настроен, письма только пишутся в
+лог (тема, без адреса и текста) и считаются отправленными — локально, в тестах и в e2e ничего наружу
+не уходит.
+
+| Параметр | Назначение |
+| --- | --- |
+| `Email:SiteUrl` | публичный адрес сайта (`https://mktba.ru`) — с него начинаются ссылки в письмах; без него письма не отправляются |
+| `Email:SiteName` | название в теме и подписи (`mktba`) |
+| `Email:Smtp:Host`, `Port`, `Security` | сервер, порт и защита: `StartTls` (587), `SslOnConnect` (465) или `None` (только локальный тестовый сервер) |
+| `Email:Smtp:UserName`, `Password` | учётная запись; пароль — только в user secrets или `Email__Smtp__Password` |
+| `Email:Smtp:FromAddress`, `FromName` | адрес и имя отправителя |
+| `Email:Smtp:Enabled` | `false` выключает отправку, даже если сервер задан (так запускается API в e2e) |
+| `Email:Delivery:*` | `PollIntervalSeconds` (30), `BatchSize` (20), `RetryBaseSeconds` (60), `RetryMaxSeconds` (3600), `MaxAttempts` (10) |
+
+На стенде это переменные `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
+`SMTP_FROM` в `deploy/.env`. Что сделать владельцу: выбрать почтовый сервис и завести ящик-отправитель
+(например, `notify@mktba.ru`), прописать для домена SPF, DKIM (и по желанию DMARC) по инструкции
+сервиса, задать переменные и проверить письмо на свой адрес (например, одобрив тестовую заявку учёного).
+
 #### Загрузка файлов (U-08, #73)
 
 `POST /uploads/avatar` (любой вошедший пользователь) и `POST /uploads/images` (авторы и админы)
@@ -497,7 +520,8 @@ docker compose -f deploy/docker-compose.yml up -d --build
 
 1. DNS: записи A/AAAA `SITE_HOST` и `API_HOST` на сервер; открытые порты 80 и 443 (TCP, 443/UDP для HTTP/3).
 2. В `deploy/.env`: `ACME_EMAIL`, `POSTGRES_PASSWORD`, `JWT_SIGNING_KEY` (`openssl rand -base64 48`);
-   по желанию — `FEEDBACK_GITHUB_PRIVATE_KEY` (PEM одной строкой с `\n`), `METRIKA_ID`, а для
+   по желанию — `FEEDBACK_GITHUB_PRIVATE_KEY` (PEM одной строкой с `\n`), `METRIKA_ID`, почта
+   уведомлений (V-09) — `SMTP_HOST`, `SMTP_FROM` и остальные `SMTP_*` («Уведомления и почта» выше), а для
    поисковиков (O-12) — `INDEXNOW_KEY` (уходит в `IndexNow__Key`; `IndexNow__SiteUrl` = `https://<SITE_HOST>`),
    `YANDEX_VERIFICATION` и `GOOGLE_SITE_VERIFICATION` (переменные `web`). `/indexnow-key.txt`,
    `robots.txt` и карты сайта отдаёт `web`, как и остальные страницы.
