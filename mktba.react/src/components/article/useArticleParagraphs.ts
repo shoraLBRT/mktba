@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { OpinionTab } from './VersionedParagraphBlock';
+import type { OpinionTab, ScholarNote } from './VersionedParagraphBlock';
+import { localizedArticleHref } from '../../shared/slug';
 import type { TocItem } from './ArticleRightSidebar';
 import { resolvePaletteKey } from '../mazhab/schoolPalette';
 import { resolveAutoOpinionIndex } from '../mazhab/opinionSelection';
@@ -7,6 +8,19 @@ import { buildOpinionCaptions, resolveMissingOpinionNote } from '../mazhab/opini
 import { useLocale } from '../../localization/hooks';
 import { ARTICLE_OVERVIEW_ANCHOR, buildArticleOutline } from '../../shared/articleOutline';
 import type { OpinionDto, ParagraphDto, SchoolDto } from '../../shared/types/ApiTypes';
+
+/** The note on the scholar when an opinion is one scholar's (M-08, #116), else null. */
+const scholarNoteOf = (schools: SchoolDto[]): ScholarNote | null => {
+  if (schools.length !== 1 || schools[0].isSystem) return null;
+  const { description, scholarArticle } = schools[0];
+  if (!description && !scholarArticle) return null;
+  return {
+    description: description ?? null,
+    article: scholarArticle
+      ? { title: scholarArticle.title, href: localizedArticleHref(scholarArticle.locale, scholarArticle.slug) }
+      : null,
+  };
+};
 
 /** One paragraph as the reader sees it: the opinion on screen and the tabs to switch it. */
 export type RenderedParagraph = {
@@ -73,6 +87,7 @@ export const useRenderedParagraphs = (
             ...buildOpinionCaptions(opinionSchools, systemSchoolIds, tv),
             paletteKey: resolvePaletteKey(opinionSchools),
             isReaderSchool: selectedSchoolId !== null && opinion.schoolIds.includes(selectedSchoolId),
+            scholar: scholarNoteOf(opinionSchools),
           };
         });
         const note = resolveMissingOpinionNote(

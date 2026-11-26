@@ -326,12 +326,21 @@
       }
     },
     "customSchools": {
-      "title": "Кастомные школы",
-      "addButton": "Добавить школу",
+      "title": "Мнения учёных",
+      "addButton": "Добавить",
+      "saveButton": "Сохранить",
+      "newTitle": "Новое мнение учёного",
+      "editTitle": "Изменить мнение учёного",
       "namePlaceholder": "Название",
-      "shortNamePlaceholder": "Сокращение",
-      "emptyState": "Нет кастомных школ",
-      "deleteTitle": "Удалить школу"
+      "shortNamePlaceholder": "Сокращение для вкладки",
+      "scholarNamePlaceholder": "Учёный",
+      "scholarYearsPlaceholder": "Годы жизни, например 661–728 гг. х.",
+      "descriptionPlaceholder": "Кратко об учёном или позиции",
+      "scholarArticleLabel": "Статья об учёном",
+      "scholarArticleNone": "Без статьи",
+      "pickFromDirectory": "Взять из каталога…",
+      "emptyState": "Нет мнений учёных",
+      "deleteTitle": "Удалить мнение учёного"
     }
   },
   "editArticlePage": {
@@ -427,6 +436,8 @@
   "versionedParagraph": {
     "label": "Мнение мазхаба: {school}",
     "labelSeveral": "Мнение мазхабов: {schools}",
+    "labelScholar": "Мнение учёного: {scholar}",
+    "scholarArticle": "Об учёном: {title}",
     "labelConsensus": "Согласие всех мазхабов",
     "labelCommon": "Общее мнение",
     "tabConsensus": "Все мазхабы",

@@ -2,6 +2,8 @@
   "versionedParagraph": {
     "label": "Madhab opinion: {school}",
     "labelSeveral": "Opinion of the madhabs: {schools}",
+    "labelScholar": "Scholar's opinion: {scholar}",
+    "scholarArticle": "About the scholar: {title}",
     "labelConsensus": "All madhabs agree",
     "labelCommon": "Common opinion",
     "tabConsensus": "All madhabs",

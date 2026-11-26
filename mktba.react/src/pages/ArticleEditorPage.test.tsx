@@ -45,6 +45,8 @@ vi.mock('../services/schoolService', () => ({
   createCustomSchool: vi.fn(),
   deleteCustomSchool: vi.fn(),
   getSchoolsByArticleId: vi.fn(async () => []),
+  getScholarOpinions: vi.fn(async () => []),
+  updateCustomSchool: vi.fn(),
   getSystemSchools: vi.fn(async () => []),
 }));
 
