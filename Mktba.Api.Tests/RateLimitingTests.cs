@@ -18,6 +18,7 @@ public sealed class RateLimitingTests
     private const int UploadLimit = 2;
     private const int AnalyticsLimit = 2;
     private const int AccountEmailLimit = 2;
+    private const int CommentsLimit = 2;
 
     private static readonly object WrongCredentials = new { Email = "nobody@mktba.test", Password = "Wrong-password-1" };
 
@@ -178,6 +179,32 @@ public sealed class RateLimitingTests
         other.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task GivenCommentLimitReachedFromOneIp_WhenTwoUsersThereWriteAgain_ThenTheAddressIsLimitedAndAnotherIpIsNot()
+    {
+        await using var factory = CreateFactory();
+        // C-01 (#127): the per-IP limit covers every account behind the address; the per-account one is Comments:PerUserLimit.
+        var (first, _) = await RoleClients.CreateAsync(factory, UserRole.Reader);
+        var (second, _) = await RoleClients.CreateAsync(factory, UserRole.Reader);
+        var (third, _) = await RoleClients.CreateAsync(factory, UserRole.Reader);
+        first.DefaultRequestHeaders.Add(MktbaApiFactory.RemoteIpHeader, "10.0.0.7");
+        second.DefaultRequestHeaders.Add(MktbaApiFactory.RemoteIpHeader, "10.0.0.7");
+        third.DefaultRequestHeaders.Add(MktbaApiFactory.RemoteIpHeader, "10.0.0.8");
+        var comment = new { Body = "Текст" };
+        for (var i = 0; i < CommentsLimit; i++)
+        {
+            var allowed = await first.PostAsJsonAsync("/articles/999999/comments", comment);
+            allowed.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+
+        var limited = await second.DeleteAsync("/comments/999999");
+        var otherIp = await third.PostAsJsonAsync("/articles/999999/comments", comment);
+
+        limited.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        limited.Headers.RetryAfter.Should().NotBeNull();
+        otherIp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private static MktbaApiFactory CreateFactory() => new("Testing", MktbaApiFactory.TestSigningKey, new Dictionary<string, string>
     {
         ["RateLimiting:Analytics:PermitLimit"] = AnalyticsLimit.ToString(),
@@ -190,6 +217,8 @@ public sealed class RateLimitingTests
         ["RateLimiting:Uploads:WindowSeconds"] = "3600",
         ["RateLimiting:AccountEmail:PermitLimit"] = AccountEmailLimit.ToString(),
         ["RateLimiting:AccountEmail:WindowSeconds"] = "3600",
+        ["RateLimiting:Comments:PermitLimit"] = CommentsLimit.ToString(),
+        ["RateLimiting:Comments:WindowSeconds"] = "3600",
     });
 
     private static HttpClient CreateClientFromIp(MktbaApiFactory factory, string ip)

@@ -156,7 +156,13 @@
     "analytics_too_many_events": "За один раз можно передать не больше {maxCount} событий статистики.",
     "author_not_found": "Страница автора не найдена.",
     "profile_display_name_required": "Чтобы задать адрес профиля, укажите имя.",
-    "profile_display_name_invalid": "Имя должно быть в одну строку и не длиннее {maxLength} знаков."
+    "profile_display_name_invalid": "Имя должно быть в одну строку и не длиннее {maxLength} знаков.",
+    "comment_not_found": "Комментарий не найден: возможно, статью сняли с публикации. Обновите страницу.",
+    "comment_body_required": "Напишите текст комментария.",
+    "comment_body_too_long": "Комментарий — не длиннее {maxLength} символов.",
+    "comment_deleted": "Комментарий удалён.",
+    "comment_display_name_required": "Чтобы комментировать, укажите имя в профиле.",
+    "comment_limit_reached": "Вы комментируете слишком часто. Попробуйте через несколько минут."
   },
   "articleStatus": {
     "Draft": "Черновик",

@@ -99,6 +99,10 @@ public abstract class EndpointAuthorizationMatrixTests
         ["POST /article-remarks/{id:int}/messages"] = Policies.Authenticated,
         ["POST /article-remarks/{id:int}/close"] = Policies.CanEditArticles,
         ["POST /article-remarks/{id:int}/reopen"] = Policies.CanVerify,
+        ["GET /articles/{articleId:int}/comments"] = Public,
+        ["POST /articles/{articleId:int}/comments"] = Policies.Authenticated,
+        ["PUT /comments/{id:int}"] = Policies.Authenticated,
+        ["DELETE /comments/{id:int}"] = Policies.Authenticated,
         ["GET /schools/system"] = Public,
         ["GET /schools/article/{articleId:int}"] = Public,
 
