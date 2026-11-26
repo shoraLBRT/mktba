@@ -26,10 +26,10 @@ public static partial class ArticleSlugRules
     /// <c>robots.txt</c> or <c>sitemap.xml</c> need no entry: a dot is never valid in a slug.
     /// <see cref="Fallback"/> is reserved too, so a title with nothing to transliterate gets <c>article-2</c>.
     /// Mirror: <c>RESERVED_ARTICLE_SLUGS</c> in <c>mktba.react/src/shared/slug.ts</c>; existing rows
-    /// were moved off these words by migrations <c>MoveArticlesOffReservedSlugs</c> and <c>AddTags</c> (<c>tags</c>).
+    /// were moved off these words by migrations <c>MoveArticlesOffReservedSlugs</c>, <c>AddTags</c> (<c>tags</c>) and <c>AddReaderAccounts</c> (<c>register</c>, <c>confirm-email</c>, <c>reset-password</c>).
     /// </summary>
     public static readonly IReadOnlySet<string> Reserved = new HashSet<string>(
-        ["admin", "api", "article", "articles", "assets", "authors", "feedback", "login", "search", "sitemaps", "tags", .. Locales.Supported],
+        ["admin", "api", "article", "articles", "assets", "authors", "confirm-email", "feedback", "login", "register", "reset-password", "search", "sitemaps", "tags", .. Locales.Supported],
         StringComparer.Ordinal);
 
     /// <summary>

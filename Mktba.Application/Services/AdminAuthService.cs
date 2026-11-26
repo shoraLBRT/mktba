@@ -37,7 +37,13 @@ public class AdminAuthService
     public async Task<CurrentUserDto?> GetCurrentUserAsync(int userId, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.FindReadOnlyAsync(userId, cancellationToken);
-        return user is null ? null : new CurrentUserDto { Id = user.Id, Email = user.Email, Role = user.Role };
+        return user is null ? null : new CurrentUserDto
+        {
+            Id = user.Id,
+            Email = user.Email,
+            Role = user.Role,
+            EmailConfirmed = user.EmailConfirmedAtUtc is not null,
+        };
     }
 
     public async Task<AdminService.ServiceResult<IssuedSession>> RegisterAsync(
@@ -77,7 +83,14 @@ public class AdminAuthService
         }
 
         // The first user bootstraps the platform as its admin; everyone else gets the invite's role.
-        var user = new User { Email = normalizedEmail, Role = invite?.Role ?? UserRole.Admin };
+        // The invite (or being the first) stands in for an address confirmation (U-05, #126).
+        var user = new User
+        {
+            Email = normalizedEmail,
+            Role = invite?.Role ?? UserRole.Admin,
+            CreatedAtUtc = nowUtc,
+            EmailConfirmedAtUtc = nowUtc,
+        };
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         await _userRepository.AddAsync(user);
 

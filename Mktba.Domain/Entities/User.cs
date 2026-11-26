@@ -36,6 +36,13 @@ public class User
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     /// <summary>
+    /// When the user proved the address is theirs (U-05, #126): by the confirmation link, or by a
+    /// password reset sent to it. Null for a reader who signed up and has not confirmed yet; an
+    /// invited user and the first admin are confirmed when they register (the invite stands in for it).
+    /// </summary>
+    public DateTime? EmailConfirmedAtUtc { get; set; }
+
+    /// <summary>
     /// The name readers see (U-07, #72); null until the user fills in their profile. A user without
     /// one is shown nowhere in public: nothing ever falls back to the email.
     /// </summary>

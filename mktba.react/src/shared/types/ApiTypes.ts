@@ -137,6 +137,9 @@ export type InviteCreatedDto = Schemas['InviteCreatedDto'];
 export type InviteDto = Schemas['InviteDto'];
 export type InviteStatus = Schemas['InviteStatus'];
 export type CurrentUserDto = Schemas['CurrentUserDto'];
+export type ReaderSignUpRequestDto = Schemas['ReaderSignUpRequestDto'];
+export type PasswordResetRequestDto = Schemas['PasswordResetRequestDto'];
+export type PasswordResetConfirmDto = Schemas['PasswordResetConfirmDto'];
 export type SessionDto = Schemas['SessionDto'];
 export type UserRole = Schemas['UserRole'];
 

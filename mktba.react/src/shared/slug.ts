@@ -59,7 +59,7 @@ export const isValidSlug = (slug: string): boolean =>
  * prefixes. Mirror of `ArticleSlugRules.Reserved`; a name with a dot (`robots.txt`) is never a slug.
  */
 export const RESERVED_ARTICLE_SLUGS: ReadonlySet<string> = new Set([
-  'admin', 'api', 'article', 'articles', 'assets', 'authors', 'feedback', 'login', 'search', 'sitemaps', 'tags', 'ru', 'en',
+  'admin', 'api', 'article', 'articles', 'assets', 'authors', 'confirm-email', 'feedback', 'login', 'register', 'reset-password', 'search', 'sitemaps', 'tags', 'ru', 'en',
 ]);
 
 /** Whether the API will refuse the slug for an article as `article_slug_reserved`. */

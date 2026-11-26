@@ -45,6 +45,13 @@ public sealed class RateLimitingOptions
     /// script sends a few per page at most; the address only keys the limiter's in-memory window.
     /// </summary>
     public RateLimitRule ClientErrors { get; set; } = new() { PermitLimit = 10, WindowSeconds = 60 };
+
+    /// <summary>
+    /// Requests that queue an account email (<c>/auth/sign-up</c>, <c>/auth/password-reset</c>,
+    /// <c>/auth/confirm-email/resend</c>; U-05 #126), partitioned by client IP. Each account also takes
+    /// at most <c>Auth:AccountEmailsPerHour</c> emails of a kind, whoever asks.
+    /// </summary>
+    public RateLimitRule AccountEmail { get; set; } = new() { PermitLimit = 5, WindowSeconds = 900 };
 }
 
 public sealed class RateLimitRule
@@ -63,6 +70,7 @@ internal static class RateLimitingSetup
     public const string UploadPolicy = "uploads";
     public const string AnalyticsPolicy = "analytics";
     public const string ClientErrorsPolicy = "client-errors";
+    public const string AccountEmailPolicy = "account-email";
 
     public static IServiceCollection AddMktbaRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -94,6 +102,10 @@ internal static class RateLimitingSetup
             limiter.AddPolicy(ClientErrorsPolicy, context => FixedWindow(
                 "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 options.ClientErrors));
+
+            limiter.AddPolicy(AccountEmailPolicy, context => FixedWindow(
+                "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                options.AccountEmail));
 
             limiter.AddPolicy(AiPolicy, context => FixedWindow(UserOrIp(context), options.Ai));
 

@@ -26,4 +26,22 @@ public sealed class AuthOptions
     public string RefreshCookiePath { get; set; } = "/auth";
 
     public int InviteTokenLifetimeHours { get; set; } = 24;
+
+    /// <summary>
+    /// Whether anyone may open a reader account (<c>POST /auth/sign-up</c>, U-05 #126). Sign-up only
+    /// ever creates readers; authors still come by an admin's invite (D3, #19).
+    /// </summary>
+    public bool ReaderSignUpEnabled { get; set; } = true;
+
+    /// <summary>How long the link of an address confirmation works.</summary>
+    public int EmailConfirmationTokenLifetimeHours { get; set; } = 48;
+
+    /// <summary>How long the link of a password reset works.</summary>
+    public int PasswordResetTokenLifetimeMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Most account emails of one purpose an account gets in any 60 minutes; further requests are
+    /// answered as usual and send nothing, so nobody can flood a mailbox through the forms.
+    /// </summary>
+    public int AccountEmailsPerHour { get; set; } = 3;
 }

@@ -5,6 +5,9 @@ namespace Mktba.Application.DTOs;
 public class AdminAuthStatusDto
 {
     public bool RequiresBootstrapAdmin { get; set; }
+
+    /// <summary>Whether readers may open an account themselves (<c>POST /auth/sign-up</c>, U-05 #126).</summary>
+    public bool ReaderSignUpEnabled { get; set; }
 }
 
 public class AdminRegisterRequestDto
@@ -49,6 +52,9 @@ public class CurrentUserDto
     public string Email { get; set; } = string.Empty;
 
     public UserRole Role { get; set; }
+
+    /// <summary>Whether the user confirmed their address (U-05, #126); a reader who signed up starts without.</summary>
+    public bool EmailConfirmed { get; set; }
 }
 /// <summary>One signed-in device of the caller, as listed by <c>GET /auth/sessions</c>.</summary>
 public class SessionDto

@@ -52,6 +52,7 @@ public class MktbaApiFactory : WebApplicationFactory<Program>
         ["RateLimiting:Uploads:PermitLimit"] = "10000",
         ["RateLimiting:Analytics:PermitLimit"] = "10000",
         ["RateLimiting:ClientErrors:PermitLimit"] = "10000",
+        ["RateLimiting:AccountEmail:PermitLimit"] = "10000",
         ["Feedback:Intake:MaxPerHour"] = "0",
         // The email outbox is walked by the tests themselves (NotificationEmailService), not by the worker.
         ["Email:Delivery:PollIntervalSeconds"] = "86400",

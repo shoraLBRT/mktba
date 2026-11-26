@@ -5,6 +5,9 @@ import type {
   AdminLoginRequestDto,
   AdminRegisterRequestDto,
   CurrentUserDto,
+  PasswordResetConfirmDto,
+  PasswordResetRequestDto,
+  ReaderSignUpRequestDto,
   SessionDto,
 } from '../shared/types/ApiTypes';
 import { clearSession, setSignedIn } from './session';
@@ -48,4 +51,29 @@ export const endSession = async (sessionId: string): Promise<void> => {
 export const logOutEverywhere = async (): Promise<void> => {
   await apiClient.post('/auth/logout-all', undefined, { withCredentials: true });
   clearSession();
+};
+
+/** Opens a reader account (U-05, #126). Answers the same for a known address; does not sign in. */
+export const signUp = async (payload: ReaderSignUpRequestDto): Promise<void> => {
+  await apiClient.post('/auth/sign-up', payload);
+};
+
+/** Confirms the address with the token of the confirmation email's link. */
+export const confirmEmail = async (token: string): Promise<void> => {
+  await apiClient.post('/auth/confirm-email', { token });
+};
+
+/** Sends the signed-in user another confirmation email. */
+export const resendConfirmation = async (): Promise<void> => {
+  await apiClient.post('/auth/confirm-email/resend');
+};
+
+/** Asks for a password reset email; answers the same whether the address has an account or not. */
+export const requestPasswordReset = async (payload: PasswordResetRequestDto): Promise<void> => {
+  await apiClient.post('/auth/password-reset', payload);
+};
+
+/** Sets a new password with the token of the reset email's link; every session of the account ends. */
+export const resetPassword = async (payload: PasswordResetConfirmDto): Promise<void> => {
+  await apiClient.post('/auth/password-reset/confirm', payload);
 };

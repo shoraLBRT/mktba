@@ -368,7 +368,7 @@ public sealed class ScholarApplicationReviewTests : IDisposable
 
     private async Task<int> UserAsync(UserRole role)
     {
-        var user = new User { Email = $"{Guid.NewGuid():N}@mktba.test", Role = role };
+        var user = new User { Email = $"{Guid.NewGuid():N}@mktba.test", Role = role, EmailConfirmedAtUtc = DateTime.UtcNow };
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
         return user.Id;

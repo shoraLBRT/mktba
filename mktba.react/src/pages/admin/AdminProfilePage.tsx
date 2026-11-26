@@ -1,6 +1,7 @@
 import React, { useRef, useState, type ReactNode } from 'react';
 import { ExternalLink, Plus, Trash2, Upload } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { EmailConfirmationNotice } from '../../components/admin/EmailConfirmationNotice';
 import { NoticeBanner } from '../../components/admin/NoticeBanner';
 import { useNotice } from '../../components/admin/useNotice';
 import { APP_CONSTANTS } from '../../constants/AppConstants';
@@ -179,6 +180,8 @@ const AdminProfilePage: React.FC = () => {
         <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink-strong)]">{t.title}</h1>
         <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t.description}</p>
       </div>
+
+      <EmailConfirmationNotice />
 
       {profileQuery.isError ? (
         <Card className="p-6 text-sm text-red-700">{t.loadFailed}</Card>

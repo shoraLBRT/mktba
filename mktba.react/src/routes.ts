@@ -39,6 +39,11 @@ export default [
       route('article/new', 'routes/legacy-add-article.tsx'),
       route('article/:slug', 'routes/article.tsx', { id: 'routes/legacy-article' }),
       route('admin/login', 'routes/admin-login.tsx'),
+      // Readers' accounts (U-05, #126): each page is a route chunk of its own, none in the article's first load.
+      route('login', 'routes/login.tsx'),
+      route('register', 'routes/register.tsx'),
+      route('confirm-email', 'routes/confirm-email.tsx'),
+      route('reset-password', 'routes/reset-password.tsx'),
     ])),
     ...PREFIXED_LANGUAGES.flatMap((language) => prefix(language, readerRoutes(language))),
     route('*', 'routes/not-found.tsx'),
