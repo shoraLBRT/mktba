@@ -11,7 +11,9 @@ namespace Mktba.Application.Tests;
 /// <see cref="AppErrors"/> that the client translates (S-13, #15). These tests keep the catalog
 /// honest: codes are snake_case and unique, the developer text is English, and every UI dictionary
 /// (<c>mktba.react/src/localization/locales/*/shared.json</c>, section <c>apiErrors</c>) translates
-/// every code, interpolating only parameters the code carries.
+/// every code, interpolating only parameters the code carries. The codes only the admin's calls
+/// return are in the admin's lazy dictionary instead (<c>locales/ru/admin/adminApiErrors.json</c>,
+/// #321): the admin is Russian only, so another language translates the rest and falls back to it.
 /// </summary>
 public class AppErrorCatalogTests
 {
@@ -43,7 +45,9 @@ public class AppErrorCatalogTests
     [Fact]
     public void GivenEveryUiDictionary_WhenRead_ThenItTranslatesEveryCodeWithItsOwnParams()
     {
-        var dictionaries = Directory.GetDirectories(Path.Combine(RepositoryRoot(), "mktba.react", "src", "localization", "locales"))
+        var locales = Path.Combine(RepositoryRoot(), "mktba.react", "src", "localization", "locales");
+        var adminMessages = ReadMessages(Path.Combine(locales, "ru", "admin", "adminApiErrors.json"));
+        var dictionaries = Directory.GetDirectories(locales)
             .Select(directory => Path.Combine(directory, "shared.json"))
             .Where(File.Exists)
             .ToList();
@@ -51,16 +55,31 @@ public class AppErrorCatalogTests
 
         foreach (var path in dictionaries)
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(path));
-            var messages = document.RootElement.GetProperty("apiErrors");
+            var messages = ReadMessages(path, "apiErrors");
+            var isRussian = Path.GetFileName(Path.GetDirectoryName(path)) == "ru";
+            messages.Keys.Should().NotIntersectWith(adminMessages.Keys, $"{path} keeps only the codes a reader can meet");
             foreach (var error in Catalog())
             {
-                messages.TryGetProperty(error.Code, out var message).Should().BeTrue($"{path} must translate {error.Code}");
-                var placeholders = Placeholder.Matches(message.GetString()!).Select(match => match.Groups[1].Value);
+                string? message;
+                if (adminMessages.ContainsKey(error.Code) && !isRussian)
+                {
+                    continue; // The admin's codes are Russian only.
+                }
+
+                (messages.TryGetValue(error.Code, out message) || adminMessages.TryGetValue(error.Code, out message))
+                    .Should().BeTrue($"{path} (or ru/admin/adminApiErrors.json) must translate {error.Code}");
+                var placeholders = Placeholder.Matches(message!).Select(match => match.Groups[1].Value);
                 placeholders.Should().BeSubsetOf(
                     error.Params?.Keys ?? Enumerable.Empty<string>(), $"{path} may interpolate only the params {error.Code} carries");
             }
         }
+    }
+
+    private static Dictionary<string, string> ReadMessages(string path, string? section = null)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var root = section is null ? document.RootElement : document.RootElement.GetProperty(section);
+        return root.EnumerateObject().ToDictionary(property => property.Name, property => property.Value.GetString()!);
     }
 
     /// <summary>
