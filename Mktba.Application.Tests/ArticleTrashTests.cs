@@ -55,7 +55,7 @@ public class ArticleTrashTests : IDisposable
         (await lookup.Should().ThrowAsync<GoneException>()).Which.Error.Code.Should().Be("article_gone");
         var byId = () => _content.GetContentByArticleIdAsync(article.Id, TestViewers.Admin);
         await byId.Should().ThrowAsync<NotFoundException>();
-        _searchEngines.Slugs.Should().Equal("namaz");
+        _searchEngines.Paths.Should().Equal("/namaz");
 
         var trash = await _articles.GetTrashAsync();
         trash.Should().ContainSingle();
@@ -97,7 +97,7 @@ public class ArticleTrashTests : IDisposable
 
         var lookup = () => _content.GetContentBySlugAsync("chernovik", TestViewers.Admin);
         await lookup.Should().ThrowAsync<NotFoundException>();
-        _searchEngines.Slugs.Should().BeEmpty();
+        _searchEngines.Paths.Should().BeEmpty();
     }
 
     [Fact]

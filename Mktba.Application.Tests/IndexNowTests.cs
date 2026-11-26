@@ -52,10 +52,31 @@ public sealed class IndexNowTests
     {
         var queue = new IndexNowQueue(Options.Create(Configured()));
 
-        queue.ArticleChanged("намаз");
+        queue.ArticleChanged("ru", "намаз");
 
         queue.Reader.TryRead(out var path).Should().BeTrue();
         path.Should().Be("/%D0%BD%D0%B0%D0%BC%D0%B0%D0%B7");
+    }
+
+    [Fact]
+    public void ArticleChanged_GivenEnglishArticle_QueuesThePathUnderEn()
+    {
+        var queue = new IndexNowQueue(Options.Create(Configured()));
+
+        queue.ArticleChanged("en", "namaz");
+
+        queue.Reader.TryRead(out var path).Should().BeTrue();
+        path.Should().Be("/en/namaz");
+    }
+
+    [Theory]
+    [InlineData("ru", "/namaz")]
+    [InlineData("en", "/en/namaz")]
+    [InlineData("EN", "/en/namaz")]
+    [InlineData("", "/namaz")]
+    public void ArticlePath_GivenLocale_PrefixesEveryLanguageButTheDefault(string locale, string expected)
+    {
+        IndexNowQueue.ArticlePath(locale, "namaz").Should().Be(expected);
     }
 
     [Fact]
@@ -63,7 +84,7 @@ public sealed class IndexNowTests
     {
         var queue = new IndexNowQueue(Options.Create(new IndexNowOptions()));
 
-        queue.ArticleChanged("namaz");
+        queue.ArticleChanged("ru", "namaz");
 
         queue.Reader.TryRead(out _).Should().BeFalse();
     }

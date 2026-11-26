@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using Mktba.Application.Configuration;
+using Mktba.Domain.Entities;
 
 namespace Mktba.Application.Services.IndexNow;
 
@@ -23,14 +24,24 @@ public sealed class IndexNowQueue : ISearchEngineNotifier
 
     public ChannelReader<string> Reader => _paths.Reader;
 
-    public void ArticleChanged(string slug)
+    public void ArticleChanged(string locale, string slug)
     {
         if (_configured && !string.IsNullOrEmpty(slug))
         {
-            _paths.Writer.TryWrite(ArticlePath(slug));
+            _paths.Writer.TryWrite(ArticlePath(locale, slug));
         }
     }
 
-    /// <summary>The article's public path, as the frontend's <c>articleHref</c> builds it.</summary>
-    public static string ArticlePath(string slug) => "/" + Uri.EscapeDataString(slug);
+    /// <summary>
+    /// The article's public path in its language: <c>/{slug}</c> for the default language,
+    /// <c>/{locale}/{slug}</c> for any other (#302). Mirror: <c>localizedPath(locale, articleHref(slug))</c>,
+    /// <c>localizedPath</c> in <c>mktba.react/src/localization/language.ts</c> and <c>articleHref</c> in
+    /// <c>mktba.react/src/shared/slug.ts</c>.
+    /// </summary>
+    public static string ArticlePath(string locale, string slug)
+    {
+        var path = "/" + Uri.EscapeDataString(slug);
+        var language = Locales.Normalize(locale) ?? Locales.Default;
+        return language == Locales.Default ? path : "/" + language + path;
+    }
 }

@@ -7,6 +7,9 @@ namespace Mktba.Application.Services.IndexNow;
 /// </summary>
 public interface ISearchEngineNotifier
 {
-    /// <summary>The page of the article whose slug is <paramref name="slug"/> (<c>/{slug}</c>).</summary>
-    void ArticleChanged(string slug);
+    /// <summary>
+    /// The page of the article in <paramref name="locale"/> whose slug is <paramref name="slug"/>
+    /// (<c>/{slug}</c>, or <c>/{locale}/{slug}</c> outside the default language).
+    /// </summary>
+    void ArticleChanged(string locale, string slug);
 }
