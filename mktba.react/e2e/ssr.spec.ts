@@ -415,7 +415,7 @@ test('pages and client navigation data carry the security headers, and the page 
   expect(violations).toEqual([]);
 });
 
-test('the language is in the URL: / is Russian, /en/ is English and stays out of the index until its dictionary (I-01)', async ({ request }) => {
+test('the language is in the URL: / is Russian, /en/ is English and, with its own lists, indexed (I-01, I-06)', async ({ request }) => {
   const russian = await (await request.get('/salat')).text();
   expect(russian).toMatch(/<html lang="ru"/);
 
@@ -424,7 +424,7 @@ test('the language is in the URL: / is Russian, /en/ is English and stays out of
   const html = await home.text();
   expect(html).toMatch(/<html lang="en"/);
   expect(metaContent(html, 'og:locale')).toBe('en_US');
-  expect(metaContent(html, 'robots')).toContain('noindex');
+  expect(metaContent(html, 'robots')).toBeNull();
   expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^/"]+\/en\/"/);
 
   // A slug is unique within a language: /en/{a Russian slug} is the Russian original shown in English
@@ -502,9 +502,9 @@ test('language versions of an article link each other with hreflang in the page 
   expect(hreflang(russianHtml)).toEqual(expected);
   const englishHtml = await (await request.get(`/en/${english.slug}`)).text();
   expect(hreflang(englishHtml)).toEqual(expected);
-  // An English article is indexed now; an English list page still is not (#110).
+  // An English article is indexed, and so is an English list page since its lists are its own (#110).
   expect(metaContent(englishHtml, 'robots')).toBeNull();
-  expect(metaContent(await (await request.get('/en/')).text(), 'robots')).toContain('noindex');
+  expect(metaContent(await (await request.get('/en/')).text(), 'robots')).toBeNull();
 
   const sitemap = await (await request.get('/sitemap.xml')).text();
   expect(sitemap).toContain(`/en/${english.slug}</loc>`);

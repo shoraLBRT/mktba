@@ -99,7 +99,7 @@ import { useSiteUrl } from '../app/siteUrl';
 import { useBlockDragAndDrop } from './add-article/useBlockDragAndDrop';
 import type { SlashMenuKind } from './add-article/slashMenuKinds';
 import { formatMessage } from '../localization';
-import { SLUG_MAX_LENGTH, articleHref, articleSlugFromTitle } from '../shared/slug';
+import { SLUG_MAX_LENGTH, articleHref, articleSlugFromTitle, localizedArticleHref } from '../shared/slug';
 
 type EditorTarget = {
   blockId: string;
@@ -319,6 +319,8 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     );
   }, [articleOptions, parentSearch]);
 
+  // The article's language: its own, or a new translation's; a plain new article is Russian.
+  const articleLocale = mode.kind === 'edit' ? mode.article.locale : mode.translation?.locale;
   // `stay`: the save that comes before a status move — the editor stays open and the move follows.
   const saveMutation = useMutation({
     mutationFn: async ({ saved }: { saved: ArticleDraft; stay: boolean }): Promise<string> => {
@@ -349,7 +351,8 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
       }
       showNotice('success', mode.kind === 'edit' ? editT.saved : t.saved);
       leaveGuard.allowLeaving();
-      navigate(articleHref(slug));
+      // A translation lives under its language's prefix (`/en/{slug}`, I-06 #110).
+      navigate(localizedArticleHref(articleLocale, slug));
     },
     onError: (error) =>
       showNotice('error', `${mode.kind === 'edit' ? editT.saveError : t.saveError}: ${(error as Error).message}`),
@@ -373,7 +376,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
   const stats = useMemo(() => computeEditorStats(blocks, previewMarkdown), [blocks, previewMarkdown]);
   const seoSnippet = useMemo(() => seoSnippetOf(draft), [draft]);
   const siteUrl = useSiteUrl();
-  const snippetUrl = `${siteUrl.replace(/^https?:\/\//, '')}${articleHref(displayedSlug(draft))}`;
+  const snippetUrl = `${siteUrl.replace(/^https?:\/\//, '')}${localizedArticleHref(articleLocale, displayedSlug(draft))}`;
   const brokenLinks = useMemo(
     () => (navigationTreeQuery.data ? findBrokenInternalLinks(blocks, articleOptions) : []),
     [blocks, articleOptions, navigationTreeQuery.data],
@@ -965,7 +968,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                   onChange={(value) => setField('slug', value)}
                   // A new article goes back to following the title; a saved one takes the derived slug once.
                   onFillFromTitle={() => setField('slug', mode.kind === 'edit' ? articleSlugFromTitle(title) : null)}
-                  locale={mode.kind === 'edit' ? mode.article.locale ?? undefined : mode.translation?.locale}
+                  locale={articleLocale ?? undefined}
                 />
               )}
               editComment={mode.kind === 'edit' ? { value: draft.editComment, onChange: (value) => setField('editComment', value) } : undefined}

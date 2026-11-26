@@ -68,6 +68,7 @@ const renderAt = (url: string, navigationTree: NavigationArticleDto[] = []) => {
       { path: '/admin/articles/:articleId/edit', element: <ArticleEditorPage /> },
       { path: '/admin/articles/:articleId/history', element: <p>history-page</p> },
       { path: '/:slug', element: <p>article-page</p> },
+      { path: '/en/:slug', element: <p>english-article-page</p> },
     ],
     { initialEntries: [url] },
   );
@@ -398,6 +399,19 @@ describe('ArticleEditorPage', () => {
 
     expect(await screen.findByText('history-page')).toBeTruthy();
     expect(readLocalDraftCopy(localDraftCopyKey(1, 7))).toBeNull();
+  });
+
+  it('given a new translation into English, when it is saved, then the editor opens it under /en/ (I-06, #110)', async () => {
+    vi.mocked(getArticleContentById).mockResolvedValue(article);
+    vi.mocked(createArticleContent).mockResolvedValue({ ...article, id: 8, slug: 'prayer', locale: 'en' });
+    renderAt('/admin/articles/new?translationOf=7&locale=en');
+    fireEvent.change(titleField(), { target: { value: 'Prayer' } });
+    typeInParagraph('Text.');
+
+    save();
+
+    expect(await screen.findByText('english-article-page')).toBeTruthy();
+    expect(vi.mocked(createArticleContent).mock.calls[0][0]).toMatchObject({ translationOfId: 7, locale: 'en' });
   });
 
   it('given a picked article, when the link is inserted, then the title becomes a link to it, selected, and is saved as Markdown', async () => {
