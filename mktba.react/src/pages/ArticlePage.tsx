@@ -40,6 +40,7 @@ import { estimateReadingMinutes } from '../shared/readingTime';
 import { ARTICLE_OVERVIEW_ANCHOR } from '../shared/articleOutline';
 import { useHydrated } from '../shared/useHydrated';
 import { BackToTopButton } from '../components/article/BackToTopButton';
+import { ArticleCommentsSlot } from '../components/comments/ArticleCommentsSlot';
 import { useHashAnchor } from '../components/article/useHashAnchor';
 
 const ArticlePage: React.FC = () => {
@@ -388,6 +389,8 @@ const ArticlePage: React.FC = () => {
               from: `${canonicalPath ?? pathname}${locationSearch}`,
             }))}
           />
+
+          <ArticleCommentsSlot key={articleContent.id} articleId={articleContent.id} />
         </div>
       </article>
 

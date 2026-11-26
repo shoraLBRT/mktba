@@ -1,10 +1,9 @@
 import React, { useMemo, type ComponentProps } from 'react';
 import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown';
 import { Link } from 'react-router';
-import { gfmFromMarkdown } from 'mdast-util-gfm';
-import { gfm } from 'micromark-extension-gfm';
 import { collectHeadings, nestHeadings, type MarkdownNode } from '../shared/markdownHeadings';
 import { rehypeArabic } from '../shared/rehypeArabic';
+import { remarkGfmSyntax } from '../shared/remarkGfmSyntax';
 
 /** The anchor of one heading. */
 export type HeadingAnchor = {
@@ -24,23 +23,6 @@ type MarkdownContentProps = {
    */
   headingAnchors?: HeadingAnchor[];
 };
-
-/** The parser settings remark keeps in the processor's data (declared by `remark-parse`). */
-type MarkdownParserData = {
-  micromarkExtensions?: unknown[];
-  fromMarkdownExtensions?: unknown[];
-};
-
-/**
- * GitHub Flavored Markdown (tables, strikethrough, task lists, autolinks, footnotes) for parsing
- * only. `remark-gfm` also registers the GFM serializer (`mdast-util-to-markdown`), which rendering
- * never calls but which landed in the article page's JavaScript; this plugin leaves it out.
- */
-function remarkGfmSyntax(this: { data(): object }) {
-  const data = this.data() as MarkdownParserData;
-  (data.micromarkExtensions ??= []).push(gfm());
-  (data.fromMarkdownExtensions ??= []).push(gfmFromMarkdown());
-}
 
 /** Headings start at `h2` and never skip a level: see {@link nestHeadings}. */
 const remarkNestHeadings = () => nestHeadings;
