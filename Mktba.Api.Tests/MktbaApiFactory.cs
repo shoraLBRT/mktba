@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Mktba.Api.Observability;
 using Mktba.Application.Services.Analytics;
+using Mktba.Application.Services.Email;
 using Mktba.Application.Services.Feedback;
 using Mktba.Application.Services.IndexNow;
 using Mktba.Infrastructure.Data;
@@ -52,6 +53,8 @@ public class MktbaApiFactory : WebApplicationFactory<Program>
         ["RateLimiting:Analytics:PermitLimit"] = "10000",
         ["RateLimiting:ClientErrors:PermitLimit"] = "10000",
         ["Feedback:Intake:MaxPerHour"] = "0",
+        // The email outbox is walked by the tests themselves (NotificationEmailService), not by the worker.
+        ["Email:Delivery:PollIntervalSeconds"] = "86400",
     };
 
     public MktbaApiFactory()
@@ -121,6 +124,10 @@ public class MktbaApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IFeedbackIssueTracker>();
             services.AddSingleton(IssueTracker ?? new NoIssueTracker());
 
+            // Nor a mail server: notification emails go to the factory's recorder (V-09, #125).
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender>(Emails);
+
             // Nor IndexNow, whatever the settings say.
             services.RemoveAll<IIndexNowClient>();
             services.AddSingleton(IndexNowClient ?? new NoIndexNowClient());
@@ -141,6 +148,9 @@ public class MktbaApiFactory : WebApplicationFactory<Program>
 
     /// <summary>A stand-in issue tracker for the feedback worker; null (the default) means none is configured.</summary>
     internal IFeedbackIssueTracker? IssueTracker { get; init; }
+
+    /// <summary>The emails the API handed over, in order.</summary>
+    internal RecordingEmailSender Emails { get; } = new();
 
     /// <summary>A stand-in IndexNow endpoint; null (the default) refuses every send.</summary>
     internal IIndexNowClient? IndexNowClient { get; init; }
@@ -184,6 +194,19 @@ public class MktbaApiFactory : WebApplicationFactory<Program>
 
         public Task<FeedbackIssueRef> CreateAsync(string title, string body, IReadOnlyList<string> labels, CancellationToken cancellationToken)
             => throw new InvalidOperationException("Tests do not deliver feedback.");
+    }
+
+    internal sealed class RecordingEmailSender : IEmailSender
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<EmailMessage> _sent = new();
+
+        public IReadOnlyList<EmailMessage> Sent => _sent.ToArray();
+
+        public Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
+        {
+            _sent.Enqueue(message);
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>An endpoint that takes nothing: no test sends URLs anywhere.</summary>
