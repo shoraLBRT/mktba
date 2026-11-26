@@ -1,7 +1,7 @@
-import { ArchiveRestore, Bot, ClipboardCheck, ClipboardList, FolderTree, KeyRound, LayoutDashboard, MonitorSmartphone, NotebookPen, Tags, Trash2, UserRound, type LucideIcon } from 'lucide-react';
+import { ArchiveRestore, Bot, ClipboardCheck, ClipboardList, FolderTree, GraduationCap, KeyRound, LayoutDashboard, MonitorSmartphone, NotebookPen, Tags, Trash2, UserRound, type LucideIcon } from 'lucide-react';
 import type { RolePolicy } from '../auth/roleAccess';
 
-export type AdminSectionId = 'dashboard' | 'articles' | 'mine' | 'tags' | 'review' | 'users' | 'sessions' | 'profile' | 'ai' | 'trash' | 'audit' | 'maintenance';
+export type AdminSectionId = 'dashboard' | 'articles' | 'mine' | 'tags' | 'review' | 'users' | 'sessions' | 'profile' | 'scholar' | 'ai' | 'trash' | 'audit' | 'maintenance';
 
 export type AdminSection = {
   id: AdminSectionId;
@@ -22,6 +22,8 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   { id: 'users', path: '/admin/users', policy: 'canManageUsers', icon: KeyRound },
   { id: 'sessions', path: '/admin/sessions', policy: 'authenticated', icon: MonitorSmartphone },
   { id: 'profile', path: '/admin/profile', policy: 'authenticated', icon: UserRound },
+  // V-01 (#117): any signed-in role sees its application; only readers and authors may apply (the page says so).
+  { id: 'scholar', path: '/admin/scholar-application', policy: 'authenticated', icon: GraduationCap },
   { id: 'ai', path: '/admin/ai', policy: 'canConfigure', icon: Bot },
   { id: 'trash', path: '/admin/trash', policy: 'canEditAnyArticle', icon: ArchiveRestore },
   { id: 'audit', path: '/admin/audit', policy: 'canViewAuditLog', icon: ClipboardList },
