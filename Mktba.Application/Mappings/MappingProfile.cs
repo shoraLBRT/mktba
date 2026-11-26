@@ -24,9 +24,6 @@ namespace Mktba.Application.Mappings
             CreateMap<ArticleUpdateDto, Article>()
                 .ForMember(dest => dest.ParentArticleId, opt => opt.Ignore());
 
-            // School
-            CreateMap<School, SchoolDto>();
-
             // Opinion → OpinionDto (class-based, AutoMapper handles member mapping)
             CreateMap<Opinion, OpinionDto>()
                 .ForMember(dest => dest.SchoolIds,

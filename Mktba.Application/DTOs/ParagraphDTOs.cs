@@ -2,20 +2,57 @@ namespace Mktba.Application.DTOs
 {
     // ── School ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// A school: one of the four canonical mazhabs, or a scholar opinion (M-08, #116) — a directory entry
+    /// any article may link its opinions to.
+    /// </summary>
+    /// <param name="ArticleScopeId">The article a scholar opinion was created for (it decides who may change it, not where it is used); null for a system school or a directory entry.</param>
+    /// <param name="ScholarName">The scholar whose opinion it is; null for a system school or an entry made before M-08.</param>
+    /// <param name="ScholarYears">Years of the scholar's life, free text («661–728 гг. х.»).</param>
+    /// <param name="Description">A short plain-text note on the scholar or the position.</param>
+    /// <param name="ScholarArticleId">The wiki article about the scholar, as stored (whatever its status).</param>
+    /// <param name="ScholarArticle">That article while it is Published and not in the trash, else null: the link readers get.</param>
     public record SchoolDto(
         int Id,
         string Slug,
         string Name,
         string ShortName,
         bool IsSystem,
-        int? ArticleScopeId
+        int? ArticleScopeId,
+        string? ScholarName = null,
+        string? ScholarYears = null,
+        string? Description = null,
+        int? ScholarArticleId = null,
+        SchoolScholarArticleDto? ScholarArticle = null
     );
 
+    /// <summary>The Published article about a scholar, enough to link it (<c>/{slug}</c>, or <c>/{locale}/{slug}</c> outside Russian).</summary>
+    public record SchoolScholarArticleDto(int Id, string Slug, string Title, string Locale);
+
+    /// <summary>
+    /// A new scholar opinion. <paramref name="Slug"/> may be left out (the server makes one);
+    /// <paramref name="ArticleScopeId"/> is the article it is created for — its editors may change it
+    /// later — or null for an entry straight into the directory.
+    /// </summary>
     public record SchoolCreateDto(
-        string Slug,
+        string? Slug,
         string Name,
         string ShortName,
-        int ArticleScopeId         // кастомные школы всегда привязаны к статье
+        int? ArticleScopeId,
+        string? ScholarName = null,
+        string? ScholarYears = null,
+        string? Description = null,
+        int? ScholarArticleId = null
+    );
+
+    /// <summary>The editable fields of a scholar opinion; every field is replaced (null or blank clears an optional one).</summary>
+    public record SchoolUpdateDto(
+        string Name,
+        string ShortName,
+        string? ScholarName = null,
+        string? ScholarYears = null,
+        string? Description = null,
+        int? ScholarArticleId = null
     );
 
     // ── Opinion ─────────────────────────────────────────────────────────────

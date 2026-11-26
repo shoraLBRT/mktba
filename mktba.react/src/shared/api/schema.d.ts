@@ -3528,6 +3528,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/schools/custom": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The directory of scholar opinions (M-08, #116): every custom school, by name.
+         * @description Any article may link its opinions to any of them. scholarArticle is set only while the article about the scholar is Published.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SchoolDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/schools/article/{articleId}": {
         parameters: {
             query?: never;
@@ -3536,8 +3575,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Custom schools of one article.
-         * @description An article that is not Published answers 404 article_not_found except to an admin or its own author or co-author, as the other article reads do; so does an article that does not exist.
+         * Scholar opinions (custom schools) of one article: created for it or used by its opinions.
+         * @description An article that is not Published answers 404 article_not_found except to an admin or its own author or co-author, as the other article reads do; so does an article that does not exist. scholarArticle is set only while the article about the scholar is Published.
          */
         get: {
             parameters: {
@@ -3587,7 +3626,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Creates a custom school for one article: admins for any article, authors for their own. */
+        /**
+         * Creates a scholar opinion: for an article (admins any, authors their own) or, with no articleScopeId, into the directory.
+         * @description slug may be left out (the server makes one). Editors of articleScopeId may later change or delete the entry while no other article uses it; otherwise only an admin may.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -3653,9 +3695,74 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /**
+         * Changes a scholar opinion (M-08, #116) in every article that uses it.
+         * @description Admins any; others one created for an article they may edit, while no other article uses it (409 school_in_use). System schools answer 400 system_school_update_forbidden.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SchoolUpdateDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SchoolDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
         post?: never;
-        /** Deletes a custom school: admins any, authors those of their own articles. */
+        /** Deletes a scholar opinion and its links: admins any, others one created for their article that no other article uses. */
         delete: {
             parameters: {
                 query?: never;
@@ -3694,6 +3801,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -5497,11 +5613,16 @@ export interface components {
             publishedRevisionNumber?: number | null;
         };
         SchoolCreateDto: {
-            slug: string;
+            slug?: string | null;
             name: string;
             shortName: string;
             /** Format: int32 */
-            articleScopeId: number;
+            articleScopeId?: number | null;
+            scholarName?: string | null;
+            scholarYears?: string | null;
+            description?: string | null;
+            /** Format: int32 */
+            scholarArticleId?: number | null;
         };
         SchoolDto: {
             /** Format: int32 */
@@ -5512,6 +5633,28 @@ export interface components {
             isSystem: boolean;
             /** Format: int32 */
             articleScopeId?: number | null;
+            scholarName?: string | null;
+            scholarYears?: string | null;
+            description?: string | null;
+            /** Format: int32 */
+            scholarArticleId?: number | null;
+            scholarArticle?: components["schemas"]["SchoolScholarArticleDto"];
+        };
+        SchoolScholarArticleDto: {
+            /** Format: int32 */
+            id: number;
+            slug: string;
+            title: string;
+            locale: string;
+        };
+        SchoolUpdateDto: {
+            name: string;
+            shortName: string;
+            scholarName?: string | null;
+            scholarYears?: string | null;
+            description?: string | null;
+            /** Format: int32 */
+            scholarArticleId?: number | null;
         };
         SearchAnalyticsDto: {
             /** Format: int32 */

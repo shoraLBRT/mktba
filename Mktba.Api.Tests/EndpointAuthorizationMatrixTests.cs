@@ -99,6 +99,9 @@ public abstract class EndpointAuthorizationMatrixTests
         ["PUT /paragraph/{id}"] = Policies.CanEditAnyArticle,
         ["DELETE /paragraph/{id}"] = Policies.CanEditAnyArticle,
         ["POST /schools/"] = Policies.CanEditArticles,
+        // M-08 (#116): the directory and a change of one entry; the per-entry rule is ArticleAccessGuard.CheckSchoolAsync.
+        ["GET /schools/custom"] = Policies.CanEditArticles,
+        ["PUT /schools/{id:int}"] = Policies.CanEditArticles,
         ["GET /sources/"] = Policies.CanEditArticles,
         ["POST /sources/"] = Policies.CanEditArticles,
         ["PUT /sources/{id:int}"] = Policies.CanEditAnyArticle,

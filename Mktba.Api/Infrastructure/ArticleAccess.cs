@@ -89,8 +89,11 @@ namespace Mktba.Api.Infrastructure
         }
 
         /// <summary>
-        /// The check for deleting a school: editing the article a custom school belongs to. A system
-        /// school belongs to no article; only an admin gets past here (and is then told it cannot be deleted).
+        /// The check for changing or deleting a school (M-08, #116; a default chosen by the agent, open
+        /// for the owner): an admin may change any; anyone else only a scholar opinion created for an
+        /// article they may edit, and only while no other article uses it (409 <c>school_in_use</c>) —
+        /// a shared directory entry is changed by admins. A system school or a directory entry created
+        /// for no article lets only an admin past (who is then told a system school cannot be changed).
         /// </summary>
         public async Task<IResult?> CheckSchoolAsync(ClaimsPrincipal user, int schoolId)
         {
@@ -100,14 +103,24 @@ namespace Mktba.Api.Infrastructure
                 return ApiProblemResults.Problem(StatusCodes.Status404NotFound, AppErrors.SchoolNotFound);
             }
 
-            if (school.ArticleScopeId is int articleId)
+            if (user.ToArticleViewer().EditsAnyArticle)
             {
-                return await CheckAsync(user, articleId, ArticleOperationRequirement.Edit);
+                return null;
             }
 
-            return user.ToArticleViewer().EditsAnyArticle
-                ? null
-                : ApiProblemResults.Problem(StatusCodes.Status403Forbidden, AppErrors.Forbidden);
+            if (school.IsSystem || school.ArticleScopeId is not int articleId)
+            {
+                return ApiProblemResults.Problem(StatusCodes.Status403Forbidden, AppErrors.Forbidden);
+            }
+
+            if (await CheckAsync(user, articleId, ArticleOperationRequirement.Edit) is { } denied)
+            {
+                return denied;
+            }
+
+            return await schools.IsUsedOutsideArticleAsync(schoolId, articleId)
+                ? ApiProblemResults.Problem(StatusCodes.Status409Conflict, AppErrors.SchoolInUse)
+                : null;
         }
     }
 
