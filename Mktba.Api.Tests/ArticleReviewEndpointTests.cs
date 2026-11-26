@@ -149,6 +149,38 @@ public abstract class ArticleReviewEndpointTests
         list.Items.Single().MyLatestReview!.IsCurrent.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GivenAScholarsReviewAndRemark_WhenTheyOpenTheirCabinet_ThenTheQueueMatchesTheSpecializationAndTheHistoryListsBoth()
+    {
+        var (admin, _) = await RoleClients.CreateAsync(_factory, UserRole.Admin);
+        var (scholar, _) = await ScholarAsync("hanafi");
+        var stamp = Guid.NewGuid().ToString("N");
+        var matching = await PublishedArticleAsync(admin, $"Фикх кабинет {stamp}");
+        var other = await PublishedArticleAsync(admin, $"Кабинет {stamp}");
+
+        var queue = await scholar.GetFromJsonAsync<ArticleReviewArticlePageDto>($"/article-reviews?queue=true&q={stamp}", ApiJson.Options);
+        (queue!.Mazhab, queue.SpecializationKeywords.Single()).Should().Be(("hanafi", "фикх"));
+        queue.Items.Select(item => (item.ArticleId, item.MatchesSpecialization, item.MatchesMazhab))
+            .Should().Equal((matching.Id, true, false), (other.Id, false, false));
+
+        (await scholar.PostAsJsonAsync($"/article-reviews/{matching.Id}", new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        var remarked = await scholar.PostAsJsonAsync(
+            $"/articles/{other.Id}/remarks", new ArticleRemarkCreateDto(1, other.Paragraphs[0].Id, null, "Нужен источник."), ApiJson.Options);
+        remarked.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var after = await scholar.GetFromJsonAsync<ArticleReviewArticlePageDto>($"/article-reviews?queue=true&q={stamp}", ApiJson.Options);
+        after!.Items.Select(item => item.ArticleId).Should().Equal(other.Id);
+        var reviews = await scholar.GetFromJsonAsync<ScholarReviewHistoryPageDto>("/article-reviews/history", ApiJson.Options);
+        reviews!.Items.Should().ContainSingle().Which.Should().Match<ScholarReviewHistoryItemDto>(item =>
+            item.ArticleId == matching.Id && item.RevisionNumber == 1 && item.IsAvailable && item.IsCurrent && item.Verdict == ArticleReviewVerdict.Confirmed);
+        var remarks = await scholar.GetFromJsonAsync<ScholarRemarkHistoryPageDto>("/article-remarks/mine?open=true", ApiJson.Options);
+        remarks!.OpenTotal.Should().Be(1);
+        remarks.Items.Should().ContainSingle().Which.Should().Match<ScholarRemarkHistoryItemDto>(item =>
+            item.ArticleId == other.Id && item.Status == ArticleRemarkStatus.Open && item.MessageCount == 1 && item.Excerpt == "Текст");
+        (await scholar.GetFromJsonAsync<ScholarRemarkHistoryPageDto>("/article-remarks/mine?open=false", ApiJson.Options))!.Total.Should().Be(0);
+    }
+
     /// <summary>A Scholar with an approved application (the V-02 approval, written straight to the database).</summary>
     private async Task<(HttpClient Client, int UserId)> ScholarAsync(string? mazhab)
     {

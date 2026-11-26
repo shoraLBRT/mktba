@@ -192,6 +192,9 @@ test('an approved scholar reviews the latest revision of a published article wit
   await expect(page).toHaveURL(/\/admin\/article-reviews$/);
   await page.getByLabel('Поиск по названию').fill(title);
   await expect(page.getByTestId(`article-review-row-${article.id}`)).toContainText('Нет');
+  // V-07 (#123): the queue marks an article with an opinion of the scholar's madhab.
+  await expect(page.getByTestId(`article-review-row-${article.id}`)).toContainText('мнение вашего мазхаба');
+  await expect(page.getByTestId('article-review-match-basis')).toContainText('Подбор по специализации из заявки: фикх.');
   await page.getByRole('link', { name: `Ревью статьи «${title}»` }).click();
 
   await expect(page.getByText('читатели мазхаба «Ханафитский»', { exact: false })).toBeVisible();
@@ -215,6 +218,17 @@ test('an approved scholar reviews the latest revision of a published article wit
     items: { toValue: string }[];
   };
   expect(log.items.map((entry) => entry.toValue)).toEqual(['HasErrors']);
+
+  // V-07 (#123): the cabinet's history lists the verdict; the reviewed article leaves the queue.
+  await page.goto('/admin/article-reviews?tab=reviews');
+  const historyRow = page.getByRole('table', { name: 'Мои отметки' }).getByRole('row').filter({ hasText: title });
+  await expect(historyRow).toContainText('Есть ошибки');
+  await expect(historyRow).toContainText('текущая версия');
+  const cabinet = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(cabinet.violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical').map((violation) => violation.id)).toEqual([]);
+  await page.getByRole('link', { name: 'Очередь' }).click();
+  await page.getByLabel('Поиск по названию').fill(title);
+  await expect(page.getByText('Статей нет.')).toBeVisible();
 
   await page.setViewportSize({ width: 375, height: 700 });
   expect(await page.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(375);

@@ -75,6 +75,7 @@ public abstract class EndpointAuthorizationMatrixTests
         ["POST /scholar-applications/{id:int}/revoke"] = Policies.CanManageUsers,
         // V-03 (#119): scholars and admins pass; only a scholar with an approved application gives a verdict.
         ["GET /article-reviews/"] = Policies.CanVerify,
+        ["GET /article-reviews/history"] = Policies.CanVerify, // V-07 (#123): the scholar's cabinet
         ["GET /article-reviews/{articleId:int}"] = Policies.CanVerify,
         ["POST /article-reviews/{articleId:int}"] = Policies.CanVerify,
         ["GET /articles/{id:int}"] = Public,
@@ -83,6 +84,7 @@ public abstract class EndpointAuthorizationMatrixTests
         ["GET /articles/{articleId:int}/verification"] = Public,
         ["GET /articles/{articleId:int}/remarks"] = Policies.Authenticated,
         ["POST /articles/{articleId:int}/remarks"] = Policies.CanVerify,
+        ["GET /article-remarks/mine"] = Policies.CanVerify,
         ["POST /article-remarks/{id:int}/messages"] = Policies.Authenticated,
         ["POST /article-remarks/{id:int}/close"] = Policies.CanEditArticles,
         ["POST /article-remarks/{id:int}/reopen"] = Policies.CanVerify,

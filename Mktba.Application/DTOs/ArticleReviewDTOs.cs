@@ -70,6 +70,11 @@ public sealed record ArticleReviewMarkDto(int RevisionNumber, ArticleReviewVerdi
 /// <summary>One published article a scholar may review.</summary>
 /// <param name="LatestRevisionNumber">The revision a review would be about.</param>
 /// <param name="MyLatestReview">The caller's review of the newest revision they reviewed; null when they have not reviewed the article.</param>
+/// <param name="MatchesSpecialization">
+/// True when a word of the caller's specialization matches the title, a tag or a section above the
+/// article (V-07, #123; <c>SpecializationMatcher</c>).
+/// </param>
+/// <param name="MatchesMazhab">True when the article has an opinion of the caller's madhab (V-07, #123).</param>
 public sealed record ArticleReviewArticleDto(
     int ArticleId,
     string Title,
@@ -77,17 +82,51 @@ public sealed record ArticleReviewArticleDto(
     string Locale,
     int LatestRevisionNumber,
     DateTime UpdatedAt,
-    ArticleReviewMarkDto? MyLatestReview);
+    ArticleReviewMarkDto? MyLatestReview,
+    bool MatchesSpecialization,
+    bool MatchesMazhab);
 
 /// <summary>
-/// A page of the articles a scholar may review: those needing a re-review first, then the latest edited first.
+/// A page of the scholar's queue (V-07, #123): the articles needing a re-review first (V-05, #121),
+/// then those the caller has not reviewed — matching both their specialization and their madhab,
+/// then the specialization, then the madhab, then the rest — then, unless only the queue is asked
+/// for, those they reviewed; the latest edited first within each group.
 /// </summary>
 /// <param name="NeedsReReviewTotal">
 /// How many published articles the caller's latest review of went stale after a substantial edit
 /// (V-05, #121) — over all of them, whatever the title search.
 /// </param>
+/// <param name="Mazhab">The caller's madhab (their approved application's), which <see cref="ArticleReviewArticleDto.MatchesMazhab"/> is about; null without one.</param>
+/// <param name="SpecializationKeywords">The words of the caller's specialization the queue matches articles by; empty when none is usable.</param>
 public sealed record ArticleReviewArticlePageDto(
-    IReadOnlyList<ArticleReviewArticleDto> Items, int Total, int Page, int PageSize, int NeedsReReviewTotal);
+    IReadOnlyList<ArticleReviewArticleDto> Items,
+    int Total,
+    int Page,
+    int PageSize,
+    int NeedsReReviewTotal,
+    string? Mazhab,
+    IReadOnlyList<string> SpecializationKeywords);
+
+/// <summary>One of a scholar's reviews, for their history (V-07, #123).</summary>
+/// <param name="IsAvailable">True while the article is published, so its review page opens.</param>
+/// <param name="LatestRevisionNumber">The article's latest revision now.</param>
+/// <param name="IsCurrent">False when a substantial edit came after the reviewed revision (V-05, #121).</param>
+public sealed record ScholarReviewHistoryItemDto(
+    int ReviewId,
+    int ArticleId,
+    string Title,
+    bool IsAvailable,
+    int RevisionNumber,
+    int LatestRevisionNumber,
+    ArticleReviewVerdict Verdict,
+    string? Comment,
+    string? Mazhab,
+    DateTime UpdatedAt,
+    bool IsLatestRevision,
+    bool IsCurrent);
+
+/// <summary>A page of a scholar's reviews across articles, the latest given first (V-07, #123).</summary>
+public sealed record ScholarReviewHistoryPageDto(IReadOnlyList<ScholarReviewHistoryItemDto> Items, int Total, int Page, int PageSize);
 
 /// <summary>
 /// The scholars' marks on an article as readers see them (V-04, #120): the latest mark of each

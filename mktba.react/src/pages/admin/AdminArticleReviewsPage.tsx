@@ -1,52 +1,106 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { formatMessage } from '../../localization';
 import { useFormat, useLocale } from '../../localization/hooks';
 import { articlesForReviewQueryKey, getArticlesForReview, type ArticleReviewFilter } from '../../services/articleReviewService';
 import { extractApiErrorMessage } from '../../shared/api-client/apiError';
-import { Button } from '../../shared/ui/Button';
+import { isScholarMazhab } from '../../shared/scholarApplication';
+import type { ArticleReviewArticlePageDto } from '../../shared/types/ApiTypes';
 import { Card } from '../../shared/ui/Card';
 import { Input } from '../../shared/ui/Input';
+import { CABINET_PAGE_SIZE, ListPager, RemarkHistoryList, ReviewHistoryList } from './ScholarHistoryLists';
 
-const PAGE_SIZE = 20;
+const PATH = '/admin/article-reviews';
+const TABS = ['queue', 'all', 'reviews', 'remarks'] as const;
+
+type CabinetTab = (typeof TABS)[number];
+
+const tabFrom = (value: string | null): CabinetTab => (TABS as readonly string[]).includes(value ?? '') ? value as CabinetTab : 'queue';
+
+const tabHref = (tab: CabinetTab) => (tab === 'queue' ? PATH : `${PATH}?tab=${tab}`);
 
 /**
- * `/admin/article-reviews` (V-03, #119): the published articles a scholar may review, with the
- * caller's latest mark on each; a title search and 20 a page. A line opens the article's review.
- * First come the articles whose mark a substantial edit made stale, with their count above the
- * table (V-05, #121: the re-review request of D5, until notifications in V-09 #125), then the latest
- * edited. The scholar's cabinet with a queue by specialization is V-07 (#123).
+ * `/admin/article-reviews` — the scholar's cabinet (V-07, #123; first V-03 #119). Four tabs in `?tab=`:
+ * «Очередь» (default) — the articles needing a re-review (V-05, #121), then those the scholar has not
+ * reviewed, matching their specialization and madhab first; «Все статьи» — the same order with the
+ * reviewed ones at the end; «Мои отметки» and «Мои замечания» — the scholar's history across articles.
+ * A line opens the article's review page, which stays as it was.
  */
 const AdminArticleReviewsPage = () => {
-  const locale = useLocale();
-  const t = locale.articleReview;
-  const format = useFormat();
-  const [filter, setFilter] = useState<ArticleReviewFilter>({ query: '', page: 1, pageSize: PAGE_SIZE });
-  const listQuery = useQuery({
-    queryKey: articlesForReviewQueryKey(filter),
-    queryFn: () => getArticlesForReview(filter),
-    placeholderData: keepPreviousData,
-  });
-  const items = listQuery.data?.items ?? [];
-  const total = listQuery.data?.total ?? 0;
-  const reReviewTotal = listQuery.data?.needsReReviewTotal ?? 0;
-  const page = listQuery.data?.page ?? filter.page;
-  const pageSize = listQuery.data?.pageSize ?? filter.pageSize;
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, total);
+  const t = useLocale().articleReview;
+  const [searchParams] = useSearchParams();
+  const tab = tabFrom(searchParams.get('tab'));
+  const tabClass = (active: boolean) =>
+    `rounded-full border px-3 py-1 text-sm ${active
+      ? 'border-[var(--color-brand-forest)] bg-[var(--color-surface-muted)] font-medium text-[var(--color-ink-strong)]'
+      : 'border-[var(--color-border-soft)] text-[var(--color-ink-muted)] hover:bg-[var(--color-surface-muted)]'}`;
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold tracking-tight text-[var(--color-ink-strong)]">{t.listTitle}</h1>
         <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t.listDescription}</p>
-        {reReviewTotal > 0 ? (
-          <p data-testid="article-review-rereview-count" className="mt-2 text-sm font-medium text-[var(--color-ink-strong)]">
-            {formatMessage(t.reReviewCount, { count: reReviewTotal })}
-          </p>
-        ) : null}
       </div>
+      <nav aria-label={t.tabsLabel} className="flex flex-wrap gap-2">
+        {TABS.map((option) => (
+          <Link key={option} to={tabHref(option)} aria-current={option === tab ? 'page' : undefined} className={tabClass(option === tab)}>
+            {t.tabs[option]}
+          </Link>
+        ))}
+      </nav>
+      {tab === 'reviews' ? <ReviewHistoryList /> : tab === 'remarks' ? <RemarkHistoryList /> : <ArticleQueue key={tab} queueOnly={tab === 'queue'} />}
+    </div>
+  );
+};
+
+/** What the queue's order is based on: the specialization's words and the madhab, said plainly. */
+const MatchBasis = ({ data }: { data: ArticleReviewArticlePageDto }) => {
+  const locale = useLocale();
+  const t = locale.articleReview;
+  const mazhab = data.mazhab;
+  return (
+    <div data-testid="article-review-match-basis" className="space-y-1 text-sm text-[var(--color-ink-muted)]">
+      <p className="m-0">
+        {data.specializationKeywords.length > 0
+          ? formatMessage(t.matchKeywords, { keywords: data.specializationKeywords.join(', ') })
+          : t.matchNoKeywords}
+        {isScholarMazhab(mazhab) ? ` ${formatMessage(t.matchMazhab, { mazhab: locale.scholarApplication.mazhabs[mazhab] })}` : null}
+      </p>
+      <p className="m-0 text-[12px]">{t.matchHint}</p>
+    </div>
+  );
+};
+
+const Badge = ({ children }: { children: string }) => (
+  <span className="me-1 mt-1 inline-block rounded-full bg-[var(--color-surface-muted)] px-2 py-0.5 text-[12px] text-[var(--color-ink-strong)]">
+    {children}
+  </span>
+);
+
+/** The queue (`queueOnly`) or all published articles, in the queue's order, with a title search and a pager. */
+const ArticleQueue = ({ queueOnly }: { queueOnly: boolean }) => {
+  const locale = useLocale();
+  const t = locale.articleReview;
+  const format = useFormat();
+  const [filter, setFilter] = useState<ArticleReviewFilter>({ query: '', queueOnly, page: 1, pageSize: CABINET_PAGE_SIZE });
+  const listQuery = useQuery({
+    queryKey: articlesForReviewQueryKey(filter),
+    queryFn: () => getArticlesForReview(filter),
+    placeholderData: keepPreviousData,
+  });
+  const items = listQuery.data?.items ?? [];
+  const reReviewTotal = listQuery.data?.needsReReviewTotal ?? 0;
+
+  return (
+    <>
+      <p className="m-0 text-sm text-[var(--color-ink-muted)]">{queueOnly ? t.queueDescription : t.allDescription}</p>
+      {listQuery.data ? <MatchBasis data={listQuery.data} /> : null}
+      {reReviewTotal > 0 ? (
+        <p data-testid="article-review-rereview-count" className="m-0 text-sm font-medium text-[var(--color-ink-strong)]">
+          {formatMessage(t.reReviewCount, { count: reReviewTotal })}
+        </p>
+      ) : null}
       <div className="max-w-md">
         <label htmlFor="article-review-search" className="mb-1 block text-sm text-[var(--color-ink-muted)]">{t.searchLabel}</label>
         <Input
@@ -64,7 +118,9 @@ const AdminArticleReviewsPage = () => {
             {`${t.loadError}: ${extractApiErrorMessage(listQuery.error)}`}
           </p>
         ) : items.length === 0 ? (
-          <p className="m-0 px-4 py-8 text-center text-sm text-[var(--color-ink-muted)]">{t.empty}</p>
+          <p className="m-0 px-4 py-8 text-center text-sm text-[var(--color-ink-muted)]">
+            {queueOnly && filter.query.trim() === '' ? t.queueEmpty : t.empty}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table aria-label={t.tableLabel} className="w-full border-collapse text-sm">
@@ -87,6 +143,12 @@ const AdminArticleReviewsPage = () => {
                       >
                         {item.title}
                       </Link>
+                      {item.matchesSpecialization || item.matchesMazhab ? (
+                        <div>
+                          {item.matchesSpecialization ? <Badge>{t.badgeSpecialization}</Badge> : null}
+                          {item.matchesMazhab ? <Badge>{t.badgeMazhab}</Badge> : null}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2">{item.latestRevisionNumber}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{format.date(item.updatedAt, 'dateTime')}</td>
@@ -104,22 +166,14 @@ const AdminArticleReviewsPage = () => {
             </table>
           </div>
         )}
-        <nav
-          aria-label={t.paginationLabel}
-          className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border-soft)] px-3 py-2 text-sm"
-        >
-          <span className="text-[var(--color-ink-muted)]">{formatMessage(t.pageInfo, { from, to, total })}</span>
-          <div className="flex items-center gap-2">
-            <Button className="px-3 py-1" disabled={page <= 1} onClick={() => setFilter({ ...filter, page: page - 1 })}>
-              {t.previousPage}
-            </Button>
-            <Button className="px-3 py-1" disabled={to >= total} onClick={() => setFilter({ ...filter, page: page + 1 })}>
-              {t.nextPage}
-            </Button>
-          </div>
-        </nav>
+        <ListPager
+          page={listQuery.data?.page ?? filter.page}
+          pageSize={listQuery.data?.pageSize ?? filter.pageSize}
+          total={listQuery.data?.total ?? 0}
+          onPage={(page) => setFilter({ ...filter, page })}
+        />
       </Card>
-    </div>
+    </>
   );
 };
 

@@ -1449,6 +1449,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/article-remarks/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's own remarks across articles, the latest changed first (the scholar's cabinet).
+         * @description open=true keeps the open remarks, open=false the closed ones; page from 1, pageSize 1 to 100 (20 by default). A trashed article's remarks are left out.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    open?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScholarRemarkHistoryPageDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/article-remarks/{id}/messages": {
         parameters: {
             query?: never;
@@ -1759,13 +1811,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Published articles a scholar may review, the latest edited first, with the caller's latest review of each.
-         * @description q filters by title (case-insensitive). page from 1, pageSize 1 to 100 (20 by default).
+         * The scholar's queue: published articles needing a re-review, then those not reviewed by the caller (matching their specialization and madhab first), then the reviewed ones.
+         * @description q filters by title (case-insensitive); queue=true leaves out the articles the caller reviewed and whose mark is current. page from 1, pageSize 1 to 100 (20 by default).
          */
         get: {
             parameters: {
                 query?: {
                     q?: string;
+                    queue?: boolean;
                     page?: number;
                     pageSize?: number;
                 };
@@ -1782,6 +1835,57 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ArticleReviewArticlePageDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/article-reviews/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's reviews across articles, the latest given first, with whether each is still current (the scholar's cabinet).
+         * @description page from 1, pageSize 1 to 100 (20 by default). A trashed article's reviews are left out; isAvailable is false for an unpublished article.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScholarReviewHistoryPageDto"];
                     };
                 };
                 /** @description Unauthorized */
@@ -6348,6 +6452,8 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             myLatestReview?: components["schemas"]["ArticleReviewMarkDto"];
+            matchesSpecialization: boolean;
+            matchesMazhab: boolean;
         };
         ArticleReviewArticlePageDto: {
             items: components["schemas"]["ArticleReviewArticleDto"][];
@@ -6359,6 +6465,8 @@ export interface components {
             pageSize: number;
             /** Format: int32 */
             needsReReviewTotal: number;
+            mazhab?: string | null;
+            specializationKeywords: string[];
         };
         ArticleReviewContextDto: {
             /** Format: int32 */
@@ -7018,6 +7126,64 @@ export interface components {
             contentType: string;
             /** Format: int64 */
             sizeBytes: number;
+        };
+        ScholarRemarkHistoryItemDto: {
+            /** Format: int32 */
+            remarkId: number;
+            /** Format: int32 */
+            articleId: number;
+            articleTitle: string;
+            isAvailable: boolean;
+            /** Format: int32 */
+            revisionNumber: number;
+            onOpinion: boolean;
+            excerpt: string;
+            status: components["schemas"]["ArticleRemarkStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int32 */
+            messageCount: number;
+        };
+        ScholarRemarkHistoryPageDto: {
+            items: components["schemas"]["ScholarRemarkHistoryItemDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            openTotal: number;
+        };
+        ScholarReviewHistoryItemDto: {
+            /** Format: int32 */
+            reviewId: number;
+            /** Format: int32 */
+            articleId: number;
+            title: string;
+            isAvailable: boolean;
+            /** Format: int32 */
+            revisionNumber: number;
+            /** Format: int32 */
+            latestRevisionNumber: number;
+            verdict: components["schemas"]["ArticleReviewVerdict"];
+            comment?: string | null;
+            mazhab?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            isLatestRevision: boolean;
+            isCurrent: boolean;
+        };
+        ScholarReviewHistoryPageDto: {
+            items: components["schemas"]["ScholarReviewHistoryItemDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
         };
         SchoolCreateDto: {
             slug?: string | null;

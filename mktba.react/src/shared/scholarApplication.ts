@@ -19,6 +19,9 @@ export const SCHOLAR_MAZHABS = ['hanafi', 'maliki', 'shafii', 'hanbali'] as cons
 
 export type ScholarMazhab = (typeof SCHOLAR_MAZHABS)[number];
 
+export const isScholarMazhab = (value: string | null | undefined): value is ScholarMazhab =>
+  (SCHOLAR_MAZHABS as readonly string[]).includes(value ?? '');
+
 export type ScholarApplicationDraft = {
   degree: string;
   institution: string;

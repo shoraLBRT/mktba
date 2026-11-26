@@ -171,11 +171,11 @@ public sealed class ArticleReviewTests : IDisposable
 
         (await open.Should().ThrowAsync<NotFoundException>()).Which.Error.Code.Should().Be("article_not_found");
         (await review.Should().ThrowAsync<NotFoundException>()).Which.Error.Code.Should().Be("article_not_found");
-        (await Service().ListAsync(scholarId, null, 1, 20, default)).Items.Should().BeEmpty();
+        (await Service().ListAsync(scholarId, null, false, 1, 20, default)).Items.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GivenPublishedArticles_WhenListed_ThenTheLatestEditedComeFirstWithTheCallersLatestReview()
+    public async Task GivenPublishedArticles_WhenListed_ThenTheUnreviewedComeBeforeTheReviewedWithTheCallersLatestReview()
     {
         var scholarId = await ScholarAsync(mazhab: null);
         var otherId = await ScholarAsync(mazhab: null);
@@ -187,15 +187,95 @@ public sealed class ArticleReviewTests : IDisposable
         await Service().ReviewAsync(newer, scholarId, new ArticleReviewCreateDto(2, ArticleReviewVerdict.HasErrors, "Ошибка."), default);
         await Service().ReviewAsync(older, otherId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
 
-        var page = await Service().ListAsync(scholarId, null, 1, 20, default);
+        var page = await Service().ListAsync(scholarId, null, false, 1, 20, default);
 
         (page.Total, page.NeedsReReviewTotal).Should().Be((2, 0));
-        page.Items.Select(item => (item.ArticleId, item.LatestRevisionNumber)).Should().Equal((newer, 2), (older, 1));
-        page.Items[0].MyLatestReview.Should().Be(new ArticleReviewMarkDto(2, ArticleReviewVerdict.HasErrors, Now.AddMinutes(2), true));
-        page.Items[1].MyLatestReview.Should().BeNull();
-        (await Service().ListAsync(scholarId, "ПУТНИКА", 1, 20, default)).Items.Select(item => item.ArticleId).Should().Equal(newer);
-        var clamped = await Service().ListAsync(scholarId, null, 0, 1000, default);
+        page.Items.Select(item => (item.ArticleId, item.LatestRevisionNumber)).Should().Equal((older, 1), (newer, 2));
+        page.Items[0].MyLatestReview.Should().BeNull();
+        page.Items[1].MyLatestReview.Should().Be(new ArticleReviewMarkDto(2, ArticleReviewVerdict.HasErrors, Now.AddMinutes(2), true));
+        (await Service().ListAsync(scholarId, "ПУТНИКА", false, 1, 20, default)).Items.Select(item => item.ArticleId).Should().Equal(newer);
+        var queue = await Service().ListAsync(scholarId, null, true, 1, 20, default);
+        (queue.Total, queue.Items.Single().ArticleId).Should().Be((1, older));
+        var clamped = await Service().ListAsync(scholarId, null, false, 0, 1000, default);
         (clamped.Page, clamped.PageSize).Should().Be((1, ArticleReviewService.MaxPageSize));
+        var second = await Service().ListAsync(scholarId, null, false, 2, 1, default);
+        (second.Total, second.Items.Single().ArticleId).Should().Be((2, newer));
+    }
+
+    [Fact]
+    public async Task GivenAScholarsSpecializationAndMadhab_WhenTheQueueIsListed_ThenMatchingUnreviewedArticlesComeFirst()
+    {
+        var hanafi = await SchoolAsync("hanafi");
+        var scholarId = await ScholarAsync(mazhab: "hanafi", specialization: "Исламские науки, хадисоведение");
+        var section = await ArticleAsync("Хадисоведение: сборники", revisions: 1);
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var underSection = await ArticleAsync("Сахих аль-Бухари", revisions: 1);
+        (await _db.Articles.SingleAsync(article => article.Id == underSection)).ParentArticleId = section;
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var byTag = await ArticleAsync("Пост", revisions: 1);
+        await TagAsync(byTag, "Хадисы");
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var both = await ArticleAsync("Намаз", revisions: 1);
+        await TagAsync(both, "Хадисы");
+        await OpinionAsync(both, hanafi);
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var byMazhab = await ArticleAsync("Закят", revisions: 1);
+        await OpinionAsync(byMazhab, hanafi);
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var plain = await ArticleAsync("Хадж", revisions: 1);
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var reviewed = await ArticleAsync("Хадисы о намазе", revisions: 1);
+        await Service().ReviewAsync(reviewed, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+
+        var page = await Service().ListAsync(scholarId, null, false, 1, 20, default);
+
+        page.Mazhab.Should().Be("hanafi");
+        page.SpecializationKeywords.Should().Equal("хадисоведение");
+        page.Items.Select(item => (item.ArticleId, item.MatchesSpecialization, item.MatchesMazhab)).Should().Equal(
+            (both, true, true),
+            (byTag, true, false),
+            (underSection, true, false),
+            (section, true, false),
+            (byMazhab, false, true),
+            (plain, false, false),
+            (reviewed, true, false));
+        (await Service().ListAsync(scholarId, null, true, 1, 20, default)).Items.Select(item => item.ArticleId)
+            .Should().NotContain(reviewed).And.HaveCount(6);
+    }
+
+    [Fact]
+    public async Task GivenReviewsOnSeveralArticles_WhenTheScholarOpensTheirHistory_ThenEveryVerdictIsListedLatestFirstWithWhetherItIsCurrent()
+    {
+        var scholarId = await ScholarAsync(mazhab: null);
+        var otherId = await ScholarAsync(mazhab: null);
+        var edited = await ArticleAsync("Пост", revisions: 1);
+        var archived = await ArticleAsync("Закят", revisions: 1);
+        var trashed = await ArticleAsync("Хадж", revisions: 1);
+        await Service().ReviewAsync(edited, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await Service().ReviewAsync(trashed, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await Service().ReviewAsync(edited, otherId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await AddRevisionAsync(edited, 2);
+        _clock.Advance(TimeSpan.FromHours(1));
+        await Service().ReviewAsync(archived, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.HasErrors, "Ошибка."), default);
+        (await _db.Articles.SingleAsync(article => article.Id == archived)).Status = ArticleStatus.Archived;
+        (await _db.Articles.SingleAsync(article => article.Id == trashed)).DeletedAt = Now;
+        await _db.SaveChangesAsync();
+
+        var history = await Service().ListHistoryAsync(scholarId, 1, 20, default);
+
+        history.Total.Should().Be(2);
+        history.Items.Select(item => (item.ArticleId, item.Title, item.IsAvailable, item.RevisionNumber, item.LatestRevisionNumber, item.Verdict, item.IsLatestRevision, item.IsCurrent))
+            .Should().Equal(
+                (archived, "Закят", false, 1, 1, ArticleReviewVerdict.HasErrors, true, true),
+                (edited, "Пост", true, 1, 2, ArticleReviewVerdict.Confirmed, false, false));
+        (history.Items[0].Comment, history.Items[0].UpdatedAt).Should().Be(("Ошибка.", Now.AddHours(1)));
+
+        _clock.Advance(TimeSpan.FromHours(1));
+        await Service().ReviewAsync(edited, scholarId, new ArticleReviewCreateDto(2, ArticleReviewVerdict.Confirmed, null), default);
+
+        var after = await Service().ListHistoryAsync(scholarId, 1, 2, default);
+        (after.Total, after.PageSize).Should().Be((3, 2));
+        after.Items.Select(item => (item.ArticleId, item.RevisionNumber, item.IsCurrent)).Should().Equal((edited, 2, true), (archived, 1, true));
     }
 
     [Fact]
@@ -265,7 +345,7 @@ public sealed class ArticleReviewTests : IDisposable
 
         var mark = (await Service().GetVerificationAsync(articleId, default)).Marks.Single();
         var mine = (await Service().GetAsync(articleId, scholarId, default)).MyReviews.Single();
-        var page = await Service().ListAsync(scholarId, null, 1, 20, default);
+        var page = await Service().ListAsync(scholarId, null, false, 1, 20, default);
 
         (mark.RevisionNumber, mark.IsLatestRevision, mark.IsCurrent).Should().Be((1, false, true));
         (mine.IsLatestRevision, mine.IsCurrent).Should().Be((false, true));
@@ -289,19 +369,19 @@ public sealed class ArticleReviewTests : IDisposable
         var fresh = await ArticleAsync("Намаз", revisions: 1);
         await AddRevisionAsync(edited, 2);
 
-        var page = await Service().ListAsync(scholarId, null, 1, 20, default);
+        var page = await Service().ListAsync(scholarId, null, false, 1, 20, default);
 
         page.NeedsReReviewTotal.Should().Be(1);
         page.Items.Select(item => (item.ArticleId, item.MyLatestReview?.IsCurrent))
             .Should().Equal((edited, false), (fresh, (bool?)null), (untouched, true));
         (await Service().ListNeedingReReviewAsync(scholarId, default)).Should().Equal(edited);
-        (await Service().ListAsync(scholarId, "намаз", 1, 20, default)).NeedsReReviewTotal.Should().Be(1);
+        (await Service().ListAsync(scholarId, "намаз", false, 1, 20, default)).NeedsReReviewTotal.Should().Be(1);
         var mark = (await Service().GetVerificationAsync(edited, default)).Marks.Single();
         (mark.IsLatestRevision, mark.IsCurrent).Should().Be((false, false));
 
         await Service().ReviewAsync(edited, scholarId, new ArticleReviewCreateDto(2, ArticleReviewVerdict.Confirmed, null), default);
 
-        (await Service().ListAsync(scholarId, null, 1, 20, default)).NeedsReReviewTotal.Should().Be(0);
+        (await Service().ListAsync(scholarId, null, false, 1, 20, default)).NeedsReReviewTotal.Should().Be(0);
     }
 
     [Fact]
@@ -362,7 +442,7 @@ public sealed class ArticleReviewTests : IDisposable
         return user.Id;
     }
 
-    private async Task<int> ScholarAsync(string? mazhab)
+    private async Task<int> ScholarAsync(string? mazhab, string specialization = "Фикх")
     {
         var userId = await UserAsync(UserRole.Scholar);
         _db.ScholarApplications.Add(new ScholarApplication
@@ -370,7 +450,7 @@ public sealed class ArticleReviewTests : IDisposable
             UserId = userId,
             Degree = "Доктор наук",
             Institution = "Университет",
-            Specialization = "Фикх",
+            Specialization = specialization,
             Mazhab = mazhab,
             Status = ScholarApplicationStatus.Approved,
             SubmittedAt = Now,
@@ -401,6 +481,25 @@ public sealed class ArticleReviewTests : IDisposable
         _db.Schools.Add(school);
         await _db.SaveChangesAsync();
         return school.Id;
+    }
+
+    private async Task TagAsync(int articleId, string name)
+    {
+        var tag = new Tag { Name = name, NormalizedName = $"{name.ToLowerInvariant()}-{Guid.NewGuid():N}", Slug = $"t-{Guid.NewGuid():N}" };
+        _db.Tags.Add(tag);
+        await _db.SaveChangesAsync();
+        _db.Add(new ArticleTag { ArticleId = articleId, TagId = tag.Id });
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>A working-copy paragraph with one opinion linked to the school.</summary>
+    private async Task OpinionAsync(int articleId, int schoolId)
+    {
+        var opinion = new Opinion { Content = "<p>Мнение</p>", IsDefault = true };
+        _db.Paragraphs.Add(new Paragraph { ArticleId = articleId, Order = 1, Opinions = [opinion] });
+        await _db.SaveChangesAsync();
+        opinion.OpinionSchools.Add(new OpinionSchool { SchoolId = schoolId });
+        await _db.SaveChangesAsync();
     }
 
     private static ArticleSnapshotDto Snapshot(string text, List<string>? tags = null, string? summary = null) => new(

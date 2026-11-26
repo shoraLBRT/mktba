@@ -88,3 +88,30 @@ public sealed record ArticleRemarkCloseDto(ArticleRemarkStatus Outcome, string? 
 
 /// <summary>Reopening a closed remark, with an optional message saying why.</summary>
 public sealed record ArticleRemarkReopenDto(string? Message);
+
+/// <summary>One of a scholar's remarks, for their history across articles (V-07, #123).</summary>
+/// <param name="ArticleTitle">The article's title now.</param>
+/// <param name="IsAvailable">True while the article is published, so its review page (with the thread) opens.</param>
+/// <param name="RevisionNumber">The revision the remark was made on.</param>
+/// <param name="Excerpt">The block's text in that revision, as plain text.</param>
+/// <param name="MessageCount">How many messages the thread has, the remark's first one included.</param>
+public sealed record ScholarRemarkHistoryItemDto(
+    int RemarkId,
+    int ArticleId,
+    string ArticleTitle,
+    bool IsAvailable,
+    int RevisionNumber,
+    bool OnOpinion,
+    string Excerpt,
+    ArticleRemarkStatus Status,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    int MessageCount);
+
+/// <summary>
+/// A page of a scholar's remarks across articles (V-07, #123), the latest changed first; a trashed
+/// article's remarks are not in it (only the editors see them).
+/// </summary>
+/// <param name="OpenTotal">How many of the scholar's remarks are open, whatever the filter.</param>
+public sealed record ScholarRemarkHistoryPageDto(
+    IReadOnlyList<ScholarRemarkHistoryItemDto> Items, int Total, int Page, int PageSize, int OpenTotal);

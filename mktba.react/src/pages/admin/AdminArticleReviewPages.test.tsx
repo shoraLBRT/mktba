@@ -3,8 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { LocalizationProvider } from '../../localization/provider';
-import { getArticleReviewContext, getArticlesForReview, submitArticleReview } from '../../services/articleReviewService';
-import { createArticleRemark, getArticleRemarks } from '../../services/articleRemarkService';
+import { getArticleReviewContext, getArticlesForReview, getMyReviewHistory, submitArticleReview } from '../../services/articleReviewService';
+import { createArticleRemark, getArticleRemarks, getMyRemarks } from '../../services/articleRemarkService';
 import { getSchoolsByArticleId, getSystemSchools } from '../../services/schoolService';
 import type { ArticleRemarkDto, ArticleReviewContextDto } from '../../shared/types/ApiTypes';
 import AdminArticleReviewPage from './AdminArticleReviewPage';
@@ -14,6 +14,7 @@ vi.mock('../../services/articleReviewService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/articleReviewService')>()),
   getArticlesForReview: vi.fn(),
   getArticleReviewContext: vi.fn(),
+  getMyReviewHistory: vi.fn(),
   submitArticleReview: vi.fn(),
 }));
 
@@ -22,6 +23,7 @@ vi.mock('../../services/schoolService', () => ({ getSystemSchools: vi.fn(), getS
 vi.mock('../../services/articleRemarkService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/articleRemarkService')>()),
   getArticleRemarks: vi.fn(),
+  getMyRemarks: vi.fn(),
   createArticleRemark: vi.fn(),
 }));
 
@@ -109,6 +111,8 @@ afterEach(() => {
   cleanup();
   vi.mocked(getArticlesForReview).mockReset();
   vi.mocked(getArticleReviewContext).mockReset();
+  vi.mocked(getMyReviewHistory).mockReset();
+  vi.mocked(getMyRemarks).mockReset();
   vi.mocked(submitArticleReview).mockReset();
   vi.mocked(createArticleRemark).mockReset();
 });
@@ -118,15 +122,20 @@ describe('AdminArticleReviewsPage', () => {
     vi.mocked(getArticlesForReview).mockResolvedValue({
       items: [
         { articleId: 12, title: 'Намаз путника', slug: 'namaz-putnika', locale: 'ru', latestRevisionNumber: 3, updatedAt: '2026-11-26T10:00:00Z',
-          myLatestReview: { revisionNumber: 2, verdict: 'HasErrors', updatedAt: '2026-11-25T10:00:00Z', isCurrent: false } },
+          myLatestReview: { revisionNumber: 2, verdict: 'HasErrors', updatedAt: '2026-11-25T10:00:00Z', isCurrent: false },
+          matchesSpecialization: false, matchesMazhab: false },
         { articleId: 14, title: 'Пост', slug: 'post', locale: 'ru', latestRevisionNumber: 4, updatedAt: '2026-11-25T10:00:00Z',
-          myLatestReview: { revisionNumber: 3, verdict: 'Confirmed', updatedAt: '2026-11-25T09:00:00Z', isCurrent: true } },
-        { articleId: 13, title: 'Закят', slug: 'zakyat', locale: 'ru', latestRevisionNumber: 1, updatedAt: '2026-11-24T10:00:00Z' },
+          myLatestReview: { revisionNumber: 3, verdict: 'Confirmed', updatedAt: '2026-11-25T09:00:00Z', isCurrent: true },
+          matchesSpecialization: false, matchesMazhab: false },
+        { articleId: 13, title: 'Закят', slug: 'zakyat', locale: 'ru', latestRevisionNumber: 1, updatedAt: '2026-11-24T10:00:00Z',
+          matchesSpecialization: false, matchesMazhab: false },
       ],
       total: 3,
       page: 1,
       pageSize: 20,
       needsReReviewTotal: 1,
+      mazhab: null,
+      specializationKeywords: [],
     });
 
     renderAt('/admin/article-reviews');
@@ -140,7 +149,83 @@ describe('AdminArticleReviewsPage', () => {
     expect(within(screen.getByTestId('article-review-row-13')).getByText('Нет')).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText('Поиск по названию'), { target: { value: 'закят' } });
-    await waitFor(() => expect(getArticlesForReview).toHaveBeenLastCalledWith({ query: 'закят', page: 1, pageSize: 20 }));
+    await waitFor(() => expect(getArticlesForReview).toHaveBeenLastCalledWith({ query: 'закят', queueOnly: true, page: 1, pageSize: 20 }));
+    expect(screen.getByTestId('article-review-match-basis').textContent).toContain('В специализации из заявки нет слов');
+  });
+
+  it('given the queue, when it opens, then it says what it matches by, marks the matching articles, and «Все статьи» asks for every article', async () => {
+    vi.mocked(getArticlesForReview).mockResolvedValue({
+      items: [
+        { articleId: 13, title: 'Закят', slug: 'zakyat', locale: 'ru', latestRevisionNumber: 1, updatedAt: '2026-11-24T10:00:00Z',
+          matchesSpecialization: true, matchesMazhab: true },
+      ],
+      total: 1, page: 1, pageSize: 20, needsReReviewTotal: 0, mazhab: 'hanafi', specializationKeywords: ['фикх', 'хадисоведение'],
+    });
+
+    renderAt('/admin/article-reviews');
+
+    const basis = await screen.findByTestId('article-review-match-basis');
+    expect(basis.textContent).toContain('Подбор по специализации из заявки: фикх, хадисоведение.');
+    expect(basis.textContent).toContain('Выше идут статьи с мнениями мазхаба «Ханафитский».');
+    const row = screen.getByTestId('article-review-row-13');
+    expect(within(row).getByText('по специализации')).toBeTruthy();
+    expect(within(row).getByText('мнение вашего мазхаба')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Очередь' }).getAttribute('aria-current')).toBe('page');
+    expect(getArticlesForReview).toHaveBeenLastCalledWith({ query: '', queueOnly: true, page: 1, pageSize: 20 });
+
+    fireEvent.click(screen.getByRole('link', { name: 'Все статьи' }));
+
+    await waitFor(() => expect(getArticlesForReview).toHaveBeenLastCalledWith({ query: '', queueOnly: false, page: 1, pageSize: 20 }));
+    expect(screen.getByRole('link', { name: 'Все статьи' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it("given the scholar's reviews, when «Мои отметки» opens, then each shows its revision, verdict and whether it is current", async () => {
+    vi.mocked(getMyReviewHistory).mockResolvedValue({
+      items: [
+        { reviewId: 5, articleId: 12, title: 'Намаз путника', isAvailable: true, revisionNumber: 2, latestRevisionNumber: 3, verdict: 'Confirmed',
+          comment: null, mazhab: null, updatedAt: '2026-11-25T10:00:00Z', isLatestRevision: false, isCurrent: false },
+        { reviewId: 4, articleId: 14, title: 'Пост', isAvailable: false, revisionNumber: 1, latestRevisionNumber: 1, verdict: 'HasErrors',
+          comment: 'Ошибка', mazhab: null, updatedAt: '2026-11-24T10:00:00Z', isLatestRevision: true, isCurrent: true },
+      ],
+      total: 2, page: 1, pageSize: 20,
+    });
+
+    renderAt('/admin/article-reviews?tab=reviews');
+
+    const stale = await screen.findByTestId('my-review-row-5');
+    expect(within(stale).getByRole('link', { name: 'Ревью статьи «Намаз путника»' }).getAttribute('href')).toBe('/admin/article-reviews/12');
+    expect(within(stale).getByText('2 из 3')).toBeTruthy();
+    expect(within(stale).getByText('Подтверждаю')).toBeTruthy();
+    expect(within(stale).getByText(/^для предыдущей версии/)).toBeTruthy();
+    const archived = screen.getByTestId('my-review-row-4');
+    expect(within(archived).queryByRole('link')).toBeNull();
+    expect(within(archived).getByText('статья сейчас не опубликована')).toBeTruthy();
+    expect(within(archived).getByText('текущая версия')).toBeTruthy();
+    expect(getArticlesForReview).not.toHaveBeenCalled();
+  });
+
+  it("given the scholar's remarks, when «Мои замечания» opens, then the open ones are shown and the filter asks for the closed ones", async () => {
+    vi.mocked(getMyRemarks).mockResolvedValue({
+      items: [
+        { remarkId: 7, articleId: 12, articleTitle: 'Намаз путника', isAvailable: true, revisionNumber: 3, onOpinion: true,
+          excerpt: 'Мнение по умолчанию', status: 'Open', createdAt: '2026-11-26T11:00:00Z', updatedAt: '2026-11-26T11:00:00Z', messageCount: 2 },
+      ],
+      total: 1, page: 1, pageSize: 20, openTotal: 1,
+    });
+
+    renderAt('/admin/article-reviews?tab=remarks');
+
+    const row = await screen.findByTestId('my-remark-row-7');
+    expect(within(row).getByText('Ревизия 3, одно мнение: «Мнение по умолчанию»')).toBeTruthy();
+    expect(within(row).getByText('Открыто')).toBeTruthy();
+    expect(within(row).getByRole('link', { name: 'Ревью статьи «Намаз путника»' })).toBeTruthy();
+    expect(screen.getByTestId('my-remarks-open-count').textContent).toBe('Открытых замечаний: 1');
+    expect(getMyRemarks).toHaveBeenLastCalledWith(true, 1, 20);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Закрытые' }));
+
+    await waitFor(() => expect(getMyRemarks).toHaveBeenLastCalledWith(false, 1, 20));
+    expect(screen.getByRole('button', { name: 'Закрытые' }).getAttribute('aria-pressed')).toBe('true');
   });
 });
 

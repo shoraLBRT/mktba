@@ -42,6 +42,16 @@ public static class ArticleRemarkEndpoints
 
         var remarks = builder.MapGroup("/article-remarks").WithTags("ArticleRemarks");
 
+        remarks.MapGet("/mine", async (bool? open, int? page, int? pageSize, ClaimsPrincipal principal, ArticleRemarkService service, CancellationToken cancellationToken) =>
+                principal.GetUserId() is int userId
+                    ? Results.Ok(await service.ListMineAsync(userId, open, page ?? 1, pageSize ?? ArticleRemarkService.DefaultPageSize, cancellationToken))
+                    : ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized))
+            .RequireAuthorization(Policies.CanVerify)
+            .WithSummary("The caller's own remarks across articles, the latest changed first (the scholar's cabinet).")
+            .WithDescription("open=true keeps the open remarks, open=false the closed ones; page from 1, pageSize 1 to 100 (20 by default). A trashed article's remarks are left out.")
+            .Produces<ScholarRemarkHistoryPageDto>()
+            .ProducesApiProblem(StatusCodes.Status401Unauthorized);
+
         remarks.MapPost("/{id:int}/messages", async (int id, ArticleRemarkReplyDto dto, ClaimsPrincipal principal, ArticleRemarkService service, CancellationToken cancellationToken) =>
                 principal.GetUserId() is int userId
                     ? Results.Ok(await service.ReplyAsync(id, userId, dto, cancellationToken))

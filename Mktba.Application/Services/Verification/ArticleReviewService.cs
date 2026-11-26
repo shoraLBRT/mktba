@@ -30,7 +30,7 @@ namespace Mktba.Application.Services.Verification;
 /// per article; staleness after a substantial edit (V-05, #121) compares the fingerprints of the
 /// review's revision and the latest one for the review's scope (<see cref="ReviewFingerprints"/>); remarks on a block (V-06, #122)
 /// are <see cref="ArticleRemarkService"/>, made from this page on the same revision; the scholar's cabinet (V-07, #123)
-/// replaces <see cref="ListAsync"/>; notifications are V-09 (#125), which can tell a scholar of the
+/// is <see cref="ListAsync"/> (the queue) and <see cref="ListHistoryAsync"/>; notifications are V-09 (#125), which can tell a scholar of the
 /// articles <see cref="ListNeedingReReviewAsync"/> returns (the re-review request of D5).
 /// </para>
 /// </remarks>
@@ -54,16 +54,26 @@ public sealed class ArticleReviewService
     }
 
     /// <summary>
-    /// One page of the published articles that have a revision, with the caller's latest review of
-    /// each: first the articles whose review a substantial edit made stale (the re-review request,
-    /// V-05 #121), then the rest, the latest edited first; <paramref name="query"/> filters by title
+    /// The scholar's queue (V-07, #123): one page of the published articles that have a revision,
+    /// with the caller's latest review of each — first the articles whose review a substantial edit
+    /// made stale (the re-review request, V-05 #121); then those the caller has not reviewed, matching
+    /// their specialization and madhab first (<see cref="SpecializationMatcher"/>; an opinion of the
+    /// madhab of their approved application); then, unless <paramref name="queueOnly"/>, those they
+    /// reviewed; the latest edited first within each group. <paramref name="query"/> filters by title
     /// (case-insensitive). The count of the stale ones is over all articles, not only the filtered.
     /// </summary>
+    /// <remarks>
+    /// The order is computed in memory over the published articles (a wiki holds thousands, not
+    /// millions), since the specialization match is C#; the page is cut after it.
+    /// </remarks>
     public async Task<ArticleReviewArticlePageDto> ListAsync(
-        int userId, string? query, int page, int pageSize, CancellationToken cancellationToken)
+        int userId, string? query, bool queueOnly, int page, int pageSize, CancellationToken cancellationToken)
     {
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var scholar = await ScholarAsync(userId, cancellationToken);
+        var keywords = SpecializationMatcher.Keywords(scholar.Specialization);
+        var mazhab = scholar.Mazhab;
         var articles = Reviewable().Where(article => article.Revisions.Any());
         var text = query?.Trim().ToLowerInvariant();
         if (!string.IsNullOrEmpty(text))
@@ -71,31 +81,130 @@ public sealed class ArticleReviewService
             articles = articles.Where(article => article.Title.ToLower().Contains(text));
         }
 
-        var stale = await ListNeedingReReviewAsync(userId, cancellationToken);
-        var total = await articles.CountAsync(cancellationToken);
         var rows = await articles
-            .OrderByDescending(article => stale.Contains(article.Id))
-            .ThenByDescending(article => article.UpdatedAt).ThenByDescending(article => article.Id)
-            .Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(article => new ArticleReviewArticleDto(
+            .Select(article => new
+            {
                 article.Id,
                 article.Title,
                 article.Slug,
                 article.Locale,
-                article.Revisions.Max(revision => revision.Number),
+                article.ParentArticleId,
                 article.UpdatedAt,
-                _db.ArticleReviews
-                    .Where(review => review.ArticleId == article.Id && review.ScholarId == userId)
-                    .OrderByDescending(review => review.Revision.Number)
-                    .Select(review => new ArticleReviewMarkDto(review.Revision.Number, review.Verdict, review.UpdatedAt, true))
-                    .FirstOrDefault()))
+                LatestRevisionNumber = article.Revisions.Max(revision => revision.Number),
+                Tags = article.TagLinks.Select(link => link.Tag.Name).ToList(),
+                MatchesMazhab = mazhab != null && article.Paragraphs.Any(paragraph => paragraph.Opinions.Any(opinion =>
+                    opinion.OpinionSchools.Any(link => link.School.IsSystem && link.School.Slug == mazhab))),
+            })
             .ToListAsync(cancellationToken);
-        var items = rows
-            .Select(item => item.MyLatestReview is { } mark && stale.Contains(item.ArticleId)
-                ? item with { MyLatestReview = mark with { IsCurrent = false } }
-                : item)
+        var sections = keywords.Count == 0
+            ? []
+            : await Reviewable()
+                .Select(article => new { article.Id, article.ParentArticleId, article.Title })
+                .ToDictionaryAsync(article => article.Id, article => (article.ParentArticleId, article.Title), cancellationToken);
+        var reviews = await _db.ArticleReviews.AsNoTracking()
+            .Where(review => review.ScholarId == userId)
+            .Select(review => new { review.ArticleId, review.Revision.Number, review.Verdict, review.UpdatedAt })
+            .ToListAsync(cancellationToken);
+        var latestReviews = reviews
+            .GroupBy(review => review.ArticleId)
+            .ToDictionary(group => group.Key, group => group.MaxBy(review => review.Number)!);
+        var stale = (await ListNeedingReReviewAsync(userId, cancellationToken)).ToHashSet();
+
+        var ordered = rows
+            .Select(row =>
+            {
+                var mark = latestReviews.TryGetValue(row.Id, out var review)
+                    ? new ArticleReviewMarkDto(review.Number, review.Verdict, review.UpdatedAt, !stale.Contains(row.Id))
+                    : null;
+                var matchesSpecialization = SpecializationMatcher.Matches(
+                    keywords, row.Tags.Prepend(row.Title).Concat(Ancestors(sections, row.ParentArticleId)));
+                var item = new ArticleReviewArticleDto(
+                    row.Id, row.Title, row.Slug, row.Locale, row.LatestRevisionNumber, row.UpdatedAt,
+                    mark, matchesSpecialization, row.MatchesMazhab);
+                var group = mark is null ? 1 : mark.IsCurrent ? 2 : 0;
+                var match = group == 1 ? (matchesSpecialization ? 2 : 0) + (row.MatchesMazhab ? 1 : 0) : 0;
+                return (Item: item, Group: group, Match: match);
+            })
+            .Where(entry => !queueOnly || entry.Group < 2)
+            .OrderBy(entry => entry.Group).ThenByDescending(entry => entry.Match)
+            .ThenByDescending(entry => entry.Item.UpdatedAt).ThenByDescending(entry => entry.Item.ArticleId)
+            .Select(entry => entry.Item)
             .ToList();
-        return new ArticleReviewArticlePageDto(items, total, page, pageSize, stale.Count);
+        var items = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return new ArticleReviewArticlePageDto(items, ordered.Count, page, pageSize, stale.Count, mazhab, keywords);
+    }
+
+    /// <summary>The titles of the published sections above an article, nearest first (a cycle stops the walk).</summary>
+    private static IEnumerable<string> Ancestors(Dictionary<int, (int? ParentId, string Title)> sections, int? parentId)
+    {
+        var seen = new HashSet<int>();
+        while (parentId is int id && seen.Add(id) && sections.TryGetValue(id, out var section))
+        {
+            yield return section.Title;
+            parentId = section.ParentId;
+        }
+    }
+
+    /// <summary>
+    /// The caller's reviews across articles, for their cabinet (V-07, #123): every verdict they gave
+    /// (one per revision), the latest given first, with whether it is still current. A trashed
+    /// article's reviews are left out; an unpublished article's are kept, without a review page.
+    /// </summary>
+    public async Task<ScholarReviewHistoryPageDto> ListHistoryAsync(
+        int userId, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var mine = _db.ArticleReviews.AsNoTracking()
+            .Where(review => review.ScholarId == userId && review.Article.DeletedAt == null);
+        var total = await mine.CountAsync(cancellationToken);
+        var rows = await mine
+            .OrderByDescending(review => review.UpdatedAt).ThenByDescending(review => review.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(review => new
+            {
+                review.Id,
+                review.ArticleId,
+                review.Article.Title,
+                Published = review.Article.Status == ArticleStatus.Published,
+                review.RevisionId,
+                review.Revision.Number,
+                review.Verdict,
+                review.Comment,
+                review.Mazhab,
+                review.UpdatedAt,
+            })
+            .ToListAsync(cancellationToken);
+        var articleIds = rows.Select(row => row.ArticleId).Distinct().ToList();
+        var revisions = await _db.ArticleRevisions.AsNoTracking()
+            .Where(revision => articleIds.Contains(revision.ArticleId))
+            .Select(revision => new { revision.ArticleId, revision.Id, revision.Number })
+            .ToListAsync(cancellationToken);
+        var latest = revisions
+            .GroupBy(revision => revision.ArticleId)
+            .ToDictionary(group => group.Key, group => group.MaxBy(revision => revision.Number)!);
+        var hashes = await HashesAsync(
+            rows.Select(row => row.RevisionId).Concat(latest.Values.Select(revision => revision.Id)), cancellationToken);
+        var items = rows
+            .Select(row =>
+            {
+                var newest = latest[row.ArticleId];
+                return new ScholarReviewHistoryItemDto(
+                    row.Id,
+                    row.ArticleId,
+                    row.Title,
+                    row.Published,
+                    row.Number,
+                    newest.Number,
+                    row.Verdict,
+                    row.Comment,
+                    row.Mazhab,
+                    row.UpdatedAt,
+                    row.Number == newest.Number,
+                    SameText(hashes, row.RevisionId, newest.Id, row.Mazhab));
+            })
+            .ToList();
+        return new ScholarReviewHistoryPageDto(items, total, page, pageSize);
     }
 
     /// <summary>
@@ -364,7 +473,7 @@ public sealed class ArticleReviewService
             && reviewed == current;
     }
 
-    private sealed record Scholar(bool Verified, string? Mazhab);
+    private sealed record Scholar(bool Verified, string? Mazhab, string? Specialization = null);
 
     /// <summary>
     /// Whether the user is a verified scholar, and the school of their approved application. The
@@ -383,9 +492,9 @@ public sealed class ArticleReviewService
         var approved = await _db.ScholarApplications.AsNoTracking()
             .Where(application => application.UserId == userId && application.Status == ScholarApplicationStatus.Approved)
             .OrderByDescending(application => application.ClosedAt).ThenByDescending(application => application.Id)
-            .Select(application => new { application.Mazhab })
+            .Select(application => new { application.Mazhab, application.Specialization })
             .FirstOrDefaultAsync(cancellationToken);
-        return approved is null ? new Scholar(false, null) : new Scholar(true, approved.Mazhab);
+        return approved is null ? new Scholar(false, null) : new Scholar(true, approved.Mazhab, approved.Specialization);
     }
 
     private async Task<ArticleReviewScopeDto> ScopeAsync(Scholar scholar, CancellationToken cancellationToken)
