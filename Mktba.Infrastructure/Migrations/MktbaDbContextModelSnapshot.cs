@@ -534,6 +534,53 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("ArticleCoAuthors");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AuthorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DeletedById")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("AuthorId", "CreatedAt");
+
+                    b.HasIndex("ArticleId", "ParentId", "CreatedAt");
+
+                    b.ToTable("ArticleComments");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleDraft", b =>
                 {
                     b.Property<int>("Id")
@@ -1907,6 +1954,38 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Article");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleComment", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.ArticleComment", "Parent")
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Author");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleDraft", b =>

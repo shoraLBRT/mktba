@@ -57,6 +57,7 @@ namespace Mktba.Application
             services.AddScoped<Mktba.Application.Services.Verification.ScholarApplicationReviewService>();
             services.AddScoped<Mktba.Application.Services.Verification.ArticleReviewService>();
             services.AddScoped<Mktba.Application.Services.Verification.ArticleRemarkService>();
+            services.AddScoped<Mktba.Application.Services.Comments.ArticleCommentService>();
             services.AddScoped<NotificationService>();
             services.AddScoped<NotificationEmailService>();
             services.AddScoped<ReaderAccountService>();

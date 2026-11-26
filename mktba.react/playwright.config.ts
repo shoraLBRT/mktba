@@ -52,6 +52,8 @@ export default defineConfig({
         Email__Smtp__Enabled: 'false',
         // Sign-up and reset requests (U-05, #126) come from 127.0.0.1 too.
         RateLimiting__AccountEmail__PermitLimit: '1000',
+        // Comments (C-01, #127) come from 127.0.0.1 too.
+        RateLimiting__Comments__PermitLimit: '1000',
       },
       // Never reuse an API that is already running: it may point at a database with real data.
       reuseExistingServer: false,

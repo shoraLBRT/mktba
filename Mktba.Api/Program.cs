@@ -42,6 +42,7 @@ builder.Services.Configure<FeedbackOptions>(builder.Configuration.GetSection(Fee
 builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection(IndexNowOptions.SectionName));
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
 builder.Services.Configure<ClientErrorOptions>(builder.Configuration.GetSection(ClientErrorOptions.SectionName));
+builder.Services.Configure<CommentOptions>(builder.Configuration.GetSection(CommentOptions.SectionName));
 builder.Services.AddFileStorage(
     builder.Configuration.GetSection(FileStorageOptions.SectionName).Get<FileStorageOptions>() ?? new FileStorageOptions(),
     builder.Environment.ContentRootPath);
@@ -192,6 +193,7 @@ app.MapScholarApplicationEndpoints();
 app.MapScholarApplicationReviewEndpoints();
 app.MapArticleReviewEndpoints();
 app.MapArticleRemarkEndpoints();
+app.MapArticleCommentEndpoints();
 app.MapNotificationEndpoints();
 app.MapClientErrorEndpoints();
 app.MapHealthEndpoints();
