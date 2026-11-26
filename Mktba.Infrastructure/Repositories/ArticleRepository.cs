@@ -529,6 +529,20 @@ namespace Mktba.Infrastructure.Repositories
                     article.ParentArticle != null && article.ParentArticle.DeletedAt != null))
                 .ToListAsync(cancellationToken);
 
+        /// <summary>
+        /// The canonical schools' slugs and ids, by id: the scopes a scholar's review can have, each
+        /// with a fingerprint per revision (V-05, #121).
+        /// </summary>
+        public async Task<List<(string Slug, int Id)>> GetReviewScopeSchoolsAsync(CancellationToken cancellationToken = default)
+            => (await _context.Schools
+                .AsNoTracking()
+                .Where(school => school.IsSystem)
+                .OrderBy(school => school.Id)
+                .Select(school => new { school.Slug, school.Id })
+                .ToListAsync(cancellationToken))
+                .Select(school => (school.Slug, school.Id))
+                .ToList();
+
         /// <summary>Stages a new revision; revisions are never updated or removed through this repository.</summary>
         public Task AddRevisionAsync(ArticleRevision revision, CancellationToken cancellationToken = default)
             => _context.ArticleRevisions.AddAsync(revision, cancellationToken).AsTask();

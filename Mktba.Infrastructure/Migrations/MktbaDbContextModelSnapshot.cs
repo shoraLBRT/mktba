@@ -632,6 +632,26 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("ArticleRevisions");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevisionFingerprint", b =>
+                {
+                    b.Property<int>("RevisionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Scope")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.HasKey("RevisionId", "Scope");
+
+                    b.ToTable("ArticleRevisionFingerprints");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleSlugRedirect", b =>
                 {
                     b.Property<int>("Id")
@@ -1642,6 +1662,17 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Author");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevisionFingerprint", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.ArticleRevision", "Revision")
+                        .WithMany("Fingerprints")
+                        .HasForeignKey("RevisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Revision");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleSlugRedirect", b =>
                 {
                     b.HasOne("Mktba.Domain.Entities.Article", "Article")
@@ -1892,6 +1923,11 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("SlugRedirects");
 
                     b.Navigation("TagLinks");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevision", b =>
+                {
+                    b.Navigation("Fingerprints");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>

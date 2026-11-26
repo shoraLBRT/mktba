@@ -189,9 +189,9 @@ public sealed class ArticleReviewTests : IDisposable
 
         var page = await Service().ListAsync(scholarId, null, 1, 20, default);
 
-        page.Total.Should().Be(2);
+        (page.Total, page.NeedsReReviewTotal).Should().Be((2, 0));
         page.Items.Select(item => (item.ArticleId, item.LatestRevisionNumber)).Should().Equal((newer, 2), (older, 1));
-        page.Items[0].MyLatestReview.Should().Be(new ArticleReviewMarkDto(2, ArticleReviewVerdict.HasErrors, Now.AddMinutes(2)));
+        page.Items[0].MyLatestReview.Should().Be(new ArticleReviewMarkDto(2, ArticleReviewVerdict.HasErrors, Now.AddMinutes(2), true));
         page.Items[1].MyLatestReview.Should().BeNull();
         (await Service().ListAsync(scholarId, "ПУТНИКА", 1, 20, default)).Items.Select(item => item.ArticleId).Should().Equal(newer);
         var clamped = await Service().ListAsync(scholarId, null, 0, 1000, default);
@@ -227,11 +227,11 @@ public sealed class ArticleReviewTests : IDisposable
         var verification = await Service().GetVerificationAsync(articleId, default);
 
         verification.LatestRevisionNumber.Should().Be(2);
-        verification.Marks.Select(mark => (mark.ScholarName, mark.ScholarSlug, mark.Verdict, mark.Mazhab, mark.RevisionNumber, mark.ReviewedAt, mark.IsLatestRevision))
+        verification.Marks.Select(mark => (mark.ScholarName, mark.ScholarSlug, mark.Verdict, mark.Mazhab, mark.RevisionNumber, mark.ReviewedAt, mark.IsLatestRevision, mark.IsCurrent))
             .Should().Equal(
-                ("Абдулла Ибрагимов", "abdulla", ArticleReviewVerdict.ConfirmedWithRemarks, (string?)null, 2, Now.AddHours(2), true),
-                ((string?)null, (string?)null, ArticleReviewVerdict.HasErrors, "hanafi", 2, Now.AddHours(1), true),
-                ("Юсуф Карими", (string?)null, ArticleReviewVerdict.Confirmed, (string?)null, 1, Now, false));
+                ("Абдулла Ибрагимов", "abdulla", ArticleReviewVerdict.ConfirmedWithRemarks, (string?)null, 2, Now.AddHours(2), true, true),
+                ((string?)null, (string?)null, ArticleReviewVerdict.HasErrors, "hanafi", 2, Now.AddHours(1), true, true),
+                ("Юсуф Карими", (string?)null, ArticleReviewVerdict.Confirmed, (string?)null, 1, Now, false, false));
     }
 
     [Theory]
@@ -252,6 +252,97 @@ public sealed class ArticleReviewTests : IDisposable
 
         (hidden.LatestRevisionNumber, hidden.Marks.Count).Should().Be(((int?)null, 0));
         (unknown.LatestRevisionNumber, unknown.Marks.Count).Should().Be(((int?)null, 0));
+    }
+
+    [Fact]
+    public async Task GivenAnEditOfTheTagsOnly_WhenReadersAndTheScholarLookAtTheMark_ThenItIsStillCurrentAndNoReReviewIsAsked()
+    {
+        var scholarId = await ScholarAsync(mazhab: null);
+        var articleId = await ArticleAsync("Хадж", revisions: 0);
+        await AddRevisionAsync(articleId, 1, Snapshot("Текст", tags: ["хадж"]));
+        await Service().ReviewAsync(articleId, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await AddRevisionAsync(articleId, 2, Snapshot("Текст", tags: ["хадж", "умра"], summary: "Кратко"));
+
+        var mark = (await Service().GetVerificationAsync(articleId, default)).Marks.Single();
+        var mine = (await Service().GetAsync(articleId, scholarId, default)).MyReviews.Single();
+        var page = await Service().ListAsync(scholarId, null, 1, 20, default);
+
+        (mark.RevisionNumber, mark.IsLatestRevision, mark.IsCurrent).Should().Be((1, false, true));
+        (mine.IsLatestRevision, mine.IsCurrent).Should().Be((false, true));
+        page.NeedsReReviewTotal.Should().Be(0);
+        page.Items.Single().MyLatestReview!.IsCurrent.Should().BeTrue();
+        // A current mark may still be given again on the latest revision: it becomes the scholar's latest.
+        var again = await Service().ReviewAsync(articleId, scholarId, new ArticleReviewCreateDto(2, ArticleReviewVerdict.Confirmed, null), default);
+        (again.RevisionNumber, again.IsCurrent).Should().Be((2, true));
+    }
+
+    [Fact]
+    public async Task GivenASubstantialEditAfterTheReview_WhenTheScholarListsArticles_ThenTheArticleComesFirstAsNeedingAReReview()
+    {
+        var scholarId = await ScholarAsync(mazhab: null);
+        var edited = await ArticleAsync("Пост", revisions: 1);
+        await Service().ReviewAsync(edited, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var untouched = await ArticleAsync("Закят", revisions: 1);
+        await Service().ReviewAsync(untouched, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var fresh = await ArticleAsync("Намаз", revisions: 1);
+        await AddRevisionAsync(edited, 2);
+
+        var page = await Service().ListAsync(scholarId, null, 1, 20, default);
+
+        page.NeedsReReviewTotal.Should().Be(1);
+        page.Items.Select(item => (item.ArticleId, item.MyLatestReview?.IsCurrent))
+            .Should().Equal((edited, false), (fresh, (bool?)null), (untouched, true));
+        (await Service().ListNeedingReReviewAsync(scholarId, default)).Should().Equal(edited);
+        (await Service().ListAsync(scholarId, "намаз", 1, 20, default)).NeedsReReviewTotal.Should().Be(1);
+        var mark = (await Service().GetVerificationAsync(edited, default)).Marks.Single();
+        (mark.IsLatestRevision, mark.IsCurrent).Should().Be((false, false));
+
+        await Service().ReviewAsync(edited, scholarId, new ArticleReviewCreateDto(2, ArticleReviewVerdict.Confirmed, null), default);
+
+        (await Service().ListAsync(scholarId, null, 1, 20, default)).NeedsReReviewTotal.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GivenAMadhabScopedReview_WhenOnlyAnotherSchoolsOpinionIsEdited_ThenTheMarkStaysCurrentButTheWholeArticleReviewDoesNot()
+    {
+        var hanafi = await SchoolAsync("hanafi");
+        var shafii = await SchoolAsync("shafii");
+        var hanafiScholar = await ScholarAsync(mazhab: "hanafi");
+        var wholeScholar = await ScholarAsync(mazhab: null);
+        var articleId = await ArticleAsync("Вуду", revisions: 0);
+        await AddRevisionAsync(articleId, 1, Opinions(hanafi, "Ханафиты: так", shafii, "Шафииты: так"));
+        await Service().ReviewAsync(articleId, hanafiScholar, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await Service().ReviewAsync(articleId, wholeScholar, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+
+        await AddRevisionAsync(articleId, 2, Opinions(hanafi, "Ханафиты: так", shafii, "Шафииты: иначе"));
+        var afterOther = (await Service().GetVerificationAsync(articleId, default)).Marks.ToDictionary(mark => mark.Mazhab ?? "", mark => mark.IsCurrent);
+        await AddRevisionAsync(articleId, 3, Opinions(hanafi, "Ханафиты: иначе", shafii, "Шафииты: иначе"));
+        var afterOwn = (await Service().GetVerificationAsync(articleId, default)).Marks.Single(mark => mark.Mazhab == "hanafi");
+
+        afterOther.Should().BeEquivalentTo(new Dictionary<string, bool> { ["hanafi"] = true, [""] = false });
+        afterOwn.IsCurrent.Should().BeFalse();
+        (await Service().ListNeedingReReviewAsync(hanafiScholar, default)).Should().Equal(articleId);
+    }
+
+    [Fact]
+    public async Task GivenRevisionsWithoutFingerprints_WhenTheMarkIsRead_ThenItCountsAsStaleUntilTheBackfillFillsThem()
+    {
+        var scholarId = await ScholarAsync(mazhab: null);
+        var articleId = await ArticleAsync("Ифтар", revisions: 0);
+        await AddRevisionAsync(articleId, 1, Snapshot("Текст"), fingerprints: false);
+        await Service().ReviewAsync(articleId, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await AddRevisionAsync(articleId, 2, Snapshot("Текст  ", tags: ["пост"]), fingerprints: false);
+        await SchoolAsync("maliki");
+
+        var before = (await Service().GetVerificationAsync(articleId, default)).Marks.Single().IsCurrent;
+        var filled = await ReviewFingerprintBackfill.RunAsync(_db);
+        var after = (await Service().GetVerificationAsync(articleId, default)).Marks.Single().IsCurrent;
+
+        (before, filled, after).Should().Be((false, 2, true));
+        (await _db.ArticleRevisionFingerprints.CountAsync()).Should().Be(4);
+        (await ReviewFingerprintBackfill.RunAsync(_db)).Should().Be(0);
     }
 
     private ArticleReviewService Service() => new(_db, _clock, new AuditLogRepository(_db));
@@ -304,17 +395,42 @@ public sealed class ArticleReviewTests : IDisposable
         return article.Id;
     }
 
-    private async Task AddRevisionAsync(int articleId, int number)
+    private async Task<int> SchoolAsync(string slug)
     {
-        var snapshot = new ArticleSnapshotDto(
-            ArticleSnapshotDto.CurrentSchemaVersion, "Заголовок", "slug", null, [], null,
-            [new ArticleSnapshotParagraphDto(1, [new ArticleSnapshotOpinionDto($"Текст {number}", true, [])])], []);
+        var school = new School { Name = slug, ShortName = slug, Slug = slug, IsSystem = true };
+        _db.Schools.Add(school);
+        await _db.SaveChangesAsync();
+        return school.Id;
+    }
+
+    private static ArticleSnapshotDto Snapshot(string text, List<string>? tags = null, string? summary = null) => new(
+        ArticleSnapshotDto.CurrentSchemaVersion, "Заголовок", "slug", summary, tags ?? [], null,
+        [new ArticleSnapshotParagraphDto(1, [new ArticleSnapshotOpinionDto(text, true, [])])], []);
+
+    private static ArticleSnapshotDto Opinions(int firstSchool, string first, int secondSchool, string second) => new(
+        ArticleSnapshotDto.CurrentSchemaVersion, "Заголовок", "slug", null, [], null,
+        [
+            new ArticleSnapshotParagraphDto(1, [new ArticleSnapshotOpinionDto("Общее", true, [])]),
+            new ArticleSnapshotParagraphDto(2,
+            [
+                new ArticleSnapshotOpinionDto(first, true, [firstSchool]),
+                new ArticleSnapshotOpinionDto(second, false, [secondSchool]),
+            ]),
+        ], []);
+
+    /// <summary>A revision as a save writes it: with its fingerprints, unless <paramref name="fingerprints"/> is false (before V-05).</summary>
+    private async Task AddRevisionAsync(int articleId, int number, ArticleSnapshotDto? snapshot = null, bool fingerprints = true)
+    {
+        snapshot ??= Snapshot($"Текст {number}");
+        var schools = await _db.Schools.Where(school => school.IsSystem)
+            .Select(school => new ReviewScopeSchool(school.Slug, school.Id)).ToListAsync();
         _db.ArticleRevisions.Add(new ArticleRevision
         {
             ArticleId = articleId,
             Number = number,
             CreatedAt = _clock.GetUtcNow().UtcDateTime,
             Snapshot = ArticleSnapshots.Serialize(snapshot),
+            Fingerprints = fingerprints ? ReviewFingerprints.For(snapshot, schools) : [],
         });
         await _db.SaveChangesAsync();
     }
