@@ -12,6 +12,7 @@ import AdminArticleTreePage from '../pages/admin/AdminArticleTreePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminMyArticlesPage from '../pages/admin/AdminMyArticlesPage';
 import AdminMaintenancePage from '../pages/admin/AdminMaintenancePage';
+import AdminNotificationsPage from '../pages/admin/AdminNotificationsPage';
 import AdminProfilePage from '../pages/admin/AdminProfilePage';
 import AdminReviewArticlePage from '../pages/admin/AdminReviewArticlePage';
 import AdminScholarApplicationPage from '../pages/admin/AdminScholarApplicationPage';
@@ -41,6 +42,7 @@ const SECTION_PAGES: Record<AdminSectionId, ReactElement> = {
   scholarReview: <AdminScholarReviewPage />,
   articleReviews: <AdminArticleReviewsPage />,
   sessions: <AdminSessionsPage />,
+  notifications: <AdminNotificationsPage />,
   profile: <AdminProfilePage />,
   scholar: <AdminScholarApplicationPage />,
   ai: <AdminAiSettingsPage />,

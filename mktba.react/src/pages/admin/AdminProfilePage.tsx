@@ -34,6 +34,7 @@ import { Card } from '../../shared/ui/Card';
 import { Input } from '../../shared/ui/Input';
 import { Textarea } from '../../shared/ui/Textarea';
 import { ActivityChartCard } from './ActivityChartCard';
+import { NotificationSettingsCard } from './NotificationSettingsCard';
 
 const fieldId = (key: ProfileFieldKey) => `profile-${key}`;
 const errorId = (key: ProfileFieldKey) => `profile-${key}-error`;
@@ -373,6 +374,8 @@ const AdminProfilePage: React.FC = () => {
           </form>
         </Card>
       )}
+
+      <NotificationSettingsCard />
 
       <ActivityChartCard />
     </div>

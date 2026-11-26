@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Home, LogOut, Menu, Plus, X } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useCurrentUser } from '../auth/useCurrentUser';
+import { NotificationBell } from '../components/admin/NotificationBell';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
@@ -117,6 +118,8 @@ const AdminLayout: React.FC<{ withSections?: boolean }> = ({ withSections = true
               <span className="text-[11px] text-[var(--color-ink-subtle)]">{locale.userRole[role]}</span>
             </div>
           ) : null}
+
+          <NotificationBell />
 
           <Link
             to="/"
