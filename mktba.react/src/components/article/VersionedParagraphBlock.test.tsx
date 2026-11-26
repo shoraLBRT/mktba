@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { renderToString } from 'react-dom/server';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { LocalizationProvider } from '../../localization/provider';
 import { VersionedParagraphBlock, type OpinionTab } from './VersionedParagraphBlock';
@@ -108,5 +109,28 @@ describe('VersionedParagraphBlock', () => {
 
     expect(screen.queryAllByRole('button')).toHaveLength(0);
     expect(screen.getAllByRole('tab')).toHaveLength(3);
+  });
+
+  it('given an opinion of one scholar, when active, then the note on the scholar links the article about them (M-08, #116)', () => {
+    const scholarTabs: OpinionTab[] = [
+      tabs[0],
+      {
+        label: 'Ибн Хазм',
+        heading: 'Мнение учёного: Ибн Хазм',
+        paletteKey: 'neutral',
+        isReaderSchool: false,
+        scholar: { description: 'Захиритский учёный.', article: { title: 'Ибн Хазм', href: '/ibn-hazm' } },
+      },
+    ];
+    render(
+      <MemoryRouter>
+        <LocalizationProvider>
+          <VersionedParagraphBlock activeIndex={1} tabs={scholarTabs} onSelect={() => {}} panels={[<p key="a">А</p>, <p key="b">Б</p>]} />
+        </LocalizationProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Захиритский учёный./)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Об учёном: Ибн Хазм' }).getAttribute('href')).toBe('/ibn-hazm');
   });
 });

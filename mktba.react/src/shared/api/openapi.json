@@ -3256,13 +3256,37 @@
         }
       }
     },
+    "/schools/custom": {
+      "get": {
+        "tags": [
+          "Schools"
+        ],
+        "summary": "The directory of scholar opinions (M-08, #116): every custom school, by name.",
+        "description": "Any article may link its opinions to any of them. scholarArticle is set only while the article about the scholar is Published.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SchoolDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/schools/article/{articleId}": {
       "get": {
         "tags": [
           "Schools"
         ],
-        "summary": "Custom schools of one article.",
-        "description": "An article that is not Published answers 404 article_not_found except to an admin or its own author or co-author, as the other article reads do; so does an article that does not exist.",
+        "summary": "Scholar opinions (custom schools) of one article: created for it or used by its opinions.",
+        "description": "An article that is not Published answers 404 article_not_found except to an admin or its own author or co-author, as the other article reads do; so does an article that does not exist. scholarArticle is set only while the article about the scholar is Published.",
         "parameters": [
           {
             "name": "articleId",
@@ -3306,7 +3330,8 @@
         "tags": [
           "Schools"
         ],
-        "summary": "Creates a custom school for one article: admins for any article, authors for their own.",
+        "summary": "Creates a scholar opinion: for an article (admins any, authors their own) or, with no articleScopeId, into the directory.",
+        "description": "slug may be left out (the server makes one). Editors of articleScopeId may later change or delete the entry while no other article uses it; otherwise only an admin may.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3362,11 +3387,91 @@
       }
     },
     "/schools/{id}": {
+      "put": {
+        "tags": [
+          "Schools"
+        ],
+        "summary": "Changes a scholar opinion (M-08, #116) in every article that uses it.",
+        "description": "Admins any; others one created for an article they may edit, while no other article uses it (409 school_in_use). System schools answer 400 system_school_update_forbidden.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Schools"
         ],
-        "summary": "Deletes a custom school: admins any, authors those of their own articles.",
+        "summary": "Deletes a scholar opinion and its links: admins any, others one created for their article that no other article uses.",
         "parameters": [
           {
             "name": "id",
@@ -3404,6 +3509,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7345,15 +7460,14 @@
       },
       "SchoolCreateDto": {
         "required": [
-          "articleScopeId",
           "name",
-          "shortName",
-          "slug"
+          "shortName"
         ],
         "type": "object",
         "properties": {
           "slug": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "name": {
             "type": "string"
@@ -7363,7 +7477,25 @@
           },
           "articleScopeId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
+          },
+          "scholarName": {
+            "type": "string",
+            "nullable": true
+          },
+          "scholarYears": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "scholarArticleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -7395,6 +7527,84 @@
             "type": "boolean"
           },
           "articleScopeId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "scholarName": {
+            "type": "string",
+            "nullable": true
+          },
+          "scholarYears": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "scholarArticleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "scholarArticle": {
+            "$ref": "#/components/schemas/SchoolScholarArticleDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SchoolScholarArticleDto": {
+        "required": [
+          "id",
+          "locale",
+          "slug",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SchoolUpdateDto": {
+        "required": [
+          "name",
+          "shortName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "scholarName": {
+            "type": "string",
+            "nullable": true
+          },
+          "scholarYears": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "scholarArticleId": {
             "type": "integer",
             "format": "int32",
             "nullable": true

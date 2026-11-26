@@ -1,5 +1,7 @@
 import { BookOpen, Info } from 'lucide-react';
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { Link } from 'react-router';
+import { formatMessage } from '../../localization';
 import { useLocale } from '../../localization/hooks';
 import { getSchoolPalette, type SchoolPaletteKey } from '../mazhab/schoolPalette';
 import { TAB_KEY_STEPS } from '../../shared/tabKeys';
@@ -13,6 +15,13 @@ export type OpinionTab = {
   paletteKey: SchoolPaletteKey;
   /** The opinion belongs to the reader's chosen mazhab. */
   isReaderSchool: boolean;
+  /** About the scholar when the opinion is one scholar's (M-08, #116): a note and the article about them. */
+  scholar?: ScholarNote | null;
+};
+
+export type ScholarNote = {
+  description: string | null;
+  article: { title: string; href: string } | null;
 };
 
 type VersionedParagraphBlockProps = {
@@ -70,6 +79,18 @@ export const VersionedParagraphBlock = ({
             {activeTab?.heading}
           </span>
         </div>
+
+        {activeTab?.scholar ? (
+          <p className="mb-2 text-[12px] leading-5 text-[var(--color-ink-muted)]" data-scholar-note="">
+            {activeTab.scholar.description}
+            {activeTab.scholar.description && activeTab.scholar.article ? ' ' : null}
+            {activeTab.scholar.article ? (
+              <Link to={activeTab.scholar.article.href} className="underline underline-offset-2 hover:text-[var(--color-ink-strong)]">
+                {formatMessage(t.scholarArticle, { title: activeTab.scholar.article.title })}
+              </Link>
+            ) : null}
+          </p>
+        ) : null}
 
         {note ? (
           <p className="mb-2 flex items-start gap-1.5 text-[12px] leading-5 text-[var(--color-ink-muted)]">

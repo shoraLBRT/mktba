@@ -15,6 +15,7 @@ export const APP_CONSTANTS = {
     ADMIN_AI_SETTINGS: 'adminAiSettings',
     SYSTEM_SCHOOLS: 'systemSchools',
     ARTICLE_SCHOOLS: 'articleSchools',
+    SCHOLAR_OPINIONS: 'scholarOpinions',
     ADMIN_USERS: 'adminUsers',
     MY_PROFILE: 'myProfile',
     MY_ACTIVITY: 'myActivity',

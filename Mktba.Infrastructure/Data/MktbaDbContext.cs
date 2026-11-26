@@ -406,12 +406,21 @@ namespace Mktba.Infrastructure.Data
                 .HasForeignKey(l => l.ArticleId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Custom schools scoped to article
+            // Scholar opinions (custom schools, M-08 #116): the article one was created for. The entry is
+            // shared by every article that uses it, so purging that article keeps it (SetNull).
             modelBuilder.Entity<Article>()
                 .HasMany(a => a.CustomSchools)
                 .WithOne(s => s.ArticleScope)
                 .HasForeignKey(s => s.ArticleScopeId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            // The wiki article about the scholar; the entry stays when that article is purged.
+            modelBuilder.Entity<School>()
+                .HasOne(s => s.ScholarArticle)
+                .WithMany()
+                .HasForeignKey(s => s.ScholarArticleId)
+                .OnDelete(DeleteBehavior.SetNull)
                 .IsRequired(false);
 
             // ArticleInfoboxField
@@ -458,15 +467,27 @@ namespace Mktba.Infrastructure.Data
 
             modelBuilder.Entity<School>()
                 .Property(s => s.Slug)
-                .HasMaxLength(80);
+                .HasMaxLength(School.SlugMaxLength);
 
             modelBuilder.Entity<School>()
                 .Property(s => s.Name)
-                .HasMaxLength(200);
+                .HasMaxLength(School.NameMaxLength);
 
             modelBuilder.Entity<School>()
                 .Property(s => s.ShortName)
-                .HasMaxLength(20);
+                .HasMaxLength(School.ShortNameMaxLength);
+
+            modelBuilder.Entity<School>()
+                .Property(s => s.ScholarName)
+                .HasMaxLength(School.ScholarNameMaxLength);
+
+            modelBuilder.Entity<School>()
+                .Property(s => s.ScholarYears)
+                .HasMaxLength(School.ScholarYearsMaxLength);
+
+            modelBuilder.Entity<School>()
+                .Property(s => s.Description)
+                .HasMaxLength(School.DescriptionMaxLength);
 
             // SchoolTranslation: one name per school and locale; Russian stays on School itself.
             modelBuilder.Entity<SchoolTranslation>()

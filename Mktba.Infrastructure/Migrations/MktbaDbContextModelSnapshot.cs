@@ -1046,6 +1046,10 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<int?>("ArticleScopeId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<bool>("IsSystem")
                         .HasColumnType("boolean");
 
@@ -1053,6 +1057,17 @@ namespace Mktba.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("ScholarArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ScholarName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ScholarYears")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("ShortName")
                         .IsRequired()
@@ -1067,6 +1082,8 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ArticleScopeId");
+
+                    b.HasIndex("ScholarArticleId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
@@ -1611,9 +1628,16 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasOne("Mktba.Domain.Entities.Article", "ArticleScope")
                         .WithMany("CustomSchools")
                         .HasForeignKey("ArticleScopeId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.Article", "ScholarArticle")
+                        .WithMany()
+                        .HasForeignKey("ScholarArticleId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("ArticleScope");
+
+                    b.Navigation("ScholarArticle");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.SchoolTranslation", b =>

@@ -22,7 +22,8 @@ export type OpinionCaptions = {
 
 /**
  * Captions for one opinion, named after the schools it belongs to. An opinion with no school is the
- * common one; an opinion every canonical school shares is labelled as such.
+ * common one; an opinion every canonical school shares is labelled as such; an opinion of one scholar
+ * (M-08, #116) is headed by the scholar and their years.
  */
 export const buildOpinionCaptions = (
   schools: SchoolDto[],
@@ -44,7 +45,12 @@ export const buildOpinionCaptions = (
   const label = schools.map((school) => schoolTabName(school, t)).join(', ');
 
   if (schools.length === 1) {
-    return { label, heading: formatMessage(t.label, { school: schools[0].name }) };
+    const [school] = schools;
+    if (!school.isSystem && school.scholarName) {
+      const scholar = school.scholarYears ? `${school.scholarName} (${school.scholarYears})` : school.scholarName;
+      return { label, heading: formatMessage(t.labelScholar, { scholar }) };
+    }
+    return { label, heading: formatMessage(t.label, { school: school.name }) };
   }
 
   return {

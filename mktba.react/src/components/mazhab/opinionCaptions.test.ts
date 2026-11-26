@@ -36,6 +36,17 @@ describe('buildOpinionCaptions', () => {
     expect(buildOpinionCaptions([], systemIds, t).label).toBe('Общее мнение');
   });
 
+  it('given one scholar opinion, when captioned, then the heading names the scholar and the years (M-08, #116)', () => {
+    const scholar: SchoolDto = { ...zahiri, name: 'Ибн Хазм', shortName: 'ИХ', scholarName: 'Ибн Хазм', scholarYears: '384–456 гг. х.' };
+
+    expect(buildOpinionCaptions([scholar], systemIds, t)).toEqual({
+      label: 'Ибн Хазм',
+      heading: 'Мнение учёного: Ибн Хазм (384–456 гг. х.)',
+    });
+    expect(buildOpinionCaptions([{ ...scholar, scholarYears: null }], systemIds, t).heading).toBe('Мнение учёного: Ибн Хазм');
+    expect(buildOpinionCaptions([zahiri], systemIds, t).heading).toBe('Мнение мазхаба: Захириты');
+  });
+
   it('given every canonical school, when captioned, then the opinion reads as shared by all', () => {
     expect(buildOpinionCaptions([hanafi, maliki, shafii, hanbali], systemIds, t).label).toBe('Все мазхабы');
   });

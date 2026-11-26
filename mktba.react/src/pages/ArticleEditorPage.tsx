@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useLocale } from '../localization/hooks';
-import { DEFAULT_LANGUAGE, isLanguage } from '../localization/language';
+import { isLanguage } from '../localization/language';
 import { createArticleContent, getArticleContentById, updateArticleContent } from '../services/Article/articleService';
 import { useNavigationTree } from '../hooks/useNavigationTree';
 import { invalidateArticleQueries } from '../app/queryClient';
@@ -12,7 +12,6 @@ import { deleteArticle, getAiProviderSettings, styleMarkdownWithAi } from '../se
 import { Card } from '../shared/ui/Card';
 import { Input } from '../shared/ui/Input';
 import type { ArticleRevisionSummaryDto, ArticleStatus, NavigationArticleDto } from '../shared/types/ApiTypes';
-import { createCustomSchool, deleteCustomSchool, getSchoolsByArticleId, getSystemSchools } from '../services/schoolService';
 import { ArticleDraftPreview } from './add-article/ArticleDraftPreview';
 import { EditorHistoryDialog } from './add-article/EditorHistoryDialog';
 import { ArticleAuthorsPanel } from '../components/article/ArticleAuthorsPanel';
@@ -20,6 +19,8 @@ import { ArticleStatusPanel } from '../components/article/ArticleStatusPanel';
 import { DocumentBlockEditor } from './add-article/DocumentBlockEditor';
 import { EditorBottomToolbar, type FormatAction } from './add-article/EditorBottomToolbar';
 import { EditorHelpRail } from './add-article/EditorHelpRail';
+import { ScholarOpinionsPanel } from './add-article/ScholarOpinionsPanel';
+import { useArticleSchools } from './add-article/useArticleSchools';
 import { InfoboxEditor } from './add-article/InfoboxEditor';
 import { EditorOutlineRail } from './add-article/EditorOutlineRail';
 import { EditorToolbar } from './add-article/EditorToolbar';
@@ -141,52 +142,6 @@ const findNodeInTree = (nodes: NavigationArticleDto[], id: number): NavigationAr
   return null;
 };
 
-/**
- * The article's own schools (custom schools scoped to it). A new article has none yet, so its
- * editor offers the system schools only and no custom-school management.
- */
-const useArticleSchools = (articleId: number | null, onError: (message: string) => void) => {
-  const queryClient = useQueryClient();
-  const queryKey = [APP_CONSTANTS.QUERY_KEYS.ARTICLE_SCHOOLS, articleId];
-
-  const systemSchoolsQuery = useQuery({
-    queryKey: [APP_CONSTANTS.QUERY_KEYS.SYSTEM_SCHOOLS, DEFAULT_LANGUAGE],
-    queryFn: () => getSystemSchools(),
-  });
-
-  const articleSchoolsQuery = useQuery({
-    queryKey,
-    queryFn: () => getSchoolsByArticleId(articleId!),
-    enabled: articleId !== null,
-  });
-
-  const addMutation = useMutation({
-    mutationFn: (payload: { name: string; shortName: string }) =>
-      createCustomSchool({
-        slug: `custom-${articleId}-${payload.name.toLowerCase().replace(/\s+/g, '-')}`,
-        name: payload.name,
-        shortName: payload.shortName,
-        articleScopeId: articleId!,
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
-    onError: (error) => onError((error as Error).message),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteCustomSchool,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
-    onError: (error) => onError((error as Error).message),
-  });
-
-  const articleSchools = articleSchoolsQuery.data ?? [];
-  return {
-    available: [...(systemSchoolsQuery.data ?? []), ...articleSchools],
-    custom: articleSchools.filter((school) => !school.isSystem),
-    add: (name: string, shortName: string) => addMutation.mutate({ name, shortName }),
-    remove: (id: number) => deleteMutation.mutate(id),
-  };
-};
-
 /** The `kind` of the translations block (I-06, #110), kept out of JSX attributes. */
 const EDIT_PANEL = { kind: 'edit' } as const;
 const CREATE_PANEL = { kind: 'create' } as const;
@@ -290,7 +245,7 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
     queryFn: getAiProviderSettings,
     enabled: canConfigure,
   });
-  const schools = useArticleSchools(articleId, (message) => showNotice('error', message));
+  const schools = useArticleSchools(articleId, canEditAnyArticle, (message) => showNotice('error', message));
   const navigationTreeQuery = useNavigationTree();
 
   const aiAvailability = getAiAvailability(aiSettingsQuery.data);
@@ -1008,9 +963,19 @@ const ArticleEditor: React.FC<{ mode: ArticleEditorMode }> = ({ mode }) => {
                 onSelectParent: selectParentArticle,
               }
             : {
-                customSchools: schools.custom,
-                onAddCustomSchool: schools.add,
-                onDeleteCustomSchool: schools.remove,
+                scholarOpinions: (
+                  <ScholarOpinionsPanel
+                    schools={schools.custom}
+                    directory={schools.directory}
+                    articleOptions={articleOptions.filter((option) => option.id !== articleId)}
+                    isLocked={isLocked}
+                    canManage={schools.canManage}
+                    onPick={schools.pick}
+                    onAdd={schools.add}
+                    onUpdate={schools.update}
+                    onDelete={schools.remove}
+                  />
+                ),
                 currentArticleId: articleId ?? undefined,
               })}
           summary={draft.summary}

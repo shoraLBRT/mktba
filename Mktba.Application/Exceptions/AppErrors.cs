@@ -231,6 +231,17 @@ public static class AppErrors
     public static AppError SchoolNameRequired => new("school_name_required", "Name is required.");
     public static AppError SchoolShortNameRequired => new("school_short_name_required", "ShortName is required.");
     public static AppError SystemSchoolDeleteForbidden => new("system_school_delete_forbidden", "System schools cannot be deleted.");
+    public static AppError SystemSchoolUpdateForbidden => new("system_school_update_forbidden", "System schools cannot be changed.");
+
+    /// <summary>M-08 (#116): a scholar opinion other articles use; only an admin may change or delete it.</summary>
+    public static AppError SchoolInUse =>
+        new("school_in_use", "Other articles use this scholar opinion; only an admin may change or delete it.");
+
+    public static AppError SchoolScholarArticleNotFound =>
+        new("school_scholar_article_not_found", "The article about the scholar was not found.");
+
+    public static AppError SchoolFieldTooLong(string field, int maxLength) =>
+        new("school_field_too_long", $"{field} cannot be longer than {maxLength} characters.", With(("field", field), ("maxLength", maxLength)));
 
     public static AppError SchoolSlugTaken(string slug) =>
         new("school_slug_taken", $"School with slug '{slug}' already exists.", With(("slug", slug)));
