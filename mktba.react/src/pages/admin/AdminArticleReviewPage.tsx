@@ -17,7 +17,7 @@ import {
 } from '../../shared/articleReview';
 import { SCHOLAR_MAZHABS, type ScholarMazhab } from '../../shared/scholarApplication';
 import { localizedArticleHref } from '../../shared/slug';
-import type { ArticleReviewContextDto, ArticleReviewVerdict } from '../../shared/types/ApiTypes';
+import type { ArticleReviewContextDto, ArticleReviewDto, ArticleReviewVerdict } from '../../shared/types/ApiTypes';
 import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
 import { Textarea } from '../../shared/ui/Textarea';
@@ -202,6 +202,12 @@ const ReviewFormCard = ({ context }: { context: ArticleReviewContextDto }) => {
   );
 };
 
+/** Whether a mark is on the current version, an earlier one with the same text, or stale (V-05, #121). */
+const historyNote = (review: ArticleReviewDto, t: ReturnType<typeof useLocale>['articleReview']): string => {
+  if (review.isLatestRevision) return t.historyLatest;
+  return review.isCurrent ? t.historyEarlier : t.historyStale;
+};
+
 const HistoryCard = ({ context }: { context: ArticleReviewContextDto }) => {
   const t = useLocale().articleReview;
   const format = useFormat();
@@ -215,7 +221,7 @@ const HistoryCard = ({ context }: { context: ArticleReviewContextDto }) => {
           {context.myReviews.map((review) => (
             <li key={review.id} data-testid={`my-review-${review.revisionNumber}`} className="space-y-1 text-sm">
               <p className="m-0 font-medium text-[var(--color-ink-strong)]">
-                {`${t.verdicts[review.verdict]} · ${review.isLatestRevision ? t.historyLatest : t.historyEarlier}`}
+                {`${t.verdicts[review.verdict]} · ${historyNote(review, t)}`}
               </p>
               <p className="m-0 text-[var(--color-ink-muted)]">
                 {formatMessage(t.historyItem, { number: review.revisionNumber, date: format.date(review.updatedAt, 'dateTime') })}

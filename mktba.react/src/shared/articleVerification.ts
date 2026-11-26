@@ -1,16 +1,17 @@
 import type { ArticleVerificationMarkDto } from './types/ApiTypes';
 
 /**
- * What the widget's line says (V-04, #120): of the marks on the article's latest revision, how many
- * confirm it (with or without remarks) and how many found errors; and how many marks belong to an
- * earlier revision (D5, #115: shown «для предыдущей версии», counted apart).
+ * What the widget's line says (V-04, #120): of the current marks, how many confirm the article (with
+ * or without remarks) and how many found errors; and how many marks a substantial edit has made
+ * stale (D5, #115; V-05, #121: shown «для предыдущей версии», counted apart). A mark of an earlier
+ * revision whose text the edits since left alone is current.
  */
 export type VerificationSummary = { confirmed: number; errors: number; previous: number };
 
 export const summarizeMarks = (marks: readonly ArticleVerificationMarkDto[]): VerificationSummary => {
   const summary: VerificationSummary = { confirmed: 0, errors: 0, previous: 0 };
   for (const mark of marks) {
-    if (!mark.isLatestRevision) summary.previous += 1;
+    if (!mark.isCurrent) summary.previous += 1;
     else if (mark.verdict === 'HasErrors') summary.errors += 1;
     else summary.confirmed += 1;
   }

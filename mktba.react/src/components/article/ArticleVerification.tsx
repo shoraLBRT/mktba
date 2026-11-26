@@ -64,7 +64,7 @@ export const ArticleVerification = ({ marks, schools }: ArticleVerificationProps
                 ) : (mark.scholarName ?? t.scholar)}
                 {` — ${t.verdicts[mark.verdict]}, ${formatMessage(t.revision, { number: mark.revisionNumber })}, `}
                 <time dateTime={new Date(mark.reviewedAt).toISOString()}>{format.date(mark.reviewedAt)}</time>
-                {mark.isLatestRevision ? null : ` (${t.previousVersion})`}
+                {mark.isCurrent ? null : ` (${t.previousVersion})`}
               </li>
             ))}
           </ul>

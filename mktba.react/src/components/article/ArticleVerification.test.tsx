@@ -18,6 +18,7 @@ const mark = (overrides: Partial<ArticleVerificationMarkDto>): ArticleVerificati
   revisionNumber: 3,
   reviewedAt: '2026-11-20T10:00:00Z',
   isLatestRevision: true,
+  isCurrent: true,
   ...overrides,
 });
 
@@ -43,19 +44,20 @@ describe('ArticleVerification', () => {
       mark({ verdict: 'Confirmed' }),
       mark({ verdict: 'ConfirmedWithRemarks', mazhab: 'hanafi' }),
       mark({ verdict: 'HasErrors', mazhab: 'shafii' }),
-      mark({ verdict: 'Confirmed', revisionNumber: 2, isLatestRevision: false }),
+      mark({ verdict: 'Confirmed', revisionNumber: 2, isLatestRevision: false, isCurrent: false }),
+      mark({ verdict: 'Confirmed', revisionNumber: 1, isLatestRevision: false }),
     ]);
 
     const summary = screen.getByTestId('article-verification').querySelector('summary');
     expect(summary?.textContent).toBe(
-      'Проверка учёными: подтвердили 2 учёных · ошибки нашёл 1 учёный · 1 отметка — для предыдущей версии',
+      'Проверка учёными: подтвердили 3 учёных · ошибки нашёл 1 учёный · 1 отметка — для предыдущей версии',
     );
   });
 
   it('given marks of several scopes, when opened, then shows who, the verdict, the revision and the date by madhab', () => {
     renderWidget([
       mark({ scholarName: 'Абдулла Ибрагимов', scholarSlug: 'abdulla', verdict: 'ConfirmedWithRemarks', mazhab: 'hanafi' }),
-      mark({ scholarName: 'Юсуф Карими', revisionNumber: 2, isLatestRevision: false }),
+      mark({ scholarName: 'Юсуф Карими', revisionNumber: 2, isLatestRevision: false, isCurrent: false }),
       mark({ verdict: 'HasErrors', mazhab: 'hanafi' }),
     ]);
 

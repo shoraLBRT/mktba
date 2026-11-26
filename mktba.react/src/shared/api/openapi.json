@@ -6464,6 +6464,7 @@
       "ArticleReviewArticlePageDto": {
         "required": [
           "items",
+          "needsReReviewTotal",
           "page",
           "pageSize",
           "total"
@@ -6485,6 +6486,10 @@
             "format": "int32"
           },
           "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "needsReReviewTotal": {
             "type": "integer",
             "format": "int32"
           }
@@ -6561,6 +6566,7 @@
           "articleId",
           "createdAt",
           "id",
+          "isCurrent",
           "isLatestRevision",
           "revisionNumber",
           "updatedAt",
@@ -6601,12 +6607,16 @@
           },
           "isLatestRevision": {
             "type": "boolean"
+          },
+          "isCurrent": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
       },
       "ArticleReviewMarkDto": {
         "required": [
+          "isCurrent",
           "revisionNumber",
           "updatedAt",
           "verdict"
@@ -6623,6 +6633,9 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "isCurrent": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -7283,6 +7296,7 @@
       },
       "ArticleVerificationMarkDto": {
         "required": [
+          "isCurrent",
           "isLatestRevision",
           "reviewedAt",
           "revisionNumber",
@@ -7314,6 +7328,9 @@
             "format": "date-time"
           },
           "isLatestRevision": {
+            "type": "boolean"
+          },
+          "isCurrent": {
             "type": "boolean"
           }
         },
