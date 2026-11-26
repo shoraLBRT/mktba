@@ -50,6 +50,8 @@ export default defineConfig({
         IndexNow__Enabled: 'false',
         // Nor does it send email: notifications (V-09, #125) go to the log.
         Email__Smtp__Enabled: 'false',
+        // Sign-up and reset requests (U-05, #126) come from 127.0.0.1 too.
+        RateLimiting__AccountEmail__PermitLimit: '1000',
       },
       // Never reuse an API that is already running: it may point at a database with real data.
       reuseExistingServer: false,
