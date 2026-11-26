@@ -131,7 +131,13 @@
     "analytics_too_many_events": "At most {maxCount} statistics events can be sent at once.",
     "author_not_found": "Author page not found.",
     "profile_display_name_required": "To set a profile address, enter a name.",
-    "profile_display_name_invalid": "The name must be a single line of at most {maxLength} characters."
+    "profile_display_name_invalid": "The name must be a single line of at most {maxLength} characters.",
+    "comment_not_found": "Comment not found: the article may have been unpublished. Reload the page.",
+    "comment_body_required": "Write the comment.",
+    "comment_body_too_long": "A comment can be at most {maxLength} characters long.",
+    "comment_deleted": "The comment has been deleted.",
+    "comment_display_name_required": "To comment, set a name in your profile.",
+    "comment_limit_reached": "You are commenting too often. Please try again in a few minutes."
   },
   "articleStatus": {
     "Draft": "Draft",

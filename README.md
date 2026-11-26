@@ -183,6 +183,11 @@ refresh-токен в cookie `mktba_refresh`. Фронтенд держит acce
 одному аккаунту уходит не больше `Auth:AccountEmailsPerHour` (3) писем одного вида за 60 минут, кто бы
 их ни просил: лишние запросы получают обычный ответ и ничего не отправляют.
 
+Комментарии (C-01, #127): лимит `Comments` — `POST /articles/{id}/comments`, `PUT|DELETE /comments/{id}`,
+по IP клиента, 30 запросов / 600 с. Кроме того, один аккаунт пишет не больше `Comments:PerUserLimit` (10)
+комментариев за `Comments:PerUserWindowSeconds` (600 с), считая по таблице: дальше —
+`429 comment_limit_reached`.
+
 Переопределение: `RateLimiting__Auth__PermitLimit=...`, `RateLimiting__Ai__WindowSeconds=...`.
 
 **За обратным прокси.** По умолчанию IP — адрес соединения, `X-Forwarded-For` не учитывается:

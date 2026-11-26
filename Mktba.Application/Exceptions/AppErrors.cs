@@ -446,6 +446,25 @@ public static class AppErrors
     public static AppError ArticleRemarkAlreadyOpen =>
         new("article_remark_open", "The remark is already open.");
 
+    // Comments (C-01)
+    public static AppError CommentNotFound =>
+        new("comment_not_found", "Comment not found.");
+
+    public static AppError CommentBodyRequired =>
+        new("comment_body_required", "Write the comment.");
+
+    public static AppError CommentBodyTooLong(int maxLength) =>
+        new("comment_body_too_long", $"The comment must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError CommentDeleted =>
+        new("comment_deleted", "The comment has been deleted.");
+
+    public static AppError CommentDisplayNameRequired =>
+        new("comment_display_name_required", "Set a display name in your profile to comment.");
+
+    public static AppError CommentLimitReached =>
+        new("comment_limit_reached", "You are commenting too often. Try again in a few minutes.");
+
     // Notifications (V-09)
     public static AppError NotificationNotFound =>
         new("notification_not_found", "Notification not found.");

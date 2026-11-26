@@ -52,6 +52,12 @@ public sealed class RateLimitingOptions
     /// at most <c>Auth:AccountEmailsPerHour</c> emails of a kind, whoever asks.
     /// </summary>
     public RateLimitRule AccountEmail { get; set; } = new() { PermitLimit = 5, WindowSeconds = 900 };
+
+    /// <summary>
+    /// Writing, editing and deleting comments (C-01, #127), partitioned by client IP; each account also
+    /// writes at most <c>Comments:PerUserLimit</c> comments a window, counted from the table.
+    /// </summary>
+    public RateLimitRule Comments { get; set; } = new() { PermitLimit = 30, WindowSeconds = 600 };
 }
 
 public sealed class RateLimitRule
@@ -71,6 +77,7 @@ internal static class RateLimitingSetup
     public const string AnalyticsPolicy = "analytics";
     public const string ClientErrorsPolicy = "client-errors";
     public const string AccountEmailPolicy = "account-email";
+    public const string CommentsPolicy = "comments";
 
     public static IServiceCollection AddMktbaRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -106,6 +113,10 @@ internal static class RateLimitingSetup
             limiter.AddPolicy(AccountEmailPolicy, context => FixedWindow(
                 "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 options.AccountEmail));
+
+            limiter.AddPolicy(CommentsPolicy, context => FixedWindow(
+                "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                options.Comments));
 
             limiter.AddPolicy(AiPolicy, context => FixedWindow(UserOrIp(context), options.Ai));
 

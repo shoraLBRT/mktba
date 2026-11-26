@@ -33,6 +33,7 @@ export const APP_CONSTANTS = {
     ARTICLE_REVIEWS: 'articleReviews',
     ARTICLE_REVIEW: 'articleReview',
     ARTICLE_REMARKS: 'articleRemarks',
+    ARTICLE_COMMENTS: 'articleComments',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
     NOTIFICATIONS: 'notifications',

@@ -49,6 +49,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleReview> ArticleReviews { get; set; } = null!;
         public DbSet<ArticleRemark> ArticleRemarks { get; set; } = null!;
         public DbSet<ArticleRemarkMessage> ArticleRemarkMessages { get; set; } = null!;
+        public DbSet<ArticleComment> ArticleComments { get; set; } = null!;
         public DbSet<ArticleRevisionFingerprint> ArticleRevisionFingerprints { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<NotificationEmail> NotificationEmails { get; set; } = null!;
@@ -842,6 +843,32 @@ namespace Mktba.Infrastructure.Data
                 message.HasOne(m => m.Author)
                     .WithMany()
                     .HasForeignKey(m => m.AuthorId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Readers' comments (C-01, #127): they go with the article; a reply goes with the comment it
+            // answers (that happens only when the article goes: a comment itself is deleted softly); the
+            // author's and the deleter's ids are cleared when that user is deleted, so the tree keeps its shape.
+            modelBuilder.Entity<ArticleComment>(comment =>
+            {
+                comment.HasIndex(c => new { c.ArticleId, c.ParentId, c.CreatedAt });
+                comment.HasIndex(c => new { c.AuthorId, c.CreatedAt });
+                comment.Property(c => c.Body).HasMaxLength(ArticleComment.BodyMaxLength).IsRequired();
+                comment.HasOne(c => c.Article)
+                    .WithMany()
+                    .HasForeignKey(c => c.ArticleId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                comment.HasOne(c => c.Parent)
+                    .WithMany()
+                    .HasForeignKey(c => c.ParentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                comment.HasOne(c => c.Author)
+                    .WithMany()
+                    .HasForeignKey(c => c.AuthorId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                comment.HasOne(c => c.DeletedBy)
+                    .WithMany()
+                    .HasForeignKey(c => c.DeletedById)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
