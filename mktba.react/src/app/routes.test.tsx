@@ -394,6 +394,7 @@ describe('AdminLayout', () => {
       'Модерация',
       'Пользователи и приглашения',
       'Заявки учёных',
+      'Ревью статей',
       'Сессии',
       'Мой профиль',
       'Заявка учёного',
@@ -417,6 +418,20 @@ describe('AdminLayout', () => {
       '/admin',
       '/admin/articles',
       '/admin/my-articles',
+      '/admin/sessions',
+      '/admin/profile',
+      '/admin/scholar-application',
+    ]);
+  });
+
+  it('given a scholar, when the admin opens, then the menu offers the review of articles (V-03)', async () => {
+    signInAs('Scholar');
+
+    renderAt('/admin/sessions');
+
+    await waitFor(() => expect(sectionLinks().length).toBeGreaterThan(0));
+    expect([...sectionLinks()].map((link) => link.getAttribute('href'))).toEqual([
+      '/admin/article-reviews',
       '/admin/sessions',
       '/admin/profile',
       '/admin/scholar-application',
