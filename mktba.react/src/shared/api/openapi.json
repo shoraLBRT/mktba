@@ -4808,7 +4808,7 @@
           "Search"
         ],
         "summary": "Full-text search over articles.",
-        "description": "Searches the title, summary, tags and opinion texts with Russian morphology; an article matches when it holds every word of q. Only articles a reader can open are searched: Published and not under a non-Published parent. The same results for every caller, best match first. Matched words come as separate text runs (match: true), never as markup. q is trimmed and must be 2 to 200 characters (400 search_query_too_short / search_query_too_long); locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1 and is kept within 1 to 100; pageSize is 10 by default, kept within 1 to 50.",
+        "description": "Searches the title, summary, tags and opinion texts with Russian morphology; an article matches when it holds every word of q. Only articles a reader can open are searched: Published and not under a non-Published parent. The same results for every caller, best match first. Matched words come as separate text runs (match: true), never as markup. q is trimmed and must be 2 to 200 characters (400 search_query_too_short / search_query_too_long); locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1 and is kept within 1 to 100; pageSize is 10 by default, kept within 1 to 50. verified=true keeps only the articles verified by scholars (V-08); each result says whether it is (isVerified).",
         "parameters": [
           {
             "name": "q",
@@ -4838,6 +4838,13 @@
             "schema": {
               "type": "integer",
               "format": "int32"
+            }
+          },
+          {
+            "name": "verified",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -8373,6 +8380,7 @@
       "AuthorArticleDto": {
         "required": [
           "id",
+          "isVerified",
           "publishedAt",
           "slug",
           "title",
@@ -8401,6 +8409,9 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "isVerified": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -8822,6 +8833,7 @@
           "canEdit",
           "hasContent",
           "id",
+          "isVerified",
           "locale",
           "slug",
           "status",
@@ -8854,6 +8866,9 @@
             "type": "boolean"
           },
           "canEdit": {
+            "type": "boolean"
+          },
+          "isVerified": {
             "type": "boolean"
           },
           "children": {
@@ -9089,6 +9104,7 @@
       "PopularArticleDto": {
         "required": [
           "id",
+          "isVerified",
           "slug",
           "title"
         ],
@@ -9107,6 +9123,9 @@
           "summary": {
             "type": "string",
             "nullable": true
+          },
+          "isVerified": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -9226,6 +9245,7 @@
       "RecentArticleDto": {
         "required": [
           "id",
+          "isVerified",
           "publishedAt",
           "slug",
           "title",
@@ -9254,6 +9274,9 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "isVerified": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -10038,6 +10061,7 @@
       "SearchResultDto": {
         "required": [
           "id",
+          "isVerified",
           "slug",
           "title"
         ],
@@ -10074,6 +10098,9 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "isVerified": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

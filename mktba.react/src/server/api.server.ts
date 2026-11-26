@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../config';
 import { articleLocaleParams, articleLocaleQuery, type Language } from '../localization/language';
 import { ApiError } from '../shared/api-client/apiError';
 import { AUTHOR_PAGE_PARAM } from '../shared/author';
-import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../shared/search';
+import { searchApiParams, type SearchRequest } from '../shared/search';
 import { TAG_PAGE_PARAM } from '../shared/tag';
 import type {
   ArticleContentDto,
@@ -78,10 +78,8 @@ export const serverApi = {
   getIndexNowKey: () => getJson<IndexNowKeyDto>('/seo/indexnow-key'),
   getRecentArticles: (language: Language) => getJson<RecentArticlesDto>(`/articles/recent${articleLocaleQuery(language)}`),
   getPopularArticles: (language: Language) => getJson<PopularArticlesDto>(`/articles/popular${articleLocaleQuery(language)}`),
-  searchArticles: ({ query, page }: SearchRequest, language: Language) =>
-    getJson<SearchResultsDto>(
-      `/search?${new URLSearchParams({ [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: String(page), ...articleLocaleParams(language) }).toString()}`,
-    ),
+  searchArticles: (request: SearchRequest, language: Language) =>
+    getJson<SearchResultsDto>(`/search?${new URLSearchParams({ ...searchApiParams(request), ...articleLocaleParams(language) }).toString()}`),
   getAuthor: (slug: string) => getJson<PublicProfileDto>(`/authors/${encodeURIComponent(slug)}`),
   getAuthorArticles: (slug: string, page: number, language: Language) =>
     getJson<AuthorArticlesDto>(

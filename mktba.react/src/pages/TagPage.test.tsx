@@ -20,8 +20,8 @@ const tagPage = (overrides: Partial<TagPageDto> = {}): TagPageDto => ({
   page: 1,
   pageSize: 20,
   items: [
-    { id: 2, title: 'Условия намаза', slug: 'salat', summary: 'Кратко о намазе', publishedAt: '2026-11-02T10:00:00Z', updatedAt: '2026-11-05T10:00:00Z' },
-    { id: 1, title: 'Закят', slug: 'zakyat', summary: null, publishedAt: '2026-10-01T10:00:00Z', updatedAt: '2026-10-01T10:00:00Z' },
+    { id: 2, title: 'Условия намаза', slug: 'salat', summary: 'Кратко о намазе', publishedAt: '2026-11-02T10:00:00Z', updatedAt: '2026-11-05T10:00:00Z', isVerified: false },
+    { id: 1, title: 'Закят', slug: 'zakyat', summary: null, publishedAt: '2026-10-01T10:00:00Z', updatedAt: '2026-10-01T10:00:00Z', isVerified: true },
   ],
   ...overrides,
 });
@@ -62,6 +62,7 @@ describe('TagPage', () => {
     const links = within(list).getAllByRole('link');
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['/salat', '/zakyat']);
     expect(list.textContent).toContain('Кратко о намазе');
+    expect(within(list).getAllByRole('listitem').map((item) => item.textContent?.includes('Проверено учёными'))).toEqual([false, true]);
     expect(document.title).toBe('Тег «Фикх» — mktba');
     expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://mktba.ru/tags/fikkh');
     expect(document.querySelector('meta[name="robots"]')).toBeNull();

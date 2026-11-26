@@ -1,6 +1,7 @@
 import { useId, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
+import { VerifiedMark } from '../components/article/VerifiedMark';
 import { SearchForm } from '../components/search/SearchForm';
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import { useNavigationTree } from '../hooks/useNavigationTree';
@@ -18,9 +19,12 @@ const panelClass = 'rounded-2xl border border-[var(--color-border-soft)] bg-whit
 const TreeArticleLink = ({ article }: { article: NavigationArticleDto }) => {
   const localize = useLocalizedPath();
   return article.hasContent ? (
-    <Link to={localize(articleHref(article.slug))} className={linkClass}>
-      {article.title}
-    </Link>
+    <>
+      <Link to={localize(articleHref(article.slug))} className={linkClass}>
+        {article.title}
+      </Link>
+      {article.isVerified && <VerifiedMark />}
+    </>
   ) : (
     <span className="text-[var(--color-ink-muted)]">{article.title}</span>
   );
@@ -100,6 +104,7 @@ const RecentList = ({ title, articles, dateTemplate, dateOf, emptyText }: Recent
               <Link to={localize(articleHref(article.slug))} className={`font-medium ${linkClass}`}>
                 {article.title}
               </Link>
+              {article.isVerified && <VerifiedMark />}
               {article.summary && (
                 <p className="mb-0 mt-1 line-clamp-2 text-sm leading-6 text-[var(--color-ink-muted)]">{article.summary}</p>
               )}
@@ -137,6 +142,7 @@ const PopularList = ({ articles }: { articles: PopularArticleDto[] }) => {
             <Link to={localize(articleHref(article.slug))} className={`font-medium ${linkClass}`}>
               {article.title}
             </Link>
+            {article.isVerified && <VerifiedMark />}
             {article.summary && (
               <p className="mb-0 mt-1 line-clamp-2 text-sm leading-6 text-[var(--color-ink-muted)]">{article.summary}</p>
             )}

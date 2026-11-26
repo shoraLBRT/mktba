@@ -8,6 +8,7 @@ import {
   profilePageNode,
   serializeJsonLd,
   structuredDataGraph,
+  webPageNode,
   webSiteNode,
   type ArticleFacts,
   type AuthorFacts,
@@ -41,8 +42,9 @@ type ArticleStructuredDataProps = {
 };
 
 /**
- * An article page's structured data: `Organization`, `WebSite`, `Article`, its `BreadcrumbList` and
- * a `Person` for each author with a public page.
+ * An article page's structured data: `Organization`, `WebSite`, `Article`, its `BreadcrumbList`, a
+ * `Person` for each author and each reviewer with a public page, and, while scholars confirmed it, the
+ * `WebPage` with `reviewedBy` (V-08, #124).
  */
 export const ArticleStructuredData = ({ article, breadcrumbs }: ArticleStructuredDataProps) => {
   const site = useSiteFacts();
@@ -52,8 +54,12 @@ export const ArticleStructuredData = ({ article, breadcrumbs }: ArticleStructure
         organizationNode(site),
         webSiteNode(site),
         articleNode(site, article),
+        webPageNode(site, article),
         breadcrumbListNode(site.siteUrl, article.path, breadcrumbs),
         ...(article.authors ?? []).map((author) => personNode(site, author)),
+        ...(article.reviewers ?? [])
+          .filter((reviewer) => reviewer.path && !article.authors?.some((author) => author.path === reviewer.path))
+          .map((reviewer) => personNode(site, { name: reviewer.name, path: reviewer.path! })),
       ])}
     />
   );

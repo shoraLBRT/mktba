@@ -64,6 +64,17 @@ export type BreadcrumbListNode = NodeRef & {
   itemListElement: ListItem[];
 };
 
+export type WebPageNode = NodeRef & {
+  '@type': 'WebPage';
+  name: string;
+  url: string;
+  inLanguage: string;
+  isPartOf: NodeRef;
+  mainEntity: NodeRef;
+  reviewedBy: (NodeRef | { '@type': 'Person'; name: string })[];
+  lastReviewed: string;
+};
+
 export type PersonNode = NodeRef & {
   '@type': 'Person';
   name: string;
@@ -86,6 +97,7 @@ export type StructuredDataNode =
   | OrganizationNode
   | WebSiteNode
   | ArticleNode
+  | WebPageNode
   | BreadcrumbListNode
   | PersonNode
   | ProfilePageNode;
@@ -146,7 +158,15 @@ export type ArticleFacts = {
   updatedAt?: string | null;
   /** The credited users who have a public author page; none: the site is the author. */
   authors?: AuthorFacts[];
+  /**
+   * The scholars who confirmed the current version (V-08, #124: `reviewersOf`); `path` only for
+   * those with a public author page. None: no `WebPage` node.
+   */
+  reviewers?: ReviewerFacts[];
 };
+
+/** A scholar who reviewed the article: the name, their author page if any, the date of the mark. */
+export type ReviewerFacts = { name: string; path?: string | null; reviewedAt: string };
 
 export const articleNode = (site: SiteFacts, article: ArticleFacts): ArticleNode => {
   const url = siteUrlFor(article.path, site.siteUrl);
@@ -166,6 +186,30 @@ export const articleNode = (site: SiteFacts, article: ArticleFacts): ArticleNode
       : { '@id': organizationId(site.siteUrl) },
     publisher: { '@id': organizationId(site.siteUrl) },
     isPartOf: { '@id': webSiteId(site.siteUrl) },
+  };
+};
+
+/**
+ * The article page as a `WebPage` (V-08, #124), only while scholars confirmed it: `reviewedBy` and
+ * `lastReviewed` belong to `WebPage`, not to `Article`, so the page node carries them and names the
+ * article its `mainEntity`. A reviewer with an author page is the `Person` of that page (same
+ * `@id`); one without is a `Person` with only the name. Null without reviewers.
+ */
+export const webPageNode = (site: SiteFacts, article: ArticleFacts): WebPageNode | null => {
+  const reviewers = article.reviewers ?? [];
+  if (reviewers.length === 0) return null;
+  const url = siteUrlFor(article.path, site.siteUrl);
+  return {
+    '@id': `${url}#webpage`,
+    '@type': 'WebPage',
+    name: article.headline,
+    url,
+    inLanguage: SITE_LANGUAGE,
+    isPartOf: { '@id': webSiteId(site.siteUrl) },
+    mainEntity: { '@id': `${url}#article` },
+    reviewedBy: reviewers.map((reviewer) =>
+      reviewer.path ? { '@id': personId(site.siteUrl, reviewer.path) } : { '@type': 'Person', name: reviewer.name }),
+    lastReviewed: reviewers.map((reviewer) => reviewer.reviewedAt).sort().at(-1)!,
   };
 };
 

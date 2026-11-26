@@ -15,6 +15,7 @@ const article = (id: number, title: string, slug: string, children: NavigationAr
   status: 'Published',
   hasContent,
   canEdit: false,
+  isVerified: false,
   children,
 });
 
@@ -25,19 +26,19 @@ const TREE = [
 
 const RECENT: RecentArticlesDto = {
   new: [
-    { id: 3, title: 'Закят', slug: 'zakyat', summary: 'Обязательная милостыня', publishedAt: '2026-11-10T09:00:00Z', updatedAt: '2026-11-09T09:00:00Z' },
-    { id: 2, title: 'Салат', slug: 'salat', summary: null, publishedAt: '2026-11-01T09:00:00Z', updatedAt: '2026-11-15T09:00:00Z' },
+    { id: 3, title: 'Закят', slug: 'zakyat', summary: 'Обязательная милостыня', publishedAt: '2026-11-10T09:00:00Z', updatedAt: '2026-11-09T09:00:00Z', isVerified: true },
+    { id: 2, title: 'Салат', slug: 'salat', summary: null, publishedAt: '2026-11-01T09:00:00Z', updatedAt: '2026-11-15T09:00:00Z', isVerified: false },
   ],
   updated: [
-    { id: 2, title: 'Салат', slug: 'salat', summary: null, publishedAt: '2026-11-01T09:00:00Z', updatedAt: '2026-11-15T09:00:00Z' },
+    { id: 2, title: 'Салат', slug: 'salat', summary: null, publishedAt: '2026-11-01T09:00:00Z', updatedAt: '2026-11-15T09:00:00Z', isVerified: false },
   ],
 };
 
 const POPULAR: PopularArticlesDto = {
   days: 30,
   items: [
-    { id: 2, title: 'Салат', slug: 'salat', summary: 'Пятикратная молитва' },
-    { id: 3, title: 'Закят', slug: 'zakyat', summary: null },
+    { id: 2, title: 'Салат', slug: 'salat', summary: 'Пятикратная молитва', isVerified: false },
+    { id: 3, title: 'Закят', slug: 'zakyat', summary: null, isVerified: true },
   ],
 };
 
@@ -90,6 +91,8 @@ describe('HomePage', () => {
     const updated = within(region('Обновлённые статьи')).getAllByRole('listitem');
     expect(updated).toHaveLength(1);
     expect(updated[0].textContent).toMatch(/Обновлено 15 ноября 2026/);
+    // V-08 (#124): the verified article carries the mark, the other does not.
+    expect(fresh.map((item) => item.textContent?.includes('Проверено учёными'))).toEqual([true, false]);
   });
 
   it('given viewed articles, when rendered, then lists the popular ones in the order of the server', () => {
@@ -99,6 +102,7 @@ describe('HomePage', () => {
     expect(popular.map((item) => within(item).getByRole('link').textContent)).toEqual(['Салат', 'Закят']);
     expect(within(popular[0]).getByRole('link').getAttribute('href')).toBe('/salat');
     expect(popular[0].textContent).toContain('Пятикратная молитва');
+    expect(popular.map((item) => item.textContent?.includes('Проверено учёными'))).toEqual([false, true]);
   });
 
   it('given nothing published yet, when rendered, then says so and leaves the updated and popular lists out', () => {

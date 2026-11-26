@@ -11,6 +11,7 @@ const node = (title: string, children: NavigationArticleDto[] = [], hasContent =
   status: 'Published',
   hasContent,
   canEdit: false,
+  isVerified: false,
   children,
 });
 

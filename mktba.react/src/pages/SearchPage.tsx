@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
 import { PageLinks } from '../components/PageLinks';
+import { VerifiedMark } from '../components/article/VerifiedMark';
 import { SearchForm } from '../components/search/SearchForm';
 import { useFormat, useLanguage, useLocale, useLocalizedPath } from '../localization/hooks';
 import { searchArticles } from '../services/Article/articleService';
@@ -45,6 +46,7 @@ const ResultItem = ({ result }: { result: SearchResultDto }) => {
         <Link to={localize(searchResultHref(result))} className={linkClass}>
           <Highlighted segments={result.title} />
         </Link>
+        {result.isVerified && <VerifiedMark />}
       </h2>
       {result.summary && (
         <p className="mb-0 mt-2 text-sm leading-6 text-[var(--color-ink-muted)]">
@@ -61,7 +63,7 @@ const ResultItem = ({ result }: { result: SearchResultDto }) => {
 };
 
 /** Nothing matched: say so plainly and suggest what to try. */
-const NothingFound = ({ query }: { query: string }) => {
+const NothingFound = ({ query, verified }: { query: string; verified: boolean }) => {
   const t = useLocale().search.empty;
   const localize = useLocalizedPath();
   const [beforeQuery, afterQuery = ''] = t.title.split('{query}');
@@ -80,17 +82,25 @@ const NothingFound = ({ query }: { query: string }) => {
         ))}
       </ul>
       <p className={`${noteClass} mt-4`}>
-        <Link to={localize('/')} className={linkClass}>
-          {t.homeLink}
-        </Link>
+        {verified ? (
+          // Only verified articles were searched: the same words over all of them come first.
+          <Link to={localize(searchHref(query))} className={linkClass}>
+            {t.allArticles}
+          </Link>
+        ) : (
+          <Link to={localize('/')} className={linkClass}>
+            {t.homeLink}
+          </Link>
+        )}
       </p>
     </div>
   );
 };
 
 /**
- * The search results page (R-10, #46), `/search?q=…&page=…`: the query field, the articles found
- * with the matched words marked, paging, and a plain «ничего не найдено» state. The request lives
+ * The search results page (R-10, #46), `/search?q=…&page=…&verified=1`: the query field with the
+ * «только проверенные» filter (V-08, #124), the articles found with the matched words marked and the
+ * «Проверено учёными» mark, paging, and a plain «ничего не найдено» state. The request lives
  * in the URL, so a results page can be shared and the server renders it.
  */
 const SearchPage = () => {
@@ -115,7 +125,7 @@ const SearchPage = () => {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-10 sm:px-8">
       <h1 className="m-0 text-3xl font-bold tracking-[-0.03em] text-[var(--color-ink-strong)]">{t.title}</h1>
-      <SearchForm key={request.query} initialQuery={request.query} />
+      <SearchForm key={`${request.query}|${request.verified}`} initialQuery={request.query} verifiedFilter={request.verified} />
 
       <div id={statusId} role="status" aria-live="polite" className="space-y-6">
         {!searchable && <p className={noteClass}>{prompt}</p>}
@@ -128,7 +138,7 @@ const SearchPage = () => {
           </p>
         )}
         {searchable && !isError && isPending && <p className={noteClass}>{t.loading}</p>}
-        {searchable && results && results.total === 0 && <NothingFound query={results.query} />}
+        {searchable && results && results.total === 0 && <NothingFound query={results.query} verified={request.verified} />}
         {searchable && results && results.total > 0 && (
           <p className={noteClass}>{format.plural(t.found, results.total)}</p>
         )}
@@ -145,7 +155,7 @@ const SearchPage = () => {
             label={t.pagination.label}
             page={results.page}
             pageCount={searchPageCount(results.total, results.pageSize)}
-            hrefFor={(page) => localize(searchHref(results.query, page))}
+            hrefFor={(page) => localize(searchHref(results.query, page, request.verified))}
           />
         </>
       )}

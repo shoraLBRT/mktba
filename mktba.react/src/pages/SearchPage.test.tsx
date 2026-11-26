@@ -20,8 +20,9 @@ const results = (overrides: Partial<SearchResultsDto> = {}): SearchResultsDto =>
       summary: [{ text: 'Кратко о ', match: false }, { text: 'намазе', match: true }],
       snippet: [{ text: '<img src=x onerror=alert(1)> ', match: false }, { text: 'намаз', match: true }, { text: ' совершается…', match: false }],
       paragraphId: 7,
+      isVerified: true,
     },
-    { id: 2, slug: 'zakyat', title: [{ text: 'Закят', match: false }], summary: null, snippet: null, paragraphId: null },
+    { id: 2, slug: 'zakyat', title: [{ text: 'Закят', match: false }], summary: null, snippet: null, paragraphId: null, isVerified: false },
   ],
   ...overrides,
 });
@@ -35,7 +36,7 @@ const CurrentLocation = () => {
 const renderSearch = (url: string, data?: SearchResultsDto) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   if (data) {
-    client.setQueryData(searchQueryKey({ query: data.query, page: data.page }, 'ru'), data);
+    client.setQueryData(searchQueryKey({ query: data.query, page: data.page, verified: url.includes('verified=1') }, 'ru'), data);
   }
 
   return render(
@@ -116,5 +117,36 @@ describe('SearchPage', () => {
     fireEvent.submit(screen.getByRole('search'));
 
     expect(screen.getByTestId('location').textContent).toBe('/search?q=%D0%B7%D0%B0%D0%BA%D1%8F%D1%82');
+  });
+
+  it('given a verified and an unverified result, when rendered, then only the verified one carries the mark (V-08, #124)', () => {
+    renderSearch('/search?q=намаз', results());
+
+    const items = within(screen.getByRole('list', { name: 'Результаты поиска' })).getAllByRole('listitem');
+    expect(items[0].textContent).toContain('Проверено учёными');
+    expect(items[1].textContent).not.toContain('Проверено учёными');
+  });
+
+  it('given the filter off, when it is ticked, then the URL asks for verified articles from the first page', () => {
+    renderSearch('/search?q=намаз&page=2', results({ total: 25, page: 2 }));
+    const filter = screen.getByRole('checkbox', { name: 'Только проверенные учёными' }) as HTMLInputElement;
+    expect(filter.checked).toBe(false);
+
+    fireEvent.click(filter);
+
+    expect(screen.getByTestId('location').textContent).toBe('/search?q=%D0%BD%D0%B0%D0%BC%D0%B0%D0%B7&verified=1');
+  });
+
+  it('given the filter on, when rendered, then it is ticked, paging keeps it and an empty result offers all articles', () => {
+    const { unmount } = renderSearch('/search?q=намаз&page=2&verified=1', results({ total: 25, page: 2 }));
+
+    expect((screen.getByRole('checkbox', { name: 'Только проверенные учёными' }) as HTMLInputElement).checked).toBe(true);
+    const paging = screen.getByRole('navigation', { name: 'Страницы результатов' });
+    expect(within(paging).getByRole('link', { name: 'Вперёд →' }).getAttribute('href')).toBe('/search?q=%D0%BD%D0%B0%D0%BC%D0%B0%D0%B7&page=3&verified=1');
+    unmount();
+
+    renderSearch('/search?q=намаз&verified=1', results({ total: 0, items: [] }));
+    expect(within(screen.getByRole('status')).getByRole('link', { name: 'Искать среди всех статей' }).getAttribute('href'))
+      .toBe('/search?q=%D0%BD%D0%B0%D0%BC%D0%B0%D0%B7');
   });
 });

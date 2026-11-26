@@ -33,6 +33,7 @@ import { useInternalLinkClicks, useOpinionImpressions, useScrollDepth } from '..
 import { ApiError, extractApiErrorMessage } from '../shared/api-client/apiError';
 import NotFoundPage from './NotFoundPage';
 import { articleHref, authorHref, localizedArticleHref } from '../shared/slug';
+import { reviewersOf } from '../shared/articleVerification';
 import { feedbackHref } from '../shared/feedback';
 import { findAdjacentArticles, findArticlePath } from '../shared/articleTree';
 import { estimateReadingMinutes } from '../shared/readingTime';
@@ -143,6 +144,7 @@ const ArticlePage: React.FC = () => {
         slug: child.slug,
         title: child.title,
         hasContent: child.hasContent,
+        isVerified: child.isVerified,
       })),
     [articlePath],
   );
@@ -269,6 +271,11 @@ const ArticlePage: React.FC = () => {
               updatedAt: articleContent.updatedAt,
               authors: (articleContent.authors ?? []).flatMap((author) =>
                 author.slug ? [{ name: author.displayName, path: localizedPath(language, authorHref(author.slug)) }] : []),
+              reviewers: reviewersOf(verification?.marks ?? []).map((reviewer) => ({
+                name: reviewer.name,
+                path: reviewer.slug ? localizedPath(language, authorHref(reviewer.slug)) : null,
+                reviewedAt: reviewer.reviewedAt,
+              })),
             }}
             breadcrumbs={breadcrumbSteps}
           />

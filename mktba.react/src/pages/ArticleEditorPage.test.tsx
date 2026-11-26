@@ -450,7 +450,7 @@ describe('ArticleEditorPage', () => {
   });
 
   it('given a picked article, when the link is inserted, then the title becomes a link to it, selected, and is saved as Markdown', async () => {
-    const target: NavigationArticleDto = { id: 9, title: 'Пост', slug: 'post', locale: 'ru', status: 'Published', hasContent: true, canEdit: true };
+    const target: NavigationArticleDto = { id: 9, title: 'Пост', slug: 'post', locale: 'ru', status: 'Published', hasContent: true, canEdit: true, isVerified: false };
     vi.mocked(createArticleContent).mockResolvedValue({ ...article, id: 8, slug: 'novaya' });
     renderAt('/admin/articles/new', [target]);
     fireEvent.change(titleField(), { target: { value: 'Новая' } });

@@ -5103,7 +5103,7 @@ export interface paths {
         };
         /**
          * Full-text search over articles.
-         * @description Searches the title, summary, tags and opinion texts with Russian morphology; an article matches when it holds every word of q. Only articles a reader can open are searched: Published and not under a non-Published parent. The same results for every caller, best match first. Matched words come as separate text runs (match: true), never as markup. q is trimmed and must be 2 to 200 characters (400 search_query_too_short / search_query_too_long); locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1 and is kept within 1 to 100; pageSize is 10 by default, kept within 1 to 50.
+         * @description Searches the title, summary, tags and opinion texts with Russian morphology; an article matches when it holds every word of q. Only articles a reader can open are searched: Published and not under a non-Published parent. The same results for every caller, best match first. Matched words come as separate text runs (match: true), never as markup. q is trimmed and must be 2 to 200 characters (400 search_query_too_short / search_query_too_long); locale defaults to ru (an unsupported one answers 400 locale_unsupported); page starts at 1 and is kept within 1 to 100; pageSize is 10 by default, kept within 1 to 50. verified=true keeps only the articles verified by scholars (V-08); each result says whether it is (isVerified).
          */
         get: {
             parameters: {
@@ -5112,6 +5112,7 @@ export interface paths {
                     locale?: string;
                     page?: number;
                     pageSize?: number;
+                    verified?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -6794,6 +6795,7 @@ export interface components {
             publishedAt: string;
             /** Format: date-time */
             updatedAt: string;
+            isVerified: boolean;
         };
         AuthorArticleTotalDto: {
             /** Format: int32 */
@@ -6929,6 +6931,7 @@ export interface components {
             status: components["schemas"]["ArticleStatus"];
             hasContent: boolean;
             canEdit: boolean;
+            isVerified: boolean;
             children?: components["schemas"]["NavigationArticleDto"][] | null;
         };
         OpinionCreateDto: {
@@ -6992,6 +6995,7 @@ export interface components {
             title: string;
             slug: string;
             summary?: string | null;
+            isVerified: boolean;
         };
         PopularArticlesDto: {
             /** Format: int32 */
@@ -7034,6 +7038,7 @@ export interface components {
             publishedAt: string;
             /** Format: date-time */
             updatedAt: string;
+            isVerified: boolean;
         };
         RecentArticlesDto: {
             new: components["schemas"]["RecentArticleDto"][];
@@ -7276,6 +7281,7 @@ export interface components {
             snippet?: components["schemas"]["SearchTextSegmentDto"][] | null;
             /** Format: int32 */
             paragraphId?: number | null;
+            isVerified: boolean;
         };
         SearchResultsDto: {
             query: string;

@@ -1,6 +1,6 @@
 import { articleLocaleParams, articleLocaleQuery, type Language } from '../../localization/language';
 import apiClient from '../../shared/api-client/ApiClient';
-import { SEARCH_PAGE_PARAM, SEARCH_QUERY_PARAM, type SearchRequest } from '../../shared/search';
+import { searchApiParams, type SearchRequest } from '../../shared/search';
 import type {
   ArticleContentCreateDto,
   ArticleContentDto,
@@ -39,9 +39,9 @@ export const getPopularArticles = async (language: Language): Promise<PopularArt
 };
 
 /** One page of the full-text search over a language's published articles (R-10, #46; I-10, #114). */
-export const searchArticles = async ({ query, page }: SearchRequest, language: Language): Promise<SearchResultsDto> => {
+export const searchArticles = async (request: SearchRequest, language: Language): Promise<SearchResultsDto> => {
   const response = await apiClient.get<SearchResultsDto>('/search', {
-    params: { [SEARCH_QUERY_PARAM]: query, [SEARCH_PAGE_PARAM]: page, ...articleLocaleParams(language) },
+    params: { ...searchApiParams(request), ...articleLocaleParams(language) },
   });
   return response.data;
 };

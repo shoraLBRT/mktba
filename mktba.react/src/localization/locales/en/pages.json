@@ -31,7 +31,8 @@
     "form": {
       "label": "Search articles",
       "placeholder": "What to look for: salah, conditions of wudu…",
-      "submit": "Search"
+      "submit": "Search",
+      "verifiedOnly": "Only articles checked by scholars"
     },
     "dialog": {
       "title": "Search articles",
@@ -58,7 +59,8 @@
         "remove some words: an article must contain every word of the query;",
         "replace a word with a synonym or another spelling of the term."
       ],
-      "homeLink": "Browse the sections on the home page"
+      "homeLink": "Browse the sections on the home page",
+      "allArticles": "Search all articles"
     },
     "pagination": {
       "label": "Result pages",
@@ -118,6 +120,8 @@
     "print": "Print",
     "verification": {
       "title": "Checked by scholars",
+      "mark": "Checked by scholars",
+      "markTitle": "Scholars confirmed the current version of the article, and none of them found errors in it",
       "confirmed": { "one": "confirmed by {count} scholar", "other": "confirmed by {count} scholars" },
       "errors": { "one": "errors found by {count} scholar", "other": "errors found by {count} scholars" },
       "previous": { "one": "{count} mark for a previous version", "other": "{count} marks for a previous version" },
