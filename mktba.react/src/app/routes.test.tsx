@@ -42,7 +42,7 @@ vi.mock('../services/notificationService', () => ({ getUnreadNotificationCount: 
 
 const signInAs = (role: UserRole) => {
   setSignedIn({ accessToken: 'token-1', email: `${role.toLowerCase()}@mktba.test` });
-  vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: `${role.toLowerCase()}@mktba.test`, role });
+  vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: `${role.toLowerCase()}@mktba.test`, role, emailConfirmed: true });
 };
 
 const CurrentPath = () => <p data-testid="path">{useLocation().pathname}</p>;

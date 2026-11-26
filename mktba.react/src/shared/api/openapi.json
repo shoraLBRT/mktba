@@ -3064,6 +3064,226 @@
         }
       }
     },
+    "/auth/sign-up": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Opens a reader account and emails a confirmation link. Never creates an author or an admin.",
+        "description": "Answers 202 for a new address and for one that already has an account alike, so it does not tell which addresses are registered; the owner of a known address gets a note instead of a second account. Does not sign in: the reader signs in with POST /auth/login, also before confirming. 403 reader_sign_up_closed while sign-up is off (Auth:ReaderSignUpEnabled) or before the first admin exists. 400 email_and_password_required, email_invalid, password_too_short, password_too_long, password_too_simple, profile_display_name_invalid. The website field is a trap for bots and must stay empty.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReaderSignUpRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/confirm-email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Confirms an address with the token from the confirmation email.",
+        "description": "The token works once: 400 account_token_invalid (unknown or used) or account_token_expired.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/confirm-email/resend": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Emails the signed-in user another confirmation link; nothing when the address is confirmed.",
+        "description": "429 account_email_limit_reached after Auth:AccountEmailsPerHour emails in the last hour.",
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password-reset": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Emails a password reset link to the address, if it has an account.",
+        "description": "Answers 202 whether the address has an account or not. 400 email_and_password_required or email_invalid for a missing or malformed address. The website field is a trap for bots and must stay empty.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password-reset/confirm": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sets a new password with the token from the reset email, and ends every session of the account.",
+        "description": "The token works once: 400 account_token_invalid or account_token_expired. The password follows the registration rules (password_too_short, password_too_long, password_too_simple). Does not sign in.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/refresh": {
       "post": {
         "tags": [
@@ -5992,11 +6212,15 @@
       },
       "AdminAuthStatusDto": {
         "required": [
+          "readerSignUpEnabled",
           "requiresBootstrapAdmin"
         ],
         "type": "object",
         "properties": {
           "requiresBootstrapAdmin": {
+            "type": "boolean"
+          },
+          "readerSignUpEnabled": {
             "type": "boolean"
           }
         },
@@ -8736,6 +8960,18 @@
         },
         "additionalProperties": false
       },
+      "ConfirmEmailRequestDto": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "ContentAnalyticsDto": {
         "required": [
           "articlesWithoutViews",
@@ -8849,6 +9085,7 @@
       "CurrentUserDto": {
         "required": [
           "email",
+          "emailConfirmed",
           "id",
           "role"
         ],
@@ -8863,6 +9100,9 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole"
+          },
+          "emailConfirmed": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -9494,6 +9734,38 @@
         },
         "additionalProperties": false
       },
+      "PasswordResetConfirmDto": {
+        "required": [
+          "password",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PasswordResetRequestDto": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PopularArticleDto": {
         "required": [
           "id",
@@ -9631,6 +9903,30 @@
           "reachedDepth100": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReaderSignUpRequestDto": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

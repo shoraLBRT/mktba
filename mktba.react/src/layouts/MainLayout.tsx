@@ -197,9 +197,17 @@ const MainLayout: React.FC = () => {
             data-testid="site-footer"
           >
             <span>{locale.brand.sidebarCaption}</span>
-            <Link to={feedbackLink} className="text-[var(--color-brand-forest)] hover:underline">
-              {locale.layout.footer.feedback}
-            </Link>
+            <span className="flex flex-wrap gap-x-6 gap-y-2">
+              {/* Readers' sign-in (U-05, #126): Russian only, like the admin. */}
+              {isAdmin ? null : (
+                <Link to="/login" className="text-[var(--color-brand-forest)] hover:underline">
+                  {locale.layout.footer.signIn}
+                </Link>
+              )}
+              <Link to={feedbackLink} className="text-[var(--color-brand-forest)] hover:underline">
+                {locale.layout.footer.feedback}
+              </Link>
+            </span>
           </footer>
         </div>
       </div>

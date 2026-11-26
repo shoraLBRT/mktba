@@ -23,7 +23,8 @@
     },
     "footer": {
       "label": "Site footer",
-      "feedback": "Feedback"
+      "feedback": "Feedback",
+      "signIn": "Sign in"
     }
   },
   "common": {

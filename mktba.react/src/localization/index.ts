@@ -29,7 +29,8 @@ export const dictionaries = loadedDictionaries as typeof loadedDictionaries & {
     & { articleReview: typeof import('./locales/ru/admin/articleReview.json') }
     & { articleRemarks: typeof import('./locales/ru/admin/articleRemarks.json') }
     & { articleTranslation: typeof import('./locales/ru/admin/articleTranslation.json') }
-    & { notifications: typeof import('./locales/ru/admin/notifications.json') };
+    & { notifications: typeof import('./locales/ru/admin/notifications.json') }
+    & { account: typeof import('./locales/ru/admin/account.json') };
 };
 
 export type SupportedLocale = keyof typeof dictionaries;
