@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
 using Mktba.Domain.Entities;
@@ -24,7 +25,8 @@ namespace Mktba.Application.Services.Verification;
 /// Defaults chosen by the agent, open for the owner in #118: only an applicant who is still a reader
 /// or an author is approved (a role changed by hand in between is left to the users page); a refusal
 /// and a revocation need a reason the applicant sees; a refused or revoked application's documents
-/// are deleted at once, an approved one keeps them for the admins (until a revocation); after a
+/// are deleted right after the decision is saved (never before: a decision that loses a race leaves
+/// them in place), an approved one keeps them for the admins (until a revocation); after a
 /// refusal or a revocation the user may apply again. The profile's self-declared degree and
 /// institution are not touched.
 /// </para>
@@ -42,10 +44,17 @@ public sealed class ScholarApplicationReviewService
     private readonly TimeProvider _clock;
     private readonly UserAdminService _userAdmin;
     private readonly AuditLogRepository _auditLog;
+    private readonly ILogger<ScholarApplicationReviewService> _logger;
 
     public ScholarApplicationReviewService(
-        MktbaDbContext db, IFileStorage storage, TimeProvider clock, UserAdminService userAdmin, AuditLogRepository auditLog)
+        MktbaDbContext db,
+        IFileStorage storage,
+        TimeProvider clock,
+        UserAdminService userAdmin,
+        AuditLogRepository auditLog,
+        ILogger<ScholarApplicationReviewService> logger)
     {
+        _logger = logger;
         _db = db;
         _storage = storage;
         _clock = clock;
@@ -117,12 +126,13 @@ public sealed class ScholarApplicationReviewService
         EnsurePending(application);
 
         var now = _clock.GetUtcNow().UtcDateTime;
-        await DeleteDocumentsAsync(application, now, cancellationToken);
+        var files = ScholarApplicationService.DetachDocuments(_db, application);
         application.Status = ScholarApplicationStatus.Rejected;
         application.ClosedAt = now;
         application.DecisionReason = text;
         _auditLog.Add(Entry(AuditAction.ScholarApplicationRejected, adminId, application.UserId, now));
         await SaveAsync(AppErrors.ScholarApplicationNotPending, cancellationToken);
+        await ScholarApplicationService.DeleteDetachedFilesAsync(_db, _storage, _clock, _logger, files);
         return ToReview(application);
     }
 
@@ -145,7 +155,7 @@ public sealed class ScholarApplicationReviewService
         }
 
         var now = _clock.GetUtcNow().UtcDateTime;
-        await DeleteDocumentsAsync(application, now, cancellationToken);
+        var files = ScholarApplicationService.DetachDocuments(_db, application);
         application.Status = ScholarApplicationStatus.Revoked;
         application.RevokedAt = now;
         application.DecisionReason = text;
@@ -154,6 +164,7 @@ public sealed class ScholarApplicationReviewService
             ? before
             : UserRole.Reader;
         await SaveThroughRoleChangeAsync(application.UserId, role, adminId, cancellationToken, AppErrors.ScholarApplicationNotApproved);
+        await ScholarApplicationService.DeleteDetachedFilesAsync(_db, _storage, _clock, _logger, files);
         return ToReview(application);
     }
 
@@ -178,22 +189,6 @@ public sealed class ScholarApplicationReviewService
         {
             throw new ConflictException(AppErrors.ScholarApplicationNotPending);
         }
-    }
-
-    /// <summary>
-    /// The files go first, as with a withdrawal: if the save fails afterwards, a second try finishes
-    /// the job (deleting a missing file is no error).
-    /// </summary>
-    private async Task DeleteDocumentsAsync(ScholarApplication application, DateTime now, CancellationToken cancellationToken)
-    {
-        foreach (var document in application.Documents)
-        {
-            await _storage.DeleteAsync(document.StoredFile.Name, cancellationToken);
-            document.StoredFile.DeletedAt = now;
-        }
-
-        _db.ScholarApplicationDocuments.RemoveRange(application.Documents);
-        application.Documents.Clear();
     }
 
     private async Task SaveThroughRoleChangeAsync(

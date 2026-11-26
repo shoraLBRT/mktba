@@ -1,9 +1,12 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Mktba.Application.Configuration;
 using Mktba.Application.Exceptions;
 using Mktba.Application.Services;
+using Mktba.Application.Services.Uploads;
 using Mktba.Application.Services.Verification;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Data;
@@ -18,13 +21,21 @@ public sealed class ScholarApplicationReviewTests : IDisposable
     private static readonly DateTime Now = new(2026, 11, 26, 10, 0, 0, DateTimeKind.Utc);
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"mktba-scholar-review-tests-{Guid.NewGuid():N}");
-    private readonly MktbaDbContext _db = TestDbHelper.CreateInMemoryContext();
+    private readonly string _databaseName = Guid.NewGuid().ToString();
+    private readonly RaceFirst _race;
+    private readonly MktbaDbContext _db;
     private readonly FeedbackTests.FakeClock _clock = new(Now);
-    private readonly LocalFileStorage _storage;
+    private readonly FlakyDeleteStorage _storage;
 
     public ScholarApplicationReviewTests()
     {
-        _storage = new LocalFileStorage(_root);
+        _storage = new FlakyDeleteStorage(new LocalFileStorage(_root));
+        _race = new RaceFirst(_databaseName);
+        _db = new MktbaDbContext(new DbContextOptionsBuilder<MktbaDbContext>()
+            .UseInMemoryDatabase(_databaseName)
+            .AddInterceptors(_race)
+            .Options);
+        _db.Database.EnsureCreated();
     }
 
     public void Dispose()
@@ -209,10 +220,118 @@ public sealed class ScholarApplicationReviewTests : IDisposable
         (await Review().GetAsync(approved.Id, default)).CanRevoke.Should().BeFalse();
     }
 
-    private ScholarApplicationService Applications() => new(_db, _storage, _clock, Options.Create(new UploadOptions()));
+    [Fact]
+    public async Task GivenWithdrawalThatLosesToAnApproval_WhenSaved_ThenItIsRefusedAndTheFilesStay()
+    {
+        var applied = await ApplyAsync(UserRole.Reader);
+        var file = await _db.StoredFiles.AsNoTracking().SingleAsync();
+        _race.Next = ScholarApplicationStatus.Approved;
+
+        var act = () => Applications().WithdrawAsync(applied.UserId, default);
+
+        (await act.Should().ThrowAsync<ConflictException>()).Which.Error.Code.Should().Be("scholar_application_not_pending");
+        await AssertDocumentKeptAsync(applied.Id, file.Name, ScholarApplicationStatus.Approved);
+    }
+
+    [Fact]
+    public async Task GivenRefusalThatLosesToAnApproval_WhenSaved_ThenItIsRefusedAndTheFilesStay()
+    {
+        var adminId = await UserAsync(UserRole.Admin);
+        var applied = await ApplyAsync(UserRole.Reader);
+        var file = await _db.StoredFiles.AsNoTracking().SingleAsync();
+        _race.Next = ScholarApplicationStatus.Approved;
+
+        var act = () => Review().RejectAsync(applied.Id, "Скан нечитаем.", adminId, default);
+
+        (await act.Should().ThrowAsync<ConflictException>()).Which.Error.Code.Should().Be("scholar_application_not_pending");
+        await AssertDocumentKeptAsync(applied.Id, file.Name, ScholarApplicationStatus.Approved);
+    }
+
+    [Fact]
+    public async Task GivenStorageThatFailsToDelete_WhenRefused_ThenTheDecisionStandsAndTheCleanupRemovesTheFileLater()
+    {
+        var adminId = await UserAsync(UserRole.Admin);
+        var applied = await ApplyAsync(UserRole.Reader);
+        var name = (await _db.StoredFiles.AsNoTracking().SingleAsync()).Name;
+        _storage.FailDeletes = true;
+
+        var review = await Review().RejectAsync(applied.Id, "Скан нечитаем.", adminId, default);
+
+        review.Application.Status.Should().Be(ScholarApplicationStatus.Rejected);
+        (await _db.ScholarApplicationDocuments.AsNoTracking().CountAsync()).Should().Be(0);
+        (await _db.StoredFiles.AsNoTracking().SingleAsync()).DeletedAt.Should().BeNull();
+        (await _storage.OpenReadAsync(name, default)).Should().NotBeNull().And.Subject!.Dispose();
+
+        _storage.FailDeletes = false;
+        var run = await new UploadCleanupService(
+                _db, _storage, _clock, Options.Create(new UploadOptions()), NullLogger<UploadCleanupService>.Instance)
+            .RunAsync();
+
+        run.ScholarDocumentsDeleted.Should().Be(1);
+        (await _storage.OpenReadAsync(name, default)).Should().BeNull();
+        (await _db.StoredFiles.AsNoTracking().SingleAsync()).DeletedAt.Should().Be(Now);
+    }
+
+    /// <summary>The application is as the winner left it, its document row and file are there.</summary>
+    private async Task AssertDocumentKeptAsync(int applicationId, string fileName, ScholarApplicationStatus status)
+    {
+        await using var fresh = new MktbaDbContext(new DbContextOptionsBuilder<MktbaDbContext>().UseInMemoryDatabase(_databaseName).Options);
+        (await fresh.ScholarApplications.SingleAsync(application => application.Id == applicationId)).Status.Should().Be(status);
+        (await fresh.ScholarApplicationDocuments.CountAsync(document => document.ApplicationId == applicationId)).Should().Be(1);
+        (await fresh.StoredFiles.SingleAsync(file => file.Name == fileName)).DeletedAt.Should().BeNull();
+        var content = await _storage.OpenReadAsync(fileName, default);
+        content.Should().NotBeNull();
+        await content!.DisposeAsync();
+    }
+
+    private ScholarApplicationService Applications() =>
+        new(_db, _storage, _clock, Options.Create(new UploadOptions()), NullLogger<ScholarApplicationService>.Instance);
 
     private ScholarApplicationReviewService Review() => new(
-        _db, _storage, _clock, new UserAdminService(new UserRepository(_db), new AuditLogRepository(_db), _clock), new AuditLogRepository(_db));
+        _db,
+        _storage,
+        _clock,
+        new UserAdminService(new UserRepository(_db), new AuditLogRepository(_db), _clock),
+        new AuditLogRepository(_db),
+        NullLogger<ScholarApplicationReviewService>.Instance);
+
+    /// <summary>
+    /// When armed, the next save of the context under test is preceded by another context changing the
+    /// pending application's status, as a racing admin or applicant would.
+    /// </summary>
+    private sealed class RaceFirst(string databaseName) : SaveChangesInterceptor
+    {
+        public ScholarApplicationStatus? Next { get; set; }
+
+        public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (Next is { } status)
+            {
+                Next = null;
+                await using var other = new MktbaDbContext(new DbContextOptionsBuilder<MktbaDbContext>().UseInMemoryDatabase(databaseName).Options);
+                var application = await other.ScholarApplications.SingleAsync(candidate => candidate.Status == ScholarApplicationStatus.Pending, cancellationToken);
+                application.Status = status;
+                await other.SaveChangesAsync(cancellationToken);
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>A storage whose deletes can be made to fail, as an unreachable S3 would.</summary>
+    private sealed class FlakyDeleteStorage(IFileStorage inner) : IFileStorage
+    {
+        public bool FailDeletes { get; set; }
+
+        public Task SaveAsync(string name, ReadOnlyMemory<byte> content, string contentType, CancellationToken cancellationToken) =>
+            inner.SaveAsync(name, content, contentType, cancellationToken);
+
+        public Task<Stream?> OpenReadAsync(string name, CancellationToken cancellationToken) => inner.OpenReadAsync(name, cancellationToken);
+
+        public Task DeleteAsync(string name, CancellationToken cancellationToken) =>
+            FailDeletes ? throw new IOException("storage unreachable") : inner.DeleteAsync(name, cancellationToken);
+    }
 
     private async Task<(int Id, int UserId)> ApplyAsync(UserRole role)
     {

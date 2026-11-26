@@ -1,6 +1,7 @@
 using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Mktba.Application.Configuration;
 using Mktba.Application.Exceptions;
@@ -267,7 +268,7 @@ public sealed class ScholarApplicationTests : IDisposable
     public async Task GivenDocumentLargerThanTheUploadLimit_WhenApplying_ThenItIsRefused()
     {
         var userId = await UserAsync(UserRole.Reader);
-        var service = new ScholarApplicationService(_db, _storage, _clock, Options.Create(new UploadOptions { MaxBytes = 64 }));
+        var service = new ScholarApplicationService(_db, _storage, _clock, Options.Create(new UploadOptions { MaxBytes = 64 }), NullLogger<ScholarApplicationService>.Instance);
 
         var act = () => service.SubmitAsync(userId, Input(), [new ScholarDocumentUpload("big.pdf", new MemoryStream(Pdf(new string('x', 100))))], default);
 
@@ -297,7 +298,7 @@ public sealed class ScholarApplicationTests : IDisposable
         (await act.Should().ThrowAsync<NotFoundException>()).Which.Error.Code.Should().Be("scholar_document_not_found");
     }
 
-    private ScholarApplicationService Service() => new(_db, _storage, _clock, Options.Create(new UploadOptions()));
+    private ScholarApplicationService Service() => new(_db, _storage, _clock, Options.Create(new UploadOptions()), NullLogger<ScholarApplicationService>.Instance);
 
     private static ScholarApplicationInput Input() => new("Магистр", "Институт", "Фикх", null);
 

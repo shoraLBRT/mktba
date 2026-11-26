@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mktba.Application.Configuration;
 using Mktba.Application.DTOs;
@@ -32,7 +33,9 @@ public sealed record ScholarDocumentFile(Stream Content, string ContentType, str
 /// Documents are personal data: they are stored under private names
 /// (<see cref="StoredFileNames.CreatePrivate"/>), recorded as <see cref="StoredFilePurpose.ScholarDocument"/>
 /// (which the upload cleanup skips) and read only through <see cref="OpenDocumentAsync"/> by the
-/// applicant or an admin.
+/// applicant or an admin. When an application gives them up (a withdrawal here, a refusal or a
+/// revocation in <see cref="ScholarApplicationReviewService"/>), the files are deleted only after the
+/// new status is saved (<see cref="DeleteDetachedFilesAsync"/>).
 /// </remarks>
 public sealed class ScholarApplicationService
 {
@@ -40,13 +43,16 @@ public sealed class ScholarApplicationService
     private readonly IFileStorage _storage;
     private readonly TimeProvider _clock;
     private readonly UploadOptions _options;
+    private readonly ILogger<ScholarApplicationService> _logger;
 
-    public ScholarApplicationService(MktbaDbContext db, IFileStorage storage, TimeProvider clock, IOptions<UploadOptions> options)
+    public ScholarApplicationService(
+        MktbaDbContext db, IFileStorage storage, TimeProvider clock, IOptions<UploadOptions> options, ILogger<ScholarApplicationService> logger)
     {
         _db = db;
         _storage = storage;
         _clock = clock;
         _options = options.Value;
+        _logger = logger;
     }
 
     /// <summary>Whether a user of <paramref name="role"/> may apply at all.</summary>
@@ -163,32 +169,20 @@ public sealed class ScholarApplicationService
             .FirstOrDefaultAsync(candidate => candidate.UserId == userId && candidate.Status == ScholarApplicationStatus.Pending, cancellationToken)
             ?? throw new NotFoundException(AppErrors.ScholarApplicationNotFound);
 
-        // The files go first: if saving fails afterwards, the application is still pending and a
-        // second withdrawal finishes the job (deleting a missing file is no error).
-        foreach (var document in application.Documents)
-        {
-            await _storage.DeleteAsync(document.StoredFile.Name, cancellationToken);
-        }
-
-        var now = _clock.GetUtcNow().UtcDateTime;
-        foreach (var document in application.Documents)
-        {
-            document.StoredFile.DeletedAt = now;
-        }
-
-        _db.ScholarApplicationDocuments.RemoveRange(application.Documents);
+        var files = DetachDocuments(_db, application);
         application.Status = ScholarApplicationStatus.Withdrawn;
-        application.ClosedAt = now;
+        application.ClosedAt = _clock.GetUtcNow().UtcDateTime;
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
-            // An admin decided first (V-02, #118): the decision stands.
+            // An admin decided first (V-02, #118): the decision stands and no file is touched.
             throw new ConflictException(AppErrors.ScholarApplicationNotPending);
         }
 
+        await DeleteDetachedFilesAsync(_db, _storage, _clock, _logger, files);
         return await GetMineAsync(userId, cancellationToken);
     }
 
@@ -218,6 +212,61 @@ public sealed class ScholarApplicationService
         var stream = await _storage.OpenReadAsync(document.Name, cancellationToken)
             ?? throw new NotFoundException(AppErrors.ScholarDocumentNotFound);
         return new ScholarDocumentFile(stream, document.ContentType, document.FileName);
+    }
+
+    /// <summary>
+    /// Removes the application's document rows (saved by the caller together with the new status) and
+    /// gives back their stored files, to be deleted by <see cref="DeleteDetachedFilesAsync"/> once that
+    /// save has succeeded.
+    /// </summary>
+    internal static List<StoredFile> DetachDocuments(MktbaDbContext db, ScholarApplication application)
+    {
+        var files = application.Documents.Select(document => document.StoredFile).ToList();
+        db.ScholarApplicationDocuments.RemoveRange(application.Documents);
+        application.Documents.Clear();
+        return files;
+    }
+
+    /// <summary>
+    /// Deletes the files of documents a successful save has just detached (a withdrawal, a refusal, a
+    /// revocation) and marks them <see cref="StoredFile.DeletedAt"/>. It runs only after that save, so
+    /// a save that loses a race (the <see cref="ScholarApplication.Status"/> concurrency token) leaves
+    /// every file in place. A file that cannot be deleted now is logged and left unmarked: no document
+    /// row points to it any more, so the upload cleanup removes it on its next run.
+    /// </summary>
+    internal static async Task DeleteDetachedFilesAsync(
+        MktbaDbContext db, IFileStorage storage, TimeProvider clock, ILogger logger, IReadOnlyList<StoredFile> files)
+    {
+        var marked = false;
+        foreach (var file in files)
+        {
+            try
+            {
+                // Not cancelled with the request: the decision is stored, the files must follow it.
+                await storage.DeleteAsync(file.Name, CancellationToken.None);
+                file.DeletedAt = clock.GetUtcNow().UtcDateTime;
+                marked = true;
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Could not delete scholar document file {FileId}; the upload cleanup will remove it.", file.Id);
+            }
+        }
+
+        if (!marked)
+        {
+            return;
+        }
+
+        try
+        {
+            await db.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (DbUpdateException exception)
+        {
+            // The files are gone; the cleanup finds the unmarked rows and marks them (deleting again is a no-op).
+            logger.LogWarning(exception, "Could not mark {Count} deleted scholar document file(s); the upload cleanup will.", files.Count);
+        }
     }
 
     private async Task EnsureMayApplyAsync(int userId, CancellationToken cancellationToken)
