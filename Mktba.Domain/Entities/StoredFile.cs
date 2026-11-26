@@ -53,6 +53,13 @@ public enum StoredFilePurpose
 {
     Avatar = 1,
     ArticleImage = 2,
+
+    /// <summary>
+    /// A document attached to a scholar's application (V-01, #117): personal data under a private
+    /// name, never served by <c>GET /files/{name}</c> and never touched by the upload cleanup — its
+    /// application decides how long it is kept.
+    /// </summary>
+    ScholarDocument = 3,
 }
 
 /// <summary>Where a stored file is referenced from (U-08, #73); a file may be used in several places.</summary>

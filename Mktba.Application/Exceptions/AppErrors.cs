@@ -337,6 +337,48 @@ public static class AppErrors
     public static AppError UploadImageTooManyPixels(int maxMegapixels) =>
         new("upload_image_too_many_pixels", $"The image cannot have more than {maxMegapixels} megapixels.", With(("maxMegapixels", maxMegapixels)));
 
+    // Scholar applications (V-01)
+    public static AppError ScholarApplicationDegreeRequired => new("scholar_application_degree_required", "Enter your degree or title.");
+
+    public static AppError ScholarApplicationDegreeTooLong(int maxLength) =>
+        new("scholar_application_degree_too_long", $"Degree must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ScholarApplicationInstitutionRequired =>
+        new("scholar_application_institution_required", "Enter the institution.");
+
+    public static AppError ScholarApplicationInstitutionTooLong(int maxLength) =>
+        new("scholar_application_institution_too_long", $"Institution must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ScholarApplicationSpecializationRequired =>
+        new("scholar_application_specialization_required", "Enter your specialization.");
+
+    public static AppError ScholarApplicationSpecializationTooLong(int maxLength) =>
+        new("scholar_application_specialization_too_long", $"Specialization must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError ScholarApplicationMazhabInvalid =>
+        new("scholar_application_mazhab_invalid", "The madhab must be one of the four canonical schools, or none.");
+
+    public static AppError ScholarApplicationDocumentsRequired =>
+        new("scholar_application_documents_required", "Attach at least one document that confirms your degree.");
+
+    public static AppError ScholarApplicationDocumentsTooMany(int max) =>
+        new("scholar_application_documents_too_many", $"An application holds at most {max} documents.", With(("max", max)));
+
+    public static AppError ScholarDocumentTypeUnsupported =>
+        new("scholar_document_type_unsupported", "Only PDF, JPEG, PNG and WebP documents can be attached.");
+
+    public static AppError ScholarDocumentPdfInvalid => new("scholar_document_pdf_invalid", "The PDF file is damaged or incomplete.");
+
+    public static AppError ScholarApplicationAlreadyPending =>
+        new("scholar_application_already_pending", "You already have an application waiting for review.");
+
+    public static AppError ScholarApplicationRoleNotAllowed =>
+        new("scholar_application_role_not_allowed", "Scholars and admins do not apply for the scholar status.");
+
+    public static AppError ScholarApplicationNotFound => new("scholar_application_not_found", "There is no such application.");
+
+    public static AppError ScholarDocumentNotFound => new("scholar_document_not_found", "There is no such document.");
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }

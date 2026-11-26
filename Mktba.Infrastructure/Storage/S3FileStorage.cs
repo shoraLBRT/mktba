@@ -80,7 +80,7 @@ public sealed class S3FileStorage : IFileStorage, IDisposable
 
     private string KeyOf(string name)
     {
-        if (!StoredFileNames.IsValid(name))
+        if (!StoredFileNames.IsStorable(name))
         {
             throw new ArgumentException("Not a stored file name.", nameof(name));
         }

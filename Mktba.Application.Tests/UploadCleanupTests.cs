@@ -179,6 +179,32 @@ public sealed class UploadCleanupTests : IDisposable
         record.DeletedAt.Should().BeNull();
     }
 
+    [Fact]
+    public async Task GivenScholarDocumentNothingLinksTo_WhenCleanupRunsPastTwoGracePeriods_ThenItIsNeitherCheckedNorRemoved()
+    {
+        // V-01 (#117): a document is used by its application, which no link names; the cleanup leaves it alone.
+        var name = StoredFileNames.CreatePrivate(".pdf");
+        await _storage.SaveAsync(name, "%PDF-1.7\n%%EOF"u8.ToArray(), "application/pdf", default);
+        _db.StoredFiles.Add(new StoredFile
+        {
+            Name = name,
+            Purpose = StoredFilePurpose.ScholarDocument,
+            ContentType = "application/pdf",
+            SizeBytes = 14,
+            UploadedAt = Start,
+        });
+        await _db.SaveChangesAsync();
+
+        _clock.Advance(Grace);
+        (await Service().RunAsync()).Checked.Should().Be(0);
+        _clock.Advance(Grace + Grace);
+        (await Service().RunAsync()).Checked.Should().Be(0);
+
+        (await FileExistsAsync(name)).Should().BeTrue();
+        var record = await RecordAsync(name);
+        (record.UnusedSince, record.LastCheckedAt, record.DeletedAt).Should().Be(((DateTime?)null, (DateTime?)null, (DateTime?)null));
+    }
+
     private UploadCleanupService Service(bool deleteUnused = true) => new(
         _db,
         _storage,

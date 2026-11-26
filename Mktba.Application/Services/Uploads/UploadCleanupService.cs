@@ -23,7 +23,9 @@ public sealed record UploadCleanupRun(int Checked, int Used, int Unused, int Del
 /// A reference is the file's name anywhere in a place that can hold a link (see
 /// <see cref="StoredFileUsage"/>): avatars, the current content of articles, every saved revision
 /// (a rollback can bring an old image back), autosaved drafts, profiles and sources. Files stored
-/// before uploads were recorded have no row and are never removed.
+/// before uploads were recorded have no row and are never removed. A scholar's documents
+/// (<see cref="StoredFilePurpose.ScholarDocument"/>, V-01 #117) are not looked at: no link points
+/// to them, and their application decides how long they are kept.
 /// </remarks>
 public sealed class UploadCleanupService
 {
@@ -53,7 +55,7 @@ public sealed class UploadCleanupService
         var graceStart = now - _options.GracePeriod;
 
         var candidates = await _db.StoredFiles
-            .Where(file => file.DeletedAt == null && file.UploadedAt <= graceStart)
+            .Where(file => file.DeletedAt == null && file.UploadedAt <= graceStart && file.Purpose != StoredFilePurpose.ScholarDocument)
             .ToListAsync(cancellationToken);
         if (candidates.Count == 0)
         {
