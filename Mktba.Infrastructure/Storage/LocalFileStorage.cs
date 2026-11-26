@@ -17,7 +17,7 @@ public sealed class LocalFileStorage : IFileStorage
     public async Task SaveAsync(string name, ReadOnlyMemory<byte> content, string contentType, CancellationToken cancellationToken)
     {
         var path = PathOf(name);
-        Directory.CreateDirectory(_rootPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporaryPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
         try
         {
@@ -51,7 +51,7 @@ public sealed class LocalFileStorage : IFileStorage
 
     private string PathOf(string name)
     {
-        if (!StoredFileNames.IsValid(name))
+        if (!StoredFileNames.IsStorable(name))
         {
             throw new ArgumentException("Not a stored file name.", nameof(name));
         }

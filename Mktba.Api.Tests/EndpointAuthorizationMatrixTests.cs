@@ -62,6 +62,12 @@ public abstract class EndpointAuthorizationMatrixTests
         ["GET /files/{name}"] = Public,
         ["POST /uploads/avatar"] = Policies.Authenticated,
         ["POST /uploads/images"] = Policies.CanEditArticles,
+        // V-01 (#117): anyone signed in; the service refuses scholars and admins, and a document is
+        // read only by its applicant or an admin (404 to anyone else).
+        ["GET /scholar-application/"] = Policies.Authenticated,
+        ["POST /scholar-application/"] = Policies.Authenticated,
+        ["POST /scholar-application/withdraw"] = Policies.Authenticated,
+        ["GET /scholar-application/documents/{id:int}"] = Policies.Authenticated,
         ["GET /articles/{id:int}"] = Public,
         ["GET /articles/{id:int}/content"] = Public,
         ["GET /articles/by-slug/{slug}/content"] = Public,

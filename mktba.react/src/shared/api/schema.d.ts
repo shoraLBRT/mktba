@@ -3478,6 +3478,238 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/scholar-application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in user's latest application for the scholar status, and whether they may apply now.
+         * @description canApply is true for a reader or an author without a pending application. application is null when there is none.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyScholarApplicationDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Applies for the scholar status; readers and authors.
+         * @description A multipart form: degree, institution, specialization (one line each, required), mazhab (a canonical school's slug or empty) and 1 to 5 files under documents. A document is a PDF (kept as it is, never rendered; checked by its %PDF- header and %%EOF trailer) or a JPEG, PNG or WebP photo or scan (re-encoded as WebP of at most 4096 px without metadata), each at most the upload limit. The documents are private: only the applicant and admins read them, through GET /scholar-application/documents/{id}. The application stays Pending until an admin decides. Answers 400 with scholar_application_degree_required, scholar_application_degree_too_long, scholar_application_institution_required, scholar_application_institution_too_long, scholar_application_specialization_required, scholar_application_specialization_too_long (params.maxLength), scholar_application_mazhab_invalid, scholar_application_documents_required, scholar_application_documents_too_many (params.max), upload_file_required (an empty file), upload_too_large (params.maxMegabytes), scholar_document_type_unsupported, scholar_document_pdf_invalid, upload_image_invalid or upload_image_too_many_pixels; 409 scholar_application_role_not_allowed (scholars and admins do not apply) or scholar_application_already_pending; 429 too_many_requests past the per-user upload limit.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        degree: string;
+                        institution: string;
+                        specialization: string;
+                        /** @description hanafi, maliki, shafii or hanbali; empty for none. */
+                        mazhab?: string;
+                        documents: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScholarApplicationDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scholar-application/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraws the signed-in user's pending application and deletes its documents.
+         * @description Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyScholarApplicationDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scholar-application/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One document of an application, as a download; its applicant and admins only.
+         * @description Content-Disposition: attachment, no caching. Answers 404 scholar_document_not_found to anyone else, so ids cannot be probed.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/schools/system": {
         parameters: {
             query?: never;
@@ -5471,6 +5703,10 @@ export interface components {
         };
         /** @enum {string} */
         InviteStatus: "Active" | "Used" | "Revoked" | "Expired";
+        MyScholarApplicationDto: {
+            canApply: boolean;
+            application?: components["schemas"]["ScholarApplicationDto"];
+        };
         NavigationArticleDto: {
             /** Format: int32 */
             id: number;
@@ -5611,6 +5847,30 @@ export interface components {
             latestRevisionNumber: number;
             /** Format: int32 */
             publishedRevisionNumber?: number | null;
+        };
+        ScholarApplicationDto: {
+            /** Format: int32 */
+            id: number;
+            status: components["schemas"]["ScholarApplicationStatus"];
+            degree: string;
+            institution: string;
+            specialization: string;
+            mazhab?: string | null;
+            /** Format: date-time */
+            submittedAt: string;
+            /** Format: date-time */
+            closedAt?: string | null;
+            documents: components["schemas"]["ScholarDocumentDto"][];
+        };
+        /** @enum {string} */
+        ScholarApplicationStatus: "Pending" | "Approved" | "Rejected" | "Withdrawn";
+        ScholarDocumentDto: {
+            /** Format: int32 */
+            id: number;
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            sizeBytes: number;
         };
         SchoolCreateDto: {
             slug?: string | null;

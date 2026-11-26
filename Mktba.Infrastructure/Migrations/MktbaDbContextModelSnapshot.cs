@@ -1035,6 +1035,92 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("RefreshSessions");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ScholarApplication", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Degree")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Institution")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Mazhab")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Specialization")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ScholarApplications_UserId_Pending")
+                        .HasFilter("\"Status\" = 'Pending'");
+
+                    b.HasIndex("Status", "SubmittedAt");
+
+                    b.ToTable("ScholarApplications");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ScholarApplicationDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApplicationId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StoredFileId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoredFileId")
+                        .IsUnique();
+
+                    b.HasIndex("ApplicationId", "Order")
+                        .IsUnique();
+
+                    b.ToTable("ScholarApplicationDocuments");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.School", b =>
                 {
                     b.Property<int>("Id")
@@ -1623,6 +1709,36 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.ScholarApplication", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ScholarApplicationDocument", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.ScholarApplication", "Application")
+                        .WithMany("Documents")
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.StoredFile", "StoredFile")
+                        .WithMany()
+                        .HasForeignKey("StoredFileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+
+                    b.Navigation("StoredFile");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.School", b =>
                 {
                     b.HasOne("Mktba.Domain.Entities.Article", "ArticleScope")
@@ -1701,6 +1817,11 @@ namespace Mktba.Infrastructure.Migrations
             modelBuilder.Entity("Mktba.Domain.Entities.Paragraph", b =>
                 {
                     b.Navigation("Opinions");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ScholarApplication", b =>
+                {
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.School", b =>

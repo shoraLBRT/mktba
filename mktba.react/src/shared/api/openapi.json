@@ -3213,6 +3213,224 @@
         }
       }
     },
+    "/scholar-application": {
+      "get": {
+        "tags": [
+          "ScholarApplication"
+        ],
+        "summary": "The signed-in user's latest application for the scholar status, and whether they may apply now.",
+        "description": "canApply is true for a reader or an author without a pending application. application is null when there is none.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyScholarApplicationDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ScholarApplication"
+        ],
+        "summary": "Applies for the scholar status; readers and authors.",
+        "description": "A multipart form: degree, institution, specialization (one line each, required), mazhab (a canonical school's slug or empty) and 1 to 5 files under documents. A document is a PDF (kept as it is, never rendered; checked by its %PDF- header and %%EOF trailer) or a JPEG, PNG or WebP photo or scan (re-encoded as WebP of at most 4096 px without metadata), each at most the upload limit. The documents are private: only the applicant and admins read them, through GET /scholar-application/documents/{id}. The application stays Pending until an admin decides. Answers 400 with scholar_application_degree_required, scholar_application_degree_too_long, scholar_application_institution_required, scholar_application_institution_too_long, scholar_application_specialization_required, scholar_application_specialization_too_long (params.maxLength), scholar_application_mazhab_invalid, scholar_application_documents_required, scholar_application_documents_too_many (params.max), upload_file_required (an empty file), upload_too_large (params.maxMegabytes), scholar_document_type_unsupported, scholar_document_pdf_invalid, upload_image_invalid or upload_image_too_many_pixels; 409 scholar_application_role_not_allowed (scholars and admins do not apply) or scholar_application_already_pending; 429 too_many_requests past the per-user upload limit.",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "degree",
+                  "institution",
+                  "specialization",
+                  "documents"
+                ],
+                "type": "object",
+                "properties": {
+                  "degree": {
+                    "maxLength": 150,
+                    "type": "string"
+                  },
+                  "institution": {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  "specialization": {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  "mazhab": {
+                    "type": "string",
+                    "description": "hanafi, maliki, shafii or hanbali; empty for none."
+                  },
+                  "documents": {
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScholarApplicationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scholar-application/withdraw": {
+      "post": {
+        "tags": [
+          "ScholarApplication"
+        ],
+        "summary": "Withdraws the signed-in user's pending application and deletes its documents.",
+        "description": "Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyScholarApplicationDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scholar-application/documents/{id}": {
+      "get": {
+        "tags": [
+          "ScholarApplication"
+        ],
+        "summary": "One document of an application, as a download; its applicant and admins only.",
+        "description": "Content-Disposition: attachment, no caching. Answers 404 scholar_document_not_found to anyone else, so ids cannot be probed.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/schools/system": {
       "get": {
         "tags": [
@@ -6936,6 +7154,21 @@
         ],
         "type": "string"
       },
+      "MyScholarApplicationDto": {
+        "required": [
+          "canApply"
+        ],
+        "type": "object",
+        "properties": {
+          "canApply": {
+            "type": "boolean"
+          },
+          "application": {
+            "$ref": "#/components/schemas/ScholarApplicationDto"
+          }
+        },
+        "additionalProperties": false
+      },
       "NavigationArticleDto": {
         "required": [
           "canEdit",
@@ -7454,6 +7687,91 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarApplicationDto": {
+        "required": [
+          "degree",
+          "documents",
+          "id",
+          "institution",
+          "specialization",
+          "status",
+          "submittedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScholarApplicationStatus"
+          },
+          "degree": {
+            "type": "string"
+          },
+          "institution": {
+            "type": "string"
+          },
+          "specialization": {
+            "type": "string"
+          },
+          "mazhab": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScholarDocumentDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarApplicationStatus": {
+        "enum": [
+          "Pending",
+          "Approved",
+          "Rejected",
+          "Withdrawn"
+        ],
+        "type": "string"
+      },
+      "ScholarDocumentDto": {
+        "required": [
+          "contentType",
+          "fileName",
+          "id",
+          "sizeBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false

@@ -44,6 +44,8 @@ namespace Mktba.Infrastructure.Data
         public DbSet<RefreshSession> RefreshSessions { get; set; } = null!;
         public DbSet<FeedbackMessage> FeedbackMessages { get; set; } = null!;
         public DbSet<StoredFile> StoredFiles { get; set; } = null!;
+        public DbSet<ScholarApplication> ScholarApplications { get; set; } = null!;
+        public DbSet<ScholarApplicationDocument> ScholarApplicationDocuments { get; set; } = null!;
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; } = null!;
         public DbSet<AnalyticsDay> AnalyticsDays { get; set; } = null!;
         public DbSet<AnalyticsArticleDay> AnalyticsArticleDays { get; set; } = null!;
@@ -722,6 +724,40 @@ namespace Mktba.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(f => f.UploadedById)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ScholarApplication>(application =>
+            {
+                // At most one pending application per user (V-01, #117); the service checks first, this catches a race.
+                application.HasIndex(a => a.UserId)
+                    .IsUnique()
+                    .HasFilter("\"Status\" = 'Pending'")
+                    .HasDatabaseName("IX_ScholarApplications_UserId_Pending");
+                application.HasIndex(a => new { a.Status, a.SubmittedAt });
+                application.Property(a => a.Degree).HasMaxLength(ScholarApplication.DegreeMaxLength).IsRequired();
+                application.Property(a => a.Institution).HasMaxLength(ScholarApplication.InstitutionMaxLength).IsRequired();
+                application.Property(a => a.Specialization).HasMaxLength(ScholarApplication.SpecializationMaxLength).IsRequired();
+                application.Property(a => a.Mazhab).HasMaxLength(ScholarApplication.MazhabMaxLength);
+                application.Property(a => a.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+                application.HasOne(a => a.User)
+                    .WithMany()
+                    .HasForeignKey(a => a.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                application.HasMany(a => a.Documents)
+                    .WithOne(d => d.Application)
+                    .HasForeignKey(d => d.ApplicationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ScholarApplicationDocument>(document =>
+            {
+                document.HasIndex(d => new { d.ApplicationId, d.Order }).IsUnique();
+                document.HasIndex(d => d.StoredFileId).IsUnique();
+                document.Property(d => d.FileName).HasMaxLength(ScholarApplicationDocument.FileNameMaxLength).IsRequired();
+                document.HasOne(d => d.StoredFile)
+                    .WithMany()
+                    .HasForeignKey(d => d.StoredFileId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             base.OnModelCreating(modelBuilder);

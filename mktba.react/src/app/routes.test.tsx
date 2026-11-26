@@ -395,6 +395,7 @@ describe('AdminLayout', () => {
       'Пользователи и приглашения',
       'Сессии',
       'Мой профиль',
+      'Заявка учёного',
       'ИИ-провайдер',
       'Корзина',
       'Журнал действий',
@@ -417,6 +418,7 @@ describe('AdminLayout', () => {
       '/admin/my-articles',
       '/admin/sessions',
       '/admin/profile',
+      '/admin/scholar-application',
     ]);
   });
 
