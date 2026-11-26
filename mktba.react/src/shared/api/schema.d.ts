@@ -2941,10 +2941,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Anonymous readers get only Published articles; a Published article under a non-Published parent is hidden with its subtree. Admins get every article with its status. */
+        /** @description Anonymous readers get only Published articles; a Published article under a non-Published parent is hidden with its subtree. Admins get every article with its status. locale, when given, keeps one language: an article hangs under its nearest ancestor of that language, or becomes a root when it has none (an unsupported one answers 400 locale_unsupported); without it every language is in one tree. */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    locale?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -2958,6 +2960,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["NavigationArticleDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
             };
@@ -5349,6 +5360,7 @@ export interface components {
             id: number;
             title: string;
             slug: string;
+            locale: string;
             /** Format: int32 */
             parentArticleId?: number | null;
             status: components["schemas"]["ArticleStatus"];

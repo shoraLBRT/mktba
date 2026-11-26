@@ -11,15 +11,19 @@ namespace Mktba.Api.Endpoints
         {
             var group = builder.MapGroup("/navigationTree").WithTags("Navigation");
 
-            group.MapGet("/tree", async (ClaimsPrincipal user, NavigationTreeService service) =>
+            group.MapGet("/tree", async (string? locale, ClaimsPrincipal user, NavigationTreeService service) =>
             {
-                var tree = await service.GetTreeAsync(user.ToArticleViewer());
+                var tree = await service.GetTreeAsync(user.ToArticleViewer(), locale);
                 return Results.Ok(tree);
             })
             .WithDescription(
                 "Anonymous readers get only Published articles; a Published article under a non-Published "
-                + "parent is hidden with its subtree. Admins get every article with its status.")
-            .Produces<List<NavigationArticleDto>>();
+                + "parent is hidden with its subtree. Admins get every article with its status. "
+                + "locale, when given, keeps one language: an article hangs under its nearest ancestor of that "
+                + "language, or becomes a root when it has none (an unsupported one answers 400 locale_unsupported); "
+                + "without it every language is in one tree.")
+            .Produces<List<NavigationArticleDto>>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest);
 
             return builder;
         }
