@@ -10,7 +10,8 @@ const RUSSIAN_ONLY_PATH = /^\/(article|admin)(\/|$)/;
  * is the same path in the other language, `/{slug}` <-> `/en/{slug}`; on an article page that URL
  * leads to the article's own translation, or follows the missing-translation setting
  * (`shared/missingTranslation.ts`), so the switcher needs nothing from the page. The query is kept.
- * Not shown on a page that exists in Russian only.
+ * Not shown on a page that exists in Russian only. The visible code starts the accessible name
+ * («EN English»), so the label and the name agree (axe `label-content-name-mismatch`).
  */
 export const LanguageSwitcher = () => {
   const locale = useLocale();
@@ -28,9 +29,10 @@ export const LanguageSwitcher = () => {
             aria-current="true"
             lang={language}
             title={languageSelfName(language)}
-            className="rounded-md px-1.5 py-1 text-[11px] font-bold uppercase text-[var(--color-ink-strong)]"
+            className="rounded-md px-1.5 py-1 text-[11px] font-bold text-[var(--color-ink-strong)]"
           >
-            {language}
+            {language.toUpperCase()}{' '}
+            <span className="sr-only">{languageSelfName(language)}</span>
           </span>
         ) : (
           <Link
@@ -39,10 +41,10 @@ export const LanguageSwitcher = () => {
             lang={language}
             hrefLang={language}
             title={languageSelfName(language)}
-            aria-label={languageSelfName(language)}
-            className="rounded-md px-1.5 py-1 text-[11px] font-semibold uppercase text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)]"
+            className="rounded-md px-1.5 py-1 text-[11px] font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-page-panel)] hover:text-[var(--color-ink-strong)]"
           >
-            {language}
+            {language.toUpperCase()}{' '}
+            <span className="sr-only">{languageSelfName(language)}</span>
           </Link>
         )
       ))}
