@@ -80,6 +80,7 @@ public abstract class EndpointAuthorizationMatrixTests
         ["GET /articles/{id:int}"] = Public,
         ["GET /articles/{id:int}/content"] = Public,
         ["GET /articles/by-slug/{slug}/content"] = Public,
+        ["GET /articles/{articleId:int}/verification"] = Public,
         ["GET /schools/system"] = Public,
         ["GET /schools/article/{articleId:int}"] = Public,
 

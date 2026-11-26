@@ -49,6 +49,14 @@ public static class ArticleReviewEndpoints
             .Produces<ArticleReviewDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status401Unauthorized, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
 
+        // Public: what readers see of the scholars' marks (V-04, #120).
+        builder.MapGet("/articles/{articleId:int}/verification", async (int articleId, ArticleReviewService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.GetVerificationAsync(articleId, cancellationToken)))
+            .WithTags("ArticleReviews")
+            .WithSummary("The scholars' marks on a published article as readers see them: the latest mark of each verified scholar, the newest revision first.")
+            .WithDescription("No comments, ids or emails. An article readers are not served, or one without a revision, answers with no marks.")
+            .Produces<ArticleVerificationDto>();
+
         return builder;
     }
 }

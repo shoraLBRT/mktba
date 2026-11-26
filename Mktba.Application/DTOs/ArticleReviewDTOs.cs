@@ -77,3 +77,33 @@ public sealed record ArticleReviewArticleDto(
 
 /// <summary>A page of the articles a scholar may review, the latest edited first.</summary>
 public sealed record ArticleReviewArticlePageDto(IReadOnlyList<ArticleReviewArticleDto> Items, int Total, int Page, int PageSize);
+
+/// <summary>
+/// The scholars' marks on an article as readers see them (V-04, #120): the latest mark of each
+/// verified scholar, the newest revision first. No ids, no emails, no comments.
+/// </summary>
+/// <param name="LatestRevisionNumber">The article's latest revision; null when it has none (then there are no marks).</param>
+/// <param name="Marks">One per scholar: their review of the newest revision they reviewed.</param>
+public sealed record ArticleVerificationDto(int? LatestRevisionNumber, IReadOnlyList<ArticleVerificationMarkDto> Marks);
+
+/// <summary>A scholar's latest mark on an article, for readers (V-04, #120).</summary>
+/// <param name="ScholarName">The name from the scholar's profile (U-07); null while they have not set one — never an email.</param>
+/// <param name="ScholarSlug">
+/// The slug of the author page <c>/authors/{slug}</c> when it answers now (the scholar is credited on
+/// a Published article); null otherwise, so the name is not a link.
+/// </param>
+/// <param name="Mazhab">The slug of the canonical school whose readers' version was reviewed; null for the whole article.</param>
+/// <param name="RevisionNumber">The revision the mark belongs to (D5, #115).</param>
+/// <param name="ReviewedAt">When the verdict was last given (UTC).</param>
+/// <param name="IsLatestRevision">
+/// False when the article was edited after the reviewed revision: readers see the mark as «для
+/// предыдущей версии» (D5). Which edits are substantial is V-05 (#121); until then any later revision counts.
+/// </param>
+public sealed record ArticleVerificationMarkDto(
+    string? ScholarName,
+    string? ScholarSlug,
+    ArticleReviewVerdict Verdict,
+    string? Mazhab,
+    int RevisionNumber,
+    DateTime ReviewedAt,
+    bool IsLatestRevision);
