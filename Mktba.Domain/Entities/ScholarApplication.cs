@@ -4,6 +4,8 @@ namespace Mktba.Domain.Entities;
 /// A user's application for the scholar status (V-01, #117): what they say of themselves and the
 /// documents that back it. An admin reviews it (V-02, #118); until then it is
 /// <see cref="ScholarApplicationStatus.Pending"/>, and a user has at most one pending application.
+/// <see cref="Status"/> is a concurrency token, so two decisions (or a decision and a withdrawal)
+/// racing each other cannot both be stored.
 /// </summary>
 public class ScholarApplication
 {
@@ -11,6 +13,9 @@ public class ScholarApplication
     public const int InstitutionMaxLength = 200;
     public const int SpecializationMaxLength = 200;
     public const int MazhabMaxLength = 32;
+
+    /// <summary>The longest reason an admin gives for a refusal or a revocation (V-02, #118).</summary>
+    public const int ReasonMaxLength = 1000;
 
     /// <summary>The most documents one application holds.</summary>
     public const int MaxDocuments = 5;
@@ -40,6 +45,21 @@ public class ScholarApplication
     /// <summary>When it stopped being pending (withdrawn or decided); null while it is pending.</summary>
     public DateTime? ClosedAt { get; set; }
 
+    /// <summary>
+    /// The admin's reason for a refusal or a revocation (V-02, #118), shown to the applicant; plain
+    /// text. Null while pending, after a withdrawal and for an approval.
+    /// </summary>
+    public string? DecisionReason { get; set; }
+
+    /// <summary>
+    /// The role the applicant had when the application was approved (V-02, #118): the role a
+    /// revocation gives back. Null unless the application was approved.
+    /// </summary>
+    public UserRole? RoleBeforeApproval { get; set; }
+
+    /// <summary>When the scholar status it granted was revoked; null otherwise.</summary>
+    public DateTime? RevokedAt { get; set; }
+
     public List<ScholarApplicationDocument> Documents { get; set; } = [];
 }
 
@@ -57,6 +77,12 @@ public enum ScholarApplicationStatus
 
     /// <summary>The applicant took it back before a decision; its documents are deleted then.</summary>
     Withdrawn = 4,
+
+    /// <summary>
+    /// It was approved, and an admin later took the scholar status back (V-02, #118); its documents
+    /// are deleted then.
+    /// </summary>
+    Revoked = 5,
 }
 
 /// <summary>One document of an application: the stored file and the name the applicant's file had.</summary>

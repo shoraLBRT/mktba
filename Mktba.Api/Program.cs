@@ -187,6 +187,7 @@ app.MapAnalyticsEndpoints();
 app.MapSeoEndpoints();
 app.MapUploadEndpoints();
 app.MapScholarApplicationEndpoints();
+app.MapScholarApplicationReviewEndpoints();
 app.MapClientErrorEndpoints();
 app.MapHealthEndpoints();
 

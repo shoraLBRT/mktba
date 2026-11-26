@@ -26,6 +26,7 @@ import {
   type ScholarMazhab,
 } from '../../shared/scholarApplication';
 import type { MyScholarApplicationDto, ScholarApplicationDto, ScholarDocumentDto } from '../../shared/types/ApiTypes';
+import { saveBlob } from '../../shared/saveBlob';
 import { UPLOAD_MAX_BYTES } from '../../shared/upload';
 import { Button } from '../../shared/ui/Button';
 import { Card } from '../../shared/ui/Card';
@@ -43,24 +44,11 @@ const Field = ({ label, htmlFor, children }: { label: string; htmlFor: string; c
   </div>
 );
 
-/** Hands a fetched document to the browser as a download under its own name. */
-const saveBlob = (blob: Blob, fileName: string) => {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  // Revoked on the next task: the browser has started the download by then.
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-};
-
 /**
  * `/admin/scholar-application` (V-01, #117): the signed-in user's application for the scholar
  * status — the latest one with its status and documents, a withdrawal while it is pending, and the
  * form for a new one when the user may apply (readers and authors without a pending application).
- * The admin's review is V-02 (#118).
+ * The admin's decision (V-02, #118) shows here with its reason for a refusal or a revocation.
  */
 const AdminScholarApplicationPage: React.FC = () => {
   const t = useLocale().scholarApplication;
@@ -159,6 +147,7 @@ const CurrentApplication = ({
             [t.mazhab, mazhab],
             [t.submittedAt, format.date(application.submittedAt, 'dateTime')],
             ...(application.closedAt ? [[t.closedAt, format.date(application.closedAt, 'dateTime')]] : []),
+            ...(application.revokedAt ? [[t.revokedAt, format.date(application.revokedAt, 'dateTime')]] : []),
           ] as const
         ).map(([label, value]) => (
           <div key={label} className="min-w-0">
@@ -167,6 +156,14 @@ const CurrentApplication = ({
           </div>
         ))}
       </dl>
+      {application.decisionReason ? (
+        <div data-testid="scholar-application-reason" className="rounded-lg bg-[var(--color-surface-muted)] p-4 text-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-ink-subtle)]">
+            {application.status === 'Revoked' ? t.revokedReason : t.rejectedReason}
+          </p>
+          <p className="mt-1 whitespace-pre-line break-words text-[var(--color-ink-default)]">{application.decisionReason}</p>
+        </div>
+      ) : null}
       {application.documents.length > 0 ? (
         <ul aria-label={t.documentsListLabel} className="space-y-2">
           {application.documents.map((document) => (

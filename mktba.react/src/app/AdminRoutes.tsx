@@ -13,6 +13,8 @@ import AdminMaintenancePage from '../pages/admin/AdminMaintenancePage';
 import AdminProfilePage from '../pages/admin/AdminProfilePage';
 import AdminReviewArticlePage from '../pages/admin/AdminReviewArticlePage';
 import AdminScholarApplicationPage from '../pages/admin/AdminScholarApplicationPage';
+import AdminScholarReviewPage from '../pages/admin/AdminScholarReviewPage';
+import AdminScholarReviewDetailPage from '../pages/admin/AdminScholarReviewDetailPage';
 import AdminReviewQueuePage from '../pages/admin/AdminReviewQueuePage';
 import AdminSessionsPage from '../pages/admin/AdminSessionsPage';
 import AdminTagsPage from '../pages/admin/AdminTagsPage';
@@ -34,6 +36,7 @@ const SECTION_PAGES: Record<AdminSectionId, ReactElement> = {
   tags: <AdminTagsPage />,
   review: <AdminReviewQueuePage />,
   users: <AdminUsersPage />,
+  scholarReview: <AdminScholarReviewPage />,
   sessions: <AdminSessionsPage />,
   profile: <AdminProfilePage />,
   scholar: <AdminScholarApplicationPage />,
@@ -88,6 +91,10 @@ export const AdminRoutes = () => (
       <Route
         path="review/:articleId"
         element={<AdminSectionRoute policy="canReviewArticles"><AdminReviewArticlePage /></AdminSectionRoute>}
+      />
+      <Route
+        path="scholar-applications/:applicationId"
+        element={<AdminSectionRoute policy="canManageUsers"><AdminScholarReviewDetailPage /></AdminSectionRoute>}
       />
       <Route
         path="articles/:articleId/history"

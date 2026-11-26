@@ -379,6 +379,22 @@ public static class AppErrors
 
     public static AppError ScholarDocumentNotFound => new("scholar_document_not_found", "There is no such document.");
 
+    // Review of scholar applications (V-02)
+    public static AppError ScholarApplicationNotPending =>
+        new("scholar_application_not_pending", "The application is no longer waiting for review.");
+
+    public static AppError ScholarApplicationNotApproved =>
+        new("scholar_application_not_approved", "Only an approved application's scholar status can be revoked.");
+
+    public static AppError ScholarApplicantRoleChanged =>
+        new("scholar_applicant_role_changed", "The applicant's role has changed since the application: change it on the users page instead.");
+
+    public static AppError ScholarDecisionReasonRequired =>
+        new("scholar_decision_reason_required", "Give the reason; the applicant will see it.");
+
+    public static AppError ScholarDecisionReasonTooLong(int maxLength) =>
+        new("scholar_decision_reason_too_long", $"The reason must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }

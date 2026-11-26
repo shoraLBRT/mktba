@@ -3607,7 +3607,7 @@ export interface paths {
         put?: never;
         /**
          * Withdraws the signed-in user's pending application and deletes its documents.
-         * @description Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending.
+         * @description Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending; 409 scholar_application_not_pending when an admin decided first.
          */
         post: {
             parameters: {
@@ -3638,6 +3638,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3704,6 +3713,329 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scholar-applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Scholar applications for review, newest first; admins only.
+         * @description Filter: status (Pending, Approved, Rejected, Withdrawn, Revoked). page from 1, pageSize 1 to 100 (20 by default).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScholarApplicationPageDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scholar-applications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One application with its applicant and documents, and which decisions are open.
+         * @description 404 scholar_application_not_found.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScholarApplicationReviewDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scholar-applications/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approves a pending application: the applicant gets the Scholar role from their next request.
+         * @description The role change is logged as UserRoleChanged and the decision as ScholarApplicationApproved. The documents are kept. 404 scholar_application_not_found; 409 scholar_application_not_pending or scholar_applicant_role_changed (the applicant is no longer a reader or an author).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScholarApplicationReviewDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scholar-applications/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refuses a pending application with a reason the applicant sees; its documents are deleted.
+         * @description Logged as ScholarApplicationRejected. The user may apply again. 400 scholar_decision_reason_required or scholar_decision_reason_too_long (params.maxLength); 404 scholar_application_not_found; 409 scholar_application_not_pending.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ScholarDecisionDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScholarApplicationReviewDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scholar-applications/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Takes back the scholar status an approved application gave, with a reason the applicant sees.
+         * @description The user gets back the role they had before the approval (UserRoleChanged + ScholarStatusRevoked in the log); the documents are deleted; the user may apply again. 400 scholar_decision_reason_required or scholar_decision_reason_too_long (params.maxLength); 404 scholar_application_not_found; 409 scholar_application_not_approved or scholar_applicant_role_changed (the user is no longer a scholar).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ScholarDecisionDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScholarApplicationReviewDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -5497,7 +5829,7 @@ export interface components {
             parentArticleId?: number | null;
         };
         /** @enum {string} */
-        AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged";
+        AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged" | "ScholarApplicationApproved" | "ScholarApplicationRejected" | "ScholarStatusRevoked";
         AuditLogEntryDto: {
             /** Format: int64 */
             id: number;
@@ -5848,6 +6180,13 @@ export interface components {
             /** Format: int32 */
             publishedRevisionNumber?: number | null;
         };
+        ScholarApplicantDto: {
+            /** Format: int32 */
+            id: number;
+            email: string;
+            displayName?: string | null;
+            role: components["schemas"]["UserRole"];
+        };
         ScholarApplicationDto: {
             /** Format: int32 */
             id: number;
@@ -5861,9 +6200,46 @@ export interface components {
             /** Format: date-time */
             closedAt?: string | null;
             documents: components["schemas"]["ScholarDocumentDto"][];
+            decisionReason?: string | null;
+            /** Format: date-time */
+            revokedAt?: string | null;
+        };
+        ScholarApplicationPageDto: {
+            items: components["schemas"]["ScholarApplicationSummaryDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        ScholarApplicationReviewDto: {
+            applicant: components["schemas"]["ScholarApplicantDto"];
+            application: components["schemas"]["ScholarApplicationDto"];
+            canApprove: boolean;
+            canReject: boolean;
+            canRevoke: boolean;
         };
         /** @enum {string} */
-        ScholarApplicationStatus: "Pending" | "Approved" | "Rejected" | "Withdrawn";
+        ScholarApplicationStatus: "Pending" | "Approved" | "Rejected" | "Withdrawn" | "Revoked";
+        ScholarApplicationSummaryDto: {
+            /** Format: int32 */
+            id: number;
+            status: components["schemas"]["ScholarApplicationStatus"];
+            applicant: components["schemas"]["ScholarApplicantDto"];
+            degree: string;
+            institution: string;
+            specialization: string;
+            /** Format: date-time */
+            submittedAt: string;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: int32 */
+            documentCount: number;
+        };
+        ScholarDecisionDto: {
+            reason?: string | null;
+        };
         ScholarDocumentDto: {
             /** Format: int32 */
             id: number;

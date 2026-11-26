@@ -3351,7 +3351,7 @@
           "ScholarApplication"
         ],
         "summary": "Withdraws the signed-in user's pending application and deletes its documents.",
-        "description": "Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending.",
+        "description": "Answers with the new state (the application Withdrawn, without documents); 404 scholar_application_not_found when nothing is pending; 409 scholar_application_not_pending when an admin decided first.",
         "responses": {
           "200": {
             "description": "OK",
@@ -3375,6 +3375,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3420,6 +3430,320 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scholar-applications": {
+      "get": {
+        "tags": [
+          "ScholarApplicationReview"
+        ],
+        "summary": "Scholar applications for review, newest first; admins only.",
+        "description": "Filter: status (Pending, Approved, Rejected, Withdrawn, Revoked). page from 1, pageSize 1 to 100 (20 by default).",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScholarApplicationPageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scholar-applications/{id}": {
+      "get": {
+        "tags": [
+          "ScholarApplicationReview"
+        ],
+        "summary": "One application with its applicant and documents, and which decisions are open.",
+        "description": "404 scholar_application_not_found.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScholarApplicationReviewDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scholar-applications/{id}/approve": {
+      "post": {
+        "tags": [
+          "ScholarApplicationReview"
+        ],
+        "summary": "Approves a pending application: the applicant gets the Scholar role from their next request.",
+        "description": "The role change is logged as UserRoleChanged and the decision as ScholarApplicationApproved. The documents are kept. 404 scholar_application_not_found; 409 scholar_application_not_pending or scholar_applicant_role_changed (the applicant is no longer a reader or an author).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScholarApplicationReviewDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scholar-applications/{id}/reject": {
+      "post": {
+        "tags": [
+          "ScholarApplicationReview"
+        ],
+        "summary": "Refuses a pending application with a reason the applicant sees; its documents are deleted.",
+        "description": "Logged as ScholarApplicationRejected. The user may apply again. 400 scholar_decision_reason_required or scholar_decision_reason_too_long (params.maxLength); 404 scholar_application_not_found; 409 scholar_application_not_pending.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScholarDecisionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScholarApplicationReviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scholar-applications/{id}/revoke": {
+      "post": {
+        "tags": [
+          "ScholarApplicationReview"
+        ],
+        "summary": "Takes back the scholar status an approved application gave, with a reason the applicant sees.",
+        "description": "The user gets back the role they had before the approval (UserRoleChanged + ScholarStatusRevoked in the log); the documents are deleted; the user may apply again. 400 scholar_decision_reason_required or scholar_decision_reason_too_long (params.maxLength); 404 scholar_application_not_found; 409 scholar_application_not_approved or scholar_applicant_role_changed (the user is no longer a scholar).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScholarDecisionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScholarApplicationReviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6474,7 +6798,10 @@
           "ArticleTrashed",
           "ArticleRestored",
           "ArticlePurged",
-          "UserRoleChanged"
+          "UserRoleChanged",
+          "ScholarApplicationApproved",
+          "ScholarApplicationRejected",
+          "ScholarStatusRevoked"
         ],
         "type": "string"
       },
@@ -7691,6 +8018,31 @@
         },
         "additionalProperties": false
       },
+      "ScholarApplicantDto": {
+        "required": [
+          "email",
+          "id",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          }
+        },
+        "additionalProperties": false
+      },
       "ScholarApplicationDto": {
         "required": [
           "degree",
@@ -7737,6 +8089,73 @@
             "items": {
               "$ref": "#/components/schemas/ScholarDocumentDto"
             }
+          },
+          "decisionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarApplicationPageDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScholarApplicationSummaryDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarApplicationReviewDto": {
+        "required": [
+          "applicant",
+          "application",
+          "canApprove",
+          "canReject",
+          "canRevoke"
+        ],
+        "type": "object",
+        "properties": {
+          "applicant": {
+            "$ref": "#/components/schemas/ScholarApplicantDto"
+          },
+          "application": {
+            "$ref": "#/components/schemas/ScholarApplicationDto"
+          },
+          "canApprove": {
+            "type": "boolean"
+          },
+          "canReject": {
+            "type": "boolean"
+          },
+          "canRevoke": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -7746,9 +8165,68 @@
           "Pending",
           "Approved",
           "Rejected",
-          "Withdrawn"
+          "Withdrawn",
+          "Revoked"
         ],
         "type": "string"
+      },
+      "ScholarApplicationSummaryDto": {
+        "required": [
+          "applicant",
+          "degree",
+          "documentCount",
+          "id",
+          "institution",
+          "specialization",
+          "status",
+          "submittedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScholarApplicationStatus"
+          },
+          "applicant": {
+            "$ref": "#/components/schemas/ScholarApplicantDto"
+          },
+          "degree": {
+            "type": "string"
+          },
+          "institution": {
+            "type": "string"
+          },
+          "specialization": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "documentCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ScholarDecisionDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "ScholarDocumentDto": {
         "required": [

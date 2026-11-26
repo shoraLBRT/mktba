@@ -738,7 +738,9 @@ namespace Mktba.Infrastructure.Data
                 application.Property(a => a.Institution).HasMaxLength(ScholarApplication.InstitutionMaxLength).IsRequired();
                 application.Property(a => a.Specialization).HasMaxLength(ScholarApplication.SpecializationMaxLength).IsRequired();
                 application.Property(a => a.Mazhab).HasMaxLength(ScholarApplication.MazhabMaxLength);
-                application.Property(a => a.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+                application.Property(a => a.Status).HasConversion<string>().HasMaxLength(16).IsRequired().IsConcurrencyToken();
+                application.Property(a => a.DecisionReason).HasMaxLength(ScholarApplication.ReasonMaxLength);
+                application.Property(a => a.RoleBeforeApproval).HasConversion<string>().HasMaxLength(16);
                 application.HasOne(a => a.User)
                     .WithMany()
                     .HasForeignKey(a => a.UserId)

@@ -183,15 +183,18 @@ public sealed class UploadCleanupTests : IDisposable
     public async Task GivenScholarDocumentNothingLinksTo_WhenCleanupRunsPastTwoGracePeriods_ThenItIsNeitherCheckedNorRemoved()
     {
         // V-01 (#117): a document is used by its application, which no link names; the cleanup leaves it alone.
-        var name = StoredFileNames.CreatePrivate(".pdf");
-        await _storage.SaveAsync(name, "%PDF-1.7\n%%EOF"u8.ToArray(), "application/pdf", default);
-        _db.StoredFiles.Add(new StoredFile
+        var file = await ScholarDocumentAsync();
+        var name = file.Name;
+        var user = new User { Email = "applicant@mktba.test", Role = UserRole.Reader };
+        _db.ScholarApplications.Add(new ScholarApplication
         {
-            Name = name,
-            Purpose = StoredFilePurpose.ScholarDocument,
-            ContentType = "application/pdf",
-            SizeBytes = 14,
-            UploadedAt = Start,
+            User = user,
+            Degree = "Магистр",
+            Institution = "Институт",
+            Specialization = "Фикх",
+            Status = ScholarApplicationStatus.Pending,
+            SubmittedAt = Start,
+            Documents = [new ScholarApplicationDocument { StoredFile = file, FileName = "диплом.pdf" }],
         });
         await _db.SaveChangesAsync();
 
@@ -203,6 +206,37 @@ public sealed class UploadCleanupTests : IDisposable
         (await FileExistsAsync(name)).Should().BeTrue();
         var record = await RecordAsync(name);
         (record.UnusedSince, record.LastCheckedAt, record.DeletedAt).Should().Be(((DateTime?)null, (DateTime?)null, (DateTime?)null));
+    }
+
+    [Fact]
+    public async Task GivenScholarDocumentNoApplicationHoldsAndNotMarkedDeleted_WhenCleanupRuns_ThenItIsRemovedAtOnce()
+    {
+        // V-02 (#118): the file whose deletion failed after its application gave it up.
+        var file = await ScholarDocumentAsync();
+
+        var run = await Service().RunAsync();
+
+        run.ScholarDocumentsDeleted.Should().Be(1);
+        (await FileExistsAsync(file.Name)).Should().BeFalse();
+        (await RecordAsync(file.Name)).DeletedAt.Should().Be(Start);
+        (await Service().RunAsync()).ScholarDocumentsDeleted.Should().Be(0);
+    }
+
+    private async Task<StoredFile> ScholarDocumentAsync()
+    {
+        var name = StoredFileNames.CreatePrivate(".pdf");
+        await _storage.SaveAsync(name, "%PDF-1.7\n%%EOF"u8.ToArray(), "application/pdf", default);
+        var file = new StoredFile
+        {
+            Name = name,
+            Purpose = StoredFilePurpose.ScholarDocument,
+            ContentType = "application/pdf",
+            SizeBytes = 14,
+            UploadedAt = Start,
+        };
+        _db.StoredFiles.Add(file);
+        await _db.SaveChangesAsync();
+        return file;
     }
 
     private UploadCleanupService Service(bool deleteUnused = true) => new(
