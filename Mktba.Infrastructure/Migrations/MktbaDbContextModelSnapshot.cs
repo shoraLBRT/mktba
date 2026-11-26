@@ -1055,6 +1055,116 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("Invites");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ActorId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ArticleId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ArticleTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Excerpt")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RemarkId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RemarkStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Verdict")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("ArticleId");
+
+                    b.HasIndex("RemarkId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.HasIndex("UserId", "ReadAt");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.NotificationEmail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NotificationId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationId")
+                        .IsUnique();
+
+                    b.HasIndex("State", "NextAttemptAt");
+
+                    b.ToTable("NotificationEmails");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>
                 {
                     b.Property<int>("Id")
@@ -1611,6 +1721,25 @@ namespace Mktba.Infrastructure.Migrations
                     b.ToTable("UserLinks");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.UserNotificationSettings", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("EmailArticleReviews")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EmailRemarks")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EmailScholarApplication")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserNotificationSettings");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Article", b =>
                 {
                     b.HasOne("Mktba.Domain.Entities.User", "Author")
@@ -1910,6 +2039,47 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("UsedByUser");
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.User", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.Article", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.ArticleRemark", "Remark")
+                        .WithMany()
+                        .HasForeignKey("RemarkId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("Remark");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.NotificationEmail", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.Notification", "Notification")
+                        .WithOne("Email")
+                        .HasForeignKey("Mktba.Domain.Entities.NotificationEmail", "NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Notification");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>
                 {
                     b.HasOne("Mktba.Domain.Entities.Paragraph", "Paragraph")
@@ -2065,6 +2235,17 @@ namespace Mktba.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Mktba.Domain.Entities.UserNotificationSettings", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.User", "User")
+                        .WithOne()
+                        .HasForeignKey("Mktba.Domain.Entities.UserNotificationSettings", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Mktba.Domain.Entities.Article", b =>
                 {
                     b.Navigation("ChildArticles");
@@ -2094,6 +2275,11 @@ namespace Mktba.Infrastructure.Migrations
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleRevision", b =>
                 {
                     b.Navigation("Fingerprints");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.Notification", b =>
+                {
+                    b.Navigation("Email");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.Opinion", b =>

@@ -94,6 +94,14 @@ services:
       # IndexNow (O-12, #61): empty key = off. The site serves the key at /indexnow-key.txt.
       IndexNow__Key: ${INDEXNOW_KEY:-}
       IndexNow__SiteUrl: https://${SITE_HOST}
+      # Notification emails (V-09, #125): to the log while SMTP_HOST or SMTP_FROM is empty.
+      Email__SiteUrl: https://${SITE_HOST}
+      Email__Smtp__Host: ${SMTP_HOST:-}
+      Email__Smtp__Port: ${SMTP_PORT:-587}
+      Email__Smtp__Security: ${SMTP_SECURITY:-StartTls}
+      Email__Smtp__UserName: ${SMTP_USERNAME:-}
+      Email__Smtp__Password: ${SMTP_PASSWORD:-}
+      Email__Smtp__FromAddress: ${SMTP_FROM:-}
       # Alerts to the owner's Telegram chat (X-05, #159): off while the token or the chat is empty.
       Alerts__Stand: ${ALERT_STAND:-}
       Alerts__Telegram__BotToken: ${ALERT_TELEGRAM_BOT_TOKEN:-}

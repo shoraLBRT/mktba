@@ -249,6 +249,7 @@
     "article_remark_outcome_invalid": "Close the remark as fixed or as closed without a change.",
     "article_remark_closed": "The remark is closed. Reopen it to continue the discussion.",
     "article_remark_open": "The remark is already open.",
+    "notification_not_found": "Notification not found.",
     "profile_bio_too_long": "The text about yourself can be at most {maxLength} characters long.",
     "profile_degree_too_long": "The academic degree can be at most {maxLength} characters long.",
     "profile_institution_too_long": "The institution name can be at most {maxLength} characters long.",

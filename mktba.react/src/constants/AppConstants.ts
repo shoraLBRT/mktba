@@ -35,6 +35,9 @@ export const APP_CONSTANTS = {
     ARTICLE_REMARKS: 'articleRemarks',
     ARTICLE_AUTHORS: 'articleAuthors',
     ARTICLE_REVISIONS: 'articleRevisions',
+    NOTIFICATIONS: 'notifications',
+    NOTIFICATIONS_UNREAD: 'notificationsUnread',
+    NOTIFICATION_SETTINGS: 'notificationSettings',
   },
   DIMENSIONS: {
     SIDEBAR_WIDTH: 250,

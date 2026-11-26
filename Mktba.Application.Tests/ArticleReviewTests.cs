@@ -385,6 +385,87 @@ public sealed class ArticleReviewTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenAVerdict_WhenItIsSaved_ThenTheAuthorAndCoAuthorsAreNotifiedAndEmailedPerTheirSettings()
+    {
+        var scholarId = await ScholarAsync(mazhab: null);
+        var authorId = await UserAsync(UserRole.Author);
+        var coAuthorId = await UserAsync(UserRole.Author);
+        var articleId = await ArticleAsync("Намаз", revisions: 1);
+        var article = await _db.Articles.SingleAsync(a => a.Id == articleId);
+        article.AuthorId = authorId;
+        _db.Add(new ArticleCoAuthor { ArticleId = articleId, UserId = coAuthorId });
+        _db.UserNotificationSettings.Add(new UserNotificationSettings { UserId = coAuthorId, EmailArticleReviews = false });
+        await _db.SaveChangesAsync();
+
+        await Service().ReviewAsync(articleId, scholarId, new ArticleReviewCreateDto(1, ArticleReviewVerdict.HasErrors, "Ошибка в источнике"), default);
+
+        var notifications = await _db.Notifications.AsNoTracking().Include(n => n.Email).OrderBy(n => n.UserId).ToListAsync();
+        notifications.Select(n => (n.UserId, n.Type, n.Verdict, n.ArticleTitle, n.Link, n.Email != null)).Should().Equal(
+            (authorId, NotificationType.ArticleReviewed, (ArticleReviewVerdict?)ArticleReviewVerdict.HasErrors, "Намаз", $"/admin/articles/{articleId}/edit", true),
+            (coAuthorId, NotificationType.ArticleReviewed, (ArticleReviewVerdict?)ArticleReviewVerdict.HasErrors, "Намаз", $"/admin/articles/{articleId}/edit", false));
+        notifications.Should().OnlyContain(n => n.ActorId == scholarId && n.Excerpt == null);
+    }
+
+    [Fact]
+    public async Task GivenMarksOfTwoScopes_WhenEditsMakeThemStale_ThenEachScholarIsAskedToReReviewOnceAndOnlyForTheirScope()
+    {
+        var hanafi = await SchoolAsync("hanafi");
+        var shafii = await SchoolAsync("shafii");
+        var hanafiScholar = await ScholarAsync(mazhab: "hanafi");
+        var wholeScholar = await ScholarAsync(mazhab: null);
+        var editorId = await UserAsync(UserRole.Author);
+        var articleId = await ArticleAsync("Вуду", revisions: 0);
+        await AddRevisionAsync(articleId, 1, Opinions(hanafi, "Ханафиты: так", shafii, "Шафииты: так"));
+        await Service().ReviewAsync(articleId, hanafiScholar, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await Service().ReviewAsync(articleId, wholeScholar, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+
+        await AddRevisionAsync(articleId, 2, Opinions(hanafi, "Ханафиты: так", shafii, "Шафииты: иначе"));
+        await StaleAsync(articleId, editorId);
+        var afterOther = await ReReviewRequestsAsync();
+        await AddRevisionAsync(articleId, 3, Opinions(hanafi, "Ханафиты: иначе", shafii, "Шафииты: иначе"));
+        await StaleAsync(articleId, editorId);
+
+        afterOther.Should().Equal(wholeScholar);
+        (await ReReviewRequestsAsync()).Should().Equal(wholeScholar, hanafiScholar);
+        (await _db.Notifications.AsNoTracking().FirstAsync()).Should().Match<Notification>(n =>
+            n.ActorId == editorId && n.ArticleTitle == "Вуду" && n.Link == $"/admin/article-reviews/{articleId}");
+    }
+
+    [Fact]
+    public async Task GivenAStaleMarkOfAScholarWhoseStatusWasRevokedOrAnArticleNotPublished_WhenEdited_ThenNoReReviewIsAsked()
+    {
+        var revoked = await ScholarAsync(mazhab: null);
+        var articleId = await ArticleAsync("Пост", revisions: 1);
+        var draftId = await ArticleAsync("Черновик", revisions: 1);
+        await Service().ReviewAsync(articleId, revoked, new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        await Service().ReviewAsync(draftId, await ScholarAsync(mazhab: null), new ArticleReviewCreateDto(1, ArticleReviewVerdict.Confirmed, null), default);
+        (await _db.Users.SingleAsync(user => user.Id == revoked)).Role = UserRole.Reader;
+        (await _db.Articles.SingleAsync(article => article.Id == draftId)).Status = ArticleStatus.Draft;
+        await _db.SaveChangesAsync();
+
+        await AddRevisionAsync(articleId, 2);
+        await StaleAsync(articleId, null);
+        await AddRevisionAsync(draftId, 2);
+        await StaleAsync(draftId, null);
+
+        (await ReReviewRequestsAsync()).Should().BeEmpty();
+    }
+
+    private async Task StaleAsync(int articleId, int? editorId)
+    {
+        var latest = await _db.ArticleRevisions.Where(revision => revision.ArticleId == articleId).OrderByDescending(revision => revision.Number).FirstAsync();
+        await NotificationTests.Service(_db, _clock).NotifyStaleReviewsAsync(articleId, latest.Id, editorId, default);
+        await _db.SaveChangesAsync();
+    }
+
+    private Task<List<int>> ReReviewRequestsAsync() =>
+        _db.Notifications.AsNoTracking()
+            .Where(n => n.Type == NotificationType.ReReviewRequested)
+            .OrderBy(n => n.Id)
+            .Select(n => n.UserId)
+            .ToListAsync();
+
+    [Fact]
     public async Task GivenAMadhabScopedReview_WhenOnlyAnotherSchoolsOpinionIsEdited_ThenTheMarkStaysCurrentButTheWholeArticleReviewDoesNot()
     {
         var hanafi = await SchoolAsync("hanafi");
@@ -476,7 +557,7 @@ public sealed class ArticleReviewTests : IDisposable
         (await new ArticleRepository(_db).GetVerifiedIdsAsync()).Should().BeEquivalentTo(verified);
     }
 
-    private ArticleReviewService Service() => new(_db, _clock, new AuditLogRepository(_db));
+    private ArticleReviewService Service() => new(_db, _clock, new AuditLogRepository(_db), NotificationTests.Service(_db, _clock));
 
     private async Task NameAsync(int userId, string displayName, string slug)
     {

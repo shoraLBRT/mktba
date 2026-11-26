@@ -13,6 +13,10 @@ vi.mock('../../services/profileService', () => ({
   uploadAvatar: vi.fn(),
   getMyActivity: vi.fn().mockResolvedValue({ weeks: [] }),
 }));
+vi.mock('../../services/notificationService', () => ({
+  getNotificationSettings: vi.fn().mockResolvedValue({ emailScholarApplication: true, emailArticleReviews: true, emailRemarks: true, emailsSent: false }),
+  updateNotificationSettings: vi.fn(),
+}));
 
 const fetchProfile = vi.mocked(getMyProfile);
 const saveProfile = vi.mocked(updateMyProfile);

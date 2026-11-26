@@ -96,6 +96,27 @@ public sealed class ScholarApplicationReviewTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenDecisions_WhenTheyAreSaved_ThenEachApplicantIsNotifiedWithAnEmailAndTheAdminIsNot()
+    {
+        var adminId = await UserAsync(UserRole.Admin);
+        var approved = await ApplyAsync(UserRole.Author);
+        var rejected = await ApplyAsync(UserRole.Reader);
+        _db.UserNotificationSettings.Add(new UserNotificationSettings { UserId = rejected.UserId, EmailScholarApplication = false });
+        await _db.SaveChangesAsync();
+
+        await Review().ApproveAsync(approved.Id, adminId, default);
+        await Review().RejectAsync(rejected.Id, "Нет диплома", adminId, default);
+        await Review().RevokeAsync(approved.Id, "Ошибка", adminId, default);
+
+        var notifications = await _db.Notifications.AsNoTracking().Include(n => n.Email).OrderBy(n => n.Id).ToListAsync();
+        notifications.Select(n => (n.UserId, n.Type, n.ActorId, n.Link, n.Email != null)).Should().Equal(
+            (approved.UserId, NotificationType.ScholarApplicationApproved, (int?)adminId, "/admin/scholar-application", true),
+            (rejected.UserId, NotificationType.ScholarApplicationRejected, (int?)adminId, "/admin/scholar-application", false),
+            (approved.UserId, NotificationType.ScholarStatusRevoked, (int?)adminId, "/admin/scholar-application", true));
+        notifications.Should().OnlyContain(n => n.Excerpt == null && n.CreatedAt == Now && n.ReadAt == null);
+    }
+
+    [Fact]
     public async Task GivenApplicantWhoseRoleChangedMeanwhile_WhenApproved_ThenItIsRefusedAndNothingChanges()
     {
         var adminId = await UserAsync(UserRole.Admin);
@@ -293,6 +314,7 @@ public sealed class ScholarApplicationReviewTests : IDisposable
         _clock,
         new UserAdminService(new UserRepository(_db), new AuditLogRepository(_db), _clock),
         new AuditLogRepository(_db),
+        NotificationTests.Service(_db, _clock),
         NullLogger<ScholarApplicationReviewService>.Instance);
 
     /// <summary>

@@ -15,15 +15,19 @@ namespace Mktba.Application.Services
         private readonly ArticleTagAssigner _tags;
         private readonly ArticleDraftRepository _drafts;
         private readonly TimeProvider _clock;
+        private readonly Notifications.NotificationService? _notifications;
 
+        /// <param name="notifications">Sends the re-review requests of a substantial edit (V-09, #125); null sends none.</param>
         public ArticleContentService(
             ArticleRepository articleRepo,
             ParagraphRepository paragraphRepo,
             IUnitOfWork uow,
             TagRepository tagRepo,
             ArticleDraftRepository drafts,
-            TimeProvider clock)
+            TimeProvider clock,
+            Notifications.NotificationService? notifications = null)
         {
+            _notifications = notifications;
             _drafts = drafts;
             _clock = clock;
             _articleRepo = articleRepo;
@@ -456,7 +460,7 @@ namespace Mktba.Application.Services
             var number = await _articleRepo.GetLatestRevisionNumberAsync(articleId) + 1;
             var snapshot = ArticleSnapshots.From(saved);
             var schools = await _articleRepo.GetReviewScopeSchoolsAsync();
-            await _articleRepo.AddRevisionAsync(new ArticleRevision
+            var revision = new ArticleRevision
             {
                 ArticleId = articleId,
                 Number = number,
@@ -467,8 +471,15 @@ namespace Mktba.Application.Services
                 // What a scholar's review covers (V-05, #121): whether this save is a substantial edit.
                 Fingerprints = Verification.ReviewFingerprints.For(
                     snapshot, schools.Select(school => new Verification.ReviewScopeSchool(school.Slug, school.Id))),
-            });
+            };
+            await _articleRepo.AddRevisionAsync(revision);
             await _uow.SaveChangesAsync();
+            if (_notifications is not null)
+            {
+                // The re-review requests (V-09, #125) are stored in the save's transaction too.
+                await _notifications.NotifyStaleReviewsAsync(articleId, revision.Id, authorId, CancellationToken.None);
+                await _uow.SaveChangesAsync();
+            }
         }
 
         /// <summary>

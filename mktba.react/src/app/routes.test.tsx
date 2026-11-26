@@ -37,6 +37,8 @@ vi.mock('../pages/admin/AdminAiSettingsPage', () => ({ default: () => <p>admin-a
 vi.mock('../pages/admin/AdminUsersPage', () => ({ default: () => <p>admin-users-page</p> }));
 vi.mock('../pages/admin/AdminSessionsPage', () => ({ default: () => <p>admin-sessions-page</p> }));
 vi.mock('../pages/admin/AdminMaintenancePage', () => ({ default: () => <p>admin-maintenance-page</p> }));
+vi.mock('../pages/admin/AdminNotificationsPage', () => ({ default: () => <p>admin-notifications-page</p> }));
+vi.mock('../services/notificationService', () => ({ getUnreadNotificationCount: vi.fn(async () => 0) }));
 
 const signInAs = (role: UserRole) => {
   setSignedIn({ accessToken: 'token-1', email: `${role.toLowerCase()}@mktba.test` });
@@ -396,6 +398,7 @@ describe('AdminLayout', () => {
       'Заявки учёных',
       'Ревью статей',
       'Сессии',
+      'Уведомления',
       'Мой профиль',
       'Заявка учёного',
       'ИИ-провайдер',
@@ -419,6 +422,7 @@ describe('AdminLayout', () => {
       '/admin/articles',
       '/admin/my-articles',
       '/admin/sessions',
+      '/admin/notifications',
       '/admin/profile',
       '/admin/scholar-application',
     ]);
@@ -433,6 +437,7 @@ describe('AdminLayout', () => {
     expect([...sectionLinks()].map((link) => link.getAttribute('href'))).toEqual([
       '/admin/article-reviews',
       '/admin/sessions',
+      '/admin/notifications',
       '/admin/profile',
       '/admin/scholar-application',
     ]);
@@ -479,6 +484,7 @@ describe('AdminLayout', () => {
 
     expect(await screen.findByText('admin-sessions-page')).toBeTruthy();
     expect(screen.getByTestId('path').textContent).toBe('/admin/sessions');
+    expect(screen.getByTestId('notification-bell').getAttribute('href')).toBe('/admin/notifications');
   });
 
   it.each([

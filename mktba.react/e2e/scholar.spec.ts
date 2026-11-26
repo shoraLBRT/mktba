@@ -340,6 +340,17 @@ test('a scholar remarks on an opinion and the editor resolves the remark next to
     .toEqual([['ArticleRemarkClosed', 'Resolved'], ['ArticleRemarkCreated', null]]);
   await editorContext.close();
 
+  // V-09 (#125): the scholar is told of the approval and of the closing — the bell counts them, the list says them.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/admin/notifications');
+  await expect(page.getByRole('link', { name: `Замечание к статье «E2E замечание учёного ${stamp}» закрыто: исправлено.` })).toBeVisible();
+  await expect(page.getByTestId('notification-bell')).toHaveAttribute('aria-label', 'Уведомления, непрочитанных: 2');
+  const onNotifications = await new AxeBuilder({ page }).disableRules(['color-contrast']).analyze();
+  expect(onNotifications.violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical').map((violation) => violation.id))
+    .toEqual([]);
+  await page.getByRole('button', { name: 'Отметить все прочитанными' }).click();
+  await expect(page.getByTestId('notification-bell')).toHaveAttribute('aria-label', 'Уведомления');
+
   // Readers never see a remark.
   const html = await (await request.get(`/${article.slug}`)).text();
   expect(html).not.toContain(remarkText);

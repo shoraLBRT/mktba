@@ -37,6 +37,7 @@ builder.Services.AddApplication();
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
 builder.Services.Configure<AnalyticsOptions>(builder.Configuration.GetSection(AnalyticsOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<FeedbackOptions>(builder.Configuration.GetSection(FeedbackOptions.SectionName));
 builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection(IndexNowOptions.SectionName));
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
@@ -124,6 +125,7 @@ builder.Services.AddMktbaAlerts(builder.Configuration);
 if (!builder.Environment.IsEnvironment(OpenApiEnvironmentName))
 {
     builder.Services.AddHostedService<FeedbackDeliveryWorker>();
+    builder.Services.AddHostedService<NotificationEmailWorker>();
     builder.Services.AddHostedService<IndexNowWorker>();
     builder.Services.AddHostedService<ArticleDraftCleanupWorker>();
     builder.Services.AddHostedService<UploadCleanupWorker>();
@@ -190,6 +192,7 @@ app.MapScholarApplicationEndpoints();
 app.MapScholarApplicationReviewEndpoints();
 app.MapArticleReviewEndpoints();
 app.MapArticleRemarkEndpoints();
+app.MapNotificationEndpoints();
 app.MapClientErrorEndpoints();
 app.MapHealthEndpoints();
 

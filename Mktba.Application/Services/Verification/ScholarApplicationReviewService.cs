@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Mktba.Application.DTOs;
 using Mktba.Application.Exceptions;
+using Mktba.Application.Services.Notifications;
 using Mktba.Domain.Entities;
 using Mktba.Infrastructure.Data;
 using Mktba.Infrastructure.Repositories;
@@ -44,6 +45,7 @@ public sealed class ScholarApplicationReviewService
     private readonly TimeProvider _clock;
     private readonly UserAdminService _userAdmin;
     private readonly AuditLogRepository _auditLog;
+    private readonly NotificationService _notifications;
     private readonly ILogger<ScholarApplicationReviewService> _logger;
 
     public ScholarApplicationReviewService(
@@ -52,8 +54,10 @@ public sealed class ScholarApplicationReviewService
         TimeProvider clock,
         UserAdminService userAdmin,
         AuditLogRepository auditLog,
+        NotificationService notifications,
         ILogger<ScholarApplicationReviewService> logger)
     {
+        _notifications = notifications;
         _logger = logger;
         _db = db;
         _storage = storage;
@@ -113,6 +117,7 @@ public sealed class ScholarApplicationReviewService
         application.ClosedAt = now;
         application.RoleBeforeApproval = application.User.Role;
         _auditLog.Add(Entry(AuditAction.ScholarApplicationApproved, adminId, application.UserId, now));
+        await NotifyApplicantAsync(NotificationType.ScholarApplicationApproved, application, adminId, cancellationToken);
         // The role change saves the context, so the decision, its entry and the role go together.
         await SaveThroughRoleChangeAsync(application.UserId, UserRole.Scholar, adminId, cancellationToken);
         return ToReview(application);
@@ -131,6 +136,7 @@ public sealed class ScholarApplicationReviewService
         application.ClosedAt = now;
         application.DecisionReason = text;
         _auditLog.Add(Entry(AuditAction.ScholarApplicationRejected, adminId, application.UserId, now));
+        await NotifyApplicantAsync(NotificationType.ScholarApplicationRejected, application, adminId, cancellationToken);
         await SaveAsync(AppErrors.ScholarApplicationNotPending, cancellationToken);
         await ScholarApplicationService.DeleteDetachedFilesAsync(_db, _storage, _clock, _logger, files);
         return ToReview(application);
@@ -160,6 +166,7 @@ public sealed class ScholarApplicationReviewService
         application.RevokedAt = now;
         application.DecisionReason = text;
         _auditLog.Add(Entry(AuditAction.ScholarStatusRevoked, adminId, application.UserId, now));
+        await NotifyApplicantAsync(NotificationType.ScholarStatusRevoked, application, adminId, cancellationToken);
         var role = application.RoleBeforeApproval is { } before && ScholarApplicationService.RoleMayApply(before)
             ? before
             : UserRole.Reader;
@@ -182,6 +189,11 @@ public sealed class ScholarApplicationReviewService
         return await query.FirstOrDefaultAsync(application => application.Id == id, cancellationToken)
             ?? throw new NotFoundException(AppErrors.ScholarApplicationNotFound);
     }
+
+    /// <summary>Tells the applicant of the decision (V-09, #125), stored with it; the reason stays on the application page.</summary>
+    private Task NotifyApplicantAsync(NotificationType type, ScholarApplication application, int adminId, CancellationToken cancellationToken) =>
+        _notifications.NotifyAsync(
+            new NotificationDraft(type, adminId), [application.UserId], NotificationService.ScholarApplicationLink, cancellationToken);
 
     private static void EnsurePending(ScholarApplication application)
     {

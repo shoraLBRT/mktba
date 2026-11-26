@@ -436,6 +436,10 @@ public static class AppErrors
     public static AppError ArticleRemarkAlreadyOpen =>
         new("article_remark_open", "The remark is already open.");
 
+    // Notifications (V-09)
+    public static AppError NotificationNotFound =>
+        new("notification_not_found", "Notification not found.");
+
     private static IReadOnlyDictionary<string, object?> With(params (string Key, object? Value)[] values) =>
         values.ToDictionary(value => value.Key, value => value.Value);
 }

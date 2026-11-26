@@ -215,7 +215,7 @@ public sealed class ArticleRemarkTests : IDisposable
         var scholarId = await ScholarAsync();
         var article = await ArticleAsync(await UserAsync(UserRole.Author), snapshotIds: false);
 
-        var context = await new ArticleReviewService(_db, _clock, new AuditLogRepository(_db)).GetAsync(article.Id, scholarId, default);
+        var context = await new ArticleReviewService(_db, _clock, new AuditLogRepository(_db), NotificationTests.Service(_db, _clock)).GetAsync(article.Id, scholarId, default);
         var remark = await Service().CreateAsync(
             article.Id, scholarId, new ArticleRemarkCreateDto(1, article.BlockId, article.ShafiiOpinionId, "Спорно."), default);
 
@@ -268,7 +268,40 @@ public sealed class ArticleRemarkTests : IDisposable
         (clamped.Page, clamped.PageSize).Should().Be((1, ArticleRemarkService.MaxPageSize));
     }
 
-    private ArticleRemarkService Service() => new(_db, _clock, new AuditLogRepository(_db));
+    [Fact]
+    public async Task GivenARemarkThread_WhenItIsMadeAnsweredClosedAndReopened_ThenTheOtherParticipantsAreNotifiedEachTime()
+    {
+        var scholarId = await ScholarAsync();
+        var authorId = await UserAsync(UserRole.Author);
+        var coAuthorId = await UserAsync(UserRole.Author);
+        var adminId = await AdminAsync();
+        var article = await ArticleAsync(authorId, coAuthorId: coAuthorId);
+
+        var remark = await Service().CreateAsync(article.Id, scholarId, new ArticleRemarkCreateDto(1, article.PlainId, null, "Нужен\nисточник."), default);
+        await Service().ReplyAsync(remark.Id, authorId, new ArticleRemarkReplyDto("Добавлю."), default);
+        await Service().CloseAsync(remark.Id, adminId, new ArticleRemarkCloseDto(ArticleRemarkStatus.Resolved, null), default);
+        await Service().ReopenAsync(remark.Id, scholarId, new ArticleRemarkReopenDto(null), default);
+
+        var notifications = await _db.Notifications.AsNoTracking().OrderBy(n => n.Id).ToListAsync();
+        var editor = $"/admin/articles/{article.Id}/edit";
+        var review = $"/admin/article-reviews/{article.Id}";
+        notifications.Select(n => (n.Type, n.UserId, n.ActorId, n.Link)).Should().Equal(
+            (NotificationType.RemarkCreated, authorId, (int?)scholarId, editor),
+            (NotificationType.RemarkCreated, coAuthorId, (int?)scholarId, editor),
+            (NotificationType.RemarkReplied, coAuthorId, (int?)authorId, editor),
+            (NotificationType.RemarkReplied, scholarId, (int?)authorId, review),
+            (NotificationType.RemarkClosed, authorId, (int?)adminId, editor),
+            (NotificationType.RemarkClosed, coAuthorId, (int?)adminId, editor),
+            (NotificationType.RemarkClosed, scholarId, (int?)adminId, review),
+            (NotificationType.RemarkReopened, authorId, (int?)scholarId, editor),
+            (NotificationType.RemarkReopened, coAuthorId, (int?)scholarId, editor));
+        notifications.Should().OnlyContain(n => n.RemarkId == remark.Id && n.ArticleTitle == "Намаз путника");
+        notifications[0].Excerpt.Should().Be("Нужен источник.");
+        notifications[4].RemarkStatus.Should().Be(ArticleRemarkStatus.Resolved);
+        notifications[4].Excerpt.Should().BeNull();
+    }
+
+    private ArticleRemarkService Service() => new(_db, _clock, new AuditLogRepository(_db), NotificationTests.Service(_db, _clock));
 
     private sealed record SeededArticle(int Id, int PlainId, int PlainOpinionId, int BlockId, int HanafiOpinionId, int ShafiiOpinionId, int Hanafi, int Shafii);
 
