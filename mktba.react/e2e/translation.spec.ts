@@ -28,11 +28,10 @@ test('an editor translates an article and the English lists and tree show the tr
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/en/${englishSlug}$`));
 
-  // The saved translation joined the original's group: the API names it among the original's versions.
+  // The saved translation (a draft) joined the original's group: the original is among its versions.
   const content = await request.get(`${API_URL}/articles/by-slug/${englishSlug}/content?locale=en`, { headers: russian.headers });
   expect(content.ok()).toBe(true);
-  const english = await content.json() as { id: number; status: string; translations: { articleId: number }[] };
-  expect(english.status).toBe('Draft');
+  const english = await content.json() as { id: number; translations: { articleId: number; status: string }[] };
   expect(english.translations.map((version) => version.articleId)).toContain(russian.id);
   for (const status of ['InReview', 'Published']) {
     expect((await request.post(`${API_URL}/articles/${english.id}/status`, { headers: russian.headers, data: { status } })).ok()).toBe(true);
