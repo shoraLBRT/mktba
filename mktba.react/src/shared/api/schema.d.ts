@@ -5903,6 +5903,8 @@ export interface components {
             page: number;
             /** Format: int32 */
             pageSize: number;
+            /** Format: int32 */
+            needsReReviewTotal: number;
         };
         ArticleReviewContextDto: {
             /** Format: int32 */
@@ -5936,6 +5938,7 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             isLatestRevision: boolean;
+            isCurrent: boolean;
         };
         ArticleReviewMarkDto: {
             /** Format: int32 */
@@ -5943,6 +5946,7 @@ export interface components {
             verdict: components["schemas"]["ArticleReviewVerdict"];
             /** Format: date-time */
             updatedAt: string;
+            isCurrent: boolean;
         };
         ArticleReviewRevisionDto: {
             /** Format: int32 */
@@ -6135,6 +6139,7 @@ export interface components {
             /** Format: date-time */
             reviewedAt: string;
             isLatestRevision: boolean;
+            isCurrent: boolean;
         };
         /** @enum {string} */
         AuditAction: "ArticleStatusChanged" | "ArticleTrashed" | "ArticleRestored" | "ArticlePurged" | "UserRoleChanged" | "ScholarApplicationApproved" | "ScholarApplicationRejected" | "ScholarStatusRevoked" | "ArticleReviewed";

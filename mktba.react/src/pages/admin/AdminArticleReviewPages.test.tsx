@@ -80,16 +80,19 @@ afterEach(() => {
 });
 
 describe('AdminArticleReviewsPage', () => {
-  it("given published articles, when the list opens, then each shows its revision and the caller's mark, and the search asks again", async () => {
+  it("given published articles, when the list opens, then each shows its revision and the caller's mark, the re-review count, and the search asks again", async () => {
     vi.mocked(getArticlesForReview).mockResolvedValue({
       items: [
         { articleId: 12, title: 'Намаз путника', slug: 'namaz-putnika', locale: 'ru', latestRevisionNumber: 3, updatedAt: '2026-11-26T10:00:00Z',
-          myLatestReview: { revisionNumber: 2, verdict: 'HasErrors', updatedAt: '2026-11-25T10:00:00Z' } },
+          myLatestReview: { revisionNumber: 2, verdict: 'HasErrors', updatedAt: '2026-11-25T10:00:00Z', isCurrent: false } },
+        { articleId: 14, title: 'Пост', slug: 'post', locale: 'ru', latestRevisionNumber: 4, updatedAt: '2026-11-25T10:00:00Z',
+          myLatestReview: { revisionNumber: 3, verdict: 'Confirmed', updatedAt: '2026-11-25T09:00:00Z', isCurrent: true } },
         { articleId: 13, title: 'Закят', slug: 'zakyat', locale: 'ru', latestRevisionNumber: 1, updatedAt: '2026-11-24T10:00:00Z' },
       ],
-      total: 2,
+      total: 3,
       page: 1,
       pageSize: 20,
+      needsReReviewTotal: 1,
     });
 
     renderAt('/admin/article-reviews');
@@ -97,6 +100,9 @@ describe('AdminArticleReviewsPage', () => {
     const row = await screen.findByTestId('article-review-row-12');
     expect(within(row).getByRole('link', { name: 'Ревью статьи «Намаз путника»' }).getAttribute('href')).toBe('/admin/article-reviews/12');
     expect(within(row).getByText('Есть ошибки (ревизия 2)')).toBeTruthy();
+    expect(within(row).getByText('— нужно повторное ревью')).toBeTruthy();
+    expect(within(screen.getByTestId('article-review-row-14')).queryByText(/повторное ревью/)).toBeNull();
+    expect(screen.getByTestId('article-review-rereview-count').textContent).toMatch(/^Нужно повторное ревью: 1\./);
     expect(within(screen.getByTestId('article-review-row-13')).getByText('Нет')).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText('Поиск по названию'), { target: { value: 'закят' } });
@@ -109,7 +115,7 @@ describe('AdminArticleReviewPage', () => {
     vi.mocked(getArticleReviewContext).mockResolvedValue(context());
     vi.mocked(submitArticleReview).mockResolvedValue({
       id: 1, articleId: 12, revisionNumber: 3, verdict: 'HasErrors', comment: 'Неверная ссылка', mazhab: null,
-      createdAt: '2026-11-26T11:00:00Z', updatedAt: '2026-11-26T11:00:00Z', isLatestRevision: true,
+      createdAt: '2026-11-26T11:00:00Z', updatedAt: '2026-11-26T11:00:00Z', isLatestRevision: true, isCurrent: true,
     });
 
     renderAt('/admin/article-reviews/12');
@@ -132,9 +138,11 @@ describe('AdminArticleReviewPage', () => {
       scope: { mazhab: 'hanafi', schoolId: 1 },
       myReviews: [
         { id: 4, articleId: 12, revisionNumber: 3, verdict: 'Confirmed', comment: null, mazhab: 'hanafi',
-          createdAt: '2026-11-26T09:00:00Z', updatedAt: '2026-11-26T09:00:00Z', isLatestRevision: true },
+          createdAt: '2026-11-26T09:00:00Z', updatedAt: '2026-11-26T09:00:00Z', isLatestRevision: true, isCurrent: true },
+        { id: 3, articleId: 12, revisionNumber: 2, verdict: 'HasErrors', comment: 'Ошибка', mazhab: 'hanafi',
+          createdAt: '2026-11-22T09:00:00Z', updatedAt: '2026-11-22T09:00:00Z', isLatestRevision: false, isCurrent: true },
         { id: 2, articleId: 12, revisionNumber: 1, verdict: 'ConfirmedWithRemarks', comment: 'Уточнить источник', mazhab: 'hanafi',
-          createdAt: '2026-11-20T09:00:00Z', updatedAt: '2026-11-20T09:00:00Z', isLatestRevision: false },
+          createdAt: '2026-11-20T09:00:00Z', updatedAt: '2026-11-20T09:00:00Z', isLatestRevision: false, isCurrent: false },
       ],
     }));
 
@@ -144,7 +152,8 @@ describe('AdminArticleReviewPage', () => {
     expect(screen.getByText(/Мнение ханафитов/)).toBeTruthy();
     expect(screen.queryByText(/Мнение по умолчанию/)).toBeNull();
     expect(screen.getByText('Вы уже оценили эту ревизию: новая отметка заменит прежнюю.')).toBeTruthy();
-    expect(within(screen.getByTestId('my-review-1')).getByText('Подтверждаю с замечаниями · более ранняя ревизия')).toBeTruthy();
+    expect(within(screen.getByTestId('my-review-1')).getByText('Подтверждаю с замечаниями · для предыдущей версии: статью с тех пор существенно правили')).toBeTruthy();
+    expect(within(screen.getByTestId('my-review-2')).getByText('Есть ошибки · более ранняя ревизия, текст с тех пор по существу не менялся')).toBeTruthy();
     expect(within(screen.getByTestId('my-review-3')).getByText('Подтверждаю · текущая версия')).toBeTruthy();
   });
 

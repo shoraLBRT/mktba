@@ -32,4 +32,10 @@ public class ArticleRevision
     /// self-contained: rendering it needs no join to the mutable working-copy tables.
     /// </summary>
     public string Snapshot { get; set; } = string.Empty;
+
+    /// <summary>
+    /// What a review of this revision covers, per scope (V-05, #121): derived from <see cref="Snapshot"/>,
+    /// so it never changes either.
+    /// </summary>
+    public List<ArticleRevisionFingerprint> Fingerprints { get; set; } = [];
 }

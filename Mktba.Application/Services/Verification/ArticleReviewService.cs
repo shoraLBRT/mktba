@@ -27,9 +27,10 @@ namespace Mktba.Application.Services.Verification;
 /// </para>
 /// <para>
 /// Hooks left for the next issues: the widget (V-04, #120) reads <see cref="MktbaDbContext.ArticleReviews"/>
-/// per article; staleness after a substantial edit (V-05, #121) compares the review's revision with the
-/// latest; remarks on a paragraph (V-06, #122) can refer to a review; the scholar's cabinet (V-07, #123)
-/// replaces <see cref="ListAsync"/>; notifications are V-09 (#125).
+/// per article; staleness after a substantial edit (V-05, #121) compares the fingerprints of the
+/// review's revision and the latest one for the review's scope (<see cref="ReviewFingerprints"/>); remarks on a paragraph (V-06, #122) can refer to a review; the scholar's cabinet (V-07, #123)
+/// replaces <see cref="ListAsync"/>; notifications are V-09 (#125), which can tell a scholar of the
+/// articles <see cref="ListNeedingReReviewAsync"/> returns (the re-review request of D5).
 /// </para>
 /// </remarks>
 public sealed class ArticleReviewService
@@ -52,8 +53,10 @@ public sealed class ArticleReviewService
     }
 
     /// <summary>
-    /// One page of the published articles that have a revision, the latest edited first, with the
-    /// caller's latest review of each; <paramref name="query"/> filters by title (case-insensitive).
+    /// One page of the published articles that have a revision, with the caller's latest review of
+    /// each: first the articles whose review a substantial edit made stale (the re-review request,
+    /// V-05 #121), then the rest, the latest edited first; <paramref name="query"/> filters by title
+    /// (case-insensitive). The count of the stale ones is over all articles, not only the filtered.
     /// </summary>
     public async Task<ArticleReviewArticlePageDto> ListAsync(
         int userId, string? query, int page, int pageSize, CancellationToken cancellationToken)
@@ -67,9 +70,11 @@ public sealed class ArticleReviewService
             articles = articles.Where(article => article.Title.ToLower().Contains(text));
         }
 
+        var stale = await ListNeedingReReviewAsync(userId, cancellationToken);
         var total = await articles.CountAsync(cancellationToken);
-        var items = await articles
-            .OrderByDescending(article => article.UpdatedAt).ThenByDescending(article => article.Id)
+        var rows = await articles
+            .OrderByDescending(article => stale.Contains(article.Id))
+            .ThenByDescending(article => article.UpdatedAt).ThenByDescending(article => article.Id)
             .Skip((page - 1) * pageSize).Take(pageSize)
             .Select(article => new ArticleReviewArticleDto(
                 article.Id,
@@ -81,10 +86,58 @@ public sealed class ArticleReviewService
                 _db.ArticleReviews
                     .Where(review => review.ArticleId == article.Id && review.ScholarId == userId)
                     .OrderByDescending(review => review.Revision.Number)
-                    .Select(review => new ArticleReviewMarkDto(review.Revision.Number, review.Verdict, review.UpdatedAt))
+                    .Select(review => new ArticleReviewMarkDto(review.Revision.Number, review.Verdict, review.UpdatedAt, true))
                     .FirstOrDefault()))
             .ToListAsync(cancellationToken);
-        return new ArticleReviewArticlePageDto(items, total, page, pageSize);
+        var items = rows
+            .Select(item => item.MyLatestReview is { } mark && stale.Contains(item.ArticleId)
+                ? item with { MyLatestReview = mark with { IsCurrent = false } }
+                : item)
+            .ToList();
+        return new ArticleReviewArticlePageDto(items, total, page, pageSize, stale.Count);
+    }
+
+    /// <summary>
+    /// The re-review requests of a scholar (D5, #115; V-05, #121): the published articles whose latest
+    /// review by <paramref name="scholarId"/> a substantial edit has made stale — the text their scope
+    /// covers changed since the revision they reviewed. The hook for notifications (V-09, #125).
+    /// </summary>
+    public async Task<List<int>> ListNeedingReReviewAsync(int scholarId, CancellationToken cancellationToken)
+    {
+        var reviews = await _db.ArticleReviews.AsNoTracking()
+            .Where(review => review.ScholarId == scholarId
+                && review.Article.Status == ArticleStatus.Published && review.Article.DeletedAt == null)
+            .Select(review => new { review.ArticleId, review.RevisionId, review.Revision.Number, review.Mazhab })
+            .ToListAsync(cancellationToken);
+        var latestReviews = reviews
+            .GroupBy(review => review.ArticleId)
+            .Select(group => group.OrderByDescending(review => review.Number).First())
+            .ToList();
+        if (latestReviews.Count == 0)
+        {
+            return [];
+        }
+
+        var articleIds = latestReviews.Select(review => review.ArticleId).ToList();
+        var revisions = await _db.ArticleRevisions.AsNoTracking()
+            .Where(revision => articleIds.Contains(revision.ArticleId))
+            .Select(revision => new { revision.ArticleId, revision.Id, revision.Number })
+            .ToListAsync(cancellationToken);
+        var latestRevisions = revisions
+            .GroupBy(revision => revision.ArticleId)
+            .ToDictionary(group => group.Key, group => group.MaxBy(revision => revision.Number)!);
+        var candidates = latestReviews.Where(review => latestRevisions[review.ArticleId].Number != review.Number).ToList();
+        if (candidates.Count == 0)
+        {
+            return [];
+        }
+
+        var hashes = await HashesAsync(
+            candidates.SelectMany(review => new[] { review.RevisionId, latestRevisions[review.ArticleId].Id }), cancellationToken);
+        return candidates
+            .Where(review => !SameText(hashes, review.RevisionId, latestRevisions[review.ArticleId].Id, review.Mazhab))
+            .Select(review => review.ArticleId)
+            .ToList();
     }
 
     /// <summary>The latest revision of a published article, the caller's scope and their reviews of it.</summary>
@@ -99,6 +152,7 @@ public sealed class ArticleReviewService
             .OrderByDescending(review => review.Revision.Number)
             .Select(review => new { Review = review, review.Revision.Number })
             .ToListAsync(cancellationToken);
+        var hashes = await HashesAsync(mine.Select(row => row.Review.RevisionId).Append(revision.Id), cancellationToken);
 
         return new ArticleReviewContextDto(
             article.Id,
@@ -108,7 +162,8 @@ public sealed class ArticleReviewService
             new ArticleReviewRevisionDto(revision.Number, revision.CreatedAt, ArticleSnapshots.Deserialize(revision.Snapshot)),
             await ScopeAsync(scholar, cancellationToken),
             scholar.Verified,
-            mine.Select(row => ToDto(row.Review, row.Number, revision.Number)).ToList());
+            mine.Select(row => ToDto(row.Review, row.Number, revision.Number,
+                SameText(hashes, row.Review.RevisionId, revision.Id, row.Review.Mazhab))).ToList());
     }
 
     /// <summary>
@@ -181,7 +236,7 @@ public sealed class ArticleReviewService
             throw new ConflictException(AppErrors.ArticleReviewConflict);
         }
 
-        return ToDto(review, revision.Number, revision.Number);
+        return ToDto(review, revision.Number, revision.Number, true);
     }
 
     /// <summary>
@@ -205,11 +260,15 @@ public sealed class ArticleReviewService
 
         var latest = await _db.ArticleRevisions.AsNoTracking()
             .Where(revision => revision.ArticleId == articleId)
-            .MaxAsync(revision => (int?)revision.Number, cancellationToken);
-        if (latest is not int latestNumber)
+            .OrderByDescending(revision => revision.Number)
+            .Select(revision => new { revision.Id, revision.Number })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (latest is null)
         {
             return empty;
         }
+
+        var latestNumber = latest.Number;
 
         var rows = await _db.ArticleReviews.AsNoTracking()
             .Where(review => review.ArticleId == articleId
@@ -226,15 +285,19 @@ public sealed class ArticleReviewService
                     && (article.AuthorId == review.ScholarId || article.CoAuthors.Any(coAuthor => coAuthor.UserId == review.ScholarId))),
                 review.Verdict,
                 review.Mazhab,
+                review.RevisionId,
                 review.Revision.Number,
                 review.UpdatedAt,
             })
             .ToListAsync(cancellationToken);
 
-        var marks = rows
+        var latestMarks = rows
             .GroupBy(row => row.ScholarId)
             .Select(group => group.OrderByDescending(row => row.Number).First())
             .OrderByDescending(row => row.Number).ThenByDescending(row => row.UpdatedAt)
+            .ToList();
+        var hashes = await HashesAsync(latestMarks.Select(row => row.RevisionId).Append(latest.Id), cancellationToken);
+        var marks = latestMarks
             .Select(row => new ArticleVerificationMarkDto(
                 row.DisplayName,
                 row.DisplayName is not null && row.HasPublicPage ? row.Slug : null,
@@ -242,7 +305,8 @@ public sealed class ArticleReviewService
                 row.Mazhab,
                 row.Number,
                 row.UpdatedAt,
-                row.Number == latestNumber))
+                row.Number == latestNumber,
+                SameText(hashes, row.RevisionId, latest.Id, row.Mazhab)))
             .ToList();
         return new ArticleVerificationDto(latestNumber, marks);
     }
@@ -261,6 +325,37 @@ public sealed class ArticleReviewService
             .OrderByDescending(revision => revision.Number)
             .FirstOrDefaultAsync(cancellationToken)
         ?? throw new NotFoundException(AppErrors.ArticleNotFound);
+
+    /// <summary>The fingerprints of these revisions, by revision and scope.</summary>
+    private async Task<Dictionary<(int RevisionId, string Scope), string>> HashesAsync(
+        IEnumerable<int> revisionIds, CancellationToken cancellationToken)
+    {
+        var ids = revisionIds.Distinct().ToList();
+        var rows = await _db.ArticleRevisionFingerprints.AsNoTracking()
+            .Where(fingerprint => ids.Contains(fingerprint.RevisionId))
+            .Select(fingerprint => new { fingerprint.RevisionId, fingerprint.Scope, fingerprint.Hash })
+            .ToListAsync(cancellationToken);
+        return rows.ToDictionary(row => (row.RevisionId, row.Scope), row => row.Hash);
+    }
+
+    /// <summary>
+    /// Whether a review of <paramref name="reviewedId"/> with this scope is still current on the
+    /// revision <paramref name="latestId"/>: the same revision, or the same text for that scope. A
+    /// missing fingerprint (not filled yet) counts as a change, so a mark is never shown current unchecked.
+    /// </summary>
+    private static bool SameText(
+        Dictionary<(int RevisionId, string Scope), string> hashes, int reviewedId, int latestId, string? mazhab)
+    {
+        if (reviewedId == latestId)
+        {
+            return true;
+        }
+
+        var scope = ReviewFingerprints.ScopeOf(mazhab);
+        return hashes.TryGetValue((reviewedId, scope), out var reviewed)
+            && hashes.TryGetValue((latestId, scope), out var current)
+            && reviewed == current;
+    }
 
     private sealed record Scholar(bool Verified, string? Mazhab);
 
@@ -321,7 +416,7 @@ public sealed class ArticleReviewService
         return text;
     }
 
-    private static ArticleReviewDto ToDto(ArticleReview review, int revisionNumber, int latestNumber) => new(
+    private static ArticleReviewDto ToDto(ArticleReview review, int revisionNumber, int latestNumber, bool isCurrent) => new(
         review.Id,
         review.ArticleId,
         revisionNumber,
@@ -330,5 +425,6 @@ public sealed class ArticleReviewService
         review.Mazhab,
         review.CreatedAt,
         review.UpdatedAt,
-        revisionNumber == latestNumber);
+        revisionNumber == latestNumber,
+        isCurrent);
 }

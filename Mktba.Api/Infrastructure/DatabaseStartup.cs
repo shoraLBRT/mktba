@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Mktba.Application.Services.Verification;
 using Mktba.Infrastructure.Data;
 
 namespace Mktba.Api.Infrastructure;
@@ -26,7 +27,7 @@ public static class DatabaseStartup
         return (hostArgs.Length != args.Length, hostArgs);
     }
 
-    /// <summary>The <see cref="MigrateSwitch"/> command: migrate, seed the reference data, done.</summary>
+    /// <summary>The <see cref="MigrateSwitch"/> command: migrate, seed the reference data, fill derived data, done.</summary>
     public static async Task MigrateAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
@@ -34,7 +35,9 @@ public static class DatabaseStartup
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(DatabaseStartup));
 
         await DatabaseMigrator.MigrateAsync(context);
-        logger.LogInformation("Database is up to date: migrations applied, reference data seeded.");
+        var fingerprinted = await ReviewFingerprintBackfill.RunAsync(context);
+        logger.LogInformation(
+            "Database is up to date: migrations applied, reference data seeded, {Count} revisions fingerprinted.", fingerprinted);
     }
 
     /// <summary>Run before the API serves: migrate when configured to, otherwise check the schema.</summary>
@@ -52,5 +55,9 @@ public static class DatabaseStartup
         {
             await DatabaseMigrator.EnsureUpToDateAsync(context);
         }
+
+        // Revisions written by a version before V-05 (#121) — or by the previous version still serving
+        // while this one was migrated — get their review fingerprints.
+        await ReviewFingerprintBackfill.RunAsync(context);
     }
 }

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -122,14 +122,31 @@ public abstract class ArticleReviewEndpointTests
             mark.Verdict == ArticleReviewVerdict.HasErrors && mark.Mazhab == "shafii" && mark.RevisionNumber == 1
             && mark.IsLatestRevision && mark.ScholarName == null && mark.ScholarSlug == null);
 
-        var edit = article with
+        // V-05 (#121): an edit of the summary and the tags only is not substantial.
+        var metadata = article with
+        {
+            Summary = "Кратко.",
+            Tags = ["виджет"],
+            Paragraphs = [new ParagraphDto { Id = article.Paragraphs[0].Id, Order = 1, Opinions = [new OpinionDto { Content = " Текст ", IsDefault = true }] }],
+        };
+        var metadataResponse = await admin.PutAsJsonAsync($"/articles/{article.Id}/content", metadata);
+        metadataResponse.StatusCode.Should().Be(HttpStatusCode.NoContent, await metadataResponse.Content.ReadAsStringAsync());
+        var kept = await anonymous.GetFromJsonAsync<ArticleVerificationDto>($"/articles/{article.Id}/verification", ApiJson.Options);
+        (kept!.LatestRevisionNumber, kept.Marks.Single().IsLatestRevision, kept.Marks.Single().IsCurrent)
+            .Should().Be(((int?)2, false, true));
+
+        var edit = metadata with
         {
             Paragraphs = [new ParagraphDto { Id = article.Paragraphs[0].Id, Order = 1, Opinions = [new OpinionDto { Content = "Исправлено", IsDefault = true }] }],
         };
         (await admin.PutAsJsonAsync($"/articles/{article.Id}/content", edit)).StatusCode.Should().Be(HttpStatusCode.NoContent);
         var after = await anonymous.GetFromJsonAsync<ArticleVerificationDto>($"/articles/{article.Id}/verification", ApiJson.Options);
-        (after!.LatestRevisionNumber, after.Marks.Single().RevisionNumber, after.Marks.Single().IsLatestRevision)
-            .Should().Be(((int?)2, 1, false));
+        (after!.LatestRevisionNumber, after.Marks.Single().RevisionNumber, after.Marks.Single().IsLatestRevision, after.Marks.Single().IsCurrent)
+            .Should().Be(((int?)3, 1, false, false));
+        var list = await scholar.GetFromJsonAsync<ArticleReviewArticlePageDto>(
+            $"/article-reviews?q={Uri.EscapeDataString(article.Title)}", ApiJson.Options);
+        list!.NeedsReReviewTotal.Should().Be(1);
+        list.Items.Single().MyLatestReview!.IsCurrent.Should().BeFalse();
     }
 
     /// <summary>A Scholar with an approved application (the V-02 approval, written straight to the database).</summary>

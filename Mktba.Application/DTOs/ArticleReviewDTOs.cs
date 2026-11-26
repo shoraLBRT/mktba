@@ -10,9 +10,11 @@ namespace Mktba.Application.DTOs;
 /// </param>
 /// <param name="CreatedAt">When the scholar first reviewed this revision (UTC).</param>
 /// <param name="UpdatedAt">When the verdict was last given; later than <paramref name="CreatedAt"/> after a replacement.</param>
-/// <param name="IsLatestRevision">
-/// True while the reviewed revision is still the article's latest. Whether a later edit makes the mark
-/// «for a previous version» is V-05 (#121), which decides what counts as a substantial edit.
+/// <param name="IsLatestRevision">True while the reviewed revision is still the article's latest.</param>
+/// <param name="IsCurrent">
+/// True while no substantial edit (V-05, #121: a change to the text the review's scope covers) was
+/// saved after the reviewed revision; false makes the mark «для предыдущей версии» and asks the
+/// scholar to review again (D5, #115). Always true with <paramref name="IsLatestRevision"/>.
 /// </param>
 public sealed record ArticleReviewDto(
     int Id,
@@ -23,7 +25,8 @@ public sealed record ArticleReviewDto(
     string? Mazhab,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    bool IsLatestRevision);
+    bool IsLatestRevision,
+    bool IsCurrent);
 
 /// <summary>The verdict a scholar gives (V-03, #119).</summary>
 /// <param name="RevisionNumber">
@@ -61,7 +64,8 @@ public sealed record ArticleReviewContextDto(
     IReadOnlyList<ArticleReviewDto> MyReviews);
 
 /// <summary>The caller's latest review of an article, for the list.</summary>
-public sealed record ArticleReviewMarkDto(int RevisionNumber, ArticleReviewVerdict Verdict, DateTime UpdatedAt);
+/// <param name="IsCurrent">False when a substantial edit came after it: the article needs a re-review (V-05, #121).</param>
+public sealed record ArticleReviewMarkDto(int RevisionNumber, ArticleReviewVerdict Verdict, DateTime UpdatedAt, bool IsCurrent);
 
 /// <summary>One published article a scholar may review.</summary>
 /// <param name="LatestRevisionNumber">The revision a review would be about.</param>
@@ -75,8 +79,15 @@ public sealed record ArticleReviewArticleDto(
     DateTime UpdatedAt,
     ArticleReviewMarkDto? MyLatestReview);
 
-/// <summary>A page of the articles a scholar may review, the latest edited first.</summary>
-public sealed record ArticleReviewArticlePageDto(IReadOnlyList<ArticleReviewArticleDto> Items, int Total, int Page, int PageSize);
+/// <summary>
+/// A page of the articles a scholar may review: those needing a re-review first, then the latest edited first.
+/// </summary>
+/// <param name="NeedsReReviewTotal">
+/// How many published articles the caller's latest review of went stale after a substantial edit
+/// (V-05, #121) — over all of them, whatever the title search.
+/// </param>
+public sealed record ArticleReviewArticlePageDto(
+    IReadOnlyList<ArticleReviewArticleDto> Items, int Total, int Page, int PageSize, int NeedsReReviewTotal);
 
 /// <summary>
 /// The scholars' marks on an article as readers see them (V-04, #120): the latest mark of each
@@ -95,9 +106,12 @@ public sealed record ArticleVerificationDto(int? LatestRevisionNumber, IReadOnly
 /// <param name="Mazhab">The slug of the canonical school whose readers' version was reviewed; null for the whole article.</param>
 /// <param name="RevisionNumber">The revision the mark belongs to (D5, #115).</param>
 /// <param name="ReviewedAt">When the verdict was last given (UTC).</param>
-/// <param name="IsLatestRevision">
-/// False when the article was edited after the reviewed revision: readers see the mark as «для
-/// предыдущей версии» (D5). Which edits are substantial is V-05 (#121); until then any later revision counts.
+/// <param name="IsLatestRevision">False when any revision was saved after the reviewed one.</param>
+/// <param name="IsCurrent">
+/// False when a substantial edit (V-05, #121: a change to the text the mark's scope covers) was saved
+/// after the reviewed revision: readers see the mark as «для предыдущей версии» (D5, #115). An edit
+/// of the tags, the summary, the slug, the SEO fields or the related links, or of whitespace only,
+/// keeps the mark current.
 /// </param>
 public sealed record ArticleVerificationMarkDto(
     string? ScholarName,
@@ -106,4 +120,5 @@ public sealed record ArticleVerificationMarkDto(
     string? Mazhab,
     int RevisionNumber,
     DateTime ReviewedAt,
-    bool IsLatestRevision);
+    bool IsLatestRevision,
+    bool IsCurrent);

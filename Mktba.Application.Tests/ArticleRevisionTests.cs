@@ -130,6 +130,27 @@ public class ArticleRevisionTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateContentAndRestore_WriteTheReviewFingerprints_SameForTheSameTextAndNewForANewOne()
+    {
+        var created = await CreateAsync(authorId: null);
+        await EditAsync(created.Id, "Намаз", "Первый   текст", authorId: null);
+        await EditAsync(created.Id, "Намаз", "Второй текст", authorId: null);
+        _context.ChangeTracker.Clear();
+        await _revisions.RestoreAsync(created.Id, 1, null, null, TestViewers.Admin);
+
+        var whole = await _context.ArticleRevisionFingerprints.AsNoTracking()
+            .Where(f => f.Scope == ArticleRevisionFingerprint.WholeArticle && f.Revision.ArticleId == created.Id)
+            .OrderBy(f => f.Revision.Number)
+            .Select(f => f.Hash)
+            .ToListAsync();
+
+        whole.Should().HaveCount(4);
+        whole[1].Should().Be(whole[0], "a whitespace-only edit is not substantial");
+        whole[2].Should().NotBe(whole[0]);
+        whole[3].Should().Be(whole[0], "the restore brings the first text back");
+    }
+
+    [Fact]
     public async Task UpdateContent_WhenEditCommentIsTooLong_FailsAndWritesNoRevision()
     {
         var created = await CreateAsync(authorId: null);

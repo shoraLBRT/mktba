@@ -454,6 +454,8 @@ namespace Mktba.Application.Services
             var saved = await _articleRepo.GetByIdWithContentUntrackedAsync(articleId)
                 ?? throw new NotFoundException(AppErrors.ArticleNotFound);
             var number = await _articleRepo.GetLatestRevisionNumberAsync(articleId) + 1;
+            var snapshot = ArticleSnapshots.From(saved);
+            var schools = await _articleRepo.GetReviewScopeSchoolsAsync();
             await _articleRepo.AddRevisionAsync(new ArticleRevision
             {
                 ArticleId = articleId,
@@ -461,7 +463,10 @@ namespace Mktba.Application.Services
                 CreatedAt = saved.UpdatedAt,
                 AuthorId = authorId,
                 Comment = NormalizeOptionalText(comment),
-                Snapshot = ArticleSnapshots.Serialize(ArticleSnapshots.From(saved)),
+                Snapshot = ArticleSnapshots.Serialize(snapshot),
+                // What a scholar's review covers (V-05, #121): whether this save is a substantial edit.
+                Fingerprints = Verification.ReviewFingerprints.For(
+                    snapshot, schools.Select(school => new Verification.ReviewScopeSchool(school.Slug, school.Id))),
             });
             await _uow.SaveChangesAsync();
         }

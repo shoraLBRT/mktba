@@ -47,6 +47,7 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ScholarApplication> ScholarApplications { get; set; } = null!;
         public DbSet<ScholarApplicationDocument> ScholarApplicationDocuments { get; set; } = null!;
         public DbSet<ArticleReview> ArticleReviews { get; set; } = null!;
+        public DbSet<ArticleRevisionFingerprint> ArticleRevisionFingerprints { get; set; } = null!;
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; } = null!;
         public DbSet<AnalyticsDay> AnalyticsDays { get; set; } = null!;
         public DbSet<AnalyticsArticleDay> AnalyticsArticleDays { get; set; } = null!;
@@ -784,6 +785,18 @@ namespace Mktba.Infrastructure.Data
                 review.HasOne(r => r.Scholar)
                     .WithMany()
                     .HasForeignKey(r => r.ScholarId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // What a review covers, per revision and scope (V-05, #121); goes with the revision.
+            modelBuilder.Entity<ArticleRevisionFingerprint>(fingerprint =>
+            {
+                fingerprint.HasKey(f => new { f.RevisionId, f.Scope });
+                fingerprint.Property(f => f.Scope).HasMaxLength(ScholarApplication.MazhabMaxLength);
+                fingerprint.Property(f => f.Hash).HasMaxLength(ArticleRevisionFingerprint.HashLength).IsFixedLength().IsRequired();
+                fingerprint.HasOne(f => f.Revision)
+                    .WithMany(r => r.Fingerprints)
+                    .HasForeignKey(f => f.RevisionId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

@@ -12,9 +12,11 @@ import { Input } from '../../shared/ui/Input';
 const PAGE_SIZE = 20;
 
 /**
- * `/admin/article-reviews` (V-03, #119): the published articles a scholar may review, the latest
- * edited first, with the caller's latest mark on each; a title search and 20 a page. A line opens
- * the article's review. The scholar's cabinet with a queue by specialization is V-07 (#123).
+ * `/admin/article-reviews` (V-03, #119): the published articles a scholar may review, with the
+ * caller's latest mark on each; a title search and 20 a page. A line opens the article's review.
+ * First come the articles whose mark a substantial edit made stale, with their count above the
+ * table (V-05, #121: the re-review request of D5, until notifications in V-09 #125), then the latest
+ * edited. The scholar's cabinet with a queue by specialization is V-07 (#123).
  */
 const AdminArticleReviewsPage = () => {
   const locale = useLocale();
@@ -28,6 +30,7 @@ const AdminArticleReviewsPage = () => {
   });
   const items = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
+  const reReviewTotal = listQuery.data?.needsReReviewTotal ?? 0;
   const page = listQuery.data?.page ?? filter.page;
   const pageSize = listQuery.data?.pageSize ?? filter.pageSize;
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -38,6 +41,11 @@ const AdminArticleReviewsPage = () => {
       <div>
         <h1 className="text-xl font-bold tracking-tight text-[var(--color-ink-strong)]">{t.listTitle}</h1>
         <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t.listDescription}</p>
+        {reReviewTotal > 0 ? (
+          <p data-testid="article-review-rereview-count" className="mt-2 text-sm font-medium text-[var(--color-ink-strong)]">
+            {formatMessage(t.reReviewCount, { count: reReviewTotal })}
+          </p>
+        ) : null}
       </div>
       <div className="max-w-md">
         <label htmlFor="article-review-search" className="mb-1 block text-sm text-[var(--color-ink-muted)]">{t.searchLabel}</label>
@@ -86,6 +94,9 @@ const AdminArticleReviewsPage = () => {
                       {item.myLatestReview
                         ? formatMessage(t.myReviewOf, { verdict: t.verdicts[item.myLatestReview.verdict], number: item.myLatestReview.revisionNumber })
                         : t.notReviewed}
+                      {item.myLatestReview && !item.myLatestReview.isCurrent ? (
+                        <span className="ms-1 font-medium text-[var(--color-ink-strong)]">{`— ${t.reReviewNeeded}`}</span>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
