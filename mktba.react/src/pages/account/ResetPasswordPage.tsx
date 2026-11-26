@@ -216,12 +216,23 @@ const ResetPasswordPage: React.FC = () => {
   const [token, setToken] = useState(() => tokenFromHash(window.location.hash));
 
   useEffect(() => {
-    if (window.location.hash) {
-      window.history.replaceState(window.history.state, '', window.location.pathname);
-    }
+    const dropHash = () => {
+      if (window.location.hash) {
+        window.history.replaceState(window.history.state, '', window.location.pathname);
+      }
+    };
+    // A link opened in a tab already on this page changes only the hash: no new page load.
+    const onHashChange = () => {
+      const next = tokenFromHash(window.location.hash);
+      dropHash();
+      if (next) setToken(next);
+    };
+    dropHash();
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  return token ? <SetPasswordForm token={token} onRestart={() => setToken(null)} /> : <RequestForm />;
+  return token ? <SetPasswordForm key={token} token={token} onRestart={() => setToken(null)} /> : <RequestForm />;
 };
 
 export default ResetPasswordPage;

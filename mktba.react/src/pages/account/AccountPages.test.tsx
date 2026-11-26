@@ -180,6 +180,17 @@ describe('ResetPasswordPage', () => {
     expect(vi.mocked(requestPasswordReset).mock.calls[0][0]).toEqual({ email: 'someone@mktba.test', website: '' });
   });
 
+  it('given the request form is open, when the link is opened in the same tab, then the new-password form takes its token', async () => {
+    renderAt(<ResetPasswordPage />);
+    expect(screen.getByRole('button', { name: 'Прислать ссылку' })).toBeTruthy();
+
+    window.history.replaceState(null, '', '/reset-password#token=same-tab');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    expect(await screen.findByRole('button', { name: 'Сохранить пароль' })).toBeTruthy();
+    expect(window.location.hash).toBe('');
+  });
+
   it('given the link of the email, when a new password is set, then it posts the token and says to sign in', async () => {
     window.history.replaceState(null, '', '/reset-password#token=reset-token');
     vi.mocked(resetPassword).mockResolvedValue();
