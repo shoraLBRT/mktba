@@ -179,7 +179,16 @@ public sealed class ScholarApplicationService
         _db.ScholarApplicationDocuments.RemoveRange(application.Documents);
         application.Status = ScholarApplicationStatus.Withdrawn;
         application.ClosedAt = now;
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // An admin decided first (V-02, #118): the decision stands.
+            throw new ConflictException(AppErrors.ScholarApplicationNotPending);
+        }
+
         return await GetMineAsync(userId, cancellationToken);
     }
 
@@ -316,7 +325,7 @@ public sealed class ScholarApplicationService
         return baseName + extension;
     }
 
-    private static ScholarApplicationDto ToDto(ScholarApplication application) => new(
+    internal static ScholarApplicationDto ToDto(ScholarApplication application) => new(
         application.Id,
         application.Status,
         application.Degree,
@@ -328,7 +337,9 @@ public sealed class ScholarApplicationService
         application.Documents
             .OrderBy(document => document.Order)
             .Select(document => new ScholarDocumentDto(document.Id, document.FileName, document.StoredFile.ContentType, document.StoredFile.SizeBytes))
-            .ToList());
+            .ToList(),
+        application.DecisionReason,
+        application.RevokedAt);
 
     /// <summary>The file to its end, refused as soon as it passes <paramref name="maxBytes"/>; an empty file is refused too.</summary>
     private static async Task<byte[]> ReadAtMostAsync(Stream content, long maxBytes, CancellationToken cancellationToken)

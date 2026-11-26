@@ -17,6 +17,21 @@ public enum AuditAction
 
     /// <summary>A user was given another role: <see cref="AuditLogEntry.FromValue"/> → <see cref="AuditLogEntry.ToValue"/>.</summary>
     UserRoleChanged = 5,
+
+    /// <summary>
+    /// An admin approved a scholar application (V-02, #118); <see cref="AuditLogEntry.TargetUserId"/> is
+    /// the applicant. The role change it makes is its own <see cref="UserRoleChanged"/> entry.
+    /// </summary>
+    ScholarApplicationApproved = 6,
+
+    /// <summary>An admin refused a scholar application (V-02, #118); <see cref="AuditLogEntry.TargetUserId"/> is the applicant.</summary>
+    ScholarApplicationRejected = 7,
+
+    /// <summary>
+    /// An admin took back a user's scholar status (V-02, #118); the role change is its own
+    /// <see cref="UserRoleChanged"/> entry.
+    /// </summary>
+    ScholarStatusRevoked = 8,
 }
 
 /// <summary>
@@ -45,7 +60,7 @@ public class AuditLogEntry
     /// <summary>The article's title at the time, so the entry reads the same after a rename or a purge.</summary>
     public string? ArticleTitle { get; set; }
 
-    /// <summary>The user acted on, for <see cref="AuditAction.UserRoleChanged"/>.</summary>
+    /// <summary>The user acted on, for <see cref="AuditAction.UserRoleChanged"/> and the scholar actions.</summary>
     public int? TargetUserId { get; set; }
 
     /// <summary>The value before the change (a status or a role name); null when the action has none.</summary>
