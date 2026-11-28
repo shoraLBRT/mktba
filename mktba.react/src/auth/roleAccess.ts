@@ -27,6 +27,8 @@ const POLICY_ROLES = {
   canViewSiteAnalytics: ['Admin'],
   /** The audit log of publications, deletions and role changes. */
   canViewAuditLog: ['Admin'],
+  /** The comment moderation queues and comment bans (C-02). */
+  canModerateComments: ['Admin'],
 } as const satisfies Record<string, readonly UserRole[]>;
 
 export type RolePolicy = keyof typeof POLICY_ROLES;

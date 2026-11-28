@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { API_URL, declineAnalytics, publishArticle } from './helpers';
+import { API_URL, declineAnalytics, logIn, publishArticle } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await declineAnalytics(page);
@@ -14,9 +14,9 @@ const seriousViolations = async (page: Page): Promise<string[]> => {
     .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
 };
 
-// C-01 (#127): comments under a published article. They come in the browser only (not in the server
+// C-01 (#127), moderation C-02 (#128): comments under a published article. They come in the browser only (not in the server
 // HTML), render the Markdown minimum without raw HTML, and their links are not followed (C-06, #132).
-test('a reader comments under an article, answers, edits and deletes; the server HTML holds no comment', async ({ page, request }, testInfo) => {
+test('a reader comments under an article, answers, edits and deletes; the server HTML holds no comment', async ({ page, request, browser }, testInfo) => {
   const stamp = `${Date.now()}-${testInfo.project.name}`;
   const article = await publishArticle(request, `Комментарии E2E ${stamp}`, [
     { order: 1, opinions: [{ content: 'Текст статьи для комментариев.', isDefault: true, schoolIds: [] }] },
@@ -38,6 +38,23 @@ test('a reader comments under an article, answers, edits and deletes; the server
     data: { body: '**Спасибо** за [источник](https://example.com/e2e)! <script>window.__commentXss = 1</script>', website: '' },
   });
   expect(first.ok()).toBe(true);
+
+  // C-02 (#128): a new reader's first comment waits for a moderator; the admin approves it in /admin/comments.
+  const held = await first.json() as { id: number; isPending: boolean };
+  expect(held.isPending).toBe(true);
+  expect((await (await request.get(`${API_URL}/articles/${article.id}/comments`)).json() as { total: number }).total).toBe(0);
+  // A page of its own context: axe cannot analyse a page made by browser.newPage().
+  const moderatorContext = await browser.newContext();
+  const moderator = await moderatorContext.newPage();
+  await declineAnalytics(moderator);
+  await logIn(moderator);
+  await moderator.goto('/admin/comments');
+  const queued = moderator.locator(`[data-testid="moderation-item"][data-comment-id="${held.id}"]`);
+  await expect(queued).toContainText('Новый читатель');
+  expect(await seriousViolations(moderator)).toEqual([]);
+  await queued.getByRole('button', { name: 'Одобрить' }).click();
+  await expect(queued).toHaveCount(0);
+  await moderatorContext.close();
 
   const html = await (await request.get(`/${article.slug}`)).text();
   expect(html).not.toContain('Спасибо');

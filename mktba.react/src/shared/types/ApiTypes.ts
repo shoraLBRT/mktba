@@ -87,6 +87,16 @@ export type ArticleCommentDto = Schemas['ArticleCommentDto'];
 export type ArticleCommentPageDto = Schemas['ArticleCommentPageDto'];
 export type ArticleCommentViewerDto = Schemas['ArticleCommentViewerDto'];
 export type ArticleCommentCreateDto = Schemas['ArticleCommentCreateDto'];
+export type ArticleCommentReportReason = Schemas['ArticleCommentReportReason'];
+export type ArticleCommentReportCreateDto = Schemas['ArticleCommentReportCreateDto'];
+export type ArticleCommentHoldReason = Schemas['ArticleCommentHoldReason'];
+/** `CommentModerationQueue` (C-02): the OpenAPI document types this query parameter as a plain string, so it is spelled out here. */
+export type CommentModerationQueue = 'Pending' | 'Reported' | 'Hidden';
+export type CommentModerationAction = Schemas['CommentModerationAction'];
+export type CommentModerationItemDto = Schemas['CommentModerationItemDto'];
+export type CommentModerationPageDto = Schemas['CommentModerationPageDto'];
+export type CommentBanDto = Schemas['CommentBanDto'];
+export type CommentBanCreateDto = Schemas['CommentBanCreateDto'];
 export type NotificationType = Schemas['NotificationType'];
 export type NotificationDto = Schemas['NotificationDto'];
 export type NotificationPageDto = Schemas['NotificationPageDto'];

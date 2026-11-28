@@ -9,6 +9,9 @@ namespace Mktba.Domain.Entities;
 /// blocks, quotes); the server stores it as text and never turns it into HTML — the page renders it
 /// through a restricted Markdown schema without raw HTML. A deleted comment is kept as a row with an
 /// empty body and <see cref="DeletedAt"/> set, so its replies keep their place («комментарий удалён»).
+/// Moderation (C-02, #128): readers see a <see cref="ArticleCommentStatus.Published"/> comment; one held
+/// for a moderator is <see cref="ArticleCommentStatus.Pending"/> (only its author sees it); one a
+/// moderator took down is <see cref="ArticleCommentStatus.Hidden"/>.
 /// </remarks>
 public class ArticleComment
 {
@@ -47,4 +50,47 @@ public class ArticleComment
     public int? DeletedById { get; set; }
 
     public User? DeletedBy { get; set; }
+
+    /// <summary>Whether readers see it (C-02, #128).</summary>
+    public ArticleCommentStatus Status { get; set; } = ArticleCommentStatus.Published;
+
+    /// <summary>Why it was last held for a moderator; null for a comment never held.</summary>
+    public ArticleCommentHoldReason? HoldReason { get; set; }
+
+    /// <summary>
+    /// When a moderator last approved or hid it (UTC); null if never. Reports older than this have been
+    /// dealt with: only newer ones count towards holding it again.
+    /// </summary>
+    public DateTime? ModeratedAt { get; set; }
+
+    /// <summary>The moderator who did; null if never or once that user is deleted.</summary>
+    public int? ModeratedById { get; set; }
+
+    public User? ModeratedBy { get; set; }
+}
+
+/// <summary>Whether readers see a comment (C-02, #128). Stored by name.</summary>
+public enum ArticleCommentStatus
+{
+    /// <summary>Everyone sees it.</summary>
+    Published = 1,
+
+    /// <summary>Held for a moderator: only its author sees it, marked as waiting.</summary>
+    Pending = 2,
+
+    /// <summary>Taken down by a moderator: listed as «комментарий скрыт» while a reply hangs on it.</summary>
+    Hidden = 3,
+}
+
+/// <summary>Why a comment was held for a moderator (C-02, #128). Stored by name.</summary>
+public enum ArticleCommentHoldReason
+{
+    /// <summary>One of the first comments of a new reader (<c>Comments:PremoderateFirst</c>).</summary>
+    NewAuthor = 1,
+
+    /// <summary>The spam filter caught it: too many links, a blocked word, or the same text again.</summary>
+    Spam = 2,
+
+    /// <summary>Enough readers reported it (<c>Comments:ReportsToHold</c>).</summary>
+    Reported = 3,
 }

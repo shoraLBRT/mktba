@@ -565,20 +565,77 @@ namespace Mktba.Infrastructure.Migrations
                     b.Property<DateTime?>("EditedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("HoldReason")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("ModeratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ModeratedById")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("ParentId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Published");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DeletedById");
 
+                    b.HasIndex("ModeratedById");
+
                     b.HasIndex("ParentId");
 
                     b.HasIndex("AuthorId", "CreatedAt");
 
+                    b.HasIndex("Status", "CreatedAt");
+
                     b.HasIndex("ArticleId", "ParentId", "CreatedAt");
 
                     b.ToTable("ArticleComments");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleCommentReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int>("ReporterId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterId");
+
+                    b.HasIndex("CommentId", "ReporterId")
+                        .IsUnique();
+
+                    b.ToTable("ArticleCommentReports");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleDraft", b =>
@@ -1024,6 +1081,40 @@ namespace Mktba.Infrastructure.Migrations
                     b.HasIndex("ArticleId", "OccurredAt");
 
                     b.ToTable("AuditLogEntries");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.CommentBan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedById")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("Until")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("CommentBans");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.DeletedArticleSlug", b =>
@@ -1974,6 +2065,11 @@ namespace Mktba.Infrastructure.Migrations
                         .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Mktba.Domain.Entities.User", "ModeratedBy")
+                        .WithMany()
+                        .HasForeignKey("ModeratedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Mktba.Domain.Entities.ArticleComment", "Parent")
                         .WithMany()
                         .HasForeignKey("ParentId")
@@ -1985,7 +2081,28 @@ namespace Mktba.Infrastructure.Migrations
 
                     b.Navigation("DeletedBy");
 
+                    b.Navigation("ModeratedBy");
+
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.ArticleCommentReport", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.ArticleComment", "Comment")
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mktba.Domain.Entities.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+
+                    b.Navigation("Reporter");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.ArticleDraft", b =>
@@ -2200,6 +2317,24 @@ namespace Mktba.Infrastructure.Migrations
                     b.Navigation("Article");
 
                     b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("Mktba.Domain.Entities.CommentBan", b =>
+                {
+                    b.HasOne("Mktba.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Mktba.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Mktba.Domain.Entities.FeedbackMessage", b =>

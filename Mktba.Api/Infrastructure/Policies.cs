@@ -52,6 +52,9 @@ public static class Policies
     /// <summary>The audit log of publications, deletions and role changes (U-09, #135, <c>/audit-log</c>): Admin.</summary>
     public const string CanViewAuditLog = nameof(CanViewAuditLog);
 
+    /// <summary>The comment moderation queues, approving and hiding comments, and comment bans (C-02, #128, <c>/comments/moderation</c>, <c>/comments/bans</c>): Admin.</summary>
+    public const string CanModerateComments = nameof(CanModerateComments);
+
     /// <summary>The roles each policy lets through.</summary>
     public static readonly IReadOnlyDictionary<string, IReadOnlyList<UserRole>> Roles =
         new Dictionary<string, IReadOnlyList<UserRole>>
@@ -65,6 +68,7 @@ public static class Policies
             [CanConfigure] = [UserRole.Admin],
             [CanViewSiteAnalytics] = [UserRole.Admin],
             [CanViewAuditLog] = [UserRole.Admin],
+            [CanModerateComments] = [UserRole.Admin],
         };
 
     /// <summary>Whether <paramref name="role"/> passes <paramref name="policy"/>.</summary>

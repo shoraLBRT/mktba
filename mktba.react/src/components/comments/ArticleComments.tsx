@@ -9,6 +9,7 @@ import {
   createArticleComment,
   deleteArticleComment,
   getArticleComments,
+  reportArticleComment,
   updateArticleComment,
 } from '../../services/commentService';
 import { useSession } from '../../services/session';
@@ -20,7 +21,7 @@ import {
   templateParts,
   type CommentRow,
 } from '../../shared/articleComments';
-import type { ArticleCommentDto, ArticleCommentViewerDto } from '../../shared/types/ApiTypes';
+import type { ArticleCommentDto, ArticleCommentReportReason, ArticleCommentViewerDto } from '../../shared/types/ApiTypes';
 import { Button } from '../../shared/ui/Button';
 import { Textarea } from '../../shared/ui/Textarea';
 import { CommentMarkdown } from './CommentMarkdown';
@@ -114,10 +115,19 @@ const ArticleComments: React.FC<{ articleId: number }> = ({ articleId }) => {
 
 /** Why the reader cannot comment, with the way to fix it. */
 const ViewerNote: React.FC<{ t: Strings; viewer: ArticleCommentViewerDto }> = ({ t, viewer }) => {
+  const { date } = useFormat();
   const className = 'rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-page-panel)] px-4 py-3 text-sm text-[var(--color-ink-muted)]';
   const linkClass = 'font-semibold text-[var(--color-ink-strong)] underline';
   if (viewer.block === 'EmailNotConfirmed') {
     return <p className={className}>{t.emailNotConfirmed}</p>;
+  }
+
+  if (viewer.block === 'Banned') {
+    return (
+      <p className={className} data-testid="comments-banned">
+        {viewer.bannedUntil ? formatMessage(t.banned, { date: date(viewer.bannedUntil, 'dateTime') }) : t.bannedForever}
+      </p>
+    );
   }
 
   if (viewer.block === 'DisplayNameRequired') {
@@ -221,7 +231,8 @@ type CommentItemProps = {
 const CommentItem: React.FC<CommentItemProps> = ({ t, row, articleId, canReply, onChanged }) => {
   const { comment, level, replyTo } = row;
   const { date } = useFormat();
-  const [mode, setMode] = useState<'view' | 'reply' | 'edit' | 'confirmDelete'>('view');
+  const [mode, setMode] = useState<'view' | 'reply' | 'edit' | 'confirmDelete' | 'report'>('view');
+  const [reported, setReported] = useState(false);
   const removal = useMutation({ mutationFn: () => deleteArticleComment(comment.id), onSuccess: onChanged });
 
   return (
@@ -233,9 +244,14 @@ const CommentItem: React.FC<CommentItemProps> = ({ t, row, articleId, canReply, 
     >
       {comment.isDeleted ? (
         <p className="text-sm italic text-[var(--color-ink-subtle)]">{t.deleted}</p>
+      ) : comment.isHidden ? (
+        <p className="text-sm italic text-[var(--color-ink-subtle)]">{t.hidden}</p>
       ) : (
         <>
           <CommentHeader t={t} comment={comment} replyTo={replyTo} date={date(comment.createdAt, 'dateTime')} />
+          {comment.isPending ? (
+            <p data-testid="comment-pending" className="mb-1 text-xs font-medium text-amber-800">{t.pending}</p>
+          ) : null}
           {mode === 'edit' ? (
             <CommentForm
               t={t}
@@ -262,6 +278,9 @@ const CommentItem: React.FC<CommentItemProps> = ({ t, row, articleId, canReply, 
               {comment.canEdit ? (
                 <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => setMode('edit')}>{t.edit}</Button>
               ) : null}
+              {comment.canReport && !reported && mode !== 'report' ? (
+                <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => setMode('report')}>{t.report}</Button>
+              ) : null}
               {comment.canDelete && mode !== 'confirmDelete' ? (
                 <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => setMode('confirmDelete')}>{t.delete}</Button>
               ) : null}
@@ -277,6 +296,18 @@ const CommentItem: React.FC<CommentItemProps> = ({ t, row, articleId, canReply, 
             </div>
           ) : null}
           {removal.isError ? <p role="alert" className="text-sm text-red-600">{extractApiErrorMessage(removal.error)}</p> : null}
+          {reported ? <p role="status" className="text-xs text-[var(--color-ink-muted)]">{t.reported}</p> : null}
+          {mode === 'report' ? (
+            <ReportForm
+              t={t}
+              commentId={comment.id}
+              onDone={() => {
+                setReported(true);
+                setMode('view');
+              }}
+              onCancel={() => setMode('view')}
+            />
+          ) : null}
           {mode === 'reply' ? (
             <div className="mt-2">
               <CommentForm
@@ -295,6 +326,44 @@ const CommentItem: React.FC<CommentItemProps> = ({ t, row, articleId, canReply, 
         </>
       )}
     </li>
+  );
+};
+
+const REPORT_REASONS: readonly ArticleCommentReportReason[] = ['Spam', 'Abuse', 'Offtopic', 'Other'];
+
+/** A report of someone else's comment (C-02, #128): what is wrong, and an optional note. */
+const ReportForm: React.FC<{ t: Strings; commentId: number; onDone: () => void; onCancel: () => void }> = ({ t, commentId, onDone, onCancel }) => {
+  const id = useId();
+  const [reason, setReason] = useState<ArticleCommentReportReason>('Spam');
+  const [note, setNote] = useState('');
+  const mutation = useMutation({ mutationFn: () => reportArticleComment(commentId, { reason, note: note.trim() || null }), onSuccess: onDone });
+
+  return (
+    <form
+      aria-label={t.reportLabel}
+      className="mt-2 space-y-2 rounded-xl border border-[var(--color-border-soft)] p-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        mutation.mutate();
+      }}
+    >
+      <label htmlFor={`${id}-reason`} className="block text-sm font-medium text-[var(--color-ink-strong)]">{t.reportReason}</label>
+      <select
+        id={`${id}-reason`}
+        value={reason}
+        onChange={(event) => setReason(event.target.value as ArticleCommentReportReason)}
+        className="h-9 rounded-lg border border-[var(--color-border-soft)] bg-white px-2 text-sm"
+      >
+        {REPORT_REASONS.map((value) => <option key={value} value={value}>{t.reportReasons[value]}</option>)}
+      </select>
+      <label htmlFor={`${id}-note`} className="block text-sm text-[var(--color-ink-muted)]">{t.reportNote}</label>
+      <Textarea id={`${id}-note`} value={note} rows={2} maxLength={500} onChange={(event) => setNote(event.target.value)} />
+      {mutation.isError ? <p role="alert" className="text-sm text-red-600">{extractApiErrorMessage(mutation.error)}</p> : null}
+      <div className="flex gap-2">
+        <Button type="submit" variant="primary" className="px-3 py-1 text-xs" disabled={mutation.isPending}>{t.reportSubmit}</Button>
+        <Button className="px-3 py-1 text-xs" onClick={onCancel}>{t.cancel}</Button>
+      </div>
+    </form>
   );
 };
 

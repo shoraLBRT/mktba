@@ -131,5 +131,9 @@
   "profile_link_label_invalid": "У каждой ссылки должна быть подпись не длиннее {maxLength} знаков.",
   "profile_link_url_invalid": "Адрес ссылки должен начинаться с http:// или https://.",
   "role_invalid": "Неизвестная роль.",
-  "last_admin_demotion": "Нельзя сменить роль последнего администратора."
+  "last_admin_demotion": "Нельзя сменить роль последнего администратора.",
+  "comment_moderation_action_required": "Выберите: одобрить или скрыть комментарий.",
+  "comment_ban_admin": "Администратору нельзя запретить комментировать.",
+  "comment_ban_days_invalid": "Срок запрета — от 1 до {maxDays} дней или навсегда.",
+  "comment_ban_reason_too_long": "Причина — не длиннее {maxLength} символов."
 }

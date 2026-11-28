@@ -37,10 +37,11 @@ public static class ArticleCommentEndpoints
             .WithSummary("A new comment on a published article, or a reply (parentId) to one of its comments.")
             .WithDescription(
                 "400 comment_body_required or comment_body_too_long (params.maxLength); 404 article_not_found or comment_not_found "
-                + "(the parent); 409 email_not_confirmed, comment_display_name_required or comment_deleted (the parent); "
+                + "(the parent); 403 comment_banned (params.until); 409 email_not_confirmed, comment_display_name_required, "
+                + "comment_deleted or comment_hidden (the parent). The answer's isPending says it is held for a moderator; "
                 + "429 comment_limit_reached (the account's limit) or too_many_requests (the address's).")
             .Produces<ArticleCommentDto>()
-            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status401Unauthorized, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status429TooManyRequests);
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status429TooManyRequests);
 
         var comments = builder.MapGroup("/comments").WithTags("ArticleComments");
 
@@ -52,8 +53,8 @@ public static class ArticleCommentEndpoints
             .RequireRateLimiting(RateLimitingSetup.CommentsPolicy)
             .WithSummary("The new text of the caller's own comment.")
             .WithDescription(
-                "400 comment_body_required or comment_body_too_long; 403 forbidden (someone else's); 404 comment_not_found; "
-                + "409 comment_deleted.")
+                "400 comment_body_required or comment_body_too_long; 403 forbidden (someone else's) or comment_banned; "
+                + "404 comment_not_found; 409 comment_deleted or comment_hidden. An edit the spam filter catches holds the comment again.")
             .Produces<ArticleCommentDto>()
             .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status429TooManyRequests);
 
@@ -73,6 +74,75 @@ public static class ArticleCommentEndpoints
             .WithDescription("204 also for a comment already deleted. 403 forbidden; 404 comment_not_found.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesApiProblem(StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status429TooManyRequests);
+
+        comments.MapPost("/{id:int}/reports", async (int id, ArticleCommentReportCreateDto dto, ClaimsPrincipal principal, ArticleCommentService service, CancellationToken cancellationToken) =>
+            {
+                if (principal.GetUserId() is not int userId)
+                {
+                    return ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized);
+                }
+
+                await service.ReportAsync(id, userId, dto, cancellationToken);
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Policies.Authenticated)
+            .RequireRateLimiting(RateLimitingSetup.CommentsPolicy)
+            .WithSummary("Reports someone else's published comment (C-02), once per reader; enough reports hold it for a moderator.")
+            .WithDescription(
+                "400 comment_report_reason_required or comment_report_note_too_long (params.maxLength); 403 forbidden (one's own); "
+                + "404 comment_not_found; 409 email_not_confirmed, comment_deleted, comment_hidden or comment_already_reported.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status429TooManyRequests);
+
+        // Moderation (C-02, #128): the queues, the decisions and the bans.
+        var moderation = comments.MapGroup(string.Empty).RequireAuthorization(Policies.CanModerateComments);
+
+        moderation.MapGet("/moderation", async (CommentModerationQueue? queue, int? page, int? pageSize, CommentModerationService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.QueueAsync(
+                    queue ?? CommentModerationQueue.Pending, page ?? 1, pageSize ?? CommentModerationService.DefaultPageSize, cancellationToken)))
+            .WithSummary("A page of a moderation queue: comments held for a moderator, reported, or hidden; with every queue's count.")
+            .WithDescription("queue Pending (default), Reported or Hidden; page from 1, pageSize 1 to 100 (20 by default). Authors' emails included.")
+            .Produces<CommentModerationPageDto>()
+            .ProducesApiProblem(StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden);
+
+        moderation.MapPost("/{id:int}/moderation", async (int id, CommentModerationDto dto, ClaimsPrincipal principal, CommentModerationService service, CancellationToken cancellationToken) =>
+            {
+                if (principal.GetUserId() is not int userId)
+                {
+                    return ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized);
+                }
+
+                await service.ModerateAsync(id, userId, dto, cancellationToken);
+                return Results.NoContent();
+            })
+            .WithSummary("Approves (publishes, settling the reports so far) or hides a comment.")
+            .WithDescription("400 comment_moderation_action_required; 404 comment_not_found; 409 comment_deleted.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
+
+        moderation.MapGet("/bans", async (CommentModerationService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.ListBansAsync(cancellationToken)))
+            .WithSummary("The users barred from commenting now, the newest ban first.")
+            .Produces<IReadOnlyList<CommentBanDto>>()
+            .ProducesApiProblem(StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden);
+
+        moderation.MapPut("/bans/{userId:int}", async (int userId, CommentBanCreateDto dto, ClaimsPrincipal principal, CommentModerationService service, CancellationToken cancellationToken) =>
+                principal.GetUserId() is int moderatorId
+                    ? Results.Ok(await service.BanAsync(userId, moderatorId, dto, cancellationToken))
+                    : ApiProblemResults.Problem(StatusCodes.Status401Unauthorized, AppErrors.Unauthorized))
+            .WithSummary("Bars a user from writing and editing comments for days, or for good (days null); replaces their current ban.")
+            .WithDescription("400 comment_ban_days_invalid (params.maxDays) or comment_ban_reason_too_long; 404 user_not_found; 409 comment_ban_admin.")
+            .Produces<CommentBanDto>()
+            .ProducesApiProblem(StatusCodes.Status400BadRequest, StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
+
+        moderation.MapDelete("/bans/{userId:int}", async (int userId, CommentModerationService service, CancellationToken cancellationToken) =>
+            {
+                await service.UnbanAsync(userId, cancellationToken);
+                return Results.NoContent();
+            })
+            .WithSummary("Lifts a user's comment ban; 204 also when there is none.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesApiProblem(StatusCodes.Status401Unauthorized, StatusCodes.Status403Forbidden);
 
         return builder;
     }

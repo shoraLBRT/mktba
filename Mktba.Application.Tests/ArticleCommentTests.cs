@@ -18,7 +18,7 @@ public sealed class ArticleCommentTests : IDisposable
 
     private readonly MktbaDbContext _db;
     private readonly FeedbackTests.FakeClock _clock = new(Now);
-    private CommentOptions _options = new() { PerUserLimit = 0 };
+    private CommentOptions _options = new() { PerUserLimit = 0, PremoderateFirst = 0, DuplicateWindowHours = 0 };
 
     public ArticleCommentTests()
     {

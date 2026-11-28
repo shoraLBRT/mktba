@@ -1,0 +1,68 @@
+{
+  "title": "Комментарии",
+  "description": "Комментарии, которые ждут проверки, получили жалобы или скрыты, и запреты комментировать. Новые читатели и спам попадают на проверку сами, комментарий с несколькими жалобами — тоже.",
+  "queuesLabel": "Очереди",
+  "queues": {
+    "Pending": "На проверке",
+    "Reported": "С жалобами",
+    "Hidden": "Скрытые"
+  },
+  "empty": {
+    "Pending": "Проверять нечего.",
+    "Reported": "Жалоб нет.",
+    "Hidden": "Скрытых комментариев нет."
+  },
+  "loadError": "Не удалось загрузить комментарии",
+  "listLabel": "Комментарии очереди",
+  "article": "Статья: {title}",
+  "articleUnpublished": "статья снята с публикации",
+  "reply": "ответ",
+  "noAuthor": "Автор удалён",
+  "noName": "без имени",
+  "authorBanned": "запрещено комментировать до {date}",
+  "authorBannedForever": "запрещено комментировать навсегда",
+  "holdReasons": {
+    "NewAuthor": "Новый читатель",
+    "Spam": "Похоже на спам",
+    "Reported": "Жалобы читателей"
+  },
+  "edited": "изменён",
+  "reportsTitle": "Жалобы ({count})",
+  "reportReasons": {
+    "Spam": "Спам или реклама",
+    "Abuse": "Оскорбления",
+    "Offtopic": "Не по теме",
+    "Other": "Другое"
+  },
+  "reportBy": "{reason} — {name}, {date}",
+  "unknownReporter": "пользователь удалён",
+  "approve": "Одобрить",
+  "restore": "Вернуть",
+  "hide": "Скрыть",
+  "delete": "Удалить",
+  "confirmDelete": "Удалить комментарий насовсем?",
+  "confirmDeleteYes": "Да, удалить",
+  "cancel": "Отмена",
+  "ban": "Запретить комментировать",
+  "banLabel": "Запрет комментировать: {name}",
+  "banDays": "Срок",
+  "banDurations": {
+    "7": "7 дней",
+    "30": "30 дней",
+    "365": "год",
+    "forever": "навсегда"
+  },
+  "banReason": "Причина (видят только администраторы)",
+  "banSubmit": "Запретить",
+  "bansTitle": "Запреты комментировать",
+  "bansEmpty": "Запретов нет.",
+  "bansLabel": "Запреты",
+  "banUntil": "до {date}",
+  "banForever": "навсегда",
+  "banBy": "выдал {name} {date}",
+  "unban": "Снять запрет",
+  "previousPage": "Назад",
+  "nextPage": "Дальше",
+  "pageInfo": "{from}–{to} из {total}",
+  "paginationLabel": "Страницы очереди"
+}

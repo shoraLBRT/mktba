@@ -7,6 +7,7 @@ import {
   createArticleComment,
   deleteArticleComment,
   getArticleComments,
+  reportArticleComment,
   updateArticleComment,
 } from '../../services/commentService';
 import type { ArticleCommentDto, ArticleCommentPageDto, ArticleCommentViewerDto } from '../../shared/types/ApiTypes';
@@ -18,6 +19,7 @@ vi.mock('../../services/commentService', async (importOriginal) => ({
   createArticleComment: vi.fn(),
   updateArticleComment: vi.fn(),
   deleteArticleComment: vi.fn(),
+  reportArticleComment: vi.fn(),
 }));
 
 const comment = (id: number, patch: Partial<ArticleCommentDto> = {}): ArticleCommentDto => ({
@@ -26,9 +28,12 @@ const comment = (id: number, patch: Partial<ArticleCommentDto> = {}): ArticleCom
   authorName: 'Аиша',
   body: `Комментарий ${id}`,
   isDeleted: false,
+  isHidden: false,
+  isPending: false,
   isMine: false,
   canEdit: false,
   canDelete: false,
+  canReport: false,
   createdAt: '2026-11-26T10:00:00Z',
   editedAt: null,
   ...patch,
@@ -63,6 +68,7 @@ afterEach(() => {
   vi.mocked(createArticleComment).mockReset();
   vi.mocked(updateArticleComment).mockReset();
   vi.mocked(deleteArticleComment).mockReset();
+  vi.mocked(reportArticleComment).mockReset();
 });
 
 describe('ArticleComments', () => {
@@ -167,5 +173,44 @@ describe('ArticleComments', () => {
 
     await waitFor(() => expect(screen.getAllByTestId('comment')).toHaveLength(2));
     expect(screen.queryByRole('button', { name: 'Показать ещё' })).toBeNull();
+  });
+
+  // C-02 (#128): moderation as readers see it.
+  it('shows the hidden placeholder, marks the reader\'s own comment awaiting moderation and reports someone else\'s', async () => {
+    vi.mocked(getArticleComments).mockResolvedValue(page(
+      [
+        comment(1, { isHidden: true, authorName: null, body: null }),
+        comment(2, { parentId: 1, canReport: true }),
+        comment(3, { isMine: true, isPending: true, canEdit: true, canDelete: true, body: 'Мой первый' }),
+      ],
+      canComment,
+    ));
+    vi.mocked(reportArticleComment).mockResolvedValue();
+
+    renderComments();
+
+    const items = await screen.findAllByTestId('comment');
+    expect(items[0].textContent).toContain('Комментарий скрыт модератором.');
+    expect(within(items[0]).queryByRole('button')).toBeNull();
+    expect(within(items[2]).getByTestId('comment-pending').textContent).toContain('На проверке');
+    expect(within(items[2]).queryByRole('button', { name: 'Пожаловаться' })).toBeNull();
+    fireEvent.click(within(items[1]).getByRole('button', { name: 'Пожаловаться' }));
+    const form = within(items[1]).getByRole('form', { name: 'Жалоба на комментарий' });
+    fireEvent.change(within(form).getByLabelText('Что не так'), { target: { value: 'Abuse' } });
+    fireEvent.change(within(form).getByLabelText('Пояснение (необязательно)'), { target: { value: '  Грубо ' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'Отправить жалобу' }));
+
+    await waitFor(() => expect(within(items[1]).getByRole('status').textContent).toBe('Жалоба отправлена. Спасибо!'));
+    expect(reportArticleComment).toHaveBeenCalledWith(2, { reason: 'Abuse', note: 'Грубо' });
+    expect(within(items[1]).queryByRole('button', { name: 'Пожаловаться' })).toBeNull();
+  });
+
+  it('tells a barred reader until when they may not comment', async () => {
+    vi.mocked(getArticleComments).mockResolvedValue(page([], { canComment: false, block: 'Banned', bannedUntil: '2026-12-05T10:00:00Z' }));
+
+    renderComments();
+
+    expect((await screen.findByTestId('comments-banned')).textContent).toMatch(/^Модератор запретил вам комментировать до .*2026/);
+    expect(screen.queryByLabelText('Ваш комментарий')).toBeNull();
   });
 });

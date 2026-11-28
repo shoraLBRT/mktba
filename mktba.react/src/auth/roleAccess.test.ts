@@ -3,7 +3,7 @@ import { roleAllows } from './roleAccess';
 
 describe('roleAllows', () => {
   it('given an admin, when checking every policy, then all pass', () => {
-    for (const policy of ['canEditArticles', 'canEditAnyArticle', 'canReviewArticles', 'canManageUsers', 'canConfigure', 'canViewSiteAnalytics', 'canViewAuditLog'] as const) {
+    for (const policy of ['canEditArticles', 'canEditAnyArticle', 'canReviewArticles', 'canManageUsers', 'canConfigure', 'canViewSiteAnalytics', 'canViewAuditLog', 'canModerateComments'] as const) {
       expect(roleAllows('Admin', policy)).toBe(true);
     }
   });

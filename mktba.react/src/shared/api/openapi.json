@@ -622,7 +622,7 @@
           "ArticleComments"
         ],
         "summary": "A new comment on a published article, or a reply (parentId) to one of its comments.",
-        "description": "400 comment_body_required or comment_body_too_long (params.maxLength); 404 article_not_found or comment_not_found (the parent); 409 email_not_confirmed, comment_display_name_required or comment_deleted (the parent); 429 comment_limit_reached (the account's limit) or too_many_requests (the address's).",
+        "description": "400 comment_body_required or comment_body_too_long (params.maxLength); 404 article_not_found or comment_not_found (the parent); 403 comment_banned (params.until); 409 email_not_confirmed, comment_display_name_required, comment_deleted or comment_hidden (the parent). The answer's isPending says it is held for a moderator; 429 comment_limit_reached (the account's limit) or too_many_requests (the address's).",
         "parameters": [
           {
             "name": "articleId",
@@ -675,6 +675,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -714,7 +724,7 @@
           "ArticleComments"
         ],
         "summary": "The new text of the caller's own comment.",
-        "description": "400 comment_body_required or comment_body_too_long; 403 forbidden (someone else's); 404 comment_not_found; 409 comment_deleted.",
+        "description": "400 comment_body_required or comment_body_too_long; 403 forbidden (someone else's) or comment_banned; 404 comment_not_found; 409 comment_deleted or comment_hidden. An edit the spam filter catches holds the comment again.",
         "parameters": [
           {
             "name": "id",
@@ -862,6 +872,429 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comments/{id}/reports": {
+      "post": {
+        "tags": [
+          "ArticleComments"
+        ],
+        "summary": "Reports someone else's published comment (C-02), once per reader; enough reports hold it for a moderator.",
+        "description": "400 comment_report_reason_required or comment_report_note_too_long (params.maxLength); 403 forbidden (one's own); 404 comment_not_found; 409 email_not_confirmed, comment_deleted, comment_hidden or comment_already_reported.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleCommentReportCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comments/moderation": {
+      "get": {
+        "tags": [
+          "ArticleComments"
+        ],
+        "summary": "A page of a moderation queue: comments held for a moderator, reported, or hidden; with every queue's count.",
+        "description": "queue Pending (default), Reported or Hidden; page from 1, pageSize 1 to 100 (20 by default). Authors' emails included.",
+        "parameters": [
+          {
+            "name": "queue",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentModerationPageDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comments/{id}/moderation": {
+      "post": {
+        "tags": [
+          "ArticleComments"
+        ],
+        "summary": "Approves (publishes, settling the reports so far) or hides a comment.",
+        "description": "400 comment_moderation_action_required; 404 comment_not_found; 409 comment_deleted.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentModerationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comments/bans": {
+      "get": {
+        "tags": [
+          "ArticleComments"
+        ],
+        "summary": "The users barred from commenting now, the newest ban first.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentBanDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comments/bans/{userId}": {
+      "put": {
+        "tags": [
+          "ArticleComments"
+        ],
+        "summary": "Bars a user from writing and editing comments for days, or for good (days null); replaces their current ban.",
+        "description": "400 comment_ban_days_invalid (params.maxDays) or comment_ban_reason_too_long; 404 user_not_found; 409 comment_ban_admin.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentBanCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentBanDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ArticleComments"
+        ],
+        "summary": "Lifts a user's comment ban; 204 also when there is none.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7114,7 +7547,8 @@
         "enum": [
           "SignInRequired",
           "EmailNotConfirmed",
-          "DisplayNameRequired"
+          "DisplayNameRequired",
+          "Banned"
         ],
         "type": "string"
       },
@@ -7141,10 +7575,13 @@
         "required": [
           "canDelete",
           "canEdit",
+          "canReport",
           "createdAt",
           "id",
           "isDeleted",
-          "isMine"
+          "isHidden",
+          "isMine",
+          "isPending"
         ],
         "type": "object",
         "properties": {
@@ -7168,6 +7605,12 @@
           "isDeleted": {
             "type": "boolean"
           },
+          "isHidden": {
+            "type": "boolean"
+          },
+          "isPending": {
+            "type": "boolean"
+          },
           "isMine": {
             "type": "boolean"
           },
@@ -7175,6 +7618,9 @@
             "type": "boolean"
           },
           "canDelete": {
+            "type": "boolean"
+          },
+          "canReport": {
             "type": "boolean"
           },
           "createdAt": {
@@ -7188,6 +7634,14 @@
           }
         },
         "additionalProperties": false
+      },
+      "ArticleCommentHoldReason": {
+        "enum": [
+          "NewAuthor",
+          "Spam",
+          "Reported"
+        ],
+        "type": "string"
       },
       "ArticleCommentPageDto": {
         "required": [
@@ -7228,6 +7682,36 @@
         },
         "additionalProperties": false
       },
+      "ArticleCommentReportCreateDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/ArticleCommentReportReason"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArticleCommentReportReason": {
+        "enum": [
+          "Spam",
+          "Abuse",
+          "Offtopic",
+          "Other"
+        ],
+        "type": "string"
+      },
+      "ArticleCommentStatus": {
+        "enum": [
+          "Published",
+          "Pending",
+          "Hidden"
+        ],
+        "type": "string"
+      },
       "ArticleCommentUpdateDto": {
         "type": "object",
         "properties": {
@@ -7249,6 +7733,11 @@
           },
           "block": {
             "$ref": "#/components/schemas/ArticleCommentBlock"
+          },
+          "bannedUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -9412,6 +9901,248 @@
           "page": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentBanCreateDto": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentBanDto": {
+        "required": [
+          "createdAt",
+          "email",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "until": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentModerationAction": {
+        "enum": [
+          "Approve",
+          "Hide"
+        ],
+        "type": "string"
+      },
+      "CommentModerationCountsDto": {
+        "required": [
+          "hidden",
+          "pending",
+          "reported"
+        ],
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reported": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hidden": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentModerationDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/CommentModerationAction"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentModerationItemDto": {
+        "required": [
+          "articleId",
+          "articlePublished",
+          "articleSlug",
+          "articleTitle",
+          "authorBanned",
+          "body",
+          "createdAt",
+          "id",
+          "reports",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleTitle": {
+            "type": "string"
+          },
+          "articleSlug": {
+            "type": "string"
+          },
+          "articlePublished": {
+            "type": "boolean"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "authorId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "authorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorBanned": {
+            "type": "boolean"
+          },
+          "authorBannedUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "body": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleCommentStatus"
+          },
+          "holdReason": {
+            "$ref": "#/components/schemas/ArticleCommentHoldReason"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "moderatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentReportSummaryDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentModerationPageDto": {
+        "required": [
+          "counts",
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentModerationItemDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/CommentModerationCountsDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentReportSummaryDto": {
+        "required": [
+          "createdAt",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/ArticleCommentReportReason"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporterName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false

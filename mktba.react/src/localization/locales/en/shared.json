@@ -137,7 +137,12 @@
     "comment_body_too_long": "A comment can be at most {maxLength} characters long.",
     "comment_deleted": "The comment has been deleted.",
     "comment_display_name_required": "To comment, set a name in your profile.",
-    "comment_limit_reached": "You are commenting too often. Please try again in a few minutes."
+    "comment_limit_reached": "You are commenting too often. Please try again in a few minutes.",
+    "comment_banned": "A moderator has barred you from commenting.",
+    "comment_hidden": "This comment was hidden by a moderator.",
+    "comment_already_reported": "You have already reported this comment.",
+    "comment_report_reason_required": "Choose what is wrong with the comment.",
+    "comment_report_note_too_long": "The details must be at most {maxLength} characters."
   },
   "articleStatus": {
     "Draft": "Draft",

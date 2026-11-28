@@ -31,7 +31,7 @@ export const commentRows = (items: readonly ArticleCommentDto[], noName: string)
     depths.set(comment.id, depth);
     const level = Math.min(depth, COMMENT_MAX_LEVEL);
     const parent = comment.parentId == null ? undefined : byId.get(comment.parentId);
-    const replyTo = depth > COMMENT_MAX_LEVEL && parent && !parent.isDeleted ? parent.authorName ?? noName : null;
+    const replyTo = depth > COMMENT_MAX_LEVEL && parent && !parent.isDeleted && !parent.isHidden ? parent.authorName ?? noName : null;
     return { comment, level, replyTo };
   });
 };

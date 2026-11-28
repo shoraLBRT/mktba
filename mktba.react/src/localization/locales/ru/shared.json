@@ -162,7 +162,12 @@
     "comment_body_too_long": "Комментарий — не длиннее {maxLength} символов.",
     "comment_deleted": "Комментарий удалён.",
     "comment_display_name_required": "Чтобы комментировать, укажите имя в профиле.",
-    "comment_limit_reached": "Вы комментируете слишком часто. Попробуйте через несколько минут."
+    "comment_limit_reached": "Вы комментируете слишком часто. Попробуйте через несколько минут.",
+    "comment_banned": "Модератор запретил вам комментировать.",
+    "comment_hidden": "Комментарий скрыт модератором.",
+    "comment_already_reported": "Вы уже пожаловались на этот комментарий.",
+    "comment_report_reason_required": "Выберите, что не так с комментарием.",
+    "comment_report_note_too_long": "Пояснение — не длиннее {maxLength} символов."
   },
   "articleStatus": {
     "Draft": "Черновик",
