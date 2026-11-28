@@ -43,7 +43,9 @@ test('a reader comments under an article, answers, edits and deletes; the server
   const held = await first.json() as { id: number; isPending: boolean };
   expect(held.isPending).toBe(true);
   expect((await (await request.get(`${API_URL}/articles/${article.id}/comments`)).json() as { total: number }).total).toBe(0);
-  const moderator = await browser.newPage();
+  // A page of its own context: axe cannot analyse a page made by browser.newPage().
+  const moderatorContext = await browser.newContext();
+  const moderator = await moderatorContext.newPage();
   await declineAnalytics(moderator);
   await logIn(moderator);
   await moderator.goto('/admin/comments');
@@ -52,7 +54,7 @@ test('a reader comments under an article, answers, edits and deletes; the server
   expect(await seriousViolations(moderator)).toEqual([]);
   await queued.getByRole('button', { name: 'Одобрить' }).click();
   await expect(queued).toHaveCount(0);
-  await moderator.close();
+  await moderatorContext.close();
 
   const html = await (await request.get(`/${article.slug}`)).text();
   expect(html).not.toContain('Спасибо');
