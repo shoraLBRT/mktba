@@ -1,6 +1,11 @@
 import { APP_CONSTANTS } from '../constants/AppConstants';
 import apiClient from '../shared/api-client/ApiClient';
-import type { ArticleCommentCreateDto, ArticleCommentDto, ArticleCommentPageDto } from '../shared/types/ApiTypes';
+import type {
+  ArticleCommentCreateDto,
+  ArticleCommentDto,
+  ArticleCommentPageDto,
+  ArticleCommentReportCreateDto,
+} from '../shared/types/ApiTypes';
 
 /** Top-level comments a page asks for (C-01, #127); the server's default. */
 export const COMMENTS_PAGE_SIZE = 20;
@@ -32,4 +37,9 @@ export const updateArticleComment = async (commentId: number, body: string): Pro
 /** Deletes a comment softly: its author, or an admin any. */
 export const deleteArticleComment = async (commentId: number): Promise<void> => {
   await apiClient.delete(`/comments/${commentId}`);
+};
+
+/** Reports someone else's published comment (C-02, #128), once per reader. */
+export const reportArticleComment = async (commentId: number, report: ArticleCommentReportCreateDto): Promise<void> => {
+  await apiClient.post(`/comments/${commentId}/reports`, report);
 };

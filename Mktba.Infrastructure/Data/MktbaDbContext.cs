@@ -50,6 +50,8 @@ namespace Mktba.Infrastructure.Data
         public DbSet<ArticleRemark> ArticleRemarks { get; set; } = null!;
         public DbSet<ArticleRemarkMessage> ArticleRemarkMessages { get; set; } = null!;
         public DbSet<ArticleComment> ArticleComments { get; set; } = null!;
+        public DbSet<ArticleCommentReport> ArticleCommentReports { get; set; } = null!;
+        public DbSet<CommentBan> CommentBans { get; set; } = null!;
         public DbSet<ArticleRevisionFingerprint> ArticleRevisionFingerprints { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<NotificationEmail> NotificationEmails { get; set; } = null!;
@@ -869,6 +871,46 @@ namespace Mktba.Infrastructure.Data
                 comment.HasOne(c => c.DeletedBy)
                     .WithMany()
                     .HasForeignKey(c => c.DeletedById)
+                    .OnDelete(DeleteBehavior.SetNull);
+                // Moderation (C-02, #128): the comments written before it are published.
+                comment.Property(c => c.Status).HasConversion<string>().HasMaxLength(16).IsRequired()
+                    .HasDefaultValue(ArticleCommentStatus.Published).HasSentinel((ArticleCommentStatus)0);
+                comment.Property(c => c.HoldReason).HasConversion<string>().HasMaxLength(16);
+                comment.HasIndex(c => new { c.Status, c.CreatedAt });
+                comment.HasOne(c => c.ModeratedBy)
+                    .WithMany()
+                    .HasForeignKey(c => c.ModeratedById)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Reports of a comment (C-02, #128): one per reporter; they go with the comment or the reporter.
+            modelBuilder.Entity<ArticleCommentReport>(report =>
+            {
+                report.HasIndex(r => new { r.CommentId, r.ReporterId }).IsUnique();
+                report.Property(r => r.Reason).HasConversion<string>().HasMaxLength(16).IsRequired();
+                report.Property(r => r.Note).HasMaxLength(ArticleCommentReport.NoteMaxLength);
+                report.HasOne(r => r.Comment)
+                    .WithMany()
+                    .HasForeignKey(r => r.CommentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                report.HasOne(r => r.Reporter)
+                    .WithMany()
+                    .HasForeignKey(r => r.ReporterId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Comment bans (C-02, #128): one per user, gone with the user; the moderator's id is cleared.
+            modelBuilder.Entity<CommentBan>(ban =>
+            {
+                ban.HasIndex(b => b.UserId).IsUnique();
+                ban.Property(b => b.Reason).HasMaxLength(CommentBan.ReasonMaxLength);
+                ban.HasOne(b => b.User)
+                    .WithMany()
+                    .HasForeignKey(b => b.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                ban.HasOne(b => b.CreatedBy)
+                    .WithMany()
+                    .HasForeignKey(b => b.CreatedById)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 

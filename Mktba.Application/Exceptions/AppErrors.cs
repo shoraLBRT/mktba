@@ -465,6 +465,34 @@ public static class AppErrors
     public static AppError CommentLimitReached =>
         new("comment_limit_reached", "You are commenting too often. Try again in a few minutes.");
 
+    // Comment moderation (C-02)
+    public static AppError CommentBanned(DateTime? until) =>
+        new("comment_banned", "You may not comment for now.", With(("until", until)));
+
+    public static AppError CommentHidden =>
+        new("comment_hidden", "The comment has been hidden by a moderator.");
+
+    public static AppError CommentAlreadyReported =>
+        new("comment_already_reported", "You have already reported this comment.");
+
+    public static AppError CommentReportReasonRequired =>
+        new("comment_report_reason_required", "Choose what is wrong with the comment.");
+
+    public static AppError CommentReportNoteTooLong(int maxLength) =>
+        new("comment_report_note_too_long", $"The note must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
+    public static AppError CommentModerationActionRequired =>
+        new("comment_moderation_action_required", "Choose whether to approve or hide the comment.");
+
+    public static AppError CommentBanAdmin =>
+        new("comment_ban_admin", "An administrator cannot be barred from commenting.");
+
+    public static AppError CommentBanDaysInvalid(int maxDays) =>
+        new("comment_ban_days_invalid", $"A ban lasts from 1 to {maxDays} days, or for good.", With(("maxDays", maxDays)));
+
+    public static AppError CommentBanReasonTooLong(int maxLength) =>
+        new("comment_ban_reason_too_long", $"The reason must be at most {maxLength} characters.", With(("maxLength", maxLength)));
+
     // Notifications (V-09)
     public static AppError NotificationNotFound =>
         new("notification_not_found", "Notification not found.");

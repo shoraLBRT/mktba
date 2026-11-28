@@ -65,6 +65,58 @@ public abstract class ArticleCommentEndpointTests
     }
 
     [Fact]
+    public async Task GivenReportedComment_WhenModeratorsWorkTheQueuesAndBanTheAuthor_ThenReadersSeeTheOutcome()
+    {
+        var (admin, _) = await RoleClients.CreateAsync(_factory, UserRole.Admin);
+        var (author, _) = await RoleClients.CreateAsync(_factory, UserRole.Author);
+        var (writer, writerId) = await ReaderAsync("Спорщик");
+        var reporters = new[] { await ReaderAsync("Первый"), await ReaderAsync("Второй"), await ReaderAsync("Третий") };
+        var articleId = await PublishedArticleAsync(author, admin);
+        var comment = await ReadAsync(await writer.PostAsJsonAsync(
+            $"/articles/{articleId}/comments", new ArticleCommentCreateDto("Резкое мнение", null, null), ApiJson.Options));
+
+        (await writer.PostAsJsonAsync($"/comments/{comment.Id}/reports", new ArticleCommentReportCreateDto(ArticleCommentReportReason.Spam, null), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await reporters[0].Client.PostAsJsonAsync($"/comments/{comment.Id}/reports", new ArticleCommentReportCreateDto(ArticleCommentReportReason.Abuse, "Грубо"), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var reported = await admin.GetFromJsonAsync<CommentModerationPageDto>("/comments/moderation?queue=Reported", ApiJson.Options);
+        reported!.Items.Should().ContainSingle(item => item.Id == comment.Id && item.Reports.Count == 1 && item.AuthorId == writerId);
+        foreach (var (client, _) in reporters.Skip(1))
+        {
+            (await client.PostAsJsonAsync($"/comments/{comment.Id}/reports", new ArticleCommentReportCreateDto(ArticleCommentReportReason.Spam, null), ApiJson.Options))
+                .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        }
+
+        var anonymous = _factory.CreateClient();
+        (await anonymous.GetFromJsonAsync<ArticleCommentPageDto>($"/articles/{articleId}/comments", ApiJson.Options))!.Items.Should().BeEmpty();
+        var pending = await admin.GetFromJsonAsync<CommentModerationPageDto>("/comments/moderation", ApiJson.Options);
+        pending!.Items.Should().Contain(item => item.Id == comment.Id && item.HoldReason == ArticleCommentHoldReason.Reported && item.Reports.Count == 3);
+
+        (await admin.PostAsJsonAsync($"/comments/{comment.Id}/moderation", new CommentModerationDto(CommentModerationAction.Hide), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var banned = await admin.PutAsJsonAsync($"/comments/bans/{writerId}", new CommentBanCreateDto(30, "Грубость"), ApiJson.Options);
+        banned.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var refused = await writer.PostAsJsonAsync($"/articles/{articleId}/comments", new ArticleCommentCreateDto("Ещё", null, null), ApiJson.Options);
+        refused.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await ApiJson.ReadCodeAsync(refused)).Should().Be("comment_banned");
+        var forWriter = await writer.GetFromJsonAsync<ArticleCommentPageDto>($"/articles/{articleId}/comments", ApiJson.Options);
+        forWriter!.Viewer.Block.Should().Be(ArticleCommentBlock.Banned);
+        forWriter.Items.Should().BeEmpty();
+        (await admin.GetFromJsonAsync<List<CommentBanDto>>("/comments/bans", ApiJson.Options))!.Should().Contain(ban => ban.UserId == writerId && ban.Reason == "Грубость");
+        (await admin.GetFromJsonAsync<CommentModerationPageDto>("/comments/moderation?queue=Hidden", ApiJson.Options))!
+            .Items.Should().Contain(item => item.Id == comment.Id && item.AuthorBanned);
+
+        (await admin.DeleteAsync($"/comments/bans/{writerId}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await admin.PostAsJsonAsync($"/comments/{comment.Id}/moderation", new CommentModerationDto(CommentModerationAction.Approve), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await anonymous.GetFromJsonAsync<ArticleCommentPageDto>($"/articles/{articleId}/comments", ApiJson.Options))!
+            .Items.Select(item => item.Body).Should().Equal("Резкое мнение");
+        (await writer.PostAsJsonAsync($"/articles/{articleId}/comments", new ArticleCommentCreateDto("Исправлюсь", null, null), ApiJson.Options))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task GivenReaderWithoutDisplayName_WhenCommenting_ThenItAnswersConflictAndNothingIsStored()
     {
         var (admin, _) = await RoleClients.CreateAsync(_factory, UserRole.Admin);

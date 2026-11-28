@@ -633,7 +633,7 @@ export interface paths {
         put?: never;
         /**
          * A new comment on a published article, or a reply (parentId) to one of its comments.
-         * @description 400 comment_body_required or comment_body_too_long (params.maxLength); 404 article_not_found or comment_not_found (the parent); 409 email_not_confirmed, comment_display_name_required or comment_deleted (the parent); 429 comment_limit_reached (the account's limit) or too_many_requests (the address's).
+         * @description 400 comment_body_required or comment_body_too_long (params.maxLength); 404 article_not_found or comment_not_found (the parent); 403 comment_banned (params.until); 409 email_not_confirmed, comment_display_name_required, comment_deleted or comment_hidden (the parent). The answer's isPending says it is held for a moderator; 429 comment_limit_reached (the account's limit) or too_many_requests (the address's).
          */
         post: {
             parameters: {
@@ -670,6 +670,15 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -722,7 +731,7 @@ export interface paths {
         get?: never;
         /**
          * The new text of the caller's own comment.
-         * @description 400 comment_body_required or comment_body_too_long; 403 forbidden (someone else's); 404 comment_not_found; 409 comment_deleted.
+         * @description 400 comment_body_required or comment_body_too_long; 403 forbidden (someone else's) or comment_banned; 404 comment_not_found; 409 comment_deleted or comment_hidden. An edit the spam filter catches holds the comment again.
          */
         put: {
             parameters: {
@@ -856,6 +865,434 @@ export interface paths {
                 };
                 /** @description Too Many Requests */
                 429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/comments/{id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reports someone else's published comment (C-02), once per reader; enough reports hold it for a moderator.
+         * @description 400 comment_report_reason_required or comment_report_note_too_long (params.maxLength); 403 forbidden (one's own); 404 comment_not_found; 409 email_not_confirmed, comment_deleted, comment_hidden or comment_already_reported.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArticleCommentReportCreateDto"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/comments/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A page of a moderation queue: comments held for a moderator, reported, or hidden; with every queue's count.
+         * @description queue Pending (default), Reported or Hidden; page from 1, pageSize 1 to 100 (20 by default). Authors' emails included.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    queue?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentModerationPageDto"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/comments/{id}/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approves (publishes, settling the reports so far) or hides a comment.
+         * @description 400 comment_moderation_action_required; 404 comment_not_found; 409 comment_deleted.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CommentModerationDto"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/comments/bans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The users barred from commenting now, the newest ban first. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentBanDto"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/comments/bans/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Bars a user from writing and editing comments for days, or for good (days null); replaces their current ban.
+         * @description 400 comment_ban_days_invalid (params.maxDays) or comment_ban_reason_too_long; 404 user_not_found; 409 comment_ban_admin.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CommentBanCreateDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentBanDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Lifts a user's comment ban; 204 also when there is none. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7077,7 +7514,7 @@ export interface components {
             status: components["schemas"]["ArticleStatus"];
         };
         /** @enum {string} */
-        ArticleCommentBlock: "SignInRequired" | "EmailNotConfirmed" | "DisplayNameRequired";
+        ArticleCommentBlock: "SignInRequired" | "EmailNotConfirmed" | "DisplayNameRequired" | "Banned";
         ArticleCommentCreateDto: {
             body?: string | null;
             /** Format: int32 */
@@ -7092,14 +7529,19 @@ export interface components {
             authorName?: string | null;
             body?: string | null;
             isDeleted: boolean;
+            isHidden: boolean;
+            isPending: boolean;
             isMine: boolean;
             canEdit: boolean;
             canDelete: boolean;
+            canReport: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             editedAt?: string | null;
         };
+        /** @enum {string} */
+        ArticleCommentHoldReason: "NewAuthor" | "Spam" | "Reported";
         ArticleCommentPageDto: {
             items: components["schemas"]["ArticleCommentDto"][];
             /** Format: int32 */
@@ -7112,12 +7554,22 @@ export interface components {
             pageSize: number;
             viewer: components["schemas"]["ArticleCommentViewerDto"];
         };
+        ArticleCommentReportCreateDto: {
+            reason?: components["schemas"]["ArticleCommentReportReason"];
+            note?: string | null;
+        };
+        /** @enum {string} */
+        ArticleCommentReportReason: "Spam" | "Abuse" | "Offtopic" | "Other";
+        /** @enum {string} */
+        ArticleCommentStatus: "Published" | "Pending" | "Hidden";
         ArticleCommentUpdateDto: {
             body?: string | null;
         };
         ArticleCommentViewerDto: {
             canComment: boolean;
             block?: components["schemas"]["ArticleCommentBlock"];
+            /** Format: date-time */
+            bannedUntil?: string | null;
         };
         ArticleContentCreateDto: {
             title: string;
@@ -7738,6 +8190,81 @@ export interface components {
             message?: string | null;
             stack?: string | null;
             page?: string | null;
+        };
+        CommentBanCreateDto: {
+            /** Format: int32 */
+            days?: number | null;
+            reason?: string | null;
+        };
+        CommentBanDto: {
+            /** Format: int32 */
+            userId: number;
+            email: string;
+            displayName?: string | null;
+            /** Format: date-time */
+            until?: string | null;
+            reason?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName?: string | null;
+        };
+        /** @enum {string} */
+        CommentModerationAction: "Approve" | "Hide";
+        CommentModerationCountsDto: {
+            /** Format: int32 */
+            pending: number;
+            /** Format: int32 */
+            reported: number;
+            /** Format: int32 */
+            hidden: number;
+        };
+        CommentModerationDto: {
+            action?: components["schemas"]["CommentModerationAction"];
+        };
+        CommentModerationItemDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            articleId: number;
+            articleTitle: string;
+            articleSlug: string;
+            articlePublished: boolean;
+            /** Format: int32 */
+            parentId?: number | null;
+            /** Format: int32 */
+            authorId?: number | null;
+            authorName?: string | null;
+            authorEmail?: string | null;
+            authorBanned: boolean;
+            /** Format: date-time */
+            authorBannedUntil?: string | null;
+            body: string;
+            status: components["schemas"]["ArticleCommentStatus"];
+            holdReason?: components["schemas"]["ArticleCommentHoldReason"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            editedAt?: string | null;
+            /** Format: date-time */
+            moderatedAt?: string | null;
+            reports: components["schemas"]["CommentReportSummaryDto"][];
+        };
+        CommentModerationPageDto: {
+            items: components["schemas"]["CommentModerationItemDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            counts: components["schemas"]["CommentModerationCountsDto"];
+        };
+        CommentReportSummaryDto: {
+            reason: components["schemas"]["ArticleCommentReportReason"];
+            note?: string | null;
+            reporterName?: string | null;
+            /** Format: date-time */
+            createdAt: string;
         };
         ConfirmEmailRequestDto: {
             token: string;

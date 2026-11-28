@@ -103,6 +103,12 @@ public abstract class EndpointAuthorizationMatrixTests
         ["POST /articles/{articleId:int}/comments"] = Policies.Authenticated,
         ["PUT /comments/{id:int}"] = Policies.Authenticated,
         ["DELETE /comments/{id:int}"] = Policies.Authenticated,
+        ["POST /comments/{id:int}/reports"] = Policies.Authenticated,
+        ["GET /comments/moderation"] = Policies.CanModerateComments,
+        ["POST /comments/{id:int}/moderation"] = Policies.CanModerateComments,
+        ["GET /comments/bans"] = Policies.CanModerateComments,
+        ["PUT /comments/bans/{userId:int}"] = Policies.CanModerateComments,
+        ["DELETE /comments/bans/{userId:int}"] = Policies.CanModerateComments,
         ["GET /schools/system"] = Public,
         ["GET /schools/article/{articleId:int}"] = Public,
 

@@ -39,7 +39,7 @@ describe('ArticleCommentsSlot', () => {
 
   it('loads the comments when the reader asks for them', async () => {
     vi.mocked(getArticleComments).mockResolvedValue({
-      items: [{ id: 1, parentId: null, authorName: 'Аиша', body: 'Спасибо', isDeleted: false, isMine: false, canEdit: false, canDelete: false, createdAt: '2026-11-26T10:00:00Z', editedAt: null }],
+      items: [{ id: 1, parentId: null, authorName: 'Аиша', body: 'Спасибо', isDeleted: false, isHidden: false, isPending: false, isMine: false, canEdit: false, canDelete: false, canReport: false, createdAt: '2026-11-26T10:00:00Z', editedAt: null }],
       total: 1,
       threads: 1,
       page: 1,

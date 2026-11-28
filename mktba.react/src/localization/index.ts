@@ -24,6 +24,7 @@ export const dictionaries = loadedDictionaries as typeof loadedDictionaries & {
     & { analyticsTools: typeof import('./locales/ru/admin/analyticsTools.json') }
     & { articleTrash: typeof import('./locales/ru/admin/articleTrash.json') }
     & { auditLog: typeof import('./locales/ru/admin/auditLog.json') }
+    & { commentModeration: typeof import('./locales/ru/admin/commentModeration.json') }
     & { scholarApplication: typeof import('./locales/ru/admin/scholarApplication.json') }
     & { scholarReview: typeof import('./locales/ru/admin/scholarReview.json') }
     & { articleReview: typeof import('./locales/ru/admin/articleReview.json') }

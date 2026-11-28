@@ -23,6 +23,7 @@ import AdminSessionsPage from '../pages/admin/AdminSessionsPage';
 import AdminTagsPage from '../pages/admin/AdminTagsPage';
 import AdminTrashPage from '../pages/admin/AdminTrashPage';
 import AdminAuditLogPage from '../pages/admin/AdminAuditLogPage';
+import AdminCommentsPage from '../pages/admin/AdminCommentsPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import AdminLayout from '../layouts/AdminLayout';
 import { AdminIndexRoute, AdminSectionRoute } from '../layouts/AdminRouteGuards';
@@ -38,6 +39,7 @@ const SECTION_PAGES: Record<AdminSectionId, ReactElement> = {
   mine: <AdminMyArticlesPage />,
   tags: <AdminTagsPage />,
   review: <AdminReviewQueuePage />,
+  comments: <AdminCommentsPage />,
   users: <AdminUsersPage />,
   scholarReview: <AdminScholarReviewPage />,
   articleReviews: <AdminArticleReviewsPage />,

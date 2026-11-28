@@ -55,6 +55,9 @@ public class MktbaApiFactory : WebApplicationFactory<Program>
         ["RateLimiting:AccountEmail:PermitLimit"] = "10000",
         ["RateLimiting:Comments:PermitLimit"] = "10000",
         ["Comments:PerUserLimit"] = "0",
+        // Moderation (C-02, #128) has its own tests; elsewhere a reader's first comment and a repeated text are published at once.
+        ["Comments:PremoderateFirst"] = "0",
+        ["Comments:DuplicateWindowHours"] = "0",
         ["Feedback:Intake:MaxPerHour"] = "0",
         // The email outbox is walked by the tests themselves (NotificationEmailService), not by the worker.
         ["Email:Delivery:PollIntervalSeconds"] = "86400",
